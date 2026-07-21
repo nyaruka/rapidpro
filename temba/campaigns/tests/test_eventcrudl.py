@@ -1,3 +1,7 @@
+from uuid import uuid4
+
+from django_valkey import get_valkey_connection
+
 from django.urls import reverse
 
 from temba.campaigns.models import Campaign, CampaignEvent
@@ -14,6 +18,12 @@ from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 def _compose(translations):
     return json.dumps(compose_serialize(translations))
+
+
+def add_recent_contact(event, contact, ts: float):
+    r = get_valkey_connection()
+    member = f"{uuid4()}|{contact.id}"
+    r.zadd(f"recent_campaign_fires:{event.id}", mapping={member: ts})
 
 
 class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
@@ -42,6 +52,75 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             org, user, campaign, registered, offset=2, unit="W", flow=background_flow, delivery_hour="13"
         )
         return campaign
+
+    @mock_mailroom
+    def test_update_preview_success_url(self, mr_mocks):
+        event = self.campaign1.events.order_by("id").first()
+        registered = self.org.fields.get(key="registered")
+        flow = self.org.flows.get(name="Welcomes Flow")
+
+        update_url = reverse("campaigns.campaignevent_update", args=[event.uuid])
+        data = {
+            "event_type": "F",
+            "relative_to": registered.id,
+            "offset": 1,
+            "unit": "W",
+            "delivery_hour": 13,
+            "direction": "A",
+            "flow_to_start": flow.id,
+            "flow_start_mode": "I",
+        }
+
+        self.login(self.admin)
+
+        # outside preview the edit modal continues to the event read page
+        response = self.client.post(update_url, data)
+        self.assertRedirects(
+            response,
+            reverse("campaigns.campaignevent_read", args=[self.campaign1.uuid, event.uuid]),
+            fetch_redirect_response=False,
+        )
+
+        # in preview there is no event read page - it returns to the campaign
+        self.client.cookies["temba-preview"] = "1"
+        response = self.client.post(update_url, data)
+        self.assertRedirects(
+            response, reverse("campaigns.campaign_read", args=[self.campaign1.uuid]), fetch_redirect_response=False
+        )
+
+    def test_fires(self):
+        event = self.campaign1.events.order_by("id").first()
+        contact = self.create_contact("Ann", phone="+1234567890")
+        add_recent_contact(event, contact, 1639338554.969123)
+
+        fires_url = reverse("campaigns.campaignevent_fires", args=[event.uuid])
+
+        self.assertRequestDisallowed(fires_url, [None, self.agent, self.admin2])
+
+        self.login(self.editor)
+
+        # like the preview read page it feeds, the endpoint only exists in preview mode
+        response = self.client.get(fires_url)
+        self.assertEqual(404, response.status_code)
+
+        self.client.cookies["temba-preview"] = "1"
+        response = self.client.get(fires_url)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "fires": [
+                    {
+                        "contact": {
+                            "uuid": str(contact.uuid),
+                            "name": "Ann",
+                            "url": f"/contact/read/{contact.uuid}/",
+                        },
+                        "time": "2021-12-12T19:49:14.969123+00:00",
+                    }
+                ]
+            },
+            response.json(),
+        )
 
     def test_read(self):
         event = self.campaign1.events.order_by("id").first()

@@ -6,6 +6,7 @@ from django import forms
 from django.db.models.functions import Upper
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
@@ -420,7 +421,7 @@ class TriggerCRUDL(SmartCRUDL):
             response["REDIRECT"] = self.get_success_url()
             return response
 
-    class BaseList(SpaMixin, BulkActionMixin, BaseListView):
+    class BaseList(SpaMixin, BulkActionMixin, ContextMenuMixin, BaseListView):
         """
         Base class for list views
         """
@@ -430,6 +431,53 @@ class TriggerCRUDL(SmartCRUDL):
         default_template = "triggers/trigger_list.html"
         search_fields = ("keywords__icontains", "flow__name__icontains", "channel__name__icontains")
 
+        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
+        # every trigger list view renders the temba-trigger-list component (triggers/trigger_list_new.html) instead
+        # of its legacy table; the component fetches/pages triggers itself from the internal triggers API.
+        NEW_LIST_TEMPLATE = "triggers/trigger_list_new.html"
+
+        # Optional subtitle rendered under the title on the new-list view.
+        subtitle = ""
+
+        # Bulk-action key -> config consumed by temba-trigger-list (label, icon). Triggers post their numeric ids in
+        # `objects`, matching BulkActionMixin's pk matching, so no uuid translation is needed on POST.
+        BULK_ACTION_CONFIG = {
+            "archive": {"label": _("Archive"), "icon": "archive"},
+            "restore": {"label": _("Restore"), "icon": "restore"},
+            "delete": {
+                "label": _("Delete"),
+                "icon": "delete",
+                "destructive": True,
+                "confirm": _("Are you sure you want to delete the selected triggers? This cannot be undone."),
+            },
+        }
+
+        def _use_new_list(self) -> bool:
+            # `getattr` defaults to False so a view called via RequestFactory (or if PreviewMiddleware is reordered
+            # out) doesn't AttributeError.
+            return getattr(self.request, "preview", False)
+
+        def get_template_names(self):
+            if self._use_new_list():
+                return [self.NEW_LIST_TEMPLATE]
+            return super().get_template_names()
+
+        def get_paginate_by(self, queryset):
+            # The temba-trigger-list component fetches and pages triggers itself.
+            if self._use_new_list():
+                return None
+            return super().get_paginate_by(queryset)
+
+        def derive_subtitle(self):
+            return self.subtitle
+
+        def derive_new_list_query(self) -> str:
+            return "folder=active"
+
+        def build_context_menu(self, menu):
+            if self.has_org_perm("triggers.trigger_create"):
+                menu.add_link(_("New Trigger"), reverse("triggers.trigger_create"), as_button=True)
+
         def derive_queryset(self, *args, **kwargs):
             return (
                 super()
@@ -438,6 +486,36 @@ class TriggerCRUDL(SmartCRUDL):
                 .select_related("flow", "channel")
                 .prefetch_related("contacts", "groups", "exclude_groups")
             )
+
+        def get_queryset(self, *args, **kwargs):
+            # In preview the temba-trigger-list component fetches and pages triggers from the internal triggers API,
+            # so a GET page needs no object list. A POST (bulk action) still needs the real queryset, since
+            # BulkActionMixin validates the posted `objects` against it.
+            if self._use_new_list() and self.request.method == "GET":
+                return Trigger.objects.none()
+
+            return super().get_queryset(*args, **kwargs)
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+
+            # New-list view context: the resolved triggers-api endpoint (folder= for active/archived/type folders),
+            # the subtitle, and the bulk-action configs the temba-trigger-list expects (resolved + JSON-encoded here
+            # so the template stays inert).
+            if self._use_new_list():
+                context["new_list_endpoint"] = f"{reverse('api.internal.triggers')}.json?{self.derive_new_list_query()}"
+                subtitle = self.derive_subtitle()
+                context["new_list_subtitle"] = str(subtitle) if subtitle else ""
+                actions = []
+                for key in self.get_bulk_actions():
+                    cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
+                    cfg["key"] = key
+                    # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
+                    cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
+                    actions.append(cfg)
+                context["new_list_bulk_actions"] = actions
+
+            return context
 
     class List(BaseList):
         """
@@ -449,8 +527,9 @@ class TriggerCRUDL(SmartCRUDL):
         menu_path = "/trigger/active"
 
         def pre_process(self, request, *args, **kwargs):
-            # if they have no triggers and no search performed, send them to create page
-            obj_count = super().get_queryset(*args, **kwargs).count()
+            # if they have no triggers and no search performed, send them to create page. Counted directly rather
+            # than via get_queryset, which is empty on a preview GET.
+            obj_count = request.org.triggers.filter(is_active=True).count()
             if obj_count == 0 and not request.GET.get("search", ""):
                 return HttpResponseRedirect(reverse("triggers.trigger_create"))
 
@@ -459,7 +538,7 @@ class TriggerCRUDL(SmartCRUDL):
         def get_queryset(self, *args, **kwargs):
             return super().get_queryset(*args, **kwargs).filter(is_archived=False)
 
-    class Archived(ContextMenuMixin, BaseList):
+    class Archived(BaseList):
         """
         Archived triggers of all types
         """
@@ -468,7 +547,11 @@ class TriggerCRUDL(SmartCRUDL):
         title = _("Archived")
         menu_path = "/trigger/archived"
 
+        def derive_new_list_query(self) -> str:
+            return "folder=archived"
+
         def build_context_menu(self, menu):
+            super().build_context_menu(menu)
             menu.add_js("triggers_delete_all", _("Delete All"))
 
         def get_queryset(self, *args, **kwargs):
@@ -495,6 +578,9 @@ class TriggerCRUDL(SmartCRUDL):
 
         def derive_title(self):
             return self.folder.title
+
+        def derive_new_list_query(self) -> str:
+            return f"folder={self.folder.slug}"
 
         def get_queryset(self, *args, **kwargs):
             return (

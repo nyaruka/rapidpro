@@ -3,12 +3,12 @@ import logging
 from rest_framework import exceptions, status
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.exceptions import APIException
-from rest_framework.pagination import CursorPagination
+from rest_framework.pagination import CursorPagination, PageNumberPagination
 from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.throttling import ScopedRateThrottle
 
 from django.conf import settings
-from django.http import HttpResponseServerError
+from django.http import HttpResponse, HttpResponseServerError
 
 from temba.utils import str_to_bool
 
@@ -152,6 +152,21 @@ class DocumentationRenderer(BrowsableAPIRenderer):
         }
 
 
+class SearchLengthMixin:
+    """
+    View mixin that rejects an over-long `search=` value with a 413 before it can drive an expensive database/ES
+    query — the same cap and response as BaseListView.
+    """
+
+    search_max_length = 1_000
+
+    def get(self, request, *args, **kwargs):
+        search = request.query_params.get("search") or ""
+        if len(search) > self.search_max_length:
+            return HttpResponse("Search query too long", status=413)
+        return super().get(request, *args, **kwargs)
+
+
 class SearchCountMixin:
     """
     Pagination mixin that includes a `count` of matching rows on the response when the request carries a `search=`
@@ -172,6 +187,17 @@ class SearchCountMixin:
         if count is not None:
             response.data["count"] = count
         return response
+
+
+class ListPagination(PageNumberPagination):
+    """
+    Page number pagination for the list component endpoints — matches BaseListView's 50 rows per page, with a cap
+    that keeps an oversized client request from pulling 50k rows.
+    """
+
+    page_size = 50
+    page_size_query_param = "page_size"
+    max_page_size = 500
 
 
 class CreatedOnCursorPagination(CursorPagination):

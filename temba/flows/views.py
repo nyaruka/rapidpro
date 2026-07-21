@@ -56,6 +56,7 @@ from temba.utils.fields import (
     TembaChoiceField,
 )
 from temba.utils.text import slugify_with
+from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .models import (
@@ -646,25 +647,15 @@ class FlowCRUDL(SmartCRUDL):
                     # Only keep well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a
                     # single malformed value (a hostile post, or a stale id-based form post) would otherwise raise
                     # ValueError (500).
-                    valid = []
-                    for u in uuids:
-                        try:
-                            valid.append(UUID(u))
-                        except ValueError:
-                            pass
+                    valid = [u for u in uuids if is_uuid(u)]
                     ids = Flow.objects.filter(org=request.org, is_active=True, uuid__in=valid).values_list(
                         "id", flat=True
                     )
                     data.setlist("objects", [str(i) for i in ids])
                 label = data.get("label")
-                if label:
-                    try:
-                        UUID(label)
-                    except ValueError:
-                        pass  # already an id (legacy form post) — leave alone
-                    else:
-                        obj = request.org.flow_labels.filter(uuid=label).first()
-                        data["label"] = str(obj.id) if obj else ""
+                if label and is_uuid(label):  # a non-uuid value (the legacy form's integer id) is left alone
+                    obj = request.org.flow_labels.filter(uuid=label).first()
+                    data["label"] = str(obj.id) if obj else ""
                 request.POST = data
 
             return super().post(request, *args, **kwargs)
@@ -1591,7 +1582,7 @@ class FlowCRUDL(SmartCRUDL):
                 ),
             )
 
-            def __init__(self, org, flow, **kwargs):
+            def __init__(self, org, flow, contact, **kwargs):
                 super().__init__(**kwargs)
                 self.org = org
 
@@ -1600,6 +1591,14 @@ class FlowCRUDL(SmartCRUDL):
                     is_archived=False,
                     is_active=True,
                 ).order_by(Lower("name"))
+
+                if contact:
+                    # seeded from a single contact (e.g. their read page) so recipients can't be
+                    # changed, and if they're in a flow the user must confirm interrupting it
+                    search_attrs = self.fields["contact_search"].widget.attrs
+                    search_attrs["fixed"] = True
+                    if contact.current_flow:
+                        search_attrs["current_flow"] = contact.current_flow.name
 
                 if flow:
                     self.fields["flow"].widget = forms.HiddenInput(
@@ -1646,7 +1645,7 @@ class FlowCRUDL(SmartCRUDL):
         def derive_initial(self):
             org = self.request.org
             contacts = self.request.GET.get("c", "")
-            contacts = org.contacts.filter(uuid__in=contacts.split(","))
+            contacts = org.contacts.filter(uuid__in=contacts.split(","), is_active=True)
             recipients = []
             for contact in contacts:
                 urn = contact.get_urn()
@@ -1674,25 +1673,49 @@ class FlowCRUDL(SmartCRUDL):
             flow_id = self.request.GET.get("flow", None)
             return self.request.org.flows.filter(id=flow_id, is_active=True).first() if flow_id else None
 
+        @cached_property
+        def contact(self):
+            """
+            When seeded with a single contact (e.g. from their read page or a ticket) the start is
+            locked to that contact.
+            """
+            uuids = [u for u in self.request.GET.get("c", "").split(",") if u]
+            if len(uuids) == 1:
+                return (
+                    self.request.org.contacts.filter(uuid=uuids[0], is_active=True)
+                    .select_related("current_flow")
+                    .first()
+                )
+            return None
+
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
             kwargs["org"] = self.request.org
             kwargs["flow"] = self.flow
+            kwargs["contact"] = self.contact
             return kwargs
 
         def form_valid(self, form):
             contact_search = form.cleaned_data["contact_search"]
             flow = form.cleaned_data["flow"]
 
-            recipients = contact_search.get("recipients", [])
-            groups, contacts = ContactSearchWidget.parse_recipients(self.request.org, recipients)
+            exclusions = contact_search.get("exclusions", {})
+
+            if self.contact:
+                groups, contacts, query = [], [self.contact], None
+                # user has already confirmed interrupting the contact's current flow
+                exclusions = {k: v for k, v in exclusions.items() if k != "in_a_flow"}
+            else:
+                recipients = contact_search.get("recipients", [])
+                groups, contacts = ContactSearchWidget.parse_recipients(self.request.org, recipients)
+                query = contact_search["parsed_query"] if "parsed_query" in contact_search else None
 
             flow.start(
                 self.request.user,
                 groups=groups,
                 contacts=contacts,
-                query=contact_search["parsed_query"] if "parsed_query" in contact_search else None,
-                exclude=Exclusions(**contact_search.get("exclusions", {})),
+                query=query,
+                exclude=Exclusions(**exclusions),
             )
             return super().form_valid(form)
 

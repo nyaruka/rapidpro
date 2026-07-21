@@ -1114,6 +1114,67 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.status_code, 302)
         self.assertRedirect(response, reverse("triggers.trigger_create"))
 
+    def test_preview_list(self):
+        flow = self.create_flow("Test")
+        trigger1 = Trigger.create(
+            self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keywords=["start"], match_type=Trigger.MATCH_ONLY_WORD
+        )
+        trigger2 = Trigger.create(
+            self.org,
+            self.admin,
+            Trigger.TYPE_KEYWORD,
+            flow,
+            keywords=["stop"],
+            match_type=Trigger.MATCH_ONLY_WORD,
+            is_archived=True,
+        )
+
+        list_url = reverse("triggers.trigger_list")
+
+        self.login(self.admin)
+
+        # default render is still the legacy table
+        response = self.client.get(list_url)
+        self.assertNotContains(response, "temba-trigger-list")
+
+        # entering preview mode swaps in the temba-trigger-list component, pointed at the internal triggers api
+        self.client.cookies["temba-preview"] = "1"
+
+        response = self.client.get(list_url)
+        self.assertContains(response, "temba-trigger-list")
+        self.assertEqual(
+            f"{reverse('api.internal.triggers')}.json?folder=active", response.context["new_list_endpoint"]
+        )
+
+        actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
+        self.assertEqual(["archive"], list(actions.keys()))
+
+        # the archived view selects the archived folder and offers restore/delete (delete needs confirmation)
+        response = self.client.get(reverse("triggers.trigger_archived"))
+        self.assertEqual(
+            f"{reverse('api.internal.triggers')}.json?folder=archived", response.context["new_list_endpoint"]
+        )
+        actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
+        self.assertEqual(["restore", "delete"], list(actions.keys()))
+        self.assertTrue(actions["delete"]["destructive"])
+        self.assertIn("confirm", actions["delete"])
+
+        # a type folder view selects its folder slug
+        response = self.client.get(reverse("triggers.trigger_folder", kwargs={"folder": "messages"}))
+        self.assertEqual(
+            f"{reverse('api.internal.triggers')}.json?folder=messages", response.context["new_list_endpoint"]
+        )
+
+        # the component posts trigger ids in `objects` — bulk actions apply as-is
+        self.client.post(list_url, {"action": "archive", "objects": trigger1.id})
+        trigger1.refresh_from_db()
+        self.assertTrue(trigger1.is_archived)
+
+        # restore from the archived view
+        self.client.post(reverse("triggers.trigger_archived"), {"action": "restore", "objects": trigger2.id})
+        trigger2.refresh_from_db()
+        self.assertFalse(trigger2.is_archived)
+
     def test_archived(self):
         flow = self.create_flow("Test")
         other_org_flow = self.create_flow("Test", org=self.org2)

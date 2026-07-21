@@ -1,15 +1,30 @@
 {% extends "smartmin/list.html" %}
 {% load smartmin i18n contacts %}
 
+{% comment %}
+  Preview-mode ticket page (request.preview, set by PreviewMiddleware off
+  the temba-preview cookie). The chat pane uses the same chat + card layout
+  as the contact read page, sharing card order / collapsed state via
+  User.settings "contact_cards" — temba-card-layout loads and persists that
+  state itself via its settings/settings-endpoint attributes.
+{% endcomment %}
 {% block page-header %}
+  {% csrf_token %}
 {% endblock page-header %}
 {% block extra-style %}
   {{ block.super }}
   <style type="text/css">
+    /* preview pages render without the frame footer */
+    .spa-footer {
+      display: none;
+    }
+
     .back-button {
       display: none;
-      padding-right: 0.5em;
-      margin-top: -1em;
+      /* the header bar grows slotted children to fill the strip — the
+         back button holds its own size */
+      flex: 0 0 auto;
+      margin-right: 0.25em;
     }
 
     .back-button:hover {
@@ -22,6 +37,12 @@
       padding: 0;
       height: 100%;
       flex-grow: 1;
+      /* paint the header band (surface + rule) across the full width so
+         the gap between the two column header strips reads as one
+         continuous control */
+      background:
+        linear-gradient(var(--surface), var(--surface)) top / 100% 52px no-repeat,
+        linear-gradient(var(--border), var(--border)) 0 52px / 100% 1px no-repeat;
     }
 
     .mobile .ticket-ui {
@@ -31,13 +52,23 @@
 
     .mobile .ticket-ui temba-resizer {
       min-width: 100vw;
-      padding: 0.75em;
       transition: margin-left 0.5s;
     }
 
     .mobile .ticket-ui temba-resizer .ticket-list {
       padding: 0;
-      padding-bottom: 0em;
+    }
+
+    /* the header strip runs flush across the top (over the band painted on
+       .ticket-ui) — the list body below carries the inset instead */
+    .mobile .list-body {
+      padding: 8px;
+    }
+
+    /* no chat column beside the list on mobile, so restore the strip's
+       right inset */
+    .mobile .ticket-list temba-header-bar {
+      padding-right: 8px;
     }
 
     .mobile .ticket-ui .chat-pane {
@@ -46,7 +77,13 @@
       margin-left: 0;
     }
 
-    .mobile .ticket-ui .chat-pane .back-button {
+    /* the pane already insets both sides — drop the extra right padding
+       the layout adds in tab view to keep clear of the card column edge */
+    .mobile .chat-pane temba-card-layout {
+      padding-right: 0;
+    }
+
+    .mobile temba-header-bar .back-button {
       display: block;
     }
 
@@ -54,16 +91,16 @@
       margin-left: -100vw;
     }
 
-    .mobile .ticket-ui.has-selection .chat-pane {}
-
     .mobile .chat-pane .empty {
       display: none;
     }
 
-    .spa-footer {}
-
     .chat-pane .empty {
       position: absolute;
+      /* clear the header strip (52px + 1px rule) — as an absolutely
+         positioned flex child the empty state's static position is the
+         top of the pane, which would print it over the page header */
+      top: 53px;
       opacity: 0;
       padding: 3px 40px;
       pointer-events: none;
@@ -79,9 +116,33 @@
       display: inline;
     }
 
+    /* the same 8px rhythm the card layout uses — the column's header strip
+       runs full-bleed, the list body below carries the inset */
     .ticket-list {
       height: 100%;
       width: 100%;
+    }
+
+    .list-body {
+      padding: 8px 0 8px 8px;
+    }
+
+    /* the list column's content (status filter, rows) runs to the column
+       edge — its header strip contents align to that same edge */
+    .ticket-list temba-header-bar {
+      padding-right: 0;
+    }
+
+    temba-resizer {
+      --resizer-handle-size: 8px;
+    }
+
+    .chat-pane {
+      /* the gap to the ticket list — the resizer's drag handle strip
+         (sized to match) rides in this space */
+      margin-left: 8px;
+      /* anchor the empty state's top offset to this pane */
+      position: relative;
     }
 
     temba-menu {
@@ -99,6 +160,11 @@
       flex-shrink: 9999;
     }
 
+    temba-card-layout {
+      flex-grow: 1;
+      min-height: 0;
+    }
+
     .spa-content {
       padding-left: 0;
       padding-right: 0;
@@ -106,16 +172,20 @@
       padding-bottom: 0em;
     }
 
+    /* the folder label matches the page-header title beside it, with a
+       little extra optical inset for the bare text */
     #folder-title {
-      font-size: 1.5rem;
+      font-size: 15.5px;
+      font-weight: var(--w-semibold);
+      color: var(--text-1);
       overflow: hidden;
-      max-height: 2rem;
-      line-height: 2rem;
+      line-height: 1.25;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 1;
       text-overflow: ellipsis;
       display: -webkit-box;
       margin: auto;
+      margin-left: 8px;
     }
 
     @container (max-width: 540px) {
@@ -127,7 +197,6 @@
         padding-bottom: 1em;
         margin-right: -2em;
         padding-right: 2em;
-
       }
 
       .ticket-ui {
@@ -145,14 +214,12 @@
       .chat-pane {
         margin-left: 0;
         flex-grow: 2;
-        border: solid 0px red;
         height: 100%;
       }
 
       .menu-flex {
         flex-direction: row-reverse;
       }
-
     }
 
     .spa-content {
@@ -162,6 +229,7 @@
 {% endblock extra-style %}
 {% block extra-script %}
   {{ block.super }}
+  {% include "includes/page_header_menu.html" %}
   <script type="text/javascript">
     // current state
     var folder = '{{folder}}';
@@ -188,10 +256,6 @@
           }
         }
       }
-    }
-
-    function handleTicketEditComplete() {
-
     }
 
     function handleTicketsMenuChanged(menuItem) {
@@ -246,8 +310,8 @@
         chat.refresh();
 
         // refresh our content menu too
-        var contentMenu = document.querySelector("#default-content-menu");
-        contentMenu.refresh();
+        var header = document.querySelector("#page-header");
+        header.refresh();
       }, 2000);
 
     }
@@ -296,7 +360,6 @@
     }
 
     function updateBrowserUrl() {
-      var tabs = document.querySelector("temba-tabs");
       var path = `/ticket/${folder}/${status}/`;
       if (ticketUUID) {
         path += `${ticketUUID}/`;
@@ -306,9 +369,6 @@
       var params = [];
       if (assigneeFilter && folder === 'all') {
         params.push(`assignee=${assigneeFilter}`);
-      }
-      if (tabs && tabs.index) {
-        params.push(`tab=${tabs.index}`);
       }
       if (params.length > 0) {
         path += "?" + params.join("&");
@@ -358,11 +418,7 @@
       var empty = document.querySelector(".chat-pane .empty");
 
       var fields = document.querySelectorAll("temba-contact-fields");
-      var tabs = document.querySelector("temba-tabs");
-
-      // should we force initial tab on contact change?
-      // this also forces tab selection on hard reload
-      // tabs.index = 0;
+      var layout = document.querySelector("#card-layout");
 
       if (contact) {
         ticketUI.classList.add('has-selection');
@@ -385,7 +441,7 @@
           ticketUUID = null;
         }
 
-        tabs.classList.remove("hidden");
+        layout.classList.remove("hidden");
 
         if (chat) {
           chat.style.opacity = '1';
@@ -397,10 +453,19 @@
         }
 
       } else {
-        const ticketList = document.querySelector("temba-ticket-list");
         ticketUI.classList.remove('has-selection');
-        if (tabs) {
-          tabs.classList.add("hidden");
+
+        // on mobile the list shouldn't keep a focused ticket — clear the
+        // selection so the same ticket can be tapped again
+        if (window.isMobile && isMobile()) {
+          var tickets = document.querySelector("temba-ticket-list");
+          if (tickets) {
+            tickets.clearSelection();
+          }
+        }
+
+        if (layout) {
+          layout.classList.add("hidden");
         }
 
         if (chat) {
@@ -424,16 +489,13 @@
 
       updateTicketList();
 
-      var contentMenu = document.querySelector("#default-content-menu");
-      if (contentMenu) {
+      var header = document.querySelector("#page-header");
+      if (header) {
         var menuPath = `/ticket/${folder}/${status}/`;
         if (ticketUUID) {
           menuPath += `${ticketUUID}/`;
         }
-        if (tabs && tabs.index) {
-          menuPath += `?tab=${tabs.index}`;
-        }
-        contentMenu.endpoint = menuPath;
+        header.contentMenuEndpoint = menuPath;
       }
 
       updateBrowserUrl();
@@ -477,15 +539,25 @@
       tickets.removeItem(uuid);
     }
 
+    function handleTicketAssigned() {
+      var chat = document.querySelector("temba-contact-chat");
+      chat.refresh();
+    }
+
+    function handleNoteAdded() {
+      var chat = document.querySelector("temba-contact-chat");
+      chat.refresh();
+    }
+
     function handleTicketUpdated(event) {
       var tickets = document.querySelector("temba-ticket-list");
+      var chat = document.querySelector("temba-contact-chat");
 
       if (event.detail.ticket) {
         const ticket = event.detail.ticket;
         const previous = event.detail.previous;
         if (ticket && previous && ticket.uuid == previous.uuid) {
           var menu = document.querySelector('temba-menu');
-          var statusSelect = document.querySelector('temba-select[name="ticket-status"]');
 
           // current agent took a ticket
           if (messageSent && ticket.assignee && ticket.assignee.email == '{{request.user.email}}') {
@@ -515,10 +587,11 @@
           }
 
           tickets.refresh();
+          chat.refresh();
           refreshMenu();
 
-          var contentMenu = document.querySelector("#default-content-menu");
-          contentMenu.refresh();
+          var header = document.querySelector("#page-header");
+          header.refresh();
 
         }
       }
@@ -535,12 +608,8 @@
       const chat = document.querySelector('temba-contact-chat');
       chat.refresh();
 
-      const contentMenu = document.querySelector("temba-content-menu#default-content-menu");
-      contentMenu.refresh();
-    }
-
-    function handleTabChanged() {
-      updateBrowserUrl();
+      const header = document.querySelector("#page-header");
+      header.refresh();
     }
 
     function handleTicketListResized(event) {
@@ -565,65 +634,86 @@
 {% block content %}
   <div class="page flex-grow flex flex-col min-h-0 max-h-screen">
     <div class="flex ticket-ui">
-      <temba-resizer -temba-resized="handleTicketListResized" class="flex flex-row">
-        <div class="ticket-list flex flex-col p-5 pr-0">
-          <div class="flex mb-2 {% if folder == "all" %}hidden{% endif %}" id="title-row">
-            <div class="flex-grow relative" id="folder-title">
-              <div id="title-text">{{ title }}</div>
-
+      <temba-resizer -temba-resized="handleTicketListResized" minWidth="260" class="flex flex-row">
+        <div class="ticket-list flex flex-col">
+          {# the list column's own header strip — same height and surface as the #}
+          {# chat header beside it so the two read as one continuous control #}
+          <temba-header-bar>
+            <div class="flex items-center {% if folder == "all" %}hidden{% endif %}" id="title-row">
+              <div class="flex-grow relative" id="folder-title">
+                <div id="title-text">{{ title }}</div>
+              </div>
+              <temba-content-menu endpoint="{% url 'tickets.ticket_folder' folder status uuid %}"
+                                  -temba-selection="handleContentMenuSelected(event)"
+                                  arrowtopleft
+                                  class="relative"
+                                  id="topic-content-menu">
+              </temba-content-menu>
             </div>
-            <temba-content-menu endpoint="{% url 'tickets.ticket_folder' folder status uuid %}"
-                                -temba-selection="handleContentMenuSelected(event)"
-                                arrowtopleft
-                                class="relative"
-                                id="topic-content-menu">
-            </temba-content-menu>
-          </div>
-          <temba-user-select name="assignee-filter"
-                            placeholder="{% trans "All Agents" %}"
-                            onchange="handleAssigneeFilterChanged(event)"
-                            valueKey="uuid"
-                            {% if assignee_uuid %}value="{{ assignee_uuid }}"{% endif %}
-                            class="{% if folder != "all" %}hidden{% endif %}"
-                            style="z-index:3; margin-bottom:0.5em; width:100%;"
-                            searchable
-                            searchOnFocus
-                            clearable>
-              </temba-user-select>
-          <temba-select style="z-index:2"
-                        name="ticket-status"
-                        onchange="handleStatusFilterChanged(event)"
-                        value="{{ status }}"
-                        class="mb-2">
-            <temba-option name="Open" value="open" icon="tickets_open">
-            </temba-option>
-            <temba-option name="Closed" value="closed" icon="tickets_closed">
-            </temba-option>
-          </temba-select>
-          <div style="max-height:100%;" class="flex flex-grow">
-            {% if uuid %}
-              <temba-ticket-list agent="{{ request.user.email }}"
-                                 endpoint="{% url 'tickets.ticket_folder' folder status uuid %}"
-                                 -temba-refreshed="handleTicketsRefreshed"
-                                 onchange="handleContactSelected(event)"
-                                 class="flex-grow">
-                <div style="text-align:center" class="filter-note m-2 hidden">
-                  <div onclick="clearFilter()" class="linked">{% trans "See more tickets" %}</div>
-                </div>
-              </temba-ticket-list>
-            {% else %}
-              <temba-ticket-list nextselection="{{ nextUUID }}"
-                                 agent="{{ request.user.email }}"
-                                 endpoint="{% url 'tickets.ticket_folder' folder status %}"
-                                 -temba-refreshed="handleTicketsRefreshed"
-                                 onchange="handleContactSelected(event)"
-                                 class="flex-grow">
-              </temba-ticket-list>
-            {% endif %}
+            <temba-user-select name="assignee-filter"
+                               placeholder="{% trans "All Agents" %}"
+                               onchange="handleAssigneeFilterChanged(event)"
+                               valueKey="uuid"
+                               {% if assignee_uuid %}value="{{ assignee_uuid }}"{% endif %}
+                               class="{% if folder != "all" %}hidden{% endif %}"
+                               style="z-index:3"
+                               searchable
+                               searchOnFocus
+                               clearable>
+            </temba-user-select>
+          </temba-header-bar>
+          <div class="list-body flex flex-col flex-grow min-h-0">
+            <temba-select style="z-index:2"
+                          name="ticket-status"
+                          onchange="handleStatusFilterChanged(event)"
+                          value="{{ status }}"
+                          class="mb-2">
+              <temba-option name="Open" value="open" icon="tickets_open">
+              </temba-option>
+              <temba-option name="Closed" value="closed" icon="tickets_closed">
+              </temba-option>
+            </temba-select>
+            <div style="max-height:100%;" class="flex flex-grow">
+              {% if uuid %}
+                <temba-ticket-list agent="{{ request.user.email }}"
+                                   endpoint="{% url 'tickets.ticket_folder' folder status uuid %}"
+                                   -temba-refreshed="handleTicketsRefreshed"
+                                   onchange="handleContactSelected(event)"
+                                   class="flex-grow">
+                  <div style="text-align:center" class="filter-note m-2 hidden">
+                    <div onclick="clearFilter()" class="linked">{% trans "See more tickets" %}</div>
+                  </div>
+                </temba-ticket-list>
+              {% else %}
+                <temba-ticket-list nextselection="{{ nextUUID }}"
+                                   agent="{{ request.user.email }}"
+                                   endpoint="{% url 'tickets.ticket_folder' folder status %}"
+                                   -temba-refreshed="handleTicketsRefreshed"
+                                   onchange="handleContactSelected(event)"
+                                   class="flex-grow">
+                </temba-ticket-list>
+              {% endif %}
+            </div>
           </div>
         </div>
       </temba-resizer>
-      <div class="chat-pane flex-grow flex-col flex ml-4 p-5 pl-0">
+      <div class="chat-pane flex-grow flex-col flex">
+        <temba-header-bar>
+          {# outside the page header so the hover ring isn't clipped by its title's text truncation #}
+          <temba-icon size="1.2" class="back-button" name="arrow_left" clickable onclick="handleContactChanged()">
+          </temba-icon>
+          <temba-page-header id="page-header"
+                             content-menu-endpoint="{{ request.path }}"
+                             -temba-selection="handleContentMenuSelected(event)">
+            <div slot="title" class="flex" style="align-items: center">
+              <temba-contact-name-fetch -temba-refreshed="handleContactRefreshed"
+                                        icon-size="16"
+                                        onclick="{% if org_perms.contacts.contact_read %}handleNameClicked(){% endif %}"
+                                        class="{% if org_perms.contacts.contact_read %}clickable{% endif %}">
+              </temba-contact-name-fetch>
+            </div>
+          </temba-page-header>
+        </temba-header-bar>
         <div class="empty">
           {% if has_tickets %}
             <h2>
@@ -656,53 +746,47 @@
             </div>
           {% endif %}
         </div>
-        <div class="flex flex-col menu-flex">
-          <div class="flex">
-            <temba-icon size="1.2" class="back-button" name="arrow_left" clickable onclick="handleContactChanged()">
-            </temba-icon>
-            <temba-contact-name-fetch -temba-refreshed="handleContactRefreshed"
-                                      onclick="{% if org_perms.contacts.contact_read %}handleNameClicked(){% endif %}"
-                                      class="{% if org_perms.contacts.contact_read %}clickable{% endif %} text-2xl mb-4">
-            </temba-contact-name-fetch>
-            <div class="flex-grow"></div>
-            {% include "spa_page_menu.html" %}
-          </div>
-        </div>
-        <temba-tabs -temba-context-changed="handleTabChanged"
-                    index="{{ request.GET.tab }}"
-                    collapses="true"
-                    class="flex-grow hidden">
-          <temba-tab icon="message" name="{{ _("Chat") |escapejs }}">
-            <temba-contact-chat agent="{{ request.user.email }}"
-                                style="opacity: 0"
-                                monitor="true"
-                                -temba-ticket-updated="handleTicketUpdated"
-                                -temba-message-sent="handleMessageSent"
-                                -temba-interrupt="handleInterruptContact"
-                                {% if org_perms.contacts.contact_interrupt %}showInterrupt{% endif %}
-                                {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
-                                {% if not can_assign %}disableAssign{% endif %}
-                                {% if not can_reply_non_own %}disableReply{% endif %}
-                                avatar="{{ branding.logos.avatar }}">
-            </temba-contact-chat>
-          </temba-tab>
-          <temba-tab icon="fields" name="{{ _("Fields") |escapejs }}">
-            <div style="border-top-right-radius: var(--curvature)"
-                 class="flex flex-grow flex-col py-4 px-1 overflow-y-auto">
-              <temba-contact-fields timezone="{{ object.org.timezone }}"
-                                    -temba-button-clicked="handleFieldSearch"
-                                    role="{{ request.role.code }}">
-                <div slot="empty" class="no-fields p-16 text-center" style="opacity:1">
-                  <div class="text-xl mb-4">{% trans "No Fields" %}</div>
-                </div>
-              </temba-contact-fields>
-            </div>
-          </temba-tab>
-          <temba-tab icon="notes" name="{{ _("Notepad") }}" activity>
-            <temba-contact-notepad contact="{{ object.uuid }}">
+        {# the chat is the primary workspace here — give it more room (a higher #}
+        {# floor) before card mode wins over tabs than on the contact read page #}
+        <temba-card-layout id="card-layout"
+                           main-name="{{ _("Chat") |escapejs }}"
+                           main-icon="message"
+                           main-min-width="480"
+                           settings-endpoint="{% url 'users.user_settings' %}"
+                           settings="{{ card_settings }}"
+                           class="hidden">
+          <temba-contact-chat slot="main"
+                              agent="{{ request.user.email }}"
+                              style="opacity: 0"
+                              monitor="true"
+                              -temba-ticket-updated="handleTicketUpdated"
+                              -temba-message-sent="handleMessageSent"
+                              -temba-interrupt="handleInterruptContact"
+                              {% if org_perms.contacts.contact_interrupt %}showInterrupt{% endif %}
+                              {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
+                              {% if not can_assign %}disableAssign{% endif %}
+                              {% if not can_reply_non_own %}disableReply{% endif %}
+                              avatar="{{ branding.logos.avatar }}">
+          </temba-contact-chat>
+          <temba-card id="card-fields" label="{{ _("Fields") |escapejs }}" icon="fields">
+            <temba-contact-fields timezone="{{ object.org.timezone }}"
+                                  -temba-button-clicked="handleFieldSearch"
+                                  role="{{ request.role.code }}">
+              <div slot="empty" class="no-fields p-4 text-center" style="opacity:1">
+                <div class="text-xl mb-4">{% trans "No Fields" %}</div>
+              </div>
+            </temba-contact-fields>
+          </temba-card>
+          <temba-card id="card-notepad"
+                      variant="note"
+                      label="{{ _("Notepad") |escapejs }}"
+                      icon="notes"
+                      activity
+                      bleed>
+            <temba-contact-notepad autogrow>
             </temba-contact-notepad>
-          </temba-tab>
-        </temba-tabs>
+          </temba-card>
+        </temba-card-layout>
       </div>
     </div>
   </div>

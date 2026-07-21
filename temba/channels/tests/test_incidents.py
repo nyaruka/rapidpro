@@ -11,8 +11,16 @@ from ..tasks import check_android_channels
 
 class ChannelIncidentsTest(TembaTest):
     def test_disconnected(self):
-        # set our last seen to a while ago
+        # set our last seen to 40 minutes ago - not long enough to be considered disconnected
         self.channel.last_seen = timezone.now() - timedelta(minutes=40)
+        self.channel.save(update_fields=("last_seen",))
+
+        check_android_channels()
+
+        self.assertEqual(0, self.org.incidents.count())
+
+        # but 2 hours is
+        self.channel.last_seen = timezone.now() - timedelta(hours=2)
         self.channel.save(update_fields=("last_seen",))
 
         with override_brand(emails={"notifications": "support@mybrand.com"}):

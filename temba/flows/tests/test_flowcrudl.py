@@ -1528,6 +1528,93 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
     @mock_mailroom
+    def test_start_seeded_contact(self, mr_mocks):
+        contact = self.create_contact("Bob", phone="+593979099111")
+        other = self.create_contact("Jim", phone="+593979099222")
+        flow = self.create_flow("Test")
+        current = self.create_flow("Current")
+
+        start_url = f"{reverse('flows.flow_start', args=[])}?c={contact.uuid}"
+
+        # seeded with a single contact, the recipients are fixed
+        response = self.assertUpdateFetch(start_url, [self.editor, self.admin], form_fields=["flow", "contact_search"])
+        attrs = response.context["form"].fields["contact_search"].widget.attrs
+        self.assertTrue(attrs.get("fixed"))
+        self.assertNotIn("current_flow", attrs)
+
+        # if the contact is in a flow, that's passed to the widget so it can ask for confirmation
+        contact.current_flow = current
+        contact.save(update_fields=("current_flow",))
+
+        response = self.assertUpdateFetch(start_url, [self.admin], form_fields=["flow", "contact_search"])
+        attrs = response.context["form"].fields["contact_search"].widget.attrs
+        self.assertTrue(attrs.get("fixed"))
+        self.assertEqual("Current", attrs.get("current_flow"))
+
+        # submitted recipients are ignored - the start is locked to the seeded contact
+        self.assertUpdateSubmit(
+            start_url,
+            self.admin,
+            {"flow": flow.id, "contact_search": get_contact_search(contacts=[other])},
+        )
+
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="M",
+                flow=flow,
+                groups=[],
+                contacts=[contact],
+                urns=[],
+                query=None,
+                exclude=Exclusions(),
+                params={},
+            ),
+        )
+
+        # a submitted in_a_flow exclusion is ignored - the user has already confirmed interrupting
+        # the contact's current flow
+        contact_search = dict(
+            recipients=[{"id": str(contact.uuid), "name": contact.name, "type": "contact"}],
+            advanced=False,
+            exclusions={"in_a_flow": True, "non_active": True},
+        )
+        self.assertUpdateSubmit(
+            start_url,
+            self.admin,
+            {"flow": flow.id, "contact_search": json.dumps(contact_search)},
+        )
+
+        self.assertEqual(
+            mr_mocks.calls["flow_start"][-1],
+            call(
+                self.org,
+                self.admin,
+                typ="M",
+                flow=flow,
+                groups=[],
+                contacts=[contact],
+                urns=[],
+                query=None,
+                exclude=Exclusions(non_active=True),
+                params={},
+            ),
+        )
+
+        # seeding with multiple contacts doesn't lock the recipients
+        multi_url = f"{reverse('flows.flow_start', args=[])}?c={contact.uuid},{other.uuid}"
+        response = self.assertUpdateFetch(multi_url, [self.admin], form_fields=["flow", "contact_search"])
+        self.assertNotIn("fixed", response.context["form"].fields["contact_search"].widget.attrs)
+
+        # seeding with another org's contact doesn't lock the recipients
+        other_org_contact = self.create_contact("Hans", phone="+593979099333", org=self.org2)
+        other_org_url = f"{reverse('flows.flow_start', args=[])}?c={other_org_contact.uuid}"
+        response = self.assertUpdateFetch(other_org_url, [self.admin], form_fields=["flow", "contact_search"])
+        self.assertNotIn("fixed", response.context["form"].fields["contact_search"].widget.attrs)
+
+    @mock_mailroom
     def test_start_background_flow(self, mr_mocks):
         flow = self.create_flow("Background", flow_type=Flow.TYPE_BACKGROUND)
 

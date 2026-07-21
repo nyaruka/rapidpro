@@ -9,13 +9,16 @@ from temba.ai.models import LLM
 from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
-from temba.contacts.models import ContactExport, ContactGroup
+from temba.campaigns.models import Campaign, CampaignEvent
+from temba.contacts.models import ContactExport, ContactField, ContactGroup
 from temba.flows.models import Flow, FlowLabel
 from temba.msgs.models import Msg
 from temba.notifications.types import ExportFinishedNotificationType
+from temba.schedules.models import Schedule
 from temba.templates.models import TemplateTranslation
 from temba.tests import TembaTest, matchers, mock_mailroom
 from temba.tickets.models import Shortcut, TicketExport
+from temba.triggers.models import Trigger
 from temba.utils.uuid import uuid4
 
 NUM_BASE_QUERIES = 3  # number of queries required for any request (internal API is session only)
@@ -199,8 +202,9 @@ class EndpointsTest(APITestMixin, TembaTest):
         other_label = self.create_label("Other", org=self.org2)
         self.assertGet(endpoint_url + f"?label={other_label.uuid}", [self.admin], results=[])
 
-        # an unknown label uuid returns nothing
+        # an unknown or malformed label uuid returns nothing
         self.assertGet(endpoint_url + f"?label={contact1.uuid}", [self.admin], results=[])
+        self.assertGet(endpoint_url + "?label=foo", [self.admin], results=[])
 
         # can search by message text or contact name
         response = self.assertGet(endpoint_url + "?search=hello", [self.admin], results=[msg1])
@@ -266,9 +270,10 @@ class EndpointsTest(APITestMixin, TembaTest):
         # an unknown folder yields no contacts
         self.assertGet(endpoint_url + "?folder=nope", [self.admin], results=[])
 
-        # a specific group can be selected by uuid
+        # a specific group can be selected by uuid; a malformed group yields no contacts
         group = self.create_group("Crew", contacts=[joe])
         self.assertGet(endpoint_url + f"?group={group.uuid}", [self.admin], results=[joe])
+        self.assertGet(endpoint_url + "?group=foo", [self.admin], results=[])
 
         # each row carries its group memberships so the component can pre-check the group dropdown
         def check_groups(data):
@@ -345,6 +350,86 @@ class EndpointsTest(APITestMixin, TembaTest):
         mr_mocks.contact_search("", contacts=[joe, frank])
         self.assertGet(endpoint_url + "?sort=-field:gender&page_size=0", [self.admin], results=[joe, frank])
         self.assertEqual(50, mr_mocks.calls["contact_search"][-1].kwargs["limit"])
+
+    def test_campaigns(self):
+        endpoint_url = reverse("api.internal.campaigns") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        registered = self.create_field("registered", "Registered", value_type=ContactField.TYPE_DATETIME)
+        flow = self.create_flow("Reminder Flow")
+
+        ann = self.create_contact("Ann", phone="+1234567111")
+        bob = self.create_contact("Bob", phone="+1234567222")
+        mothers = self.create_group("Mothers", contacts=[ann, bob])
+        farmers = self.create_group("Farmers", contacts=[])
+
+        campaign1 = Campaign.create(self.org, self.admin, "Welcomes", mothers)
+        for offset in (1, 2):
+            CampaignEvent.create_flow_event(
+                self.org, self.admin, campaign1, registered, offset=offset, unit="W", flow=flow, delivery_hour="13"
+            )
+        campaign2 = Campaign.create(self.org, self.admin, "Reminders", farmers)
+        CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign2, registered, offset=1, unit="D", flow=flow, delivery_hour="9"
+        )
+        campaign3 = Campaign.create(self.org, self.admin, "Follow Ups", mothers)
+        campaign3.archive(self.admin)
+
+        # and a campaign in another org that should never appear
+        group2 = self.create_group("Others", contacts=[], org=self.org2)
+        Campaign.create(self.org2, self.org2.get_admins().first(), "Other Org", group2)
+
+        # the count getters compute directly when not bulk-prefetched by the endpoint
+        self.assertEqual(2, campaign1.get_event_count())
+        self.assertEqual(2, campaign1.get_contact_count())
+
+        # default folder is `active`, most recently modified first
+        self.assertGet(endpoint_url, [self.editor, self.admin], results=[campaign2, campaign1])
+        self.assertGet(endpoint_url + "?folder=active", [self.admin], results=[campaign2, campaign1])
+
+        # archived campaigns live in their own folder
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[campaign3])
+
+        # search filters by campaign name or group name
+        self.assertGet(endpoint_url + "?search=wel", [self.admin], results=[campaign1])
+        self.assertGet(endpoint_url + "?search=farm", [self.admin], results=[campaign2])
+
+        # each row carries the columns the component renders
+        def check_shape(data):
+            first = [r for r in data["results"] if r["uuid"] == str(campaign1.uuid)][0]
+            self.assertEqual("Welcomes", first["name"])
+            self.assertEqual({"uuid": str(mothers.uuid), "name": "Mothers"}, first["group"])
+            self.assertEqual(2, first["events"])
+            self.assertEqual(2, first["contacts"])
+            self.assertEqual(campaign1.modified_on.isoformat(), first["modified_on"])
+
+            second = [r for r in data["results"] if r["uuid"] == str(campaign2.uuid)][0]
+            self.assertEqual(1, second["events"])
+            self.assertEqual(0, second["contacts"])
+            return True
+
+        self.assertGet(endpoint_url, [self.admin], raw=check_shape)
+
+        # sortable by name, event count, group-member count and modified on
+        self.assertGet(endpoint_url + "?sort=name", [self.admin], results=[campaign2, campaign1])
+        self.assertGet(endpoint_url + "?sort=-name", [self.admin], results=[campaign1, campaign2])
+        self.assertGet(endpoint_url + "?sort=events", [self.admin], results=[campaign2, campaign1])
+        self.assertGet(endpoint_url + "?sort=-events", [self.admin], results=[campaign1, campaign2])
+        self.assertGet(endpoint_url + "?sort=contacts", [self.admin], results=[campaign2, campaign1])
+        self.assertGet(endpoint_url + "?sort=-contacts", [self.admin], results=[campaign1, campaign2])
+        self.assertGet(endpoint_url + "?sort=modified_on", [self.admin], results=[campaign1, campaign2])
+        self.assertGet(endpoint_url + "?sort=-modified_on", [self.admin], results=[campaign2, campaign1])
+
+        # an unknown sort falls back to the default ordering
+        self.assertGet(endpoint_url + "?sort=nope", [self.admin], results=[campaign2, campaign1])
+
+        # an over-long search query is rejected
+        self.login(self.admin)
+        response = self.client.get(endpoint_url + "?search=" + ("x" * 1001))
+        self.assertEqual(413, response.status_code)
 
     def test_flows(self):
         endpoint_url = reverse("api.internal.flows") + ".json"
@@ -702,6 +787,155 @@ class EndpointsTest(APITestMixin, TembaTest):
             ],
             num_queries=NUM_BASE_QUERIES + 3,
         )
+
+    def test_triggers(self):
+        endpoint_url = reverse("api.internal.triggers") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        flow1 = self.create_flow("Survey")
+        flow2 = self.create_flow("Support")
+        group1 = self.create_group("Farmers", contacts=[])
+        group2 = self.create_group("Staff", contacts=[])
+        contact1 = self.create_contact("Jim", phone="+250788987651")
+
+        trigger1 = Trigger.create(
+            self.org,
+            self.admin,
+            Trigger.TYPE_KEYWORD,
+            flow1,
+            keywords=["join", "start"],
+            match_type=Trigger.MATCH_FIRST_WORD,
+            groups=[group1],
+            exclude_groups=[group2],
+        )
+        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_CATCH_ALL, flow2)
+        trigger3 = Trigger.create(self.org, self.admin, Trigger.TYPE_MISSED_CALL, flow1, channel=self.channel)
+        trigger4 = Trigger.create(
+            self.org,
+            self.admin,
+            Trigger.TYPE_KEYWORD,
+            flow2,
+            keywords=["stop"],
+            match_type=Trigger.MATCH_ONLY_WORD,
+            is_archived=True,
+        )
+        schedule = Schedule.create(
+            self.org,
+            start_time=timezone.now() + timedelta(days=2),
+            repeat_period=Schedule.REPEAT_DAILY,
+        )
+        trigger5 = Trigger.create(
+            self.org, self.admin, Trigger.TYPE_SCHEDULE, flow1, schedule=schedule, contacts=(contact1,)
+        )
+
+        # and a trigger in another org that should never appear
+        other_org_flow = self.create_flow("Other", org=self.org2)
+        Trigger.create(
+            self.org2,
+            self.admin2,
+            Trigger.TYPE_KEYWORD,
+            other_org_flow,
+            keywords=["other"],
+            match_type=Trigger.MATCH_ONLY_WORD,
+        )
+
+        trigger6 = Trigger.create(
+            self.org, self.admin, Trigger.TYPE_KEYWORD, flow1, keywords=["apply"], match_type=Trigger.MATCH_ONLY_WORD
+        )
+
+        # an archived scheduled trigger whose (paused) schedule still carries a stale next fire
+        schedule2 = Schedule.create(
+            self.org, start_time=timezone.now() + timedelta(days=3), repeat_period=Schedule.REPEAT_DAILY
+        )
+        schedule2.is_paused = True
+        schedule2.save(update_fields=("is_paused",))
+        trigger7 = Trigger.create(
+            self.org, self.admin, Trigger.TYPE_SCHEDULE, flow2, schedule=schedule2, is_archived=True
+        )
+
+        # default folder is `active` (an unknown folder gets the same), newest first
+        self.assertGet(
+            endpoint_url, [self.editor, self.admin], results=[trigger6, trigger5, trigger3, trigger2, trigger1]
+        )
+        self.assertGet(
+            endpoint_url + "?folder=active",
+            [self.admin],
+            results=[trigger6, trigger5, trigger3, trigger2, trigger1],
+            num_queries=NUM_BASE_QUERIES + 5,  # count + triggers + 3 M2M prefetches
+        )
+        self.assertGet(
+            endpoint_url + "?folder=nope", [self.admin], results=[trigger6, trigger5, trigger3, trigger2, trigger1]
+        )
+
+        # archived triggers live in their own folder, and an archived trigger's paused schedule reads as
+        # not scheduled (no next fire) despite its stale next_fire value
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[trigger7, trigger4])
+
+        def check_archived_schedule(data):
+            scheduled = [r for r in data["results"] if r["id"] == trigger7.id][0]
+            self.assertEqual(Schedule.REPEAT_DAILY, scheduled["schedule"]["repeat_period"])
+            self.assertIsNone(scheduled["schedule"]["next_fire"])
+            return True
+
+        self.assertGet(endpoint_url + "?folder=archived", [self.admin], raw=check_archived_schedule)
+
+        # a type folder uses the legacy folder view's ordering — keyword triggers ahead of catch-all, and
+        # keyword triggers ordered by their first keyword
+        self.assertGet(endpoint_url + "?folder=messages", [self.admin], results=[trigger6, trigger1, trigger2])
+        self.assertGet(endpoint_url + "?folder=schedule", [self.admin], results=[trigger5])
+
+        # search matches keywords, flow names and channel names
+        self.assertGet(endpoint_url + "?search=joi", [self.admin], results=[trigger1])
+        self.assertGet(endpoint_url + "?search=support", [self.admin], results=[trigger2])
+        self.assertGet(endpoint_url + "?search=test channel", [self.admin], results=[trigger3])
+
+        # each row carries the columns the component renders
+        def check_shape(data):
+            first = [r for r in data["results"] if r["id"] == trigger1.id][0]
+            self.assertEqual("keyword", first["type"])
+            self.assertEqual({"uuid": str(flow1.uuid), "name": "Survey"}, first["flow"])
+            self.assertIsNone(first["channel"])
+            self.assertEqual([{"uuid": str(group1.uuid), "name": "Farmers"}], first["groups"])
+            self.assertEqual([{"uuid": str(group2.uuid), "name": "Staff"}], first["exclude_groups"])
+            self.assertEqual([], first["contacts"])
+            self.assertEqual(["join", "start"], first["keywords"])
+            self.assertEqual("F", first["match_type"])
+            self.assertIsNone(first["schedule"])
+            self.assertEqual(matchers.ISODatetime(), first["created_on"])
+
+            missed_call = [r for r in data["results"] if r["id"] == trigger3.id][0]
+            self.assertEqual(
+                {"uuid": str(self.channel.uuid), "name": "Test Channel", "icon": "channel_a"},
+                missed_call["channel"],
+            )
+
+            scheduled = [r for r in data["results"] if r["id"] == trigger5.id][0]
+            self.assertEqual("schedule", scheduled["type"])
+            self.assertEqual(Schedule.REPEAT_DAILY, scheduled["schedule"]["repeat_period"])
+            self.assertEqual(matchers.ISODatetime(), scheduled["schedule"]["next_fire"])
+            self.assertEqual([{"uuid": str(contact1.uuid), "name": "Jim"}], scheduled["contacts"])
+            return True
+
+        self.assertGet(endpoint_url, [self.admin], raw=check_shape)
+
+        # sortable by created_on in both directions; an unknown sort falls back to the default ordering
+        self.assertGet(
+            endpoint_url + "?sort=created_on", [self.admin], results=[trigger1, trigger2, trigger3, trigger5, trigger6]
+        )
+        self.assertGet(
+            endpoint_url + "?sort=-created_on", [self.admin], results=[trigger6, trigger5, trigger3, trigger2, trigger1]
+        )
+        self.assertGet(
+            endpoint_url + "?sort=nope", [self.admin], results=[trigger6, trigger5, trigger3, trigger2, trigger1]
+        )
+
+        # an over-long search query is rejected
+        self.login(self.admin)
+        response = self.client.get(endpoint_url + "?search=" + ("x" * 1001))
+        self.assertEqual(413, response.status_code)
 
     def test_llms(self):
         endpoint_url = reverse("api.internal.llms") + ".json"

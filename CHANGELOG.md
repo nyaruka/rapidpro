@@ -1,3 +1,22 @@
+v26.3.14 (2026-07-20)
+-------------------------
+ * Add translatable message for too_complex contact query error code
+ * Always show Start Flow menu option and confirm interruption on seeded starts
+ * Guard malformed group/label UUID params on internal contacts and messages endpoints
+ * Fix mobile layout issues on the ticket page
+
+v26.3.13 (2026-07-15)
+-------------------------
+ * Update @nyaruka/temba-components to 0.164.0
+ * Consolidate list endpoint pagination and search caps into shared mixins
+ * Move card persistence and header strip into temba-components
+ * Limit the user settings endpoint to known keys and cap payload size
+ * Add preview-mode chat + cards layout for contact read and ticket pages
+ * Add campaign read page preview using temba-campaign-events
+ * Add campaign list preview using temba-campaign-list component
+ * Add preview mode for trigger lists
+ * Remove chat refreshes made redundant by socket delivery of ticket events
+
 v26.3.12 (2026-07-13)
 -------------------------
  * Replace direct pytz usage with stdlib zoneinfo and tzdata

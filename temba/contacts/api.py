@@ -1,34 +1,27 @@
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from django.db.models import Prefetch, prefetch_related_objects
-from django.http import HttpResponse
 
 from temba import mailroom
 from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
+from temba.api.support import ListPagination, SearchLengthMixin
 from temba.api.views import ListAPIMixin
 from temba.utils.models.base import patch_queryset_count
 from temba.utils.models.es import SearchSliceQuerySet
+from temba.utils.uuid import is_uuid
 
 from .models import Contact, ContactField, ContactGroup
 
-# Match BaseListView/ContactListView: 50 rows per page, and never let a client page past the 200th page (ES deep
-# pagination guard, mirroring ContactListView.pre_process).
-DEFAULT_PAGE_SIZE = 50
-MAX_PAGE_SIZE = 500
+# Never let a client page past the 200th page (ES deep pagination guard, mirroring ContactListView.pre_process).
 MAX_PAGE = 200
-
-# Cap the search query length the same way the legacy list view does so an oversized query can't be used to drive an
-# expensive mailroom/ES request.
-SEARCH_MAX_LENGTH = ContactGroup.MAX_QUERY_LEN
 
 # The contact list component prefixes its custom-field column keys with `field:` (e.g. `field:age`); mailroom's sort
 # wants the bare field key. System columns (last_seen_on, created_on) are sent unprefixed and pass through untouched.
 FIELD_SORT_PREFIX = "field:"
 
 
-class ContactsEndpoint(ListAPIMixin, BaseEndpoint):
+class ContactsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
     """
     Contacts for the current org, used by the contact list component. A status folder is selected with the `folder`
     query param (one of `active`, `blocked`, `stopped` or `archived`, defaulting to `active`) — alternatively pass
@@ -37,14 +30,12 @@ class ContactsEndpoint(ListAPIMixin, BaseEndpoint):
     via Contact.as_json() (the lightweight list shape — name, primary URN, featured field values, last/created on).
     """
 
-    class Pagination(PageNumberPagination):
-        page_size = DEFAULT_PAGE_SIZE
-        page_size_query_param = "page_size"
-        max_page_size = MAX_PAGE_SIZE
-
     model = Contact
     serializer_class = ModelAsJsonSerializer
-    pagination_class = Pagination
+    pagination_class = ListPagination
+
+    # a mailroom contact query rather than a plain text search, so cap it at the query length limit
+    search_max_length = ContactGroup.MAX_QUERY_LEN
 
     FOLDERS = {
         "active": ContactGroup.TYPE_DB_ACTIVE,
@@ -54,9 +45,6 @@ class ContactsEndpoint(ListAPIMixin, BaseEndpoint):
     }
 
     def get(self, request, *args, **kwargs):
-        search = request.query_params.get("search") or ""
-        if len(search) > SEARCH_MAX_LENGTH:
-            return HttpResponse("Search query too long", status=413)
         # Don't allow pagination past the 200th page (mirrors ContactListView.pre_process / the ES offset guard).
         if self._page() > MAX_PAGE:
             return Response({"results": [], "count": 0, "next": None, "previous": None})
@@ -74,17 +62,21 @@ class ContactsEndpoint(ListAPIMixin, BaseEndpoint):
         # The search/sort path derives the mailroom offset from this, so it must match the page size DRF slices with
         # or SearchSliceQuerySet's offset guard trips with an IndexError (HTTP 500).
         try:
-            size = int(self.request.query_params.get("page_size", DEFAULT_PAGE_SIZE))
+            size = int(self.request.query_params.get("page_size", ListPagination.page_size))
         except TypeError, ValueError:
-            return DEFAULT_PAGE_SIZE
+            return ListPagination.page_size
         if size <= 0:
-            return DEFAULT_PAGE_SIZE
-        return min(size, MAX_PAGE_SIZE)
+            return ListPagination.page_size
+        return min(size, ListPagination.max_page_size)
 
     def derive_group(self):
         org = self.request.org
         group_uuid = self.request.query_params.get("group")
         if group_uuid:
+            # Validate before the lookup — an unparseable value would otherwise raise in the database's UUID
+            # coercion (500). Mirrors FlowsEndpoint's label guard.
+            if not is_uuid(group_uuid):
+                return None
             # Mirror GroupsEndpoint.filter_queryset: skip still-evaluating smart groups so we never page over a group
             # whose membership isn't yet populated.
             return (

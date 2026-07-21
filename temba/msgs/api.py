@@ -1,18 +1,19 @@
 from datetime import timedelta
+from functools import cached_property
 
 from django.db.models import Q
-from django.http import HttpResponse
 from django.utils import timezone
 
 from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
-from temba.api.support import CreatedOnCursorPagination, SearchCountMixin, SentOnCursorPagination
+from temba.api.support import CreatedOnCursorPagination, SearchCountMixin, SearchLengthMixin, SentOnCursorPagination
 from temba.api.views import ListAPIMixin
+from temba.utils.uuid import is_uuid
 
 from .models import Msg, MsgFolder
 
 
-class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
+class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
     """
     Messages for the current org, used by the message list components. A folder is selected with the `folder` query
     param (one of `inbox`, `handled`, `archived`, `outbox`, `sent` or `failed`, defaulting to `inbox`) — alternatively
@@ -51,10 +52,8 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
                 self._search_count = view.get_total_count()
             return page
 
-    # Match BaseListView's caps so the legacy and new lists impose the same bounds: a search query is capped at 1000
-    # chars (rejected with 413) and is restricted to messages from the last 90 days so an unbounded `text__icontains`
-    # scan (compounded by the SearchCountMixin COUNT(*)) can't be triggered by a session-authenticated client.
-    SEARCH_MAX_LENGTH = 1_000
+    # A search is restricted to messages from the last 90 days so an unbounded `text__icontains` scan (compounded by
+    # the SearchCountMixin COUNT(*)) can't be triggered by a session-authenticated client.
     SEARCH_WINDOW = timedelta(days=90)
 
     FOLDERS = {
@@ -70,20 +69,25 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
     serializer_class = ModelAsJsonSerializer
     pagination_class = Pagination
 
-    def get(self, request, *args, **kwargs):
-        search = request.query_params.get("search") or ""
-        if len(search) > self.SEARCH_MAX_LENGTH:
-            return HttpResponse("Search query too long", status=413)
-        return super().get(request, *args, **kwargs)
+    @cached_property
+    def label(self):
+        """
+        The label referenced by the `label` query param, or None if it's malformed or not a label in the current
+        org. Validated before the lookup — an unparseable value would otherwise raise in the database's UUID
+        coercion (500). Mirrors FlowsEndpoint's label guard. Cached because it's read by both derive_queryset and
+        get_total_count on the same request.
+        """
+        label_uuid = self.request.query_params.get("label")
+        if not label_uuid or not is_uuid(label_uuid):
+            return None
+        return self.request.org.msgs_labels.filter(uuid=label_uuid).first()
 
     def get_total_count(self) -> int:
         # Cheap pre-calculated total for the active folder/label (squashed count tables) — used as the list's total
         # when there's no search, avoiding a COUNT(*) on the messages table.
         org = self.request.org
-        label_uuid = self.request.query_params.get("label")
-        if label_uuid:
-            label = org.msgs_labels.filter(uuid=label_uuid).first()
-            return label.get_visible_count() if label else 0
+        if self.request.query_params.get("label"):
+            return self.label.get_visible_count() if self.label else 0
 
         folder = self.FOLDERS.get(self.request.query_params.get("folder", "inbox").lower())
         if not folder:
@@ -95,9 +99,8 @@ class MessagesEndpoint(ListAPIMixin, BaseEndpoint):
         # messages for that label aren't a MsgFolder slice.
         # `org` and `channel` are select_related because Msg.as_json reads self.org (for contact display) and
         # self.channel.is_active/uuid (for the channel-log link gated on the channels.channel_logs perm).
-        label_uuid = self.request.query_params.get("label")
-        if label_uuid:
-            label = self.request.org.msgs_labels.filter(uuid=label_uuid).first()
+        if self.request.query_params.get("label"):
+            label = self.label
             if not label:
                 return Msg.objects.none()
             return (

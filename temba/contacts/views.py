@@ -41,6 +41,7 @@ from temba.utils import json, on_transaction_commit
 from temba.utils.fields import CheckboxWidget, InputWidget, SelectWidget, TembaChoiceField
 from temba.utils.models import patch_queryset_count
 from temba.utils.models.es import SearchSliceQuerySet
+from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, NonAtomicMixin, SpaMixin
 
 from .forms import ContactGroupForm, CreateContactForm, UpdateContactForm
@@ -147,21 +148,13 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
             if uuids:
                 # Only keep well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a single
                 # malformed value (a hostile post, or a stale id-based form post) would otherwise raise ValueError (500).
-                valid = []
-                for u in uuids:
-                    try:
-                        valid.append(UUID(u))
-                    except ValueError:
-                        pass
+                valid = [u for u in uuids if is_uuid(u)]
                 ids = Contact.objects.filter(org=request.org, uuid__in=valid).values_list("id", flat=True)
                 data.setlist("objects", [str(i) for i in ids])
             label = data.get("label")
             if label:
-                try:
-                    UUID(label)
-                except ValueError:
-                    pass  # already an id (legacy form post) — leave alone
-                else:
+                # a non-uuid value (the legacy form's integer id) is left alone
+                if is_uuid(label):
                     group = request.org.groups.filter(uuid=label).first()
                     data["label"] = str(group.id) if group else ""
             elif data.get("action") == "unlabel" and self.group is not None:
@@ -434,6 +427,14 @@ class ContactCRUDL(SmartCRUDL):
         fields = ("name",)
         select_related = ("current_flow",)
 
+        NEW_READ_TEMPLATE = "contacts/contact_read_new.html"
+
+        def get_template_names(self):
+            if self.request.preview:
+                return [self.NEW_READ_TEMPLATE]
+
+            return super().get_template_names()
+
         def derive_menu_path(self):
             return f"/contact/{self.object.get_status_display().lower()}"
 
@@ -454,7 +455,7 @@ class ContactCRUDL(SmartCRUDL):
                 )
 
             if obj.status == Contact.STATUS_ACTIVE:
-                if not obj.current_flow and self.has_org_perm("flows.flow_start"):
+                if self.has_org_perm("flows.flow_start"):
                     menu.add_modax(
                         _("Start Flow"),
                         "start-flow",
@@ -470,6 +471,8 @@ class ContactCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
+            # serialized for temba-card-layout's settings attribute
+            context["card_settings"] = json.dumps(self.request.user.settings.get("contact_cards", {}))
             return context
 
     class Timeline(BaseReadView):
