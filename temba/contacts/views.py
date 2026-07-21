@@ -1104,9 +1104,14 @@ class FieldLookupMixin:
         return False
 
     def get_object(self):
-        if self.request.org:
-            return self.request.org.fields.filter(key=self.kwargs["key"], is_active=True).first()
-        return None
+        # cached because permission checking during dispatch also fetches the object
+        if not hasattr(self, "_object"):
+            self._object = (
+                self.request.org.fields.filter(key=self.kwargs["key"], is_active=True).first()
+                if self.request.org
+                else None
+            )
+        return self._object
 
 
 class ContactFieldCRUDL(SmartCRUDL):
