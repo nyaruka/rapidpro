@@ -359,6 +359,84 @@ class Broadcast(models.Model):
         if contacts:
             self.contacts.add(*contacts)
 
+    def get_exclusions_display(self) -> list:
+        """
+        Human readable descriptions of this broadcast's exclusions - same wording as includes/exclusions.html.
+        """
+        display = []
+        exclusions = self.exclusions or {}
+        if exclusions.get("in_a_flow"):
+            display.append(_("Not in a flow"))
+        if exclusions.get("started_previously"):
+            display.append(_("No recent runs"))
+        days = exclusions.get("not_seen_since_days")
+        if days == 365:
+            display.append(_("Active in the last year"))
+        elif days:
+            display.append(_("Active in the last %(days)d days") % {"days": days})
+        return display
+
+    def as_json(self, context=None) -> dict:
+        """
+        Internal API shape, consumed by the temba-broadcast-list component. Content fields carry the base
+        translation; `msg_count` relies on BroadcastMsgCount.bulk_annotate having run for the page (falling back to
+        a per-row count). Broadcasts key rows off the numeric id since their uuid isn't exposed to the UI.
+        """
+
+        translation = self.get_translation()
+
+        # a scheduled broadcast hasn't sent anything itself (its fires spawn child broadcasts), so it carries no
+        # count or progress
+        msg_count = None
+        if not self.schedule:
+            msg_count = getattr(self, "msg_count", None)
+            if msg_count is None:
+                msg_count = self.get_message_count()
+
+        return {
+            "id": self.id,
+            "status": self.get_status_display().lower(),
+            "text": translation["text"],
+            "attachments": translation["attachments"],
+            "quick_replies": translation["quick_replies"],
+            "optin": {"uuid": str(self.optin.uuid), "name": self.optin.name} if self.optin else None,
+            "template": {"uuid": str(self.template.uuid), "name": self.template.name} if self.template else None,
+            "groups": [{"uuid": str(g.uuid), "name": g.name} for g in self.groups.all()],
+            "contacts": [{"uuid": str(c.uuid), "name": c.name} for c in self.contacts.all()],
+            "urns": self.urns or [],
+            "query": self.query,
+            "exclusions": [str(e) for e in self.get_exclusions_display()],
+            "schedule": (
+                {
+                    "repeat_period": self.schedule.repeat_period,
+                    "display": self.schedule.get_display(),
+                    # a paused schedule can carry a stale next_fire — null it so the broadcast reads as not
+                    # scheduled, same as the trigger list
+                    "next_fire": (
+                        self.schedule.next_fire.isoformat()
+                        if self.schedule.next_fire and not self.schedule.is_paused
+                        else None
+                    ),
+                }
+                if self.schedule
+                else None
+            ),
+            "msg_count": msg_count,
+            # send progress, matching the v2 API's shape: total is -1 until mailroom resolves the recipient
+            # count at queue time
+            "progress": (
+                None
+                if self.schedule
+                else {
+                    "total": self.contact_count if self.contact_count is not None else -1,
+                    "started": msg_count,
+                }
+            ),
+            "created_on": self.created_on.isoformat(),
+            "created_by": self.created_by.email if self.created_by else None,
+            "modified_on": self.modified_on.isoformat(),
+        }
+
     def __repr__(self):
         return f'<Broadcast: id={self.id} text="{self.get_translation()["text"]}">'
 

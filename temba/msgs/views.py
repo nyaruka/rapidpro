@@ -235,54 +235,88 @@ class BroadcastCRUDL(SmartCRUDL):
     )
     model = Broadcast
 
-    class List(SpaMixin, ContextMenuMixin, BulkActionMixin, BaseListView):
+    class BaseList(SpaMixin, ContextMenuMixin, BulkActionMixin, BaseListView):
+        """
+        Base class for the broadcast list views (sent and scheduled)
+        """
+
+        paginate_by = 25
+
+        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
+        # both broadcast list views render the temba-broadcast-list component (msgs/broadcast_list_new.html) instead
+        # of their legacy card grids; the component fetches/pages broadcasts itself from the internal broadcasts API.
+        NEW_LIST_TEMPLATE = "msgs/broadcast_list_new.html"
+
+        # The internal-API folder (and the component's `mode`) this view lists — `sent` or `scheduled`.
+        new_list_folder = "sent"
+
+        def _use_new_list(self) -> bool:
+            # `getattr` defaults to False so a view called via RequestFactory (or if PreviewMiddleware is reordered
+            # out) doesn't AttributeError.
+            return getattr(self.request, "preview", False)
+
+        def get_template_names(self):
+            if self._use_new_list():
+                return [self.NEW_LIST_TEMPLATE]
+            return super().get_template_names()
+
+        def get_paginate_by(self, queryset):
+            # The temba-broadcast-list component fetches and pages broadcasts itself.
+            if self._use_new_list():
+                return None
+            return super().get_paginate_by(queryset)
+
+        def get_queryset(self, **kwargs):
+            # In preview the temba-broadcast-list component fetches and pages broadcasts from the internal
+            # broadcasts API, so a GET page needs no object list.
+            if self._use_new_list() and self.request.method == "GET":
+                return Broadcast.objects.none()
+
+            return (
+                super()
+                .get_queryset(**kwargs)
+                .filter(is_active=True, org=self.request.org)
+                .select_related("org", "schedule")
+                .prefetch_related("groups", "contacts")
+            )
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+
+            # New-list view context: the resolved broadcasts-api endpoint and the component's mode.
+            if self._use_new_list():
+                endpoint = reverse("api.internal.broadcasts")
+                context["new_list_endpoint"] = f"{endpoint}.json?folder={self.new_list_folder}"
+                context["new_list_mode"] = self.new_list_folder
+
+            return context
+
+        def build_context_menu(self, menu):
+            if self.has_org_perm("msgs.broadcast_create"):
+                menu.add_modax(
+                    _("New Broadcast"),
+                    "new-scheduled",
+                    reverse("msgs.broadcast_create"),
+                    as_button=True,
+                )
+
+    class List(BaseList):
         title = _("Broadcasts")
         menu_path = "/msg/broadcasts"
-        paginate_by = 25
         default_order = ("-created_on", "-id")
+        new_list_folder = "sent"
 
         def get_queryset(self, **kwargs):
-            return (
-                super()
-                .get_queryset(**kwargs)
-                .filter(is_active=True, schedule=None, org=self.request.org)
-                .select_related("org", "schedule")
-                .prefetch_related("groups", "contacts")
-            )
+            return super().get_queryset(**kwargs).filter(schedule=None)
 
-        def build_context_menu(self, menu):
-            if self.has_org_perm("msgs.broadcast_create"):
-                menu.add_modax(
-                    _("New Broadcast"),
-                    "new-scheduled",
-                    reverse("msgs.broadcast_create"),
-                    as_button=True,
-                )
-
-    class Scheduled(SpaMixin, ContextMenuMixin, BulkActionMixin, BaseListView):
+    class Scheduled(BaseList):
         title = _("Scheduled Broadcasts")
         menu_path = "/msg/scheduled"
-        paginate_by = 25
         default_order = ("schedule__next_fire", "-created_on")
+        new_list_folder = "scheduled"
 
         def get_queryset(self, **kwargs):
-            return (
-                super()
-                .get_queryset(**kwargs)
-                .filter(is_active=True)
-                .exclude(schedule=None)
-                .select_related("org", "schedule")
-                .prefetch_related("groups", "contacts")
-            )
-
-        def build_context_menu(self, menu):
-            if self.has_org_perm("msgs.broadcast_create"):
-                menu.add_modax(
-                    _("New Broadcast"),
-                    "new-scheduled",
-                    reverse("msgs.broadcast_create"),
-                    as_button=True,
-                )
+            return super().get_queryset(**kwargs).exclude(schedule=None)
 
     class Create(ModalHeaderMixin, OrgPermsMixin, SmartWizardView):
         form_list = [("target", TargetForm), ("compose", ComposeForm), ("schedule", ScheduleForm)]
