@@ -124,6 +124,9 @@
         if (!next.url) {
           next.url = location.href;
         }
+        // state.url stays the bare page URL while the address bar gets
+        // event.detail.url — see msgs/msg_list_new.html for why the two
+        // must not be normalized to match.
         if (event.detail.replace) {
           history.replaceState(next, "", event.detail.url || null);
         } else {
