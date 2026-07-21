@@ -25,8 +25,8 @@ class BroadcastsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
     """
     Broadcasts for the current org, used by the broadcast list component. A folder is selected with the `folder`
     query param — `sent` (the default: broadcasts without a schedule) or `scheduled` (broadcasts waiting on one).
-    An optional `search` param filters by message text, and `sort` can be `created_on` (sent) or `next_fire`
-    (scheduled), prefixed with `-` to reverse. Each item is serialized via Broadcast.as_json().
+    An optional `search` param filters by message text, and `sort` can be `created_on` or `next_fire`
+    (scheduled only), prefixed with `-` to reverse. Each item is serialized via Broadcast.as_json().
     """
 
     model = Broadcast
@@ -63,7 +63,7 @@ class BroadcastsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         desc = sort.startswith("-")
         key = sort[1:] if desc else sort
 
-        if key == "created_on" and not scheduled:
+        if key == "created_on":
             order = ("-created_on" if desc else "created_on",)
         elif key == "next_fire" and scheduled:
             order = ("-schedule__next_fire" if desc else "schedule__next_fire",)

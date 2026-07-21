@@ -36,7 +36,8 @@
                         list-title="{{ title }}"
                         endpoint="{{ new_list_endpoint }}"
                         content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
-                        {% if new_list_mode == "scheduled" and org_perms.msgs.broadcast_update %}can-edit can-delete{% endif %}
+                        {% if new_list_mode == "scheduled" and org_perms.msgs.broadcast_update %}can-edit{% endif %}
+                        {% if new_list_mode == "scheduled" and org_perms.msgs.broadcast_scheduled_delete %}can-delete{% endif %}
                         empty-message="{% trans "No broadcasts" %}">
   </temba-broadcast-list>
 {% endblock content %}

@@ -863,6 +863,11 @@ class EndpointsTest(APITestMixin, TembaTest):
             endpoint_url + "?folder=scheduled&sort=-next_fire", [self.admin], results=[bcast5, bcast3, bcast4]
         )
 
+        # created_on is also a valid sort for the scheduled folder
+        self.assertGet(
+            endpoint_url + "?folder=scheduled&sort=-created_on", [self.admin], results=[bcast5, bcast4, bcast3]
+        )
+
         # search matches the message text inside the translations...
         self.assertGet(endpoint_url + "?search=hello", [self.admin], results=[bcast1])
         self.assertGet(endpoint_url + "?folder=scheduled&search=weekly", [self.admin], results=[bcast3])

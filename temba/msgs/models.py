@@ -369,11 +369,13 @@ class Broadcast(models.Model):
             display.append(_("Not in a flow"))
         if exclusions.get("started_previously"):
             display.append(_("No recent runs"))
+        # exclusions is untyped JSON so guard against a non-int creeping into the format below
         days = exclusions.get("not_seen_since_days")
-        if days == 365:
-            display.append(_("Active in the last year"))
-        elif days:
-            display.append(_("Active in the last %(days)d days") % {"days": days})
+        if isinstance(days, int) and days:
+            if days == 365:
+                display.append(_("Active in the last year"))
+            else:
+                display.append(_("Active in the last %(days)d days") % {"days": days})
         return display
 
     def as_json(self, context=None) -> dict:
