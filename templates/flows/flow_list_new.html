@@ -138,9 +138,9 @@
           next.url = location.href;
         }
         if (event.detail.replace) {
-          history.replaceState(next, "");
+          history.replaceState(next, "", event.detail.url || null);
         } else {
-          history.pushState(next, "");
+          history.pushState(next, "", event.detail.url || null);
         }
       });
     });
