@@ -611,7 +611,9 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(list_url)
         self.assertContains(response, "temba-broadcast-list")
-        self.assertEqual(f"{reverse('api.internal.broadcasts')}.json?folder=sent", response.context["new_list_endpoint"])
+        self.assertEqual(
+            f"{reverse('api.internal.broadcasts')}.json?folder=sent", response.context["new_list_endpoint"]
+        )
         self.assertEqual("sent", response.context["new_list_mode"])
         # the sent list's detail dialog has no edit/delete actions
         self.assertNotContains(response, "can-edit")

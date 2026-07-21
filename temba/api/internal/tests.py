@@ -863,9 +863,13 @@ class EndpointsTest(APITestMixin, TembaTest):
             endpoint_url + "?folder=scheduled&sort=-next_fire", [self.admin], results=[bcast5, bcast3, bcast4]
         )
 
-        # search matches the message text inside the translations
+        # search matches the message text inside the translations...
         self.assertGet(endpoint_url + "?search=hello", [self.admin], results=[bcast1])
         self.assertGet(endpoint_url + "?folder=scheduled&search=weekly", [self.admin], results=[bcast3])
+
+        # ...but not the JSON structure around it (keys, language codes)
+        self.assertGet(endpoint_url + "?search=quick_replies", [self.admin], results=[])
+        self.assertGet(endpoint_url + "?search=eng", [self.admin], results=[])
 
         # each row carries the columns the component renders
         def check_sent_shape(data):

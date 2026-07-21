@@ -2,6 +2,7 @@ from datetime import timedelta
 from functools import cached_property
 
 from django.db.models import Q, TextField
+from django.db.models.expressions import RawSQL
 from django.db.models.functions import Cast
 from django.utils import timezone
 
@@ -48,11 +49,15 @@ class BroadcastsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
 
         search = self.request.query_params.get("search")
         if search:
-            # broadcast text lives inside the translations JSON, so search a text cast of it — broadcasts are a
-            # small per-org table, unlike messages, so the cast scan is acceptable
-            qs = qs.annotate(translations_text=Cast("translations", output_field=TextField())).filter(
-                translations_text__icontains=search
-            )
+            # broadcast text lives inside the translations JSON, so search over just the per-language text values
+            # (extracted with a jsonpath) rather than a raw cast of the JSON — a raw cast would also match its
+            # structure (keys like "text", language codes). Broadcasts are a small per-org table, unlike messages,
+            # so the scan is acceptable.
+            qs = qs.annotate(
+                translations_text=Cast(
+                    RawSQL("jsonb_path_query_array(translations, '$.*.text')", []), output_field=TextField()
+                )
+            ).filter(translations_text__icontains=search)
 
         sort = self.request.query_params.get("sort") or ""
         desc = sort.startswith("-")
