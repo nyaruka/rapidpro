@@ -1,3 +1,14 @@
+v26.3.15 (2026-07-21)
+-------------------------
+ * Update @nyaruka/temba-components to 0.165.0
+ * Add preview list page for contact fields
+ * Cache field lookups so permission checks don't double fetch
+ * Add preview-mode broadcast lists backed by temba-broadcast-list
+ * Pass list component's address-bar URL through to history entries on new-list pages
+ * Increase time before an unseen Android channel is considered disconnected to 90 minutes
+ * Switch JS dependency management from yarn to bun
+ * Update dependencies
+
 v26.3.14 (2026-07-20)
 -------------------------
  * Add translatable message for too_complex contact query error code
