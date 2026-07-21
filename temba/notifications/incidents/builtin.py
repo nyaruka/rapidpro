@@ -1,4 +1,8 @@
+from datetime import timedelta
+
+from django.db.models import Q
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from ..models import Incident, IncidentType
@@ -15,8 +19,18 @@ class ChannelDisconnectedIncidentType(IncidentType):
     @classmethod
     def get_or_create(cls, channel):
         """
-        Creates a channel disconnected incident if one is not already ongoing
+        Creates a channel disconnected incident if one is not already ongoing and we haven't already started one for
+        this channel in the last 24 hours - so users get at most one notification per channel per day.
         """
+        existing = (
+            Incident.objects.filter(org=channel.org, incident_type=cls.slug, scope=str(channel.id))
+            .filter(Q(ended_on=None) | Q(started_on__gt=timezone.now() - timedelta(hours=24)))
+            .order_by("-started_on")
+            .first()
+        )
+        if existing:
+            return existing
+
         return Incident.get_or_create(channel.org, cls.slug, scope=str(channel.id), channel=channel)
 
     def get_notification_target_url(self, incident) -> str:

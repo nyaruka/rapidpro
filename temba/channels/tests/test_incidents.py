@@ -51,3 +51,28 @@ class ChannelIncidentsTest(TembaTest):
         # still only one incident, but it is now ended
         incident = self.org.incidents.get()
         self.assertIsNotNone(incident.ended_on)
+
+        # channel disconnects again shortly after
+        self.channel.last_seen = timezone.now() - timedelta(minutes=40)
+        self.channel.save(update_fields=("last_seen",))
+
+        check_android_channels()
+
+        # no new incident or notifications because we already had one for this channel in the last 24 hours
+        incident = self.org.incidents.get()
+        self.assertEqual(1, self.admin.notifications.count())
+
+        send_notification_emails()
+        self.assertEqual(1, len(mail.outbox))
+
+        # but if the last incident started more than 24 hours ago, a new one can be created
+        incident.started_on = timezone.now() - timedelta(hours=25)
+        incident.save(update_fields=("started_on",))
+
+        check_android_channels()
+
+        self.assertEqual(2, self.org.incidents.count())
+        self.assertEqual(2, self.admin.notifications.count())
+
+        send_notification_emails()
+        self.assertEqual(2, len(mail.outbox))
