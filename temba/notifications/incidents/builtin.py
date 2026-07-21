@@ -20,7 +20,8 @@ class ChannelDisconnectedIncidentType(IncidentType):
     def get_or_create(cls, channel):
         """
         Creates a channel disconnected incident if one is not already ongoing and we haven't already started one for
-        this channel in the last 24 hours - so users get at most one notification per channel per day.
+        this channel in the last 24 hours - so users get at most one notification per channel per day. Note that the
+        returned incident can thus be an already ended one from the last 24 hours.
         """
         existing = (
             Incident.objects.filter(org=channel.org, incident_type=cls.slug, scope=str(channel.id))

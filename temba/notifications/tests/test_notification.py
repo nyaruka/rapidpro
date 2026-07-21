@@ -506,6 +506,17 @@ class NotificationTest(TembaTest):
         self.assertEqual(2, self.admin.notifications.filter(is_seen=False).count())
         self.assertEqual(0, self.admin.notifications.filter(is_seen=True).count())
 
+        # an ongoing incident is returned as is even if it started more than 24 hours ago
+        incident4.started_on = timezone.now() - timedelta(hours=25)
+        incident4.save(update_fields=("started_on",))
+
+        incident5 = ChannelDisconnectedIncidentType.get_or_create(channel=self.channel)
+        self.assertEqual(incident4.pk, incident5.pk)
+        self.assertIsNone(incident5.ended_on)
+
+        send_notification_emails()
+        self.assertEqual(4, len(mail.outbox))  # no new emails
+
     def test_counts(self):
         imp = ContactImport.objects.create(
             org=self.org, mappings={}, num_records=5, created_by=self.editor, modified_by=self.editor
