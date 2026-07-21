@@ -605,6 +605,19 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertListFetch(list_url, [self.admin], context_objects=[broadcast])
 
+        # entering preview mode swaps in the temba-broadcast-list component, pointed at the internal broadcasts api
+        self.login(self.admin)
+        self.client.cookies["temba-preview"] = "1"
+
+        response = self.client.get(list_url)
+        self.assertContains(response, "temba-broadcast-list")
+        self.assertEqual(
+            f"{reverse('api.internal.broadcasts')}.json?folder=sent", response.context["new_list_endpoint"]
+        )
+        self.assertEqual("sent", response.context["new_list_mode"])
+        # the sent list's detail dialog has no edit/delete actions
+        self.assertNotContains(response, "can-edit")
+
     def test_scheduled(self):
         scheduled_url = reverse("msgs.broadcast_scheduled")
 
@@ -640,6 +653,20 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         bc3.save(update_fields=("is_active",))
 
         self.assertListFetch(scheduled_url, [self.editor], context_objects=[bc2, bc1])
+
+        # entering preview mode swaps in the temba-broadcast-list component in scheduled mode
+        self.login(self.editor)
+        self.client.cookies["temba-preview"] = "1"
+
+        response = self.client.get(scheduled_url)
+        self.assertContains(response, "temba-broadcast-list")
+        self.assertEqual(
+            f"{reverse('api.internal.broadcasts')}.json?folder=scheduled", response.context["new_list_endpoint"]
+        )
+        self.assertEqual("scheduled", response.context["new_list_mode"])
+        # editors can update and delete scheduled broadcasts, so the detail dialog gets its edit/delete actions
+        self.assertContains(response, "can-edit")
+        self.assertContains(response, "can-delete")
 
     def test_scheduled_delete(self):
         self.login(self.editor)

@@ -1,0 +1,132 @@
+{% extends "smartmin/list.html" %}
+{% load i18n %}
+
+{% comment %}
+  New-list template shared by both broadcast list views — the sent list
+  (msgs.broadcast_list) and the scheduled list (msgs.broadcast_scheduled)
+  — when the viewer is in preview mode (request.preview, set by
+  PreviewMiddleware off the temba-preview cookie). The endpoint and the
+  component's mode come from the view's context_data. In place of a
+  broadcast read page, the component opens a floating detail dialog per
+  row; on the scheduled list its Edit / Delete actions fire
+  temba-selection events handled below.
+{% endcomment %}
+{% block page-header %}
+  {# the temba-broadcast-list renders its own header (title + content menu); #}
+  {# keep the csrf token and a hidden title for the SPA document.title hook #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    /* The list component fills its container edge to edge and brings
+       its own surface, so drop the SPA content padding (and the grey
+       page background it would otherwise reveal around the list). */
+    .spa-content {
+      padding: 0 !important;
+    }
+  </style>
+{% endblock extra-style %}
+{% block content %}
+  <temba-broadcast-list id="broadcast-list"
+                        fill-window
+                        mode="{{ new_list_mode }}"
+                        history-state-key="broadcasts-{{ new_list_mode }}"
+                        list-title="{{ title }}"
+                        endpoint="{{ new_list_endpoint }}"
+                        content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
+                        {% if new_list_mode == "scheduled" and org_perms.msgs.broadcast_update %}can-edit{% endif %}
+                        {% if new_list_mode == "scheduled" and org_perms.msgs.broadcast_scheduled_delete %}can-delete{% endif %}
+                        empty-message="{% trans "No broadcasts" %}">
+  </temba-broadcast-list>
+{% endblock content %}
+{% block extra-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    onSpload(function() {
+      var list = document.querySelector("#broadcast-list");
+
+      // the detail dialog's Edit / Delete actions (scheduled list only)
+      // and the embedded content menu both fire temba-selection
+      list.addEventListener("temba-selection", function(event) {
+        var detail = event.detail;
+        if (detail.action === "edit_broadcast") {
+          showModax("{{ _("Edit Broadcast")|escapejs }}", "/broadcast/update/" + detail.broadcast.id + "/", {
+            onSubmit: "handleBroadcastChanged()"
+          });
+          return;
+        }
+        if (detail.action === "delete_broadcast") {
+          showModax("{{ _("Delete Broadcast")|escapejs }}", "/broadcast/scheduled_delete/" + detail.broadcast.id + "/", {
+            onSubmit: "handleBroadcastChanged()"
+          });
+          return;
+        }
+
+        // a content-menu item - dispatch it the same way the page
+        // chrome's content menu (spa_page_menu.html) does
+        var item = detail.item;
+        if (!item) {
+          return;
+        }
+        var click = detail.event;
+        if (item.type === "link") {
+          if (click) {
+            click.preventDefault();
+            click.stopPropagation();
+            if (click.metaKey && item.url) {
+              window.open(item.url, "_blank");
+              return;
+            }
+          }
+          spaGet(item.url);
+        } else if (item.type === "modax") {
+          showModax(item.title, item.url, {
+            disabled: item.disabled,
+            onSubmit: item.on_submit,
+            onRedirect: item.on_redirect,
+            id: item.modal_id,
+            originX: detail.originX,
+            originY: detail.originY
+          });
+        } else if (item.type === "url_post") {
+          posterize(item.url);
+        } else if (item.type === "js") {
+          if (window[item.id]) {
+            window[item.id]();
+          }
+        }
+        refreshMenu();
+      });
+
+      // See msgs/msg_list_new.html for the full rationale: stash the list's
+      // restorable state (page, sort, search, cursor url) on the current
+      // history entry so a navigation away and back lands on the same page.
+      list.addEventListener("temba-history-change", function(event) {
+        var current = history.state || {};
+        var next = Object.assign({}, current);
+        next[event.detail.key] = event.detail.state;
+        if (!next.url) {
+          next.url = location.href;
+        }
+        if (event.detail.replace) {
+          history.replaceState(next, "");
+        } else {
+          history.pushState(next, "");
+        }
+      });
+    });
+
+    // After the edit / delete modal submits — re-pull the current page
+    // (the broadcast's row may have changed or gone) and the sidebar
+    // menu counts.
+    function handleBroadcastChanged() {
+      refreshMenu();
+      var list = document.querySelector("#broadcast-list");
+      if (list) {
+        list.refresh();
+      }
+    }
+  </script>
+{% endblock extra-script %}

@@ -118,6 +118,9 @@ class BroadcastTest(TembaTest):
         self.assertEqual(2, bcast3.msgs.count())
         self.assertEqual(2, bcast3.get_message_count())
 
+        # as_json falls back to a per-row count when BroadcastMsgCount.bulk_annotate hasn't run for the page
+        self.assertEqual(2, bcast3.as_json()["msg_count"])
+
         self.assertEqual(2, Broadcast.objects.count())
         self.assertEqual(2, Msg.objects.count())
         self.assertEqual(1, Schedule.objects.count())
@@ -139,6 +142,17 @@ class BroadcastTest(TembaTest):
         # can't create broadcast with no recipients
         with self.assertRaises(AssertionError):
             Broadcast.create(self.org, self.admin, {"und": {"text": "no recipients"}}, base_language="und")
+
+    def test_get_exclusions_display(self):
+        def display(exclusions) -> list:
+            return Broadcast(exclusions=exclusions).get_exclusions_display()
+
+        self.assertEqual([], display(None))
+        self.assertEqual(["Not in a flow"], display({"in_a_flow": True}))
+        self.assertEqual(["No recent runs"], display({"started_previously": True}))
+        self.assertEqual(["Active in the last year"], display({"not_seen_since_days": 365}))
+        self.assertEqual(["Active in the last 90 days"], display({"not_seen_since_days": 90}))
+        self.assertEqual([], display({"not_seen_since_days": "junk"}))  # bad data from an old row
 
     @mock_mailroom
     def test_preview(self, mr_mocks):

@@ -1,16 +1,89 @@
 from datetime import timedelta
 from functools import cached_property
 
-from django.db.models import Q
+from django.db.models import Q, TextField
+from django.db.models.expressions import RawSQL
+from django.db.models.functions import Cast
 from django.utils import timezone
 
 from temba.api.internal.serializers import ModelAsJsonSerializer
 from temba.api.internal.views import BaseEndpoint
-from temba.api.support import CreatedOnCursorPagination, SearchCountMixin, SearchLengthMixin, SentOnCursorPagination
+from temba.api.support import (
+    CreatedOnCursorPagination,
+    ListPagination,
+    SearchCountMixin,
+    SearchLengthMixin,
+    SentOnCursorPagination,
+)
 from temba.api.views import ListAPIMixin
 from temba.utils.uuid import is_uuid
 
-from .models import Msg, MsgFolder
+from .models import Broadcast, BroadcastMsgCount, Msg, MsgFolder
+
+
+class BroadcastsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
+    """
+    Broadcasts for the current org, used by the broadcast list component. A folder is selected with the `folder`
+    query param — `sent` (the default: broadcasts without a schedule) or `scheduled` (broadcasts waiting on one).
+    An optional `search` param filters by message text, and `sort` can be `created_on` or `next_fire`
+    (scheduled only), prefixed with `-` to reverse. Each item is serialized via Broadcast.as_json().
+    """
+
+    model = Broadcast
+    serializer_class = ModelAsJsonSerializer
+    pagination_class = ListPagination
+
+    def derive_queryset(self):
+        # Build from Broadcast.objects rather than the org.broadcasts related manager — a related manager would seed
+        # each fetched row with the in-memory org instance, which Django rejects on a GET because the org was loaded
+        # from the default database while this queryset reads from the readonly alias.
+        qs = Broadcast.objects.filter(org=self.request.org, is_active=True)
+
+        scheduled = self.request.query_params.get("folder", "sent").lower() == "scheduled"
+        if scheduled:
+            qs = qs.exclude(schedule=None)
+            default_order = ("schedule__next_fire", "-created_on")
+        else:
+            qs = qs.filter(schedule=None)
+            default_order = ("-created_on",)
+
+        search = self.request.query_params.get("search")
+        if search:
+            # broadcast text lives inside the translations JSON, so search over just the per-language text values
+            # (extracted with a jsonpath) rather than a raw cast of the JSON — a raw cast would also match its
+            # structure (keys like "text", language codes). Broadcasts are a small per-org table, unlike messages,
+            # so the scan is acceptable.
+            qs = qs.annotate(
+                translations_text=Cast(
+                    RawSQL("jsonb_path_query_array(translations, '$.*.text')", []), output_field=TextField()
+                )
+            ).filter(translations_text__icontains=search)
+
+        sort = self.request.query_params.get("sort") or ""
+        desc = sort.startswith("-")
+        key = sort[1:] if desc else sort
+
+        if key == "created_on":
+            order = ("-created_on" if desc else "created_on",)
+        elif key == "next_fire" and scheduled:
+            order = ("-schedule__next_fire" if desc else "schedule__next_fire",)
+        else:
+            order = default_order
+
+        # `org` is select_related because as_json reads self.org via get_translation (org primary language)
+        return (
+            qs.order_by(*order, "-id")
+            .select_related("org", "schedule", "optin", "template", "created_by")
+            .prefetch_related("groups", "contacts")
+        )
+
+    def filter_queryset(self, queryset):
+        # filtering (folder/search/sort) is fully resolved in derive_queryset; bypass the default backends
+        return queryset
+
+    def prepare_for_serialization(self, page, using: str):
+        # bulk-load the created-message counts for the page so as_json doesn't N+1
+        BroadcastMsgCount.bulk_annotate(page)
 
 
 class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):

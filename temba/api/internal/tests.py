@@ -12,7 +12,7 @@ from temba.api.tests.mixins import APITestMixin
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactExport, ContactField, ContactGroup
 from temba.flows.models import Flow, FlowLabel
-from temba.msgs.models import Msg
+from temba.msgs.models import Broadcast, Msg
 from temba.notifications.types import ExportFinishedNotificationType
 from temba.schedules.models import Schedule
 from temba.templates.models import TemplateTranslation
@@ -787,6 +787,127 @@ class EndpointsTest(APITestMixin, TembaTest):
             ],
             num_queries=NUM_BASE_QUERIES + 3,
         )
+
+    def test_broadcasts(self):
+        endpoint_url = reverse("api.internal.broadcasts") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        group = self.create_group("Farmers", contacts=[])
+        contact = self.create_contact("Jim", phone="+250788987651")
+
+        bcast1 = self.create_broadcast(
+            self.admin,
+            {
+                "eng": {
+                    "text": "Hello everyone",
+                    "attachments": ["image/jpeg:http://example.com/cat.jpg"],
+                    "quick_replies": ["Yes", "No"],
+                }
+            },
+            groups=[group],
+            contacts=[contact],
+            exclude=mailroom.Exclusions(in_a_flow=True, not_seen_since_days=90),
+        )
+        bcast2 = self.create_broadcast(
+            self.admin, {"eng": {"text": "Sending still"}}, contacts=[contact], status=Broadcast.STATUS_STARTED
+        )
+
+        # scheduled broadcasts live in their own folder, soonest fire first
+        bcast3 = self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Weekly reminder"}},
+            groups=[group],
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=2), Schedule.REPEAT_DAILY),
+        )
+        bcast4 = self.create_broadcast(
+            self.admin,
+            {"eng": {"text": "Sooner reminder"}},
+            contacts=[contact],
+            schedule=Schedule.create(self.org, timezone.now() + timedelta(days=1), Schedule.REPEAT_WEEKLY),
+        )
+
+        # a scheduled broadcast whose (paused) schedule still carries a stale next fire
+        paused = Schedule.create(self.org, timezone.now() + timedelta(days=3), Schedule.REPEAT_DAILY)
+        paused.is_paused = True
+        paused.save(update_fields=("is_paused",))
+        bcast5 = self.create_broadcast(
+            self.admin, {"eng": {"text": "Paused reminder"}}, contacts=[contact], schedule=paused
+        )
+
+        # and a broadcast in another org that should never appear
+        other_contact = self.create_contact("Bob", phone="+250788111111", org=self.org2)
+        self.create_broadcast(
+            self.admin2,
+            {"eng": {"text": "Other org"}},
+            contacts=[other_contact],
+            org=self.org2,
+            status=Broadcast.STATUS_PENDING,  # org2 has no channel to create messages with
+        )
+
+        # default folder is `sent` (broadcasts without a schedule), newest first
+        self.assertGet(endpoint_url, [self.editor, self.admin], results=[bcast2, bcast1])
+        self.assertGet(
+            endpoint_url + "?folder=sent",
+            [self.admin],
+            results=[bcast2, bcast1],
+            num_queries=NUM_BASE_QUERIES + 5,  # count + broadcasts + 2 M2M prefetches + msg counts
+        )
+        self.assertGet(endpoint_url + "?sort=created_on", [self.admin], results=[bcast1, bcast2])
+
+        # the scheduled folder orders by next fire
+        self.assertGet(endpoint_url + "?folder=scheduled", [self.admin], results=[bcast4, bcast3, bcast5])
+        self.assertGet(
+            endpoint_url + "?folder=scheduled&sort=-next_fire", [self.admin], results=[bcast5, bcast3, bcast4]
+        )
+
+        # created_on is also a valid sort for the scheduled folder
+        self.assertGet(
+            endpoint_url + "?folder=scheduled&sort=-created_on", [self.admin], results=[bcast5, bcast4, bcast3]
+        )
+
+        # search matches the message text inside the translations...
+        self.assertGet(endpoint_url + "?search=hello", [self.admin], results=[bcast1])
+        self.assertGet(endpoint_url + "?folder=scheduled&search=weekly", [self.admin], results=[bcast3])
+
+        # ...but not the JSON structure around it (keys, language codes)
+        self.assertGet(endpoint_url + "?search=quick_replies", [self.admin], results=[])
+        self.assertGet(endpoint_url + "?search=eng", [self.admin], results=[])
+
+        # each row carries the columns the component renders
+        def check_sent_shape(data):
+            row = [r for r in data["results"] if r["id"] == bcast1.id][0]
+            self.assertEqual("completed", row["status"])
+            self.assertEqual("Hello everyone", row["text"])
+            self.assertEqual(["image/jpeg:http://example.com/cat.jpg"], row["attachments"])
+            self.assertEqual(["Yes", "No"], row["quick_replies"])
+            self.assertEqual([{"uuid": str(group.uuid), "name": "Farmers"}], row["groups"])
+            self.assertEqual([{"uuid": str(contact.uuid), "name": "Jim"}], row["contacts"])
+            self.assertEqual(["Not in a flow", "Active in the last 90 days"], row["exclusions"])
+            self.assertIsNone(row["schedule"])
+            self.assertEqual(1, row["msg_count"])
+            self.assertEqual({"total": 1, "started": 1}, row["progress"])
+            self.assertEqual("admin@textit.com", row["created_by"])
+            return True
+
+        self.assertGet(endpoint_url + "?folder=sent", [self.admin], raw=check_sent_shape)
+
+        # a scheduled row carries the schedule instead of a message count, and a paused schedule's stale
+        # next_fire reads as not scheduled
+        def check_scheduled_shape(data):
+            row = [r for r in data["results"] if r["id"] == bcast3.id][0]
+            self.assertEqual("D", row["schedule"]["repeat_period"])
+            self.assertTrue(row["schedule"]["display"].startswith("each day at"))
+            self.assertIsNotNone(row["schedule"]["next_fire"])
+            self.assertIsNone(row["msg_count"])
+            self.assertIsNone(row["progress"])
+            paused_row = [r for r in data["results"] if r["id"] == bcast5.id][0]
+            self.assertIsNone(paused_row["schedule"]["next_fire"])
+            return True
+
+        self.assertGet(endpoint_url + "?folder=scheduled", [self.admin], raw=check_scheduled_shape)
 
     def test_triggers(self):
         endpoint_url = reverse("api.internal.triggers") + ".json"
