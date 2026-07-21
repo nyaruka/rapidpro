@@ -522,11 +522,14 @@ function loadFromState(state) {
       // aborts the first fetch — but fetchAjax resolves with undefined
       // rather than rejecting, so this .then still fires for the aborted
       // target and would otherwise leave currentSpaUrl pointing at the
-      // intermediate URL). Compare to location.href, which popstate has
-      // already updated to the latest state.url, so the in-flight target
-      // only matches when it is still the current truth.
+      // intermediate URL). Compare to the current entry's state.url rather
+      // than location.href: an entry's address can now carry list-state
+      // query params (e.g. ?search=...) that diverge from its bare state.url,
+      // so location.href wouldn't match target even on the right entry.
+      // history.state is the entry popstate landed on, so its url only
+      // equals the in-flight target when that target is still the current truth.
       return pending.then(function () {
-        if (location.href === target) {
+        if (history.state && history.state.url === target) {
           currentSpaUrl = target;
         }
       }).catch(function () {});
