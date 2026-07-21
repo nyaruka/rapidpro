@@ -1235,7 +1235,11 @@ class ContactFieldCRUDL(SmartCRUDL):
                             for f in flows[: self.USAGES_LIMIT]
                         ],
                         "groups": [
-                            {"uuid": str(g.uuid), "name": g.name, "url": reverse("contacts.contact_group", args=[g.uuid])}
+                            {
+                                "uuid": str(g.uuid),
+                                "name": g.name,
+                                "url": reverse("contacts.contact_group", args=[g.uuid]),
+                            }
                             for g in groups[: self.USAGES_LIMIT]
                         ],
                         "campaign_events": [

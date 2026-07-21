@@ -328,9 +328,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
                 },
                 "usages": {
                     "flows": [{"uuid": str(flow.uuid), "name": "Flow", "url": f"/flow/editor/{flow.uuid}/"}],
-                    "groups": [
-                        {"uuid": str(group.uuid), "name": "Farmers", "url": f"/contact/group/{group.uuid}/"}
-                    ],
+                    "groups": [{"uuid": str(group.uuid), "name": "Farmers", "url": f"/contact/group/{group.uuid}/"}],
                     "campaign_events": [
                         {
                             "id": campaign.events.get().id,
@@ -364,9 +362,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
 
         # the legacy shape is a map of key to priority
-        response = self.client.post(
-            priority_url, {"age": 10, "gender": 5, "other": 3}, content_type="application/json"
-        )
+        response = self.client.post(priority_url, {"age": 10, "gender": 5, "other": 3}, content_type="application/json")
         self.assertEqual(200, response.status_code)
 
         self.age.refresh_from_db()
