@@ -110,6 +110,12 @@ class MiddlewareTest(TembaTest):
         self.assertEqual("", response.cookies["temba-legacy"].value)
         self.assertFalse(response.wsgi_request.legacy)
 
+        # ?legacy=0 with no cookie set doesn't emit a pointless Set-Cookie header
+        del self.client.cookies["temba-legacy"]
+        response = self.client.get(index_url + "?legacy=0")
+        self.assertNotIn("temba-legacy", response.cookies)
+        self.assertFalse(response.wsgi_request.legacy)
+
     def test_language(self):
         def assert_text(text: str):
             self.assertContains(self.client.get(settings.LOGIN_URL, follow=True), text)

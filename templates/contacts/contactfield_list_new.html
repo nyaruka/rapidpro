@@ -2,8 +2,8 @@
 {% load i18n %}
 
 {% comment %}
-  New-style contact fields list rendered when the viewer is in preview
-  mode (request.preview, set by PreviewMiddleware off the temba-preview
+  New-style contact fields list rendered unless the viewer is in legacy
+  mode (request.legacy, set by LegacyMiddleware off the temba-legacy
   cookie). The temba-field-list component renders the same page header
   as the new list views (title + content menu), then the fields as two
   cards — Featured (drag to order, drag out to un-feature) and Other

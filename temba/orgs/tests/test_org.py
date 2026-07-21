@@ -862,8 +862,8 @@ class AnonOrgTest(TembaTest):
         self.assertNotContains(response, "788 123 123")
         self.assertContains(response, contact.ref)
 
-        # create an incoming message - by default (preview off) the inbox renders the legacy template which prints
-        # the contact via name_or_urn, so URN masking still needs coverage on that path. In preview mode the temba-msg-list
+        # create an incoming message - in legacy mode the inbox renders the legacy template which prints the
+        # contact via name_or_urn, so URN masking still needs coverage on that path. By default the temba-msg-list
         # component fetches messages from the internal API (separately covered in temba/api/internal/tests.py).
         msg2 = self.create_incoming_msg(contact, "ok")
 

@@ -1181,13 +1181,13 @@ class ContactFieldCRUDL(SmartCRUDL):
         menu_path = "/contact/fields"
         title = _("Fields")
 
-        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
-        # the list renders the temba-field-list component (contacts/contactfield_list_new.html) instead of the
-        # legacy field manager; the component fetches the fields itself from the API.
+        # By default the list renders the temba-field-list component (contacts/contactfield_list_new.html); the
+        # component fetches the fields itself from the API. Viewers can opt back into the legacy field manager via
+        # legacy mode (LegacyMiddleware → request.legacy).
         NEW_LIST_TEMPLATE = "contacts/contactfield_list_new.html"
 
         def get_template_names(self):
-            if getattr(self.request, "preview", False):
+            if not getattr(self.request, "legacy", False):
                 return [self.NEW_LIST_TEMPLATE]
             return super().get_template_names()
 
@@ -1209,14 +1209,14 @@ class ContactFieldCRUDL(SmartCRUDL):
     class Detail(FieldLookupMixin, OrgPermsMixin, SmartView, View):
         """
         A field's usages and permissions as JSON, consumed by the temba-field-list component's detail modal on
-        the preview list page — so like that page it only exists in preview mode.
+        the new list page — so like that page it doesn't exist in legacy mode.
         """
 
         permission = "contacts.contactfield_read"
         USAGES_LIMIT = 25
 
         def get(self, request, *args, **kwargs):
-            if not getattr(request, "preview", False):
+            if getattr(request, "legacy", False):
                 raise Http404()
 
             field = self.get_object()

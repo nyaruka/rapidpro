@@ -150,7 +150,9 @@ class TembaTest(SmartminTest):
     def setLegacyUI(self, legacy: bool = True):
         """
         Opts the test client in or out of legacy UI mode (LegacyMiddleware reads the temba-legacy cookie). The
-        cookie is re-applied by CRUDLTestMixin.requestView since Client.logout() clears all cookies.
+        cookie is re-applied by CRUDLTestMixin.requestView since Client.logout() clears all cookies. Note that this
+        deliberately writes the cookie directly, bypassing the middleware's authed write gate — that gate itself is
+        covered by MiddlewareTest.test_legacy.
         """
         self._legacy_ui = legacy
         if legacy:
