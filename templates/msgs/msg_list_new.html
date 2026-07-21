@@ -140,10 +140,17 @@
           // in-list push didn't change the page.
           next.url = location.href;
         }
+        // event.detail.url is the address-bar URL for the new list
+        // state (search/sort/page folded into the query string), so a
+        // committed — or cleared — search stays shareable in the URL.
+        // Deliberately NOT mirrored into state.url: keeping that
+        // stable is what tells loadFromState's same-URL guard that an
+        // in-list back/forward is the component's to handle rather
+        // than a cross-page navigation to re-render.
         if (event.detail.replace) {
-          history.replaceState(next, "");
+          history.replaceState(next, "", event.detail.url || null);
         } else {
-          history.pushState(next, "");
+          history.pushState(next, "", event.detail.url || null);
         }
       });
     });
