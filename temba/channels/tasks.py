@@ -22,7 +22,7 @@ def check_android_channels():
     from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType
     from temba.notifications.models import Incident
 
-    last_half_hour = timezone.now() - timedelta(minutes=30)
+    last_seen_cutoff = timezone.now() - timedelta(minutes=90)
 
     ongoing = Incident.objects.filter(incident_type=ChannelDisconnectedIncidentType.slug, ended_on=None).select_related(
         "channel"
@@ -34,7 +34,7 @@ def check_android_channels():
             incident.end()
 
     not_recently_seen = (
-        Channel.objects.filter(channel_type=AndroidType.code, is_active=True, last_seen__lt=last_half_hour)
+        Channel.objects.filter(channel_type=AndroidType.code, is_active=True, last_seen__lt=last_seen_cutoff)
         .exclude(org=None)
         .exclude(last_seen=None)
         .select_related("org")
