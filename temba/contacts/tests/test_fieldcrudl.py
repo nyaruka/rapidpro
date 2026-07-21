@@ -30,7 +30,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.assertCreateFetch(
                 create_url,
                 [self.editor, self.admin],
-                form_fields=["name", "value_type", "show_in_table", "agent_access"],
+                form_fields=["name", "value_type", "agent_access"],
             )
             self.assertEqual(
                 [("T", "Text"), ("N", "Number"), ("D", "Date & Time")],
@@ -40,7 +40,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertCreateFetch(
             create_url,
             [self.editor, self.admin],
-            form_fields=["name", "value_type", "show_in_table", "agent_access"],
+            form_fields=["name", "value_type", "agent_access"],
         )
         self.assertEqual(
             [("T", "Text"), ("N", "Number"), ("D", "Date & Time"), ("S", "State"), ("I", "District"), ("W", "Ward")],
@@ -51,7 +51,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "", "value_type": "T", "show_in_table": True, "agent_access": "E"},
+            {"name": "", "value_type": "T", "agent_access": "E"},
             form_errors={"name": "This field is required."},
         )
 
@@ -59,7 +59,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "???", "value_type": "T", "show_in_table": True, "agent_access": "E"},
+            {"name": "???", "value_type": "T", "agent_access": "E"},
             form_errors={"name": "Can only contain letters, numbers and hypens."},
         )
 
@@ -67,7 +67,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "HAS", "value_type": "T", "show_in_table": True, "agent_access": "E"},
+            {"name": "HAS", "value_type": "T", "agent_access": "E"},
             form_errors={"name": "Can't be a reserved word."},
         )
 
@@ -75,17 +75,17 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "AGE", "value_type": "N", "show_in_table": True, "agent_access": "E"},
+            {"name": "AGE", "value_type": "N", "agent_access": "E"},
             form_errors={"name": "Must be unique."},
         )
 
-        # submit with valid data
+        # submit with valid data - new fields always start unfeatured
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "Goats", "value_type": "N", "show_in_table": True, "agent_access": "E"},
+            {"name": "Goats", "value_type": "N", "agent_access": "E"},
             new_obj_query=ContactField.user_fields.filter(
-                org=self.org, name="Goats", value_type="N", show_in_table=True, agent_access="E"
+                org=self.org, name="Goats", value_type="N", show_in_table=False, agent_access="E"
             ),
             success_status=200,
         )
@@ -96,9 +96,9 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "Age", "value_type": "N", "show_in_table": True, "agent_access": "N"},
+            {"name": "Age", "value_type": "N", "agent_access": "N"},
             new_obj_query=ContactField.user_fields.filter(
-                org=self.org, name="Age", value_type="N", show_in_table=True, agent_access="N", is_active=True
+                org=self.org, name="Age", value_type="N", agent_access="N", is_active=True
             ),
             success_status=200,
         )
@@ -119,14 +119,14 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.assertUpdateFetch(
                 update_url,
                 [self.editor, self.admin],
-                form_fields={"name": "Age", "value_type": "N", "show_in_table": True, "agent_access": "V"},
+                form_fields={"name": "Age", "value_type": "N", "agent_access": "V"},
             )
             self.assertEqual(3, len(response.context["form"].fields["value_type"].choices))
 
         response = self.assertUpdateFetch(
             update_url,
             [self.editor, self.admin],
-            form_fields={"name": "Age", "value_type": "N", "show_in_table": True, "agent_access": "V"},
+            form_fields={"name": "Age", "value_type": "N", "agent_access": "V"},
         )
         self.assertEqual(6, len(response.context["form"].fields["value_type"].choices))
 
@@ -134,7 +134,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "Age", "value_type": "N", "show_in_table": True, "agent_access": "V"},
+            {"name": "Age", "value_type": "N", "agent_access": "V"},
             success_status=200,
         )
 
@@ -142,7 +142,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "", "value_type": "N", "show_in_table": True, "agent_access": "V"},
+            {"name": "", "value_type": "N", "agent_access": "V"},
             form_errors={"name": "This field is required."},
             object_unchanged=self.age,
         )
@@ -151,7 +151,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "???", "value_type": "N", "show_in_table": True, "agent_access": "V"},
+            {"name": "???", "value_type": "N", "agent_access": "V"},
             form_errors={"name": "Can only contain letters, numbers and hypens."},
             object_unchanged=self.age,
         )
@@ -160,23 +160,24 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "GENDER", "value_type": "N", "show_in_table": True, "agent_access": "V"},
+            {"name": "GENDER", "value_type": "N", "agent_access": "V"},
             form_errors={"name": "Must be unique."},
             object_unchanged=self.age,
         )
 
-        # submit with different name, type and agent access
+        # submit with different name, type and agent access - featured state is untouched (it's
+        # managed from the list page, not this form)
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "Age In Years", "value_type": "T", "show_in_table": False, "agent_access": "E"},
+            {"name": "Age In Years", "value_type": "T", "agent_access": "E"},
             success_status=200,
         )
 
         self.age.refresh_from_db()
         self.assertEqual("Age In Years", self.age.name)
         self.assertEqual("T", self.age.value_type)
-        self.assertFalse(self.age.show_in_table)
+        self.assertTrue(self.age.show_in_table)
         self.assertEqual("E", self.age.agent_access)
 
         # simulate an org which has reached the limit for fields - should still be able to update a field
@@ -184,7 +185,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertUpdateSubmit(
                 update_url,
                 self.admin,
-                {"name": "Age 2", "value_type": "T", "show_in_table": True, "agent_access": "E"},
+                {"name": "Age 2", "value_type": "T", "agent_access": "E"},
                 success_status=200,
             )
 
@@ -203,14 +204,14 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.editor, self.admin],
-            form_fields={"name": "Registered", "value_type": "D", "show_in_table": False, "agent_access": "V"},
+            form_fields={"name": "Registered", "value_type": "D", "agent_access": "V"},
         )
 
         # try to submit with different type
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "Registered", "value_type": "T", "show_in_table": False, "agent_access": "V"},
+            {"name": "Registered", "value_type": "T", "agent_access": "V"},
             form_errors={"value_type": "Can't change type of date field being used by campaign events."},
             object_unchanged=registered,
         )
@@ -219,7 +220,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "Registered On", "value_type": "D", "show_in_table": False, "agent_access": "V"},
+            {"name": "Registered On", "value_type": "D", "agent_access": "V"},
             success_status=200,
         )
 
@@ -237,14 +238,14 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.editor, self.admin],
-            form_fields={"name": "Birth", "value_type": "N", "show_in_table": False, "agent_access": "V"},
+            form_fields={"name": "Birth", "value_type": "N", "agent_access": "V"},
         )
 
         # try to submit with different type
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "Birth", "value_type": "T", "show_in_table": False, "agent_access": "V"},
+            {"name": "Birth", "value_type": "T", "agent_access": "V"},
             form_errors={"value_type": "Can't change type of field being used by a smart group."},
             object_unchanged=birth,
         )
@@ -253,7 +254,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "YearsOld", "value_type": "N", "show_in_table": False, "agent_access": "V"},
+            {"name": "YearsOld", "value_type": "N", "agent_access": "V"},
             success_status=200,
         )
         birth.refresh_from_db()
@@ -273,6 +274,150 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.assertListFetch(list_url, [self.admin])
             self.assertContains(response, "You have reached the per-workspace limit")
             self.assertContentMenu(list_url, self.admin, [])
+
+    def test_preview_list(self):
+        list_url = reverse("contacts.contactfield_list")
+
+        self.login(self.admin)
+
+        # default render is still the legacy field manager
+        response = self.client.get(list_url)
+        self.assertContains(response, "temba-field-manager")
+
+        # entering preview mode swaps in the temba-field-list component which fetches the fields itself
+        self.client.cookies["temba-preview"] = "1"
+
+        response = self.client.get(list_url)
+        self.assertContains(response, "temba-field-list")
+        self.assertNotContains(response, "temba-field-manager")
+
+    @mock_mailroom
+    def test_detail(self, mr_mocks):
+        field = self.create_field("joined", "Joined", value_type="D")
+
+        flow = self.create_flow("Flow")
+        flow.field_dependencies.add(field)
+
+        group = self.create_group("Farmers", query='joined != ""')
+        campaign = Campaign.create(self.org, self.admin, "Planting Reminders", group)
+        CampaignEvent.create_flow_event(
+            self.org, self.admin, campaign, relative_to=field, offset=1, unit="W", flow=flow
+        )
+
+        detail_url = reverse("contacts.contactfield_detail", args=[field.key])
+
+        self.assertRequestDisallowed(detail_url, [None, self.agent, self.admin2])
+
+        self.login(self.editor)
+
+        # like the preview list page it feeds, the endpoint only exists in preview mode
+        response = self.client.get(detail_url)
+        self.assertEqual(404, response.status_code)
+
+        self.client.cookies["temba-preview"] = "1"
+        response = self.client.get(detail_url)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "field": {
+                    "key": "joined",
+                    "name": "Joined",
+                    "value_type": "D",
+                    "featured": False,
+                    "agent_access": "V",
+                },
+                "usages": {
+                    "flows": [{"uuid": str(flow.uuid), "name": "Flow", "url": f"/flow/editor/{flow.uuid}/"}],
+                    "groups": [{"uuid": str(group.uuid), "name": "Farmers", "url": f"/contact/group/{group.uuid}/"}],
+                    "campaign_events": [
+                        {
+                            "id": campaign.events.get().id,
+                            "campaign": {
+                                "uuid": str(campaign.uuid),
+                                "name": "Planting Reminders",
+                                "url": f"/campaign/read/{campaign.uuid}/",
+                            },
+                            "offset_display": "1 week after Joined",
+                        }
+                    ],
+                },
+                "counts": {"flows": 1, "groups": 1, "campaign_events": 1},
+                "can_edit": True,
+                "can_delete": True,
+            },
+            response.json(),
+        )
+
+        # a field with no dependents renders empty usages
+        response = self.client.get(reverse("contacts.contactfield_detail", args=[self.gender.key]))
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {"flows": [], "groups": [], "campaign_events": []},
+            response.json()["usages"],
+        )
+
+        # usages are capped but counts carry the full total
+        for i in range(26):
+            self.create_flow(f"Flow {i}").field_dependencies.add(self.gender)
+
+        response = self.client.get(reverse("contacts.contactfield_detail", args=[self.gender.key]))
+        self.assertEqual(25, len(response.json()["usages"]["flows"]))
+        self.assertEqual(26, response.json()["counts"]["flows"])
+
+        # system fields can't be edited or deleted
+        response = self.client.get(reverse("contacts.contactfield_detail", args=["created_on"]))
+        self.assertEqual(200, response.status_code)
+        self.assertFalse(response.json()["can_edit"])
+        self.assertFalse(response.json()["can_delete"])
+
+    def test_update_priority(self):
+        priority_url = reverse("contacts.contactfield_update_priority")
+
+        self.assertRequestDisallowed(priority_url, [None, self.agent])
+
+        self.login(self.admin)
+
+        # the legacy shape is a map of key to priority
+        response = self.client.post(priority_url, {"age": 10, "gender": 5, "other": 3}, content_type="application/json")
+        self.assertEqual(200, response.status_code)
+
+        self.age.refresh_from_db()
+        self.gender.refresh_from_db()
+        self.other_org_field.refresh_from_db()
+        self.assertEqual(10, self.age.priority)
+        self.assertEqual(5, self.gender.priority)
+        self.assertEqual(0, self.other_org_field.priority)  # other org's field is unchanged
+
+        # the new shape is the full ordered featured set - first is highest priority
+        response = self.client.post(
+            priority_url, {"featured": ["gender", "state", "other"]}, content_type="application/json"
+        )
+        self.assertEqual(200, response.status_code)
+
+        self.age.refresh_from_db()
+        self.gender.refresh_from_db()
+        self.state.refresh_from_db()
+        self.other_org_field.refresh_from_db()
+
+        # listed fields are featured with descending priorities (unknown / cross-org keys ignored)
+        self.assertTrue(self.gender.show_in_table)
+        self.assertEqual(3, self.gender.priority)
+        self.assertTrue(self.state.show_in_table)
+        self.assertEqual(2, self.state.priority)
+        self.assertFalse(self.other_org_field.show_in_table)
+
+        # anything not listed is un-featured and zeroed
+        self.assertFalse(self.age.show_in_table)
+        self.assertEqual(0, self.age.priority)
+
+        # an empty featured list un-features everything
+        response = self.client.post(priority_url, {"featured": []}, content_type="application/json")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(0, ContactField.user_fields.filter(org=self.org, is_active=True, show_in_table=True).count())
+
+        # bad input is a 400
+        response = self.client.post(priority_url, "notjson", content_type="application/json")
+        self.assertEqual(400, response.status_code)
 
     @mock_mailroom
     def test_usages(self, mr_mocks):
