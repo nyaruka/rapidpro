@@ -294,6 +294,11 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         self.assertGet(endpoint_url, [self.admin], raw=check_shape)
 
+        # anon orgs get the contact ref as the displayed urn (a masked urn is useless in a list)
+        with self.anonymous(self.org):
+            response = self.assertGet(endpoint_url, [self.admin], results=[frank, joe])
+            self.assertEqual(frank.ref, response.json()["results"][0]["urn"])
+
         # searching goes through mailroom (ES), which returns the ordered window plus a total
         mr_mocks.contact_search("gender = male", contacts=[joe], total=1)
         self.assertGet(endpoint_url + "?search=gender+%3D+male", [self.admin], results=[joe])

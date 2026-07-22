@@ -985,9 +985,9 @@ class Contact(LegacyUUIDMixin, SmartModel):
             "uuid": str(self.uuid),
             "name": self.name,
             "status": statuses.get(self.status),
-            # Pre-formatted primary URN for display (the component shows `urn` verbatim); anon orgs are masked by
-            # get_display.
-            "urn": urn.get_display(org=org, international=True) if urn else "",
+            # Pre-formatted primary URN for display (the component shows `urn` verbatim); anon orgs get the contact
+            # ref since a masked URN is useless in a list.
+            "urn": self.ref if org.is_anon else (urn.get_display(org=org, international=True) if urn else ""),
             "urns": [serialize_urn(org, u) for u in self.get_urns()],
             "fields": {f.key: self.get_field_serialized(f) for f in fields},
             "groups": [{"uuid": str(g.uuid), "name": g.name} for g in groups],
