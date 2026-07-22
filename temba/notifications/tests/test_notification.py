@@ -479,14 +479,23 @@ class NotificationTest(TembaTest):
         self.assertEqual(1, self.admin.notifications.filter(is_seen=False).count())
         self.assertEqual(0, self.admin.notifications.filter(is_seen=True).count())
 
-        # a new incident after the first was ended
+        # no new incident (or notifications) because we already had one for this channel in the last 24 hours
         incident3 = ChannelDisconnectedIncidentType.get_or_create(channel=self.channel)
-        self.assertNotEqual(incident.pk, incident3.pk)
+        self.assertEqual(incident.pk, incident3.pk)
+
+        send_notification_emails()
+        self.assertEqual(2, len(mail.outbox))
+
+        # but a new incident can be created if the last one started more than 24 hours ago
+        incident.started_on = timezone.now() - timedelta(hours=25)
+        incident.save(update_fields=("started_on",))
+
+        incident4 = ChannelDisconnectedIncidentType.get_or_create(channel=self.channel)
+        self.assertNotEqual(incident.pk, incident4.pk)
 
         send_notification_emails()
         self.assertEqual(4, len(mail.outbox))
 
-        self.assertEqual(4, len(mail.outbox))
         self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[0].subject)
         self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())
         self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[1].subject)
@@ -496,6 +505,17 @@ class NotificationTest(TembaTest):
         self.assertEqual(0, self.editor.notifications.filter(is_seen=True).count())
         self.assertEqual(2, self.admin.notifications.filter(is_seen=False).count())
         self.assertEqual(0, self.admin.notifications.filter(is_seen=True).count())
+
+        # an ongoing incident is returned as is even if it started more than 24 hours ago
+        incident4.started_on = timezone.now() - timedelta(hours=25)
+        incident4.save(update_fields=("started_on",))
+
+        incident5 = ChannelDisconnectedIncidentType.get_or_create(channel=self.channel)
+        self.assertEqual(incident4.pk, incident5.pk)
+        self.assertIsNone(incident5.ended_on)
+
+        send_notification_emails()
+        self.assertEqual(4, len(mail.outbox))  # no new emails
 
     def test_counts(self):
         imp = ContactImport.objects.create(
