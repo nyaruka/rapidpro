@@ -111,6 +111,7 @@ class Resthook(SmartModel):
     to this particular resthook.
     """
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(
         Org,
         on_delete=models.PROTECT,
@@ -162,6 +163,7 @@ class ResthookSubscriber(SmartModel):
     Represents a subscriber on a specific resthook within one of our flows.
     """
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     resthook = models.ForeignKey(
         Resthook, on_delete=models.PROTECT, related_name="subscribers", help_text=_("The resthook being subscribed to")
     )
@@ -185,6 +187,8 @@ class WebHookEvent(models.Model):
     """
     Represents a payload to be sent to a resthook
     """
+
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
 
     # the organization this event is tied to
     org = models.ForeignKey(Org, on_delete=models.PROTECT)
