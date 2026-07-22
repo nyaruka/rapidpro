@@ -757,6 +757,7 @@
                            class="hidden">
           <temba-contact-chat slot="main"
                               agent="{{ request.user.email }}"
+                              user="{{ request.user.uuid }}"
                               style="opacity: 0"
                               monitor="true"
                               -temba-ticket-updated="handleTicketUpdated"
