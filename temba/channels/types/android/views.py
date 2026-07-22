@@ -46,7 +46,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
 
                 # ensure number is valid for the channel's country
                 try:
-                    normalized = phonenumbers.parse(number, channel.country.code)
+                    normalized = phonenumbers.parse(number, channel.country.code if channel.country else None)
                     if not phonenumbers.is_possible_number(normalized):
                         raise forms.ValidationError(_("Invalid phone number, try again."))
                 except Exception:  # pragma: no cover
@@ -91,7 +91,9 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         self.object = Channel.objects.filter(claim_code=self.form.cleaned_data["claim_code"]).first()
 
         country = self.object.country
-        phone_country = countries.from_tel(self.form.cleaned_data["phone_number"]) or str(self.object.country)
+        phone_country = countries.from_tel(self.form.cleaned_data["phone_number"]) or (
+            str(self.object.country) if self.object.country else ""
+        )
 
         # always prefer the country of the phone number they are entering if we have one
         if phone_country and phone_country != country:  # pragma: needs cover
