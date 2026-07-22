@@ -957,39 +957,6 @@ class MailroomClientTest(TembaTest):
             json={"org_id": self.org.id},
         )
 
-    def test_po_export(self):
-        flow1 = self.create_flow("Flow 1")
-        flow2 = self.create_flow("Flow 2")
-
-        with patch("requests.post") as mock_post:
-            mock_post.return_value = MockResponse(200, 'msgid "Red"\nmsgstr "Rojo"\n\n')
-            response = self.client.po_export(self.org, [flow1, flow2], "spa")
-
-        self.assertEqual(b'msgid "Red"\nmsgstr "Rojo"\n\n', response)
-
-        mock_post.assert_called_once_with(
-            "http://localhost:8090/mi/po/export",
-            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={"org_id": self.org.id, "flow_ids": [flow1.id, flow2.id], "language": "spa"},
-        )
-
-    def test_po_import(self):
-        flow1 = self.create_flow("Flow 1")
-        flow2 = self.create_flow("Flow 2")
-
-        with patch("requests.post") as mock_post:
-            mock_post.return_value = MockJsonResponse(200, {"flows": []})
-            response = self.client.po_import(self.org, [flow1, flow2], "spa", b'msgid "Red"\nmsgstr "Rojo"\n\n')
-
-        self.assertEqual({"flows": []}, response)
-
-        mock_post.assert_called_once_with(
-            "http://localhost:8090/mi/po/import",
-            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            data={"org_id": self.org.id, "flow_ids": [flow1.id, flow2.id], "language": "spa"},
-            files={"po": b'msgid "Red"\nmsgstr "Rojo"\n\n'},
-        )
-
     @patch("requests.post")
     def test_ticket_add_note(self, mock_post):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])

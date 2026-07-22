@@ -324,15 +324,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         return copy
 
     @classmethod
-    def export_translation(cls, org, flows, language):
-        return mailroom.get_client().po_export(org, flows, language=language)
-
-    @classmethod
-    def import_translation(cls, org, flows, language, po_data):
-        response = mailroom.get_client().po_import(org, flows, language=language, po_data=po_data)
-        return {d["uuid"]: d for d in response["flows"]}
-
-    @classmethod
     def apply_action_label(cls, user, flows, label):
         label.toggle_label(flows, add=True)
 
