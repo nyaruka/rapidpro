@@ -31,7 +31,7 @@
                       history-state-key="contacts"
                       list-title="{{ title }}"
                       {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
-                      {% if user_org.is_anon %}urn-label="{% trans "Ref" %}"{% endif %}
+                      {% if user_org.is_anon %}anon{% endif %}
                       endpoint="{{ new_list_endpoint }}"
                       action-endpoint="{{ request.path }}"
                       content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"

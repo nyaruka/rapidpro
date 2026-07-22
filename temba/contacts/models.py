@@ -981,19 +981,25 @@ class Contact(LegacyUUIDMixin, SmartModel):
         # pre-check the group dropdown against each row's current membership.
         groups = self.prefetched_groups if hasattr(self, "prefetched_groups") else self.get_groups()
 
-        return {
+        data = {
             "uuid": str(self.uuid),
             "name": self.name,
             "status": statuses.get(self.status),
-            # Pre-formatted primary URN for display (the component shows `urn` verbatim); anon orgs get the contact
-            # ref since a masked URN is useless in a list.
-            "urn": self.ref if org.is_anon else (urn.get_display(org=org, international=True) if urn else ""),
+            # Primary URN as scheme + pre-formatted display (masked by get_display for anon orgs); structured so the
+            # component can render the scheme if it wants to.
+            "urn": {"scheme": urn.scheme, "display": urn.get_display(org=org, international=True)} if urn else None,
             "urns": [serialize_urn(org, u) for u in self.get_urns()],
             "fields": {f.key: self.get_field_serialized(f) for f in fields},
             "groups": [{"uuid": str(g.uuid), "name": g.name} for g in groups],
             "last_seen_on": self.last_seen_on.isoformat() if self.last_seen_on else None,
             "created_on": self.created_on.isoformat() if self.created_on else None,
         }
+
+        # as in the public API, the ref is only exposed on anon orgs, where it stands in for the masked URNs
+        if org.is_anon:
+            data["ref"] = self.ref
+
+        return data
 
     def update(self, name: str, language: str) -> list[modifiers.Modifier]:
         """

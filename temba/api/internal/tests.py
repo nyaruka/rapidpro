@@ -281,7 +281,8 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         self.assertGet(endpoint_url + f"?group={group.uuid}", [self.admin], raw=check_groups)
 
-        # each row carries the columns the component renders: name, primary urn, featured field values, last seen
+        # each row carries the columns the component renders: name, primary urn (as scheme + display), featured field
+        # values, last seen; the ref is an anon-only key
         def check_shape(data):
             first = data["results"][0]
             return (
@@ -289,15 +290,18 @@ class EndpointsTest(APITestMixin, TembaTest):
                 and first["name"] == "Frank"
                 and first["fields"]["gender"] == "female"
                 and "last_seen_on" in first
-                and bool(first["urn"])
+                and first["urn"] == {"scheme": "tel", "display": "1234567002"}
+                and "ref" not in first
             )
 
         self.assertGet(endpoint_url, [self.admin], raw=check_shape)
 
-        # anon orgs get the contact ref as the displayed urn (a masked urn is useless in a list)
+        # anon orgs get the contact ref as its own key, and a masked urn display
         with self.anonymous(self.org):
             response = self.assertGet(endpoint_url, [self.admin], results=[frank, joe])
-            self.assertEqual(frank.ref, response.json()["results"][0]["urn"])
+            first = response.json()["results"][0]
+            self.assertEqual(frank.ref, first["ref"])
+            self.assertEqual({"scheme": "tel", "display": "********"}, first["urn"])
 
         # searching goes through mailroom (ES), which returns the ordered window plus a total
         mr_mocks.contact_search("gender = male", contacts=[joe], total=1)
