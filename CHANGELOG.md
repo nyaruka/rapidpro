@@ -1,3 +1,9 @@
+v26.3.17 (2026-07-22)
+-------------------------
+ * Update @nyaruka/temba-components to 0.167.0
+ * Show contact refs instead of masked URNs in new contact list for anon orgs
+ * Return contact ref as its own anon-only key and urn as scheme + display
+
 v26.3.16 (2026-07-22)
 -------------------------
  * Update @nyaruka/temba-components to 0.166.0
