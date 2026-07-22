@@ -341,6 +341,28 @@ class UserCRUDL(SmartCRUDL):
                 choices=settings.LANGUAGES, required=True, label=_("Website Language"), widget=SelectWidget()
             )
 
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+
+                # add a checkbox for each workspace the user belongs to, to control whether they receive email
+                # notifications from it
+                self.memberships = list(
+                    OrgMembership.objects.filter(user=self.instance, org__is_active=True)
+                    .select_related("org")
+                    .order_by(Lower("org__name"))
+                )
+                for membership in self.memberships:
+                    self.fields[f"email_notifications_{membership.org_id}"] = forms.BooleanField(
+                        label=membership.org.name,
+                        required=False,
+                        initial=membership.email_notifications,
+                        widget=CheckboxWidget(attrs={"widget_only": True}),
+                    )
+
+            @property
+            def notification_field_names(self) -> list:
+                return [f"email_notifications_{m.org_id}" for m in self.memberships]
+
             class Meta:
                 model = User
                 fields = ("first_name", "last_name", "avatar", "language")
@@ -365,6 +387,17 @@ class UserCRUDL(SmartCRUDL):
             initial["language"] = self.object.language
             initial["avatar"] = self.object.avatar
             return initial
+
+        def post_save(self, obj):
+            obj = super().post_save(obj)
+
+            for membership in self.form.memberships:
+                enabled = self.form.cleaned_data.get(f"email_notifications_{membership.org_id}", True)
+                if membership.email_notifications != enabled:
+                    membership.email_notifications = enabled
+                    membership.save(update_fields=("email_notifications",))
+
+            return obj
 
 
 class InvitationMixin:

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 17:34+0000\n"
+"POT-Creation-Date: 2026-08-04 19:33+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -6067,6 +6067,12 @@ msgstr[2] "Você tem <b>%(count)s</b> tokens de API ativos."
 #, python-format
 msgid "You are about to remove the user <b>%(object)s</b> from your workspace. Are you sure?"
 msgstr "Você está prestes a remover o usuário <b>%(object)s</b> da sua área de trabalho. Você tem certeza?"
+
+msgid "Email Notifications"
+msgstr "Notificações por E-mail"
+
+msgid "Workspaces that can send you email notifications such as incident alerts."
+msgstr "Áreas de trabalho que podem enviar notificações por e-mail, como alertas de incidentes."
 
 msgid "Login Failure"
 msgstr "Falha de Login"
