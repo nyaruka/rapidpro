@@ -1,3 +1,12 @@
+v26.3.16 (2026-07-22)
+-------------------------
+ * Update @nyaruka/temba-components to 0.166.0
+ * Update to Django 6.0
+ * Remove unused PO translation import/export functionality
+ * Pass user UUID to contact chat for typing indicator echo filtering
+ * Hydrate temba-store with org and user uuids for realtime channels
+ * Make new UI the default, replace preview mode with a legacy opt-out
+
 v26.3.15 (2026-07-21)
 -------------------------
  * Update @nyaruka/temba-components to 0.165.0
