@@ -56,6 +56,7 @@ class Schedule(models.Model):
     # ordered in the same way as python's weekday function
     DAYS_OF_WEEK_OFFSET = "MTWRFSU"
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey("orgs.Org", on_delete=models.PROTECT, related_name="schedules")
     repeat_period = models.CharField(max_length=1, choices=REPEAT_CHOICES)
 

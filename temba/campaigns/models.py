@@ -20,6 +20,7 @@ from temba.utils.models import TembaModel, TembaUUIDMixin, delete_in_batches
 
 
 class Campaign(TembaModel):
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, related_name="campaigns", on_delete=models.PROTECT)
     group = models.ForeignKey(ContactGroup, on_delete=models.PROTECT, related_name="campaigns")
     is_archived = models.BooleanField(default=False)
@@ -349,6 +350,7 @@ class CampaignEvent(TembaUUIDMixin, SmartModel):
     MODE_PASSIVE = "P"
     START_MODES_CHOICES = ((MODE_INTERRUPT, "Interrupt"), (MODE_SKIP, "Skip"), (MODE_PASSIVE, "Passive"))
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     campaign = models.ForeignKey(Campaign, on_delete=models.PROTECT, related_name="events")
     event_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_FLOW)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_READY)

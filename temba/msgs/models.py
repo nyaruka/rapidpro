@@ -59,6 +59,7 @@ class Media(models.Model):
     STATUS_FAILED = "F"
     STATUS_CHOICES = ((STATUS_PENDING, "Pending"), (STATUS_READY, "Ready"), (STATUS_FAILED, "Failed"))
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(default=uuid4, unique=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="media")
     url = models.URLField(max_length=2048)
@@ -202,6 +203,7 @@ class Broadcast(models.Model):
         (STATUS_INTERRUPTED, "Interrupted"),
     )
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="broadcasts")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
@@ -1014,6 +1016,7 @@ class Label(TembaModel, DependencyMixin):
 
     org_limit_key = Org.LIMIT_LABELS
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="msgs_labels")
 
     @classmethod
@@ -1113,6 +1116,7 @@ class OptIn(TembaModel):
     Contact optin for a particular messaging topic.
     """
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="optins")
 
     @classmethod

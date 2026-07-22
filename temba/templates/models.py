@@ -37,6 +37,7 @@ class Template(TembaModel, DependencyMixin):
     are currently only used for WhatsApp channels.
     """
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="templates")
     name = models.CharField(max_length=512)  # overridden to be longer
     base_translation = models.OneToOneField(
@@ -129,6 +130,7 @@ class TemplateTranslation(models.Model):
         (STATUS_IN_APPEAL, _("In Appeal")),
     )
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     template = models.ForeignKey(Template, on_delete=models.PROTECT, related_name="translations")
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT, related_name="template_translations")
     locale = models.CharField(max_length=6)  # e.g. eng-US

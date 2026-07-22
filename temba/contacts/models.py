@@ -365,6 +365,7 @@ class ContactField(TembaModel, DependencyMixin):
     # can't create custom contact fields with these keys
     RESERVED_KEYS = {"has", "is", "fields", "urns", "created_on", "last_seen_on"}
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="fields")
 
     key = models.CharField(max_length=MAX_KEY_LEN)
@@ -574,6 +575,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         STATUS_ARCHIVED: "archived",
     }
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contacts")
     name = models.CharField(verbose_name=_("Name"), max_length=128, blank=True, null=True)
     language = models.CharField(
@@ -1418,6 +1420,7 @@ class ContactURN(models.Model):
     ANON_MASK = "*" * 8  # Returned instead of URN values for anon orgs
     ANON_MASK_HTML = "•" * 8  # Pretty HTML version of anon mask
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, related_name="urns", on_delete=models.PROTECT)
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, null=True, related_name="urns")
 
@@ -1522,6 +1525,7 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     MAX_QUERY_LEN = 10_000
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="groups")
     group_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_MANUAL)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_INITIALIZING)
@@ -1821,6 +1825,7 @@ class ContactNote(models.Model):
 
     MAX_LENGTH = 10_000
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="notes")
     text = models.TextField(max_length=MAX_LENGTH, blank=True)
     created_on = models.DateTimeField(default=timezone.now)
@@ -2101,6 +2106,7 @@ class ContactImport(SmartModel):
 
     MAPPING_IGNORE = {"type": "ignore"}
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True, default=uuid4)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contact_imports")
     file = models.FileField(upload_to=get_import_upload_path)
@@ -2564,6 +2570,7 @@ class ContactImportBatch(models.Model):
         (ContactImport.STATUS_FAILED, "Failed"),
     )
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     contact_import = models.ForeignKey(ContactImport, on_delete=models.PROTECT, related_name="batches")
     status = models.CharField(max_length=1, default=ContactImport.STATUS_PENDING, choices=STATUS_CHOICES)
     specs = models.JSONField()
