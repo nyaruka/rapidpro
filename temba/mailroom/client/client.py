@@ -468,7 +468,7 @@ class MailroomClient:
         if response.headers.get("Content-Type") == "application/json":
             resp_body = response.json()
         else:
-            # not all endpoints return JSON, e.g. po file export
+            # defensive against non-JSON responses, e.g. error pages from a proxy
             resp_body = response.content
 
         if response.status_code == 422:
