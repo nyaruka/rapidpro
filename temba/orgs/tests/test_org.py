@@ -194,6 +194,14 @@ class OrgTest(TembaTest):
             response = self.client.get(settings_url)
             self.assertNotContains(response, "Rwanda")
 
+    def test_frame_realtime_context(self):
+        self.login(self.admin)
+
+        # the frame hydrates the store with the uuids needed to address user-scoped realtime channels
+        response = self.client.get(reverse("msgs.msg_inbox"))
+        self.assertContains(response, f'org="{self.org.uuid}"')
+        self.assertContains(response, f'user="{self.admin.uuid}"')
+
     def test_default_country(self):
         # if root location boundary is set and name is valid country, that has priority
         self.org.root_location = AdminBoundary.create(osm_id="171496", name="Ecuador", level=0)
