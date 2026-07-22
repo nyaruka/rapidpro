@@ -152,7 +152,7 @@ class ExternalTypeTest(TembaTest):
         self.client.post(url, post_data)
         channel = Channel.objects.get(schemes=["ext"])
         self.assertEqual("123456789", channel.address)
-        self.assertIsNone(channel.country.code)
+        self.assertIsNone(channel.country)
 
     def test_update(self):
         channel = Channel.create(
