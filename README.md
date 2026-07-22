@@ -11,6 +11,8 @@ applications. To see what it can do, signup for a free trial account at [textit.
 - [PostgreSQL](https://www.postgresql.org)
 - [Valkey](https://valkey.io)
 - [Elasticsearch](https://www.elastic.co/elasticsearch)
+- [Squid](https://www.squid-cache.org)
+- [Centrifugo](https://centrifugal.dev)
 - [S3](https://aws.amazon.com/s3/)
 - [DynamoDB](https://aws.amazon.com/dynamodb/)
 - [Cloudwatch](https://aws.amazon.com/cloudwatch/)
