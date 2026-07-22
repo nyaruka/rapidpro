@@ -50,24 +50,25 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         inbox_url = reverse("msgs.msg_inbox")
 
-        # check query count on the legacy list (the default until the viewer enters preview mode)
+        # check query count on the legacy list (viewers opt in via legacy mode)
         self.login(self.admin)
+        self.setLegacyUI()
         with self.assertNumQueries(11):
             self.client.get(inbox_url)
 
-        # the inbox renders the temba-msg-list component when the viewer is in preview mode; the default render is
-        # still the legacy list backed by this view's queryset
+        # the inbox renders the temba-msg-list component by default; in legacy mode it's the legacy list backed by
+        # this view's queryset
         self.assertRequestDisallowed(inbox_url, [None, self.agent])
         response = self.assertListFetch(inbox_url, [self.editor, self.admin], context_objects=[msg4, msg3, msg2, msg1])
-        self.client.cookies["temba-preview"] = "1"
-        preview_response = self.client.get(inbox_url)
-        self.assertContains(preview_response, "temba-msg-list")
+        self.setLegacyUI(False)
+        new_response = self.client.get(inbox_url)
+        self.assertContains(new_response, "temba-msg-list")
 
         # the label bulk action carries the create affordance for viewers who can create labels
-        preview_actions = {a["key"]: a for a in preview_response.context["new_list_bulk_actions"]}
-        self.assertTrue(preview_actions["label"]["allowCreate"])
+        new_actions = {a["key"]: a for a in new_response.context["new_list_bulk_actions"]}
+        self.assertTrue(new_actions["label"]["allowCreate"])
 
-        del self.client.cookies["temba-preview"]
+        self.setLegacyUI()
 
         # check that we have the appropriate bulk actions
         self.assertEqual(("archive", "label"), response.context["actions"])
@@ -126,6 +127,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContentMenu(inbox_url, self.admin, ["Send", "New Label", "Export"])
 
     def test_flows(self):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         flow = self.create_flow("Test")
         contact1 = self.create_contact("Joe Blow", phone="+250788000001")
         msg1 = self.create_incoming_msg(contact1, "test 1", status="H", flow=flow)
@@ -147,6 +151,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_archived(self, mr_mocks):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         contact1 = self.create_contact("Joe Blow", phone="+250788000001")
         contact2 = self.create_contact("Frank", phone="+250788000002")
         msg1 = self.create_incoming_msg(contact1, "message number 1", visibility=Msg.VISIBILITY_ARCHIVED)
@@ -187,6 +194,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([call(self.org, self.admin, [msg2])], mr_mocks.calls["msg_delete"])
 
     def test_outbox(self):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         contact1 = self.create_contact("", phone="+250788382382")
         contact2 = self.create_contact("Joe Blow", phone="+250788000001")
         contact3 = self.create_contact("Frank Blow", phone="+250788000002")
@@ -239,6 +249,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertContains(response, "Your channels are taking a while")
 
     def test_sent(self):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         contact1 = self.create_contact("Joe Blow", phone="+250788000001")
         contact2 = self.create_contact("Frank Blow", phone="+250788000002")
         msg1 = self.create_outgoing_msg(contact1, "Hi 1", status="W", sent_on=timezone.now() - timedelta(hours=1))
@@ -260,6 +273,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_failed(self, mr_mocks):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         contact1 = self.create_contact("Joe Blow", phone="+250788000001")
         msg1 = self.create_outgoing_msg(contact1, "message number 1", status="F")
 
@@ -321,6 +337,9 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         label1_url = reverse("msgs.msg_filter", args=[label1.uuid])
         label3_url = reverse("msgs.msg_filter", args=[label3.uuid])
 
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         # can't visit a filter page as a non-org user
         response = self.requestView(label3_url, self.non_org_user)
         self.assertRedirect(response, reverse("orgs.org_choose"))
@@ -345,17 +364,17 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContentMenu(label3_url, self.editor, ["Edit", "Delete", "-", "Export", "Usages"])
         self.assertContentMenu(label1_url, self.admin, ["Edit", "Delete", "-", "Export", "Usages"])
 
-        # in preview mode the filter view renders the new list and exposes a label-scoped endpoint and label-name subtitle
-        self.client.cookies["temba-preview"] = "1"
+        # by default the filter view renders the new list and exposes a label-scoped endpoint and label-name subtitle
+        self.setLegacyUI(False)
         try:
-            preview_response = self.client.get(label1_url)
-            self.assertContains(preview_response, "temba-msg-list")
+            new_response = self.client.get(label1_url)
+            self.assertContains(new_response, "temba-msg-list")
             self.assertEqual(
-                f"/api/internal/messages.json?label={label1.uuid}", preview_response.context["new_list_endpoint"]
+                f"/api/internal/messages.json?label={label1.uuid}", new_response.context["new_list_endpoint"]
             )
-            self.assertIn("label1", preview_response.context["new_list_subtitle"])
+            self.assertIn("label1", new_response.context["new_list_subtitle"])
         finally:
-            del self.client.cookies["temba-preview"]
+            self.setLegacyUI()
 
     def test_export(self):
         export_url = reverse("msgs.msg_export")

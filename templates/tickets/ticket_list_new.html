@@ -2,8 +2,9 @@
 {% load smartmin i18n contacts %}
 
 {% comment %}
-  Preview-mode ticket page (request.preview, set by PreviewMiddleware off
-  the temba-preview cookie). The chat pane uses the same chat + card layout
+  Default ticket page (rendered unless the viewer opts into legacy mode
+  via request.legacy, set by LegacyMiddleware off the temba-legacy
+  cookie). The chat pane uses the same chat + card layout
   as the contact read page, sharing card order / collapsed state via
   User.settings "contact_cards" — temba-card-layout loads and persists that
   state itself via its settings/settings-endpoint attributes.

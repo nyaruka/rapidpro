@@ -189,6 +189,9 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([["test"]], list(flow2.triggers.order_by("id").values_list("keywords", flat=True)))
 
     def test_views(self):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         list_url = reverse("flows.flow_list")
         create_url = reverse("flows.flow_create")
 
@@ -566,6 +569,9 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_list_views(self, mr_mocks):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
 
@@ -676,6 +682,9 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, flow1.name)
 
     def test_filter(self):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
 
@@ -698,7 +707,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(f"/flow/labels/{label2.uuid}", response.headers.get(TEMBA_MENU_SELECTION))
 
     @mock_mailroom
-    def test_preview_list(self, mr_mocks):
+    def test_new_list(self, mr_mocks):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
         label = FlowLabel.create(self.org, self.admin, "Important")
@@ -708,12 +717,13 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
-        # default render is still the legacy table
+        # legacy mode renders the legacy table
+        self.setLegacyUI()
         response = self.client.get(list_url)
         self.assertNotContains(response, "temba-flow-list")
 
-        # entering preview mode swaps in the temba-flow-list component, pointed at the internal flows api
-        self.client.cookies["temba-preview"] = "1"
+        # by default we get the temba-flow-list component, pointed at the internal flows api
+        self.setLegacyUI(False)
 
         response = self.client.get(list_url)
         self.assertContains(response, "temba-flow-list")

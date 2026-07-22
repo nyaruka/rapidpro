@@ -584,9 +584,9 @@ class FlowCRUDL(SmartCRUDL):
         default_order = ("-saved_on",)
         search_fields = ("name__icontains",)
 
-        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
-        # every flow list view renders the temba-flow-list component (flows/flow_list_new.html) instead of its legacy
-        # table; the component fetches/pages flows itself from the internal flows API.
+        # By default every flow list view renders the temba-flow-list component (flows/flow_list_new.html); the
+        # component fetches/pages flows itself from the internal flows API. Viewers can opt back into the legacy
+        # table via legacy mode (LegacyMiddleware → request.legacy).
         NEW_LIST_TEMPLATE = "flows/flow_list_new.html"
 
         # Optional subtitle rendered under the title on the new-list view.
@@ -608,9 +608,9 @@ class FlowCRUDL(SmartCRUDL):
         }
 
         def _use_new_list(self) -> bool:
-            # `getattr` defaults to False so a view called via RequestFactory (or if PreviewMiddleware is reordered
+            # `getattr` defaults to False so a view called via RequestFactory (or if LegacyMiddleware is reordered
             # out) doesn't AttributeError.
-            return getattr(self.request, "preview", False)
+            return not getattr(self.request, "legacy", False)
 
         def get_template_names(self):
             if self._use_new_list():
@@ -655,8 +655,8 @@ class FlowCRUDL(SmartCRUDL):
             return super().post(request, *args, **kwargs)
 
         def get_queryset(self, **kwargs):
-            # In preview the temba-flow-list component fetches and pages flows from the internal flows API, so a GET
-            # page needs no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin
+            # On the new list the temba-flow-list component fetches and pages flows from the internal flows API, so
+            # a GET page needs no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin
             # validates the posted `objects` against it.
             if self._use_new_list() and self.request.method == "GET":
                 return Flow.objects.none()
@@ -1005,7 +1005,7 @@ class FlowCRUDL(SmartCRUDL):
 
             flow_ids = self.request.GET.get("ids")
             if flow_ids:
-                # the legacy list passes ids, the new (preview mode) list component passes uuids
+                # the legacy list passes ids, the new list component passes uuids
                 ids, uuids = [], []
                 for val in flow_ids.split(","):
                     if val.isdigit():
@@ -1683,7 +1683,7 @@ class FlowLabelCRUDL(SmartCRUDL):
         def post_save(self, obj, *args, **kwargs):
             obj = super().post_save(obj, *args, **kwargs)
 
-            # the legacy list seeds this field with ids, the new (preview mode) list component with uuids
+            # the legacy list seeds this field with ids, the new list component with uuids
             if self.form.cleaned_data["flows"]:
                 ids, uuids = [], []
                 for val in self.form.cleaned_data["flows"].split(","):

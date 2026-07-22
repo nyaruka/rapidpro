@@ -19,6 +19,11 @@ class CRUDLTestMixin:
         pre_msg_prefix = f"before {msg_prefix}"
 
         self.client.logout()
+
+        # logout() clears all cookies, so re-apply legacy UI mode if the test opted in via setLegacyUI
+        if getattr(self, "_legacy_ui", False):
+            self.client.cookies["temba-legacy"] = "1"
+
         if user:
             self.login(user, choose_org=choose_org)
 

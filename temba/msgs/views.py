@@ -65,8 +65,8 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     folder = None
     paginate_by = 100
 
-    # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview, every
-    # MsgListView subclass with a folder/label renders msgs/msg_list_new.html instead of its legacy template.
+    # By default every MsgListView subclass with a folder/label renders msgs/msg_list_new.html. Viewers can opt
+    # back into the legacy template via legacy mode (LegacyMiddleware → request.legacy).
     NEW_LIST_TEMPLATE = "msgs/msg_list_new.html"
 
     # Optional subtitle rendered under the title on the new-list view;
@@ -94,9 +94,9 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     def _use_new_list(self) -> bool:
         # The folder for a message list is either one of the built-in MsgFolder enum values (Inbox / Handled / …) or
         # a user-defined Label (the filter view binds it in derive_folder); both render through the same new-list
-        # template when the viewer is in preview mode. `getattr` defaults to False so a view called via RequestFactory
-        # (or if PreviewMiddleware is ever reordered out) doesn't AttributeError.
-        return getattr(self.request, "preview", False) and isinstance(self.derive_folder(), (MsgFolder, Label))
+        # template unless the viewer is in legacy mode. `getattr` defaults to False so a view called via
+        # RequestFactory (or if LegacyMiddleware is ever reordered out) doesn't AttributeError.
+        return not getattr(self.request, "legacy", False) and isinstance(self.derive_folder(), (MsgFolder, Label))
 
     def get_template_names(self):
         if self._use_new_list():
@@ -242,18 +242,18 @@ class BroadcastCRUDL(SmartCRUDL):
 
         paginate_by = 25
 
-        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
-        # both broadcast list views render the temba-broadcast-list component (msgs/broadcast_list_new.html) instead
-        # of their legacy card grids; the component fetches/pages broadcasts itself from the internal broadcasts API.
+        # By default both broadcast list views render the temba-broadcast-list component
+        # (msgs/broadcast_list_new.html); the component fetches/pages broadcasts itself from the internal broadcasts
+        # API. Viewers can opt back into the legacy card grids via legacy mode (LegacyMiddleware → request.legacy).
         NEW_LIST_TEMPLATE = "msgs/broadcast_list_new.html"
 
         # The internal-API folder (and the component's `mode`) this view lists — `sent` or `scheduled`.
         new_list_folder = "sent"
 
         def _use_new_list(self) -> bool:
-            # `getattr` defaults to False so a view called via RequestFactory (or if PreviewMiddleware is reordered
+            # `getattr` defaults to False so a view called via RequestFactory (or if LegacyMiddleware is reordered
             # out) doesn't AttributeError.
-            return getattr(self.request, "preview", False)
+            return not getattr(self.request, "legacy", False)
 
         def get_template_names(self):
             if self._use_new_list():
@@ -267,7 +267,7 @@ class BroadcastCRUDL(SmartCRUDL):
             return super().get_paginate_by(queryset)
 
         def get_queryset(self, **kwargs):
-            # In preview the temba-broadcast-list component fetches and pages broadcasts from the internal
+            # On the new list the temba-broadcast-list component fetches and pages broadcasts from the internal
             # broadcasts API, so a GET page needs no object list.
             if self._use_new_list() and self.request.method == "GET":
                 return Broadcast.objects.none()

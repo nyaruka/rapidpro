@@ -2,8 +2,8 @@
 {% load i18n %}
 
 {% comment %}
-  New-style campaign read page rendered when the viewer is in preview
-  mode (request.preview, set by PreviewMiddleware off the temba-preview
+  New-style campaign read page rendered unless the viewer is in legacy
+  mode (request.legacy, set by LegacyMiddleware off the temba-legacy
   cookie). The temba-campaign-events component renders the same page
   header as the new list views (title + content menu), a badges row
   (group, archived), then the campaign's event schedule — one subway

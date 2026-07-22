@@ -592,6 +592,9 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_list(self):
         list_url = reverse("msgs.broadcast_list")
 
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         self.assertRequestDisallowed(list_url, [None, self.agent])
         self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[])
         self.assertContentMenu(list_url, self.editor, ["New Broadcast"])
@@ -605,9 +608,9 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertListFetch(list_url, [self.admin], context_objects=[broadcast])
 
-        # entering preview mode swaps in the temba-broadcast-list component, pointed at the internal broadcasts api
+        # by default we get the temba-broadcast-list component, pointed at the internal broadcasts api
         self.login(self.admin)
-        self.client.cookies["temba-preview"] = "1"
+        self.setLegacyUI(False)
 
         response = self.client.get(list_url)
         self.assertContains(response, "temba-broadcast-list")
@@ -620,6 +623,9 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
     def test_scheduled(self):
         scheduled_url = reverse("msgs.broadcast_scheduled")
+
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
 
         self.assertRequestDisallowed(scheduled_url, [None, self.agent])
         self.assertListFetch(scheduled_url, [self.editor, self.admin], context_objects=[])
@@ -654,9 +660,9 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertListFetch(scheduled_url, [self.editor], context_objects=[bc2, bc1])
 
-        # entering preview mode swaps in the temba-broadcast-list component in scheduled mode
+        # by default we get the temba-broadcast-list component in scheduled mode
         self.login(self.editor)
-        self.client.cookies["temba-preview"] = "1"
+        self.setLegacyUI(False)
 
         response = self.client.get(scheduled_url)
         self.assertContains(response, "temba-broadcast-list")

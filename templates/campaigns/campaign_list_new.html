@@ -3,8 +3,8 @@
 
 {% comment %}
   Generic new-list template used by the campaign list views (Active /
-  Archived) when the viewer is in preview mode (request.preview, set
-  by PreviewMiddleware off the temba-preview cookie). Endpoint,
+  Archived) unless the viewer is in legacy mode (request.legacy, set
+  by LegacyMiddleware off the temba-legacy cookie). Endpoint,
   subtitle and bulk actions come from the view's context_data so the
   template stays the same across both.
 {% endcomment %}

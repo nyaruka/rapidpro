@@ -147,6 +147,19 @@ class TembaTest(SmartminTest):
         self.org.root_location = self.country
         self.org.save(update_fields=("root_location",))
 
+    def setLegacyUI(self, legacy: bool = True):
+        """
+        Opts the test client in or out of legacy UI mode (LegacyMiddleware reads the temba-legacy cookie). The
+        cookie is re-applied by CRUDLTestMixin.requestView since Client.logout() clears all cookies. Note that this
+        deliberately writes the cookie directly, bypassing the middleware's authed write gate — that gate itself is
+        covered by MiddlewareTest.test_legacy.
+        """
+        self._legacy_ui = legacy
+        if legacy:
+            self.client.cookies["temba-legacy"] = "1"
+        elif "temba-legacy" in self.client.cookies:
+            del self.client.cookies["temba-legacy"]
+
     def login(self, user, *, choose_org=None):
         self.assertTrue(
             self.client.login(username=user.email, password=self.default_password),

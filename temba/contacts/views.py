@@ -71,9 +71,9 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
     search_error = None
     search_max_length = ContactGroup.MAX_QUERY_LEN
 
-    # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview, every
-    # contact list view renders the temba-contact-list component (contacts/contact_list_new.html) instead of its
-    # legacy table; the component fetches/pages contacts itself from the internal contacts API.
+    # By default every contact list view renders the temba-contact-list component (contacts/contact_list_new.html);
+    # the component fetches/pages contacts itself from the internal contacts API. Viewers can opt back into the
+    # legacy table via legacy mode (LegacyMiddleware → request.legacy).
     NEW_LIST_TEMPLATE = "contacts/contact_list_new.html"
 
     # Optional subtitle rendered under the title on the new-list view; subclasses override to carry the intro text the
@@ -114,9 +114,9 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
     }
 
     def _use_new_list(self) -> bool:
-        # `getattr` defaults to False so a view called via RequestFactory (or if PreviewMiddleware is reordered out)
+        # `getattr` defaults to False so a view called via RequestFactory (or if LegacyMiddleware is reordered out)
         # doesn't AttributeError.
-        return getattr(self.request, "preview", False)
+        return not getattr(self.request, "legacy", False)
 
     def get_template_names(self):
         if self._use_new_list():
@@ -189,8 +189,8 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
         return ContactGroup.get_groups(self.request.org, manual_only=True)
 
     def get_queryset(self, **kwargs):
-        # In preview the temba-contact-list component fetches and pages contacts from the internal contacts API, so a
-        # GET page needs no object list — skip the mailroom/DB query entirely. A POST (bulk action) still needs the
+        # On the new list the temba-contact-list component fetches and pages contacts from the internal contacts API,
+        # so a GET page needs no object list — skip the mailroom/DB query entirely. A POST (bulk action) still needs the
         # real queryset, since BulkActionMixin validates the posted `objects` against it.
         if self._use_new_list() and self.request.method == "GET":
             return Contact.objects.none()
@@ -430,7 +430,7 @@ class ContactCRUDL(SmartCRUDL):
         NEW_READ_TEMPLATE = "contacts/contact_read_new.html"
 
         def get_template_names(self):
-            if self.request.preview:
+            if not getattr(self.request, "legacy", False):
                 return [self.NEW_READ_TEMPLATE]
 
             return super().get_template_names()
@@ -628,7 +628,7 @@ class ContactCRUDL(SmartCRUDL):
         menu_path = "/contact/active"
 
         def get_bulk_actions(self):
-            # "label" (the group dropdown) is a preview-list-only action — the legacy table has no UI for it.
+            # "label" (the group dropdown) is a new-list-only action — the legacy table has no UI for it.
             update = ("label", "block", "archive") if self._use_new_list() else ("block", "archive")
             actions = update if self.has_org_perm("contacts.contact_update") else ()
             if self.has_org_perm("msgs.broadcast_create"):
@@ -1181,13 +1181,13 @@ class ContactFieldCRUDL(SmartCRUDL):
         menu_path = "/contact/fields"
         title = _("Fields")
 
-        # Gated behind global preview mode (PreviewMiddleware → request.preview). When the viewer is in preview,
-        # the list renders the temba-field-list component (contacts/contactfield_list_new.html) instead of the
-        # legacy field manager; the component fetches the fields itself from the API.
+        # By default the list renders the temba-field-list component (contacts/contactfield_list_new.html); the
+        # component fetches the fields itself from the API. Viewers can opt back into the legacy field manager via
+        # legacy mode (LegacyMiddleware → request.legacy).
         NEW_LIST_TEMPLATE = "contacts/contactfield_list_new.html"
 
         def get_template_names(self):
-            if getattr(self.request, "preview", False):
+            if not getattr(self.request, "legacy", False):
                 return [self.NEW_LIST_TEMPLATE]
             return super().get_template_names()
 
@@ -1209,14 +1209,14 @@ class ContactFieldCRUDL(SmartCRUDL):
     class Detail(FieldLookupMixin, OrgPermsMixin, SmartView, View):
         """
         A field's usages and permissions as JSON, consumed by the temba-field-list component's detail modal on
-        the preview list page — so like that page it only exists in preview mode.
+        the new list page — so like that page it doesn't exist in legacy mode.
         """
 
         permission = "contacts.contactfield_read"
         USAGES_LIMIT = 25
 
         def get(self, request, *args, **kwargs):
-            if not getattr(request, "preview", False):
+            if getattr(request, "legacy", False):
                 raise Http404()
 
             field = self.get_object()

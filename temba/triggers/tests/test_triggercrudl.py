@@ -1033,6 +1033,9 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_list(self, mock_activate_trigger, mock_deactivate_trigger):
         list_url = reverse("triggers.trigger_list")
 
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         flow1 = self.create_flow("Report")
         flow2 = self.create_flow("Survey")
         flow3 = self.create_flow("Test", org=self.org2)
@@ -1114,7 +1117,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.status_code, 302)
         self.assertRedirect(response, reverse("triggers.trigger_create"))
 
-    def test_preview_list(self):
+    def test_new_list(self):
         flow = self.create_flow("Test")
         trigger1 = Trigger.create(
             self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keywords=["start"], match_type=Trigger.MATCH_ONLY_WORD
@@ -1133,12 +1136,13 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
-        # default render is still the legacy table
+        # legacy mode renders the legacy table
+        self.setLegacyUI()
         response = self.client.get(list_url)
         self.assertNotContains(response, "temba-trigger-list")
 
-        # entering preview mode swaps in the temba-trigger-list component, pointed at the internal triggers api
-        self.client.cookies["temba-preview"] = "1"
+        # by default we get the temba-trigger-list component, pointed at the internal triggers api
+        self.setLegacyUI(False)
 
         response = self.client.get(list_url)
         self.assertContains(response, "temba-trigger-list")
@@ -1176,6 +1180,9 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(trigger2.is_archived)
 
     def test_archived(self):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         flow = self.create_flow("Test")
         other_org_flow = self.create_flow("Test", org=self.org2)
 
@@ -1395,6 +1402,9 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, trigger7.keywords[0])
 
     def test_folder(self):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
         flow3 = self.create_flow("Flow 3", org=self.org2)

@@ -263,6 +263,9 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(birth.show_in_table)
 
     def test_list(self):
+        # opt into legacy mode to test the legacy list rendering
+        self.setLegacyUI()
+
         list_url = reverse("contacts.contactfield_list")
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
@@ -275,17 +278,18 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertContains(response, "You have reached the per-workspace limit")
             self.assertContentMenu(list_url, self.admin, [])
 
-    def test_preview_list(self):
+    def test_new_list(self):
         list_url = reverse("contacts.contactfield_list")
 
         self.login(self.admin)
 
-        # default render is still the legacy field manager
+        # legacy mode renders the legacy field manager
+        self.setLegacyUI()
         response = self.client.get(list_url)
         self.assertContains(response, "temba-field-manager")
 
-        # entering preview mode swaps in the temba-field-list component which fetches the fields itself
-        self.client.cookies["temba-preview"] = "1"
+        # by default we get the temba-field-list component which fetches the fields itself
+        self.setLegacyUI(False)
 
         response = self.client.get(list_url)
         self.assertContains(response, "temba-field-list")
@@ -310,11 +314,12 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.editor)
 
-        # like the preview list page it feeds, the endpoint only exists in preview mode
+        # like the new list page it feeds, the endpoint doesn't exist in legacy mode
+        self.setLegacyUI()
         response = self.client.get(detail_url)
         self.assertEqual(404, response.status_code)
 
-        self.client.cookies["temba-preview"] = "1"
+        self.setLegacyUI(False)
         response = self.client.get(detail_url)
         self.assertEqual(200, response.status_code)
         self.assertEqual(
