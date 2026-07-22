@@ -13,6 +13,7 @@
               class="flex-grow -mt-2">
     <temba-tab icon="message" name="{{ _("Chat") |escapejs }}">
       <temba-contact-chat contact="{{ object.uuid }}"
+                          user="{{ request.user.uuid }}"
                           monitor="true"
                           avatar="{{ branding.logos.avatar }}"
                           {% if object.last_seen_on %}showSearch{% endif %}

@@ -65,6 +65,7 @@
                        settings="{{ card_settings }}">
       <temba-contact-chat slot="main"
                           contact="{{ object.uuid }}"
+                          user="{{ request.user.uuid }}"
                           monitor="true"
                           avatar="{{ branding.logos.avatar }}"
                           {% if object.last_seen_on %}showSearch{% endif %}
