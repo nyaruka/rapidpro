@@ -383,27 +383,6 @@ class MailroomClient:
     def org_deindex(self, org):
         return self._request("org/deindex", {"org_id": org.id})
 
-    def po_export(self, org, flows, language: str):
-        return self._request(
-            "po/export",
-            {
-                "org_id": org.id,
-                "flow_ids": [f.id for f in flows],
-                "language": language,
-            },
-        )
-
-    def po_import(self, org, flows, language: str, po_data):
-        return self._request(
-            "po/import",
-            {
-                "org_id": org.id,
-                "flow_ids": [f.id for f in flows],
-                "language": language,
-            },
-            files={"po": po_data},
-        )
-
     def sim_start(self, payload: dict):
         return self._request("sim/start", payload, encode_json=True)
 
@@ -468,16 +447,14 @@ class MailroomClient:
             },
         )
 
-    def _request(self, endpoint, payload=None, files=None, post=True, encode_json=False):
+    def _request(self, endpoint, payload=None, post=True, encode_json=False):
         if logger.isEnabledFor(logging.DEBUG):  # pragma: no cover
             logger.debug("=============== %s request ===============" % endpoint)
             logger.debug(json.dumps(payload, indent=2))
             logger.debug("=============== /%s request ===============" % endpoint)
 
         headers = self.headers.copy()
-        if files:
-            kwargs = dict(data=payload, files=files)
-        elif encode_json:
+        if encode_json:
             # do the JSON encoding ourselves - required when the json is something we've loaded with our decoder
             # which could contain non-standard types
             headers["Content-Type"] = "application/json"
@@ -491,7 +468,7 @@ class MailroomClient:
         if response.headers.get("Content-Type") == "application/json":
             resp_body = response.json()
         else:
-            # not all endpoints return JSON, e.g. po file export
+            # defensive against non-JSON responses, e.g. error pages from a proxy
             resp_body = response.content
 
         if response.status_code == 422:

@@ -197,14 +197,14 @@ class LiveMailroomError(BaseException):
     """
 
 
-def _guarded_mailroom_request(self, endpoint, payload=None, files=None, post=True, encode_json=False):
+def _guarded_mailroom_request(self, endpoint, payload=None, post=True, encode_json=False):
     # a patched transport (e.g. patch("requests.post")) means no real network call happens - that's how the
     # MailroomClient's own request-construction tests work, so let those through to the real _request. this only
     # detects Mock-based patches; patch("requests.post", new=<plain callable>) would slip past, but that form
     # isn't used against requests here.
     transport = requests.post if post else requests.get
     if isinstance(transport, NonCallableMock):
-        return _real_mailroom_request(self, endpoint, payload=payload, files=files, post=post, encode_json=encode_json)
+        return _real_mailroom_request(self, endpoint, payload=payload, post=post, encode_json=encode_json)
 
     # flow/clone and flow/inspect are reached by undecorated import/save tests via the production client; both are
     # faked from the request payload (see clone_flow_definition / inspect_flow) rather than reaching a live

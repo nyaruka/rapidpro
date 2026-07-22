@@ -28,7 +28,6 @@ dependencies = [
     "pyotp ~= 2.4.1",
     "geojson ~= 2.5.0",
     "markdown ~= 3.8.0",
-    "polib ~= 1.2.0",
     "python-magic ~= 0.4.27",
     "xlsxlite ~= 1.0.0",
     "colorama ~= 0.4.6",

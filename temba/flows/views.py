@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-from urllib.parse import urlencode
 from uuid import UUID
 
 import regex
@@ -10,7 +9,6 @@ from smartmin.views import (
     SmartCRUDL,
     SmartDeleteView,
     SmartFormView,
-    SmartListView,
     SmartTemplateView,
     SmartUpdateView,
 )
@@ -19,7 +17,7 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db.models.functions import Lower
-from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -46,7 +44,7 @@ from temba.orgs.views.base import (
 )
 from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.triggers.models import Trigger
-from temba.utils import gettext, json, languages
+from temba.utils import json, languages
 from temba.utils.fields import (
     CheckboxWidget,
     ContactSearchWidget,
@@ -55,7 +53,6 @@ from temba.utils.fields import (
     SelectWidget,
     TembaChoiceField,
 )
-from temba.utils.text import slugify_with
 from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin
 
@@ -139,9 +136,6 @@ class FlowCRUDL(SmartCRUDL):
         "menu",
         "simulate",
         "change_language",
-        "export_translation",
-        "download_translation",
-        "import_translation",
         "export_results",
         "editor",
         "results",
@@ -974,169 +968,6 @@ class FlowCRUDL(SmartCRUDL):
                 detail = None
 
             return JsonResponse({"status": "failure", "description": error, "detail": detail}, status=400)
-
-    class ExportTranslation(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
-        class Form(forms.Form):
-            language = forms.ChoiceField(
-                required=False,
-                label=_("Language"),
-                help_text=_("Include translations in this language."),
-                choices=(("", "None"),),
-                widget=SelectWidget(),
-            )
-
-            def __init__(self, org, instance, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
-                self.fields["language"].choices += languages.choices(codes=org.flow_languages)
-
-        permission = "flows.flow_editor"
-        form_class = Form
-        submit_button_name = _("Export")
-        success_url = "@flows.flow_list"
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
-
-        def get_success_url(self):
-            params = {"flow": self.object.id, "language": self.form.cleaned_data["language"]}
-            return reverse("flows.flow_download_translation") + "?" + urlencode(params, doseq=True)
-
-        def form_valid(self, form):
-            return self.render_modal_response(form)
-
-    class DownloadTranslation(OrgPermsMixin, SmartListView):
-        """
-        Download link for PO translation files extracted from flows by mailroom
-        """
-
-        permission = "flows.flow_editor"
-
-        def get(self, request, *args, **kwargs):
-            org = self.request.org
-            flow_ids = self.request.GET.getlist("flow")
-            flows = org.flows.filter(id__in=flow_ids, is_active=True)
-            if len(flows) != len(flow_ids):
-                raise Http404()
-
-            language = request.GET.get("language", "")
-            filename = slugify_with(flows[0].name) if len(flows) == 1 else "flows"
-            if language:
-                filename += f".{language}"
-            filename += ".po"
-
-            po = Flow.export_translation(org, flows, language)
-
-            response = HttpResponse(po, content_type="text/x-gettext-translation")
-            response["Content-Disposition"] = f'attachment; filename="{filename}"'
-            return response
-
-    class ImportTranslation(SpaMixin, OrgObjPermsMixin, SmartUpdateView):
-        class UploadForm(forms.Form):
-            po_file = forms.FileField(label=_("PO translation file"), required=True)
-
-            def __init__(self, org, instance, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
-                self.flow = instance
-
-            def clean_po_file(self):
-                data = self.cleaned_data["po_file"]
-                if data:
-                    try:
-                        po_info = gettext.po_get_info(data.read().decode())
-                    except Exception:
-                        raise ValidationError(_("File doesn't appear to be a valid PO file."))
-
-                    if po_info.language_code:
-                        if po_info.language_code == self.flow.base_language:
-                            raise ValidationError(
-                                _("Contains translations in %(lang)s which is the base language of this flow."),
-                                params={"lang": po_info.language_name},
-                            )
-
-                        if po_info.language_code not in self.flow.org.flow_languages:
-                            raise ValidationError(
-                                _("Contains translations in %(lang)s which is not a supported translation language."),
-                                params={"lang": po_info.language_name},
-                            )
-
-                return data
-
-        class ConfirmForm(forms.Form):
-            language = forms.ChoiceField(
-                label=_("Language"),
-                help_text=_("Replace flow translations in this language."),
-                required=True,
-                widget=SelectWidget(),
-            )
-
-            def __init__(self, org, instance, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-
-                lang_codes = list(org.flow_languages)
-                if instance.base_language in lang_codes:
-                    lang_codes.remove(instance.base_language)
-
-                self.fields["language"].choices = languages.choices(codes=lang_codes)
-
-        permission = "flows.flow_update"
-        title = _("Import Translation")
-        submit_button_name = _("Import")
-        success_url = "uuid@flows.flow_editor"
-        menu_path = "/flow/active"
-
-        def get_form_class(self):
-            return self.ConfirmForm if self.request.GET.get("po") else self.UploadForm
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
-
-        def form_valid(self, form):
-            org = self.request.org
-            po_uuid = self.request.GET.get("po")
-
-            if not po_uuid:
-                po_file = form.cleaned_data["po_file"]
-                po_uuid = gettext.po_save(org, po_file)
-
-                return HttpResponseRedirect(
-                    reverse("flows.flow_import_translation", args=[self.object.id]) + f"?po={po_uuid}"
-                )
-            else:
-                po_data = gettext.po_load(org, po_uuid)
-                language = form.cleaned_data["language"]
-
-                updated_defs = Flow.import_translation(self.object.org, [self.object], language, po_data)
-                self.object.save_revision(self.request.user, updated_defs[str(self.object.uuid)])
-
-            return HttpResponseRedirect(self.get_success_url())
-
-        @cached_property
-        def po_info(self):
-            po_uuid = self.request.GET.get("po")
-            if not po_uuid:
-                return None
-
-            org = self.request.org
-            po_data = gettext.po_load(org, po_uuid)
-            return gettext.po_get_info(po_data)
-
-        def get_context_data(self, *args, **kwargs):
-            flow_lang_code = self.object.base_language
-
-            context = super().get_context_data(*args, **kwargs)
-            context["show_upload_form"] = not self.po_info
-            context["po_info"] = self.po_info
-            context["flow_language"] = {"iso_code": flow_lang_code, "name": languages.get_name(flow_lang_code)}
-            return context
-
-        def derive_initial(self):
-            return {"language": self.po_info.language_code if self.po_info else ""}
 
     class ExportResults(BaseExportModal):
         class Form(BaseExportModal.Form):
