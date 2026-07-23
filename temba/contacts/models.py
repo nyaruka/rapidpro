@@ -574,6 +574,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         STATUS_ARCHIVED: "archived",
     }
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contacts")
     name = models.CharField(verbose_name=_("Name"), max_length=128, blank=True, null=True)
     language = models.CharField(
