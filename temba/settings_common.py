@@ -808,23 +808,27 @@ LLM_TYPES = {
     "temba.ai.types.anthropic.type.AnthropicType": {
         # model id -> max output tokens
         "models": {
+            "claude-opus-4-8": 128_000,
             "claude-opus-4-7": 128_000,
             "claude-opus-4-5-20251101": 64_000,
-            "claude-sonnet-4-6": 64_000,
-            "claude-3-7-sonnet-20250219": 64_000,
+            "claude-sonnet-5": 128_000,
+            "claude-sonnet-4-6": 128_000,
             "claude-haiku-4-5-20251001": 64_000,
-            "claude-3-5-haiku-20241022": 8_192,
         },
     },
     "temba.ai.types.google.type.GoogleType": {
         "models": {
+            "gemini-3.6-flash": 65_536,
+            "gemini-3.5-flash": 65_536,
+            "gemini-3.5-flash-lite": 65_536,
             "gemini-2.5-flash": 65_536,
-            "gemini-2.0-flash": 8_192,
-            "gemini-1.5-flash": 8_192,
         },
     },
     "temba.ai.types.openai.type.OpenAIType": {
         "models": {
+            "gpt-5.6-sol": 128_000,
+            "gpt-5.6-terra": 128_000,
+            "gpt-5.6-luna": 128_000,
             "gpt-5.5": 128_000,
             "gpt-5.4": 128_000,
             "gpt-5.4-mini": 128_000,

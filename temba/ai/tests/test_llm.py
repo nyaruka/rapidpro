@@ -9,7 +9,7 @@ from temba.tests import TembaTest, mock_mailroom
 class LLMTest(TembaTest):
     def test_model(self):
         openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {"api_key": "sesame"})
-        LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Claude", {})
+        LLM.create(self.org, self.admin, AnthropicType(), "claude-haiku-4-5-20251001", "Claude", {})
 
         self.assertEqual(openai.name, "GPT-4")
         self.assertEqual(openai.type.slug, OpenAIType.slug)
