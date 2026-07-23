@@ -342,6 +342,41 @@ class NotificationTest(TembaTest):
         recipients = set(mail.outbox[0].recipients()).union(mail.outbox[1].recipients())
         self.assertEqual({self.admin.email, self.editor.email}, recipients)
 
+    def test_incident_started_email_opt_out(self):
+        self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
+
+        # editor opts out of email notifications from this workspace
+        membership = self.org.get_membership(self.editor)
+        membership.email_notifications = False
+        membership.save(update_fields=("email_notifications",))
+
+        OrgFlaggedIncidentType.get_or_create(self.org)
+
+        # editor still gets a UI notification but no email
+        self.assertEqual("UE", self.admin.notifications.get().medium)
+        self.assertEqual(Notification.EMAIL_STATUS_PENDING, self.admin.notifications.get().email_status)
+        self.assertEqual("U", self.editor.notifications.get().medium)
+        self.assertEqual(Notification.EMAIL_STATUS_NONE, self.editor.notifications.get().email_status)
+
+        send_notification_emails()
+
+        self.assertEqual(1, len(mail.outbox))
+        self.assertEqual([self.admin.email], mail.outbox[0].recipients())
+
+    def test_export_finished_email_opt_out(self):
+        # export emails are solicited by the user so aren't affected by opting out of email notifications
+        membership = self.org.get_membership(self.editor)
+        membership.email_notifications = False
+        membership.save(update_fields=("email_notifications",))
+
+        export = ContactExport.create(self.org, self.editor)
+        export.perform()
+
+        ExportFinishedNotificationType.create(export)
+
+        self.assertEqual("UE", self.editor.notifications.get(export=export).medium)
+        self.assertEqual(Notification.EMAIL_STATUS_PENDING, self.editor.notifications.get(export=export).email_status)
+
     def test_invitation_accepted(self):
         invitation = Invitation.create(self.org, self.admin, "bob@textit.com", OrgRole.ADMINISTRATOR)
         user = self.create_user("bob@textit.com")
@@ -366,6 +401,25 @@ class NotificationTest(TembaTest):
         self.assertEqual("[Nyaruka] New user joined your workspace", mail.outbox[0].subject)
         self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())  # only the other admins
         self.assertIn("User bob@textit.com accepted an invitation to join your workspace.", mail.outbox[0].body)
+
+    def test_invitation_accepted_email_opt_out(self):
+        # admin opts out of email notifications from this workspace
+        membership = self.org.get_membership(self.admin)
+        membership.email_notifications = False
+        membership.save(update_fields=("email_notifications",))
+
+        invitation = Invitation.create(self.org, self.admin, "bob@textit.com", OrgRole.ADMINISTRATOR)
+        user = self.create_user("bob@textit.com")
+        invitation.accept(user)
+
+        InvitationAcceptedNotificationType.create(invitation, user)
+
+        # this type is email-only so no notification is created at all for the opted out admin
+        self.assertEqual(0, self.admin.notifications.count())
+
+        send_notification_emails()
+
+        self.assertEqual(0, len(mail.outbox))
 
     @mock_mailroom
     def test_realtime_publish(self, mr_mocks):

@@ -861,7 +861,12 @@ class Org(SmartModel):
         assert role == OrgRole.AGENT or not team, "only agent users can be assigned to a team"
         assert not team or team.org == self, "team must belong to this org"
 
+        # role changes are implemented as remove + create so user preferences on the membership must be carried over
+        email_notifications = True
+
         if self.has_user(user):  # remove user from any existing roles
+            if existing := OrgMembership.objects.filter(org=self, user=user).first():
+                email_notifications = existing.email_notifications
             self.remove_user(user)
 
         if role == OrgRole.AGENT and not team:
@@ -874,6 +879,7 @@ class Org(SmartModel):
             team=team,
             can_assign=can_assign,
             can_reply_non_own=can_reply_non_own,
+            email_notifications=email_notifications,
         )
 
     def remove_user(self, user: User):
@@ -1227,6 +1233,7 @@ class OrgMembership(models.Model):
     team = models.ForeignKey("tickets.Team", on_delete=models.PROTECT, null=True)
     can_assign = models.BooleanField(default=True)
     can_reply_non_own = models.BooleanField(default=True)
+    email_notifications = models.BooleanField(default=True)  # whether user wants unsolicited notification emails
     last_seen_on = models.DateTimeField(null=True)
 
     @property

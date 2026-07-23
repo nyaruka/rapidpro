@@ -66,6 +66,7 @@ class IncidentStartedNotificationType(NotificationType):
     """
 
     slug = "incident:started"
+    email_optional = True
 
     @classmethod
     def create(cls, incident):
@@ -125,6 +126,7 @@ class InvitationAcceptedNotificationType(NotificationType):
     """
 
     slug = "invitation:accepted"
+    email_optional = True
 
     @classmethod
     def create(cls, invitation, new_user):

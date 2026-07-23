@@ -51,6 +51,32 @@ class OrgTest(TembaTest):
         self.assertEqual("M", new_org.date_format)
         self.assertEqual(str(new_org.timezone), "America/Los_Angeles")
 
+    def test_add_user(self):
+        user = self.create_user("bob@textit.com")
+
+        self.org.add_user(user, OrgRole.ADMINISTRATOR)
+
+        membership = OrgMembership.objects.get(org=self.org, user=user)
+        self.assertEqual(OrgRole.ADMINISTRATOR, membership.role)
+        self.assertTrue(membership.email_notifications)  # on by default
+
+        # user opts out of email notifications from this workspace
+        membership.email_notifications = False
+        membership.save(update_fields=("email_notifications",))
+
+        # role changes recreate the membership but preserve the email notifications preference
+        self.org.add_user(user, OrgRole.EDITOR)
+
+        membership = OrgMembership.objects.get(org=self.org, user=user)
+        self.assertEqual(OrgRole.EDITOR, membership.role)
+        self.assertFalse(membership.email_notifications)
+
+        # but leaving the workspace and being re-added resets it
+        self.org.remove_user(user)
+        self.org.add_user(user, OrgRole.ADMINISTRATOR)
+
+        self.assertTrue(OrgMembership.objects.get(org=self.org, user=user).email_notifications)
+
     def test_get_users(self):
         admin3 = self.create_user("bob@textit.com")
 

@@ -14,5 +14,16 @@
     {% if form.fields.language %}
       <div class="field">{% render_field 'language' %}</div>
     {% endif %}
+    {% if form.notification_field_names %}
+      <div class="mt-6">
+        <div class="font-medium">{% trans "Email Notifications" %}</div>
+        <div class="text-sm text-gray-500 mb-2">
+          {% trans "Workspaces that can send you email notifications such as incident alerts." %}
+        </div>
+        {% for field_name in form.notification_field_names %}
+          <div class="field">{% render_field field_name %}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
   </div>
 {% endblock fields %}
