@@ -1071,8 +1071,8 @@ class EndpointsTest(APITestMixin, TembaTest):
         endpoint_url = reverse("api.internal.llms") + ".json"
 
         openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {}, roles=LLM.ROLE_EDITING)
-        anthropic = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Claude", {})
-        deleted = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Deleted", {})
+        anthropic = LLM.create(self.org, self.admin, AnthropicType(), "claude-haiku-4-5-20251001", "Claude", {})
+        deleted = LLM.create(self.org, self.admin, AnthropicType(), "claude-haiku-4-5-20251001", "Deleted", {})
         deleted.release(self.admin)
         system = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "System", {})
         system.is_system = True

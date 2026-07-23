@@ -31,16 +31,16 @@ class AnthropicTypeTest(TembaTest, CRUDLTestMixin):
 
         # get our model list from an api key
         mock_client.return_value.models.list.return_value = [
-            Mock(id="claude-opus-4-7", display_name="Claude Opus 4.7"),
-            Mock(id="claude-3-7-sonnet-20250219", display_name="Claude 3.7 Sonnet"),
+            Mock(id="claude-opus-4-8", display_name="Claude Opus 4.8"),
+            Mock(id="claude-sonnet-5", display_name="Claude Sonnet 5"),
             Mock(id="claude-3-5-sonnet-20240620", display_name="Claude 3.5 Sonnet (Old)"),
         ]
         response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "good_key"}})
         self.assertEqual(
             response.context["form"].fields["model"].choices,
             [
-                ("claude-opus-4-7", "Claude Opus 4.7"),
-                ("claude-3-7-sonnet-20250219", "Claude 3.7 Sonnet"),
+                ("claude-opus-4-8", "Claude Opus 4.8"),
+                ("claude-sonnet-5", "Claude Sonnet 5"),
             ],
         )
 
@@ -50,7 +50,7 @@ class AnthropicTypeTest(TembaTest, CRUDLTestMixin):
             connect_url,
             {
                 "credentials": {"api_key": "good_key"},
-                "model": {"model": "claude-3-7-sonnet-20250219"},
+                "model": {"model": "claude-sonnet-5"},
                 "name": {"name": "Claude"},
             },
         )
@@ -59,5 +59,5 @@ class AnthropicTypeTest(TembaTest, CRUDLTestMixin):
         # check that we created our model
         llm = LLM.objects.get(org=self.org, llm_type="anthropic")
         self.assertEqual("Claude", llm.name)
-        self.assertEqual("claude-3-7-sonnet-20250219", llm.model)
+        self.assertEqual("claude-sonnet-5", llm.model)
         self.assertEqual("good_key", llm.config["api_key"])

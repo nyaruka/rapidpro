@@ -29,21 +29,21 @@ class GoogleTypeTest(TembaTest, CRUDLTestMixin):
 
         # get our model list from an api key
         mock_models = [
-            Mock(display_name="Gemini 2.0 Flash"),
+            Mock(display_name="Gemini 3.6 Flash"),
+            Mock(display_name="Gemini 2.5 Flash"),
             Mock(display_name="Gemini 1.5 Flash"),
-            Mock(display_name="Gemini 1.0 Flash"),
         ]
 
         # because https://docs.python.org/3/library/unittest.mock.html#mock-names-and-the-name-attribute
-        mock_models[0].name = "models/gemini-2.0-flash"
-        mock_models[1].name = "models/gemini-1.5-flash"
-        mock_models[2].name = "models/gemini-1.0-flash"
+        mock_models[0].name = "models/gemini-3.6-flash"
+        mock_models[1].name = "models/gemini-2.5-flash"
+        mock_models[2].name = "models/gemini-1.5-flash"
         mock_client.return_value.models.list.return_value = mock_models
 
         response = self.process_wizard("connect_view", connect_url, {"credentials": {"api_key": "good_key"}})
         self.assertEqual(
             response.context["form"].fields["model"].choices,
-            [("models/gemini-2.0-flash", "Gemini 2.0 Flash"), ("models/gemini-1.5-flash", "Gemini 1.5 Flash")],
+            [("models/gemini-3.6-flash", "Gemini 3.6 Flash"), ("models/gemini-2.5-flash", "Gemini 2.5 Flash")],
         )
 
         # select a model and give it a name
@@ -52,7 +52,7 @@ class GoogleTypeTest(TembaTest, CRUDLTestMixin):
             connect_url,
             {
                 "credentials": {"api_key": "good_key"},
-                "model": {"model": "models/gemini-1.5-flash"},
+                "model": {"model": "models/gemini-2.5-flash"},
                 "name": {"name": "Gemini"},
             },
         )
@@ -61,5 +61,5 @@ class GoogleTypeTest(TembaTest, CRUDLTestMixin):
         # check that we created our model
         llm = LLM.objects.get(org=self.org, llm_type="google")
         self.assertEqual("Gemini", llm.name)
-        self.assertEqual("gemini-1.5-flash", llm.model)
+        self.assertEqual("gemini-2.5-flash", llm.model)
         self.assertEqual("good_key", llm.config["api_key"])

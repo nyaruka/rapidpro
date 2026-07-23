@@ -16,7 +16,7 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         super().setUp()
 
         self.openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
-        self.anthropic = LLM.create(self.org, self.admin, AnthropicType(), "claude-3-5-haiku-20241022", "Claude", {})
+        self.anthropic = LLM.create(self.org, self.admin, AnthropicType(), "claude-haiku-4-5-20251001", "Claude", {})
         LLM.create(self.org2, self.admin2, OpenAIType(), "gpt-4o", "Other Org", {})
 
     def test_list(self):
