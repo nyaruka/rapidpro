@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION
   contact_toggle_system_group(_contact contacts_contact, _group_type CHAR(1), _add BOOLEAN)
 RETURNS VOID AS $$
 DECLARE
-  _group_id INT;
+  _group_id BIGINT;
 BEGIN
   PERFORM contact_toggle_system_group(_contact.id, _contact.org_id, _group_type, _add);
 END;
@@ -17,10 +17,10 @@ $$ LANGUAGE plpgsql;
 -- Toggle a contact's membership of a system group in their org
 ----------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION
-  contact_toggle_system_group(_contact_id INT, _org_id INT, _group_type CHAR(1), _add BOOLEAN)
+  contact_toggle_system_group(_contact_id BIGINT, _org_id BIGINT, _group_type CHAR(1), _add BOOLEAN)
 RETURNS VOID AS $$
 DECLARE
-  _group_id INT;
+  _group_id BIGINT;
 BEGIN
   -- lookup the group id
   SELECT id INTO STRICT _group_id FROM contacts_contactgroup
