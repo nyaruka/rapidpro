@@ -31,7 +31,6 @@ class Shortcut(TembaModel):
     A canned response available from the ticketing interface.
     """
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="shortcuts")
     text = models.TextField(max_length=10_000)
 
@@ -145,7 +144,6 @@ class Team(TembaModel):
     Agent users are assigned to a team which controls which topics they can access.
     """
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="teams")
     topics = models.ManyToManyField(Topic, related_name="teams")
     all_topics = models.BooleanField(default=False)

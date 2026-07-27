@@ -365,7 +365,6 @@ class ContactField(TembaModel, DependencyMixin):
     # can't create custom contact fields with these keys
     RESERVED_KEYS = {"has", "is", "fields", "urns", "created_on", "last_seen_on"}
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="fields")
 
     key = models.CharField(max_length=MAX_KEY_LEN)
@@ -1831,7 +1830,6 @@ class ContactNote(models.Model):
 
     MAX_LENGTH = 10_000
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="notes")
     text = models.TextField(max_length=MAX_LENGTH, blank=True)
     created_on = models.DateTimeField(default=timezone.now)
@@ -2112,7 +2110,6 @@ class ContactImport(SmartModel):
 
     MAPPING_IGNORE = {"type": "ignore"}
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True, default=uuid4)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contact_imports")
     file = models.FileField(upload_to=get_import_upload_path)
@@ -2576,7 +2573,6 @@ class ContactImportBatch(models.Model):
         (ContactImport.STATUS_FAILED, "Failed"),
     )
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     contact_import = models.ForeignKey(ContactImport, on_delete=models.PROTECT, related_name="batches")
     status = models.CharField(max_length=1, default=ContactImport.STATUS_PENDING, choices=STATUS_CHOICES)
     specs = models.JSONField()
