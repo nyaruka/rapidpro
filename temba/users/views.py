@@ -51,7 +51,8 @@ class UserSettingsView(LoginRequiredMixin, View):
     """
 
     # the settings keys the UI is allowed to write
-    ALLOWED_KEYS = {"contact_cards"}
+    ALLOWED_KEYS = {"contact_cards", "list_columns"}
+    RESIZABLE_LISTS = {"contacts", "msgs"}
 
     def post(self, request, *args, **kwargs):
         if len(request.body) > 100_000:
@@ -67,6 +68,40 @@ class UserSettingsView(LoginRequiredMixin, View):
 
         if not set(posted) <= self.ALLOWED_KEYS:
             return JsonResponse({"error": "unsupported settings keys"}, status=400)
+
+        if "list_columns" in posted:
+            list_columns = posted["list_columns"]
+            if not isinstance(list_columns, dict) or any(
+                not isinstance(view, str)
+                or view not in self.RESIZABLE_LISTS
+                or not isinstance(widths, dict)
+                or any(
+                    not isinstance(column, str)
+                    or not isinstance(width, int)
+                    or isinstance(width, bool)
+                    or not 80 <= width <= 600
+                    for column, width in widths.items()
+                )
+                for view, widths in list_columns.items()
+            ):
+                return JsonResponse({"error": "invalid list column settings"}, status=400)
+
+            # Width changes are sent by one list at a time. Merge both the
+            # view and column levels so saving one page (or a stale browser
+            # tab) can't discard widths saved for another.
+            saved_columns = request.user.settings.get("list_columns", {})
+            if not isinstance(saved_columns, dict):
+                saved_columns = {}
+            posted["list_columns"] = {
+                **saved_columns,
+                **{
+                    view: {
+                        **(saved_columns.get(view, {}) if isinstance(saved_columns.get(view), dict) else {}),
+                        **widths,
+                    }
+                    for view, widths in list_columns.items()
+                },
+            }
 
         request.user.settings = {**request.user.settings, **posted}
         request.user.save(update_fields=("settings",))

@@ -29,6 +29,8 @@
   <temba-contact-list id="contact-list"
                       fill-window
                       history-state-key="contacts"
+                      column-width-settings="{{ list_column_settings }}"
+                      settings-endpoint="{% url 'users.user_settings' %}"
                       list-title="{{ title }}"
                       {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
                       {% if user_org.is_anon %}anon{% endif %}

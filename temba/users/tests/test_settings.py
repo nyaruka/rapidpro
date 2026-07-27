@@ -49,3 +49,38 @@ class UserSettingsTest(TembaTest):
         self.assertEqual(
             {"contact_cards": {"collapsed": ["card-nextup"]}, "other": {"kept": True}}, self.admin.settings
         )
+
+        # list widths are merged by view and column so independent list
+        # pages (and stale tabs) don't overwrite one another
+        response = self.client.post(
+            settings_url,
+            {"list_columns": {"contacts": {"name": 240}, "msgs": {"contact": 160}}},
+            content_type="application/json",
+        )
+        self.assertEqual(200, response.status_code)
+
+        response = self.client.post(
+            settings_url,
+            {"list_columns": {"contacts": {"last_seen_on": 180}, "msgs": {"created_on": 140}}},
+            content_type="application/json",
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "contacts": {"name": 240, "last_seen_on": 180},
+                "msgs": {"contact": 160, "created_on": 140},
+            },
+            response.json()["settings"]["list_columns"],
+        )
+
+        # malformed or out-of-range widths are rejected
+        for invalid in (
+            [],
+            {"contacts": []},
+            {"contacts": {"name": "wide"}},
+            {"contacts": {"name": 79}},
+            {"contacts": {"name": 601}},
+            {"flows": {"name": 240}},
+        ):
+            response = self.client.post(settings_url, {"list_columns": invalid}, content_type="application/json")
+            self.assertEqual(400, response.status_code)

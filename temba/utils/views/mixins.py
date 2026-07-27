@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import date, datetime, timedelta
 from urllib.parse import quote, urlencode
@@ -323,6 +324,9 @@ class SpaMixin:
         context["temba_path"] = self.spa_path
         context["temba_referer"] = self.spa_referrer_path
         context[TEMBA_MENU_SELECTION] = self.derive_menu_path()
+
+        user_settings = getattr(self.request.user, "settings", {}) or {}
+        context["list_column_settings"] = json.dumps(user_settings.get("list_columns", {}))
 
         return context
 
