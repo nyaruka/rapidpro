@@ -788,7 +788,6 @@ class ChannelEvent(TembaUUIDMixin, models.Model):
     STATUS_HANDLED = "H"
     STATUS_CHOICES = ((STATUS_PENDING, "Pending"), (STATUS_HANDLED, "Handled"))
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT)
     channel = models.ForeignKey(Channel, on_delete=models.PROTECT)
     event_type = models.CharField(max_length=16, choices=TYPE_CHOICES)
@@ -1014,7 +1013,6 @@ class SyncEvent(models.Model):
         (STATUS_FULL, "Full"),
     )
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     channel = models.ForeignKey(Channel, related_name="sync_events", on_delete=models.PROTECT)
 
     # power status of the device
