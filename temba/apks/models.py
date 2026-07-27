@@ -17,6 +17,7 @@ class Apk(models.Model):
         (TYPE_MESSAGE_PACK, _("Message Pack Application APK")),
     )
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     apk_type = models.CharField(choices=TYPE_CHOICES, max_length=1)
     apk_file = models.FileField(upload_to="apks")
     version = models.TextField(null=False, help_text="Our version, ex: 1.9.8")

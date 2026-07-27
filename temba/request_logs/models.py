@@ -43,6 +43,7 @@ class HTTPLog(models.Model):
         (WHATSAPP_CHECK_HEALTH, _("WhatsApp Health Check")),
     )
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, related_name="http_logs", on_delete=models.PROTECT)
     log_type = models.CharField(max_length=32, choices=LOG_TYPE_CHOICES)
 

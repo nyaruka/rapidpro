@@ -65,6 +65,7 @@ class LLM(TembaModel, DependencyMixin):
     ROLE_NAMES = {ROLE_EDITING: "editing", ROLE_ENGINE: "engine"}
     DEFAULT_ROLES = ROLE_EDITING + ROLE_ENGINE
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, related_name="llms", on_delete=models.PROTECT)
     llm_type = models.CharField(max_length=16)
     model = models.CharField(max_length=64)

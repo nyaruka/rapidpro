@@ -98,6 +98,7 @@ class Trigger(SmartModel):
         (MATCH_FIRST_WORD, _("Message starts with the keyword")),
     )
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="triggers")
     trigger_type = models.CharField(max_length=1, default=TYPE_KEYWORD)
     is_archived = models.BooleanField(default=False)

@@ -273,6 +273,7 @@ class Org(SmartModel):
         "contact support."
     )
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True, default=uuid4)
     name = models.CharField(verbose_name=_("Name"), max_length=128)
     parent = models.ForeignKey("orgs.Org", on_delete=models.PROTECT, null=True, related_name="children")
@@ -1221,6 +1222,7 @@ class Org(SmartModel):
 
 
 class OrgMembership(models.Model):
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role_code = models.CharField(max_length=1)
@@ -1265,6 +1267,7 @@ class OrgImport(SmartModel):
         (STATUS_FAILED, "Failed"),
     )
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True, default=uuid4)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="imports")
     file = models.FileField(upload_to=get_import_upload_path)
@@ -1304,6 +1307,7 @@ class Invitation(SmartModel):
     An invitation to an e-mail address to join an org as a specific role.
     """
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="invitations")
     email = models.EmailField()
     secret = models.CharField(max_length=64, unique=True)
@@ -1462,6 +1466,7 @@ class Export(TembaUUIDMixin, models.Model):
     # log progress after this number of exported objects have been exported
     LOG_PROGRESS_PER_ROWS = 10000
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="exports")
     export_type = models.CharField(max_length=20)
     status = models.CharField(max_length=1, default=STATUS_PENDING, choices=STATUS_CHOICES)

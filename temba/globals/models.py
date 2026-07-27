@@ -18,6 +18,7 @@ class Global(TembaModel, DependencyMixin):
     MAX_NAME_LEN = 36
     MAX_VALUE_LEN = settings.GLOBAL_VALUE_SIZE
 
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, related_name="globals", on_delete=models.PROTECT)
     key = models.CharField(verbose_name=_("Key"), max_length=MAX_KEY_LEN)
     name = models.CharField(verbose_name=_("Name"), max_length=MAX_NAME_LEN)

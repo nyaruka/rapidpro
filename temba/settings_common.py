@@ -636,7 +636,6 @@ _default_database_config = {
 # will be used for certain fetch operations
 DATABASES = {"default": _default_database_config, "readonly": _default_database_config.copy()}
 
-DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 # -----------------------------------------------------------------------------------
 # Cache
