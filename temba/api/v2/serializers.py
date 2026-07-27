@@ -678,13 +678,6 @@ class ContactWriteSerializer(WriteSerializer):
 
         return value
 
-    def validate_groups(self, value):
-        # only active contacts can be added to groups
-        if self.instance and (self.instance.status != Contact.STATUS_ACTIVE) and value:
-            raise serializers.ValidationError("Non-active contacts can't be added to groups")
-
-        return value
-
     def validate_fields(self, value):
         fields_by_key = {f.key: f for f in self.context["contact_fields"]}
         values_by_field = {}
@@ -719,6 +712,13 @@ class ContactWriteSerializer(WriteSerializer):
             raise serializers.ValidationError("Deleted contacts can't be modified.")
         if not self.instance and "status" in data:
             raise serializers.ValidationError({"status": "Field is only allowed when updating a contact."})
+
+        # only active contacts can be added to groups, tho we allow groups on an update that restores the contact
+        # since the restore is applied first
+        if self.instance and data.get("groups"):
+            new_status = self.STATUSES[data["status"]] if "status" in data else self.instance.status
+            if self.instance.status != Contact.STATUS_ACTIVE and new_status != Contact.STATUS_ACTIVE:
+                raise serializers.ValidationError({"groups": "Non-active contacts can't be added to groups"})
 
         # we allow creation of contacts by URN used for lookup
         if not data.get("urns") and "urns__identity" in self.context["lookup_values"] and not self.instance:

@@ -1071,7 +1071,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual("Bobby", contact.name)
         self.assertEqual(Contact.STATUS_BLOCKED, contact.status)
         self.assertEqual("spa", contact.language)
-        self.assertEqual({testers}, set(contact.get_groups()))
+
+        # contact is no longer in the group because blocking removes contacts from all groups
+        self.assertEqual(set(), set(contact.get_groups()))
         self.assertEqual(
             ["tel:+593979333333", "telegram:78686776", "facebook:9898989"],
             [u.identity for u in contact.urns.order_by("-priority")],
