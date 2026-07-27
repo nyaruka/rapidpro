@@ -284,10 +284,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # by default we get the temba-contact-list component, pointed at the internal contacts api — check the query
         # count too since the component fetches contacts itself so rendering shouldn't hit the contacts table
         self.setLegacyUI(False)
+        self.admin.settings["list_columns"] = {"contacts": {"name": 240}}
+        self.admin.save(update_fields=("settings",))
 
         with self.assertNumQueries(7):
             response = self.client.get(list_url)
         self.assertContains(response, "temba-contact-list")
+        self.assertContains(response, 'column-width-settings="{&quot;contacts&quot;: {&quot;name&quot;: 240}}"')
+        self.assertContains(response, f'settings-endpoint="{reverse("users.user_settings")}"')
         self.assertEqual(
             f"{reverse('api.internal.contacts')}.json?folder=active", response.context["new_list_endpoint"]
         )

@@ -30,6 +30,8 @@
   <temba-msg-list id="msg-list"
                   fill-window
                   history-state-key="msgs"
+                  column-width-settings="{{ list_column_settings }}"
+                  settings-endpoint="{% url 'users.user_settings' %}"
                   list-title="{{ title }}"
                   {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
                   endpoint="{{ new_list_endpoint }}"
