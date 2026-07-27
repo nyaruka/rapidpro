@@ -444,16 +444,6 @@ class ContactCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             obj = self.get_object()
 
-            if self.has_org_perm("contacts.contact_update"):
-                menu.add_modax(
-                    _("Edit"),
-                    "edit-contact",
-                    f"{reverse('contacts.contact_update', args=[obj.uuid])}",
-                    title=_("Edit Contact"),
-                    on_submit="contactUpdated()",
-                    as_button=True,
-                )
-
             if obj.status == Contact.STATUS_ACTIVE:
                 if self.has_org_perm("flows.flow_start"):
                     menu.add_modax(
@@ -473,6 +463,9 @@ class ContactCRUDL(SmartCRUDL):
             context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
             # serialized for temba-card-layout's settings attribute
             context["card_settings"] = json.dumps(self.request.user.settings.get("contact_cards", {}))
+            context["contact_urn_schemes"] = [
+                {"value": value, "name": str(label)} for value, label in URN.SCHEME_CHOICES
+            ]
             return context
 
     class Timeline(BaseReadView):

@@ -381,6 +381,28 @@ class ContactsEndpointTest(APITest):
         self.assertEqual(jean.get_field_value(nickname), "Žan")
         self.assertEqual(jean.get_field_value(gender), "frog")
 
+        # status can be updated while preserving the manual groups submitted by the contact editor
+        self.assertPost(
+            endpoint_url + f"?uuid={jean.uuid}",
+            self.editor,
+            {"status": "blocked", "groups": [group.uuid]},
+        )
+        jean.refresh_from_db()
+        self.assertEqual(Contact.STATUS_BLOCKED, jean.status)
+        self.assertEqual({group}, set(jean.get_groups(manual_only=True)))
+
+        self.assertPost(endpoint_url + f"?uuid={jean.uuid}", self.editor, {"status": "active"})
+        jean.refresh_from_db()
+        self.assertEqual(Contact.STATUS_ACTIVE, jean.status)
+        self.assertEqual({group}, set(jean.get_groups(manual_only=True)))
+
+        self.assertPost(
+            endpoint_url,
+            self.editor,
+            {"name": "Blocked at birth", "status": "blocked"},
+            errors={"status": "Field is only allowed when updating a contact."},
+        )
+
         # change the language field
         self.assertPost(
             endpoint_url + f"?uuid={jean.uuid}",
@@ -598,6 +620,37 @@ class ContactsEndpointTest(APITest):
         self.assertEqual(
             "Frank is an okay guy (9)",
             response.json()["results"][0]["notes"][-1]["text"],
+        )
+
+    @mock_mailroom
+    def test_expanded_urns_can_preserve_priority_order(self, mr_mocks):
+        contact = self.create_contact(
+            "Reordered",
+            urns=["tel:+250788123456", "facebook:123456789"],
+        )
+        endpoint_url = reverse("api.v2.contacts") + f".json?expand_urns=true&urn_order=priority&uuid={contact.uuid}"
+
+        response = self.assertPost(
+            endpoint_url,
+            self.editor,
+            {"urns": ["facebook:123456789", "tel:+250788123456"]},
+        )
+
+        self.assertEqual(
+            ["facebook:123456789", "tel:+250788123456"],
+            [f"{urn['scheme']}:{urn['path']}" for urn in response.json()["urns"]],
+        )
+        self.assertIsNone(response.json()["urns"][0]["channel"])
+        self.assertIsNotNone(response.json()["urns"][1]["channel"])
+
+        response = self.assertGet(
+            reverse("api.v2.contacts") + f".json?expand_urns=true&uuid={contact.uuid}",
+            [self.editor],
+            results=[contact],
+        )
+        self.assertEqual(
+            ["tel:+250788123456", "facebook:123456789"],
+            [f"{urn['scheme']}:{urn['path']}" for urn in response.json()["results"][0]["urns"]],
         )
 
     @mock_mailroom

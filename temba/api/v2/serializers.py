@@ -650,7 +650,15 @@ class ContactReadSerializer(ReadSerializer):
 
 
 class ContactWriteSerializer(WriteSerializer):
+    STATUSES = {
+        "active": Contact.STATUS_ACTIVE,
+        "blocked": Contact.STATUS_BLOCKED,
+        "stopped": Contact.STATUS_STOPPED,
+        "archived": Contact.STATUS_ARCHIVED,
+    }
+
     name = serializers.CharField(required=False, max_length=64, allow_null=True)
+    status = serializers.ChoiceField(required=False, choices=tuple(STATUSES))
     language = serializers.CharField(required=False, min_length=3, max_length=3, allow_null=True)
     note = serializers.CharField(required=False, max_length=ContactNote.MAX_LENGTH, allow_blank=True)
     urns = serializers.ListField(required=False, child=fields.URNField(), max_length=100)
@@ -709,6 +717,8 @@ class ContactWriteSerializer(WriteSerializer):
     def validate(self, data):
         if self.instance and not self.instance.is_active:
             raise serializers.ValidationError("Deleted contacts can't be modified.")
+        if not self.instance and "status" in data:
+            raise serializers.ValidationError({"status": "Field is only allowed when updating a contact."})
 
         # we allow creation of contacts by URN used for lookup
         if not data.get("urns") and "urns__identity" in self.context["lookup_values"] and not self.instance:
@@ -723,6 +733,7 @@ class ContactWriteSerializer(WriteSerializer):
         Update our contact
         """
         name = self.validated_data.get("name")
+        contact_status = self.validated_data.get("status")
         language = self.validated_data.get("language")
         urns = self.validated_data.get("urns")
         groups = self.validated_data.get("groups")
@@ -733,6 +744,16 @@ class ContactWriteSerializer(WriteSerializer):
 
         # update an existing contact
         if self.instance:
+            if "status" in self.validated_data and self.STATUSES[contact_status] != self.instance.status:
+                if contact_status == "active":
+                    self.instance.restore(self.context["user"])
+                elif contact_status == "blocked":
+                    self.instance.block(self.context["user"])
+                elif contact_status == "stopped":
+                    self.instance.stop(self.context["user"])
+                elif contact_status == "archived":
+                    self.instance.archive(self.context["user"])
+
             # update our name and language
             if "name" in self.validated_data and name != self.instance.name:
                 mods.append(modifiers.Name(name=name))

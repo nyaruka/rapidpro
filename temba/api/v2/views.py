@@ -1085,6 +1085,7 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint
     You can add a new contact to your account by sending a **POST** request to this URL with the following JSON data:
 
     * **name** - the full name of the contact (string, optional).
+    * **status** - the contact status: `active`, `blocked`, `stopped` or `archived` (string, optional on updates).
     * **language** - the preferred language for the contact (3 letter iso code, optional).
     * **urns** - a list of URNs you want associated with the contact (array of up to 100 strings, optional).
     * **groups** - a list of the UUIDs of any groups this contact is part of (array of up to 100 strings, optional).
@@ -1213,9 +1214,17 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint
 
         if str_to_bool(self.request.query_params.get("expand_urns")):
             contact_info = Contact.bulk_inspect(object_list)
+            priority_order = self.request.query_params.get("urn_order") == "priority"
 
             for contact in object_list:
-                contact.expanded_urns = contact_info[contact]["urns"]
+                expanded_urns = contact_info[contact]["urns"]
+                if priority_order:
+                    urn_order = {(urn.scheme, urn.path): index for index, urn in enumerate(contact.get_urns())}
+                    expanded_urns = sorted(
+                        expanded_urns,
+                        key=lambda urn: urn_order.get((urn["scheme"], urn["path"]), len(urn_order)),
+                    )
+                contact.expanded_urns = expanded_urns
 
     def get_serializer_context(self):
         """
@@ -1276,7 +1285,12 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint
                 {"name": "urn", "required": False, "help": "URN of the contact to be updated. ex: tel:+250788123123"},
             ],
             "fields": [
-                {"name": "name", "required": False, "help": "List of UUIDs of this contact's groups."},
+                {"name": "name", "required": False, "help": "Full name of the contact."},
+                {
+                    "name": "status",
+                    "required": False,
+                    "help": "Contact status: active, blocked, stopped or archived (updates only).",
+                },
                 {
                     "name": "language",
                     "required": False,
