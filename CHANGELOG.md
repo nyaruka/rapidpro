@@ -1,3 +1,7 @@
+v26.3.19 (2026-07-27)
+-------------------------
+ * Convert primary keys of small tables to bigint
+
 v26.3.18 (2026-07-27)
 -------------------------
  * Skip legacy-only queries on new-format list page GETs
