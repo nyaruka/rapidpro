@@ -144,6 +144,12 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         return "%s?l=%s&redirect=%s" % (reverse("msgs.msg_export"), label_id, redirect)
 
     def get_queryset(self, **kwargs):
+        # On the new list the temba-msg-list component fetches and pages messages from the internal messages API, so
+        # a GET page needs no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin
+        # validates the posted `objects` against it.
+        if self._use_new_list() and self.request.method == "GET":
+            return Msg.objects.none()
+
         qs = super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
 
         # if we are searching, limit to last 90, and enforce distinct since we'll be joining on multiple tables
@@ -159,20 +165,28 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
 
     def get_context_data(self, **kwargs):
         org = self.request.org
-        counts = MsgFolder.get_counts(org)
         folder = self.derive_folder()
 
-        # if there isn't a search filtering the queryset, we can replace the count function with a pre-calculated value
-        if not self.search_fields or "search" not in self.request.GET:
-            if isinstance(folder, Label):
-                patch_queryset_count(self.object_list, folder.get_visible_count)
-            elif isinstance(folder, MsgFolder):
-                patch_queryset_count(self.object_list, lambda: counts[folder])
+        # folder counts drive pagination and the has_messages empty state, both only used by the legacy list — the
+        # new list component fetches its own counts from the API
+        legacy = not self._use_new_list()
+        if legacy:
+            counts = MsgFolder.get_counts(org)
+
+            # if there isn't a search filtering the queryset, we can replace the count function with a pre-calculated
+            # value
+            if not self.search_fields or "search" not in self.request.GET:
+                if isinstance(folder, Label):
+                    patch_queryset_count(self.object_list, folder.get_visible_count)
+                elif isinstance(folder, MsgFolder):
+                    patch_queryset_count(self.object_list, lambda: counts[folder])
 
         context = super().get_context_data(**kwargs)
-        context["has_messages"] = (
-            any(counts.values()) or Archive.objects.filter(org=org, archive_type=Archive.TYPE_MSG).exists()
-        )
+
+        if legacy:
+            context["has_messages"] = (
+                any(counts.values()) or Archive.objects.filter(org=org, archive_type=Archive.TYPE_MSG).exists()
+            )
 
         # New-list view context: the resolved messages-api endpoint
         # (folder= for the built-in folders, label= for a user label),
@@ -868,7 +882,9 @@ class MsgCRUDL(SmartCRUDL):
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
-            context["outbox_warning"] = MsgFolder.OUTBOX.get_count(self.request.org) >= Org.OUTBOX_WARNING_THRESHOLD
+            # only the legacy list renders the outbox warning
+            if not self._use_new_list():
+                context["outbox_warning"] = MsgFolder.OUTBOX.get_count(self.request.org) >= Org.OUTBOX_WARNING_THRESHOLD
             return context
 
     class Sent(MsgListView):

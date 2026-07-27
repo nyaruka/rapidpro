@@ -50,8 +50,14 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         inbox_url = reverse("msgs.msg_inbox")
 
-        # check query count on the legacy list (viewers opt in via legacy mode)
         self.login(self.admin)
+
+        # check query count on the default (new) list — the temba-msg-list component fetches messages itself so
+        # rendering the page shouldn't hit the msgs table or folder counts
+        with self.assertNumQueries(7):
+            self.client.get(inbox_url)
+
+        # and on the legacy list (viewers opt in via legacy mode)
         self.setLegacyUI()
         with self.assertNumQueries(11):
             self.client.get(inbox_url)

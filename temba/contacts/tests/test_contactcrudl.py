@@ -281,10 +281,12 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(list_url)
         self.assertNotContains(response, "temba-contact-list")
 
-        # by default we get the temba-contact-list component, pointed at the internal contacts api
+        # by default we get the temba-contact-list component, pointed at the internal contacts api — check the query
+        # count too since the component fetches contacts itself so rendering shouldn't hit the contacts table
         self.setLegacyUI(False)
 
-        response = self.client.get(list_url)
+        with self.assertNumQueries(7):
+            response = self.client.get(list_url)
         self.assertContains(response, "temba-contact-list")
         self.assertEqual(
             f"{reverse('api.internal.contacts')}.json?folder=active", response.context["new_list_endpoint"]
