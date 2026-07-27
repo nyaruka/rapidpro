@@ -1835,7 +1835,6 @@ class FlowLabel(TembaModel):
     A label applied to a flow rather than a message
     """
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="flow_labels")
 
     @classmethod
