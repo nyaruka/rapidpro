@@ -1,3 +1,10 @@
+v26.3.18 (2026-07-27)
+-------------------------
+ * Skip legacy-only queries on new-format list page GETs
+ * Use Opus 4.8 for PR reviews
+ * Update allowed LLM models: add new models, remove retired ones
+ * Remove DEFAULT_AUTO_FIELD setting so new models default to BigAutoField
+
 v26.3.17 (2026-07-22)
 -------------------------
  * Update @nyaruka/temba-components to 0.167.0
