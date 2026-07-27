@@ -84,3 +84,41 @@ class UserSettingsTest(TembaTest):
         ):
             response = self.client.post(settings_url, {"list_columns": invalid}, content_type="application/json")
             self.assertEqual(400, response.status_code)
+
+        # a saved value corrupted to a non-dict is discarded rather than merged
+        self.admin.settings["list_columns"] = "junk"
+        self.admin.save(update_fields=("settings",))
+        response = self.client.post(
+            settings_url,
+            {"list_columns": {"contacts": {"name": 200}}},
+            content_type="application/json",
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"contacts": {"name": 200}}, response.json()["settings"]["list_columns"])
+
+        # column names aren't validated against each list's real columns, so a single save is
+        # capped at 20 columns per list...
+        response = self.client.post(
+            settings_url,
+            {"list_columns": {"contacts": {f"field:f{i}": 100 for i in range(21)}}},
+            content_type="application/json",
+        )
+        self.assertEqual(400, response.status_code)
+
+        # ...and merging evicts stale columns before ones in the current save
+        response = self.client.post(
+            settings_url,
+            {"list_columns": {"contacts": {f"field:f{i}": 100 for i in range(20)}}},
+            content_type="application/json",
+        )
+        self.assertEqual(200, response.status_code)
+        response = self.client.post(
+            settings_url,
+            {"list_columns": {"contacts": {"name": 240}}},
+            content_type="application/json",
+        )
+        self.assertEqual(200, response.status_code)
+        saved = response.json()["settings"]["list_columns"]["contacts"]
+        self.assertEqual(20, len(saved))
+        self.assertEqual(240, saved["name"])
+        self.assertNotIn("field:f0", saved)

@@ -54,6 +54,10 @@ class UserSettingsView(LoginRequiredMixin, View):
     ALLOWED_KEYS = {"contact_cards", "list_columns"}
     RESIZABLE_LISTS = {"contacts", "msgs"}
 
+    # column names aren't validated against each list's real columns (custom fields make those
+    # dynamic), so instead cap how many can accumulate per list
+    MAX_LIST_COLUMNS = 20
+
     def post(self, request, *args, **kwargs):
         if len(request.body) > 100_000:
             return JsonResponse({"error": "request body too large"}, status=400)
@@ -75,6 +79,7 @@ class UserSettingsView(LoginRequiredMixin, View):
                 not isinstance(view, str)
                 or view not in self.RESIZABLE_LISTS
                 or not isinstance(widths, dict)
+                or len(widths) > self.MAX_LIST_COLUMNS
                 or any(
                     not isinstance(column, str)
                     or not isinstance(width, int)
@@ -92,16 +97,20 @@ class UserSettingsView(LoginRequiredMixin, View):
             saved_columns = request.user.settings.get("list_columns", {})
             if not isinstance(saved_columns, dict):
                 saved_columns = {}
-            posted["list_columns"] = {
-                **saved_columns,
-                **{
-                    view: {
-                        **(saved_columns.get(view, {}) if isinstance(saved_columns.get(view), dict) else {}),
-                        **widths,
-                    }
-                    for view, widths in list_columns.items()
-                },
-            }
+            merged_columns = {**saved_columns}
+            for view, widths in list_columns.items():
+                saved_widths = saved_columns.get(view)
+                merged_widths = {**(saved_widths if isinstance(saved_widths, dict) else {}), **widths}
+
+                # keep the merged set bounded: evict columns not in this save (stale keys from
+                # renamed or removed fields) before ones the user just resized
+                extra = len(merged_widths) - self.MAX_LIST_COLUMNS
+                if extra > 0:
+                    for column in [c for c in merged_widths if c not in widths][:extra]:
+                        del merged_widths[column]
+
+                merged_columns[view] = merged_widths
+            posted["list_columns"] = merged_columns
 
         request.user.settings = {**request.user.settings, **posted}
         request.user.save(update_fields=("settings",))
