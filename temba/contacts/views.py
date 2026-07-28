@@ -579,6 +579,8 @@ class ContactCRUDL(SmartCRUDL):
             events = [event for _, event in results]
 
             if ticket:
+                # relies on mailroom setting ticket_uuid on every msg event it both indexes as in_ticket and returns
+                # here - an event missing it would be silently dropped from ticket scoped searches
                 events = [e for e in events if e.get("ticket_uuid") == str(ticket.uuid)]
 
             return JsonResponse({"results": events})
