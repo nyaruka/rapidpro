@@ -1256,11 +1256,11 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # change our channel to use a facebook scheme
         self.channel.schemes = [URN.FACEBOOK_SCHEME]
         self.channel.save()
-        assert_features({"auto_translate", "optins", "airtime", "resthook"})
+        assert_features({"auto_translate", "airtime", "resthook"})
 
         self.setUpLocations()
 
-        assert_features({"auto_translate", "optins", "airtime", "resthook", "locations"})
+        assert_features({"auto_translate", "airtime", "resthook", "locations"})
 
     @mock_mailroom
     def test_template_warnings(self, mr_mocks):

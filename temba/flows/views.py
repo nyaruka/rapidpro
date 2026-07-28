@@ -846,11 +846,8 @@ class FlowCRUDL(SmartCRUDL):
         def get_features(self, org) -> list:
             features = ["auto_translate"]
 
-            facebook_channel = org.get_channel(Channel.ROLE_SEND, scheme=URN.FACEBOOK_SCHEME)
             whatsapp_channel = org.get_channel(Channel.ROLE_SEND, scheme=URN.WHATSAPP_SCHEME)
 
-            if facebook_channel:
-                features.append("optins")
             if whatsapp_channel:
                 features.append("whatsapp")
             if org.get_integrations(IntegrationType.Category.AIRTIME):
