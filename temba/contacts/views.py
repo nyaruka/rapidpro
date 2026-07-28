@@ -625,12 +625,15 @@ class ContactCRUDL(SmartCRUDL):
 
         def get_bulk_actions(self):
             # "label" (the group dropdown) is a new-list-only action — the legacy table has no UI for it.
-            update = ("label", "block", "archive") if self._use_new_list() else ("block", "archive")
-            actions = update if self.has_org_perm("contacts.contact_update") else ()
+            can_update = self.has_org_perm("contacts.contact_update")
+            actions = (("label", "block") if self._use_new_list() else ("block",)) if can_update else ()
             if self.has_org_perm("msgs.broadcast_create"):
                 actions += ("send",)
             if self.has_org_perm("flows.flow_start"):
                 actions += ("start-flow",)
+            # archive always trails the other actions
+            if can_update:
+                actions += ("archive",)
             return actions
 
         def has_context_menu(self):
@@ -749,13 +752,17 @@ class ContactCRUDL(SmartCRUDL):
 
         def get_bulk_actions(self):
             actions = ()
-            if self.has_org_perm("contacts.contact_update"):
+            can_update = self.has_org_perm("contacts.contact_update")
+            if can_update:
                 # the group action ("Remove from group") leads, matching the "Group" dropdown's slot on the active list
-                actions += ("block", "archive") if self.group.is_smart else ("unlabel", "block")
+                actions += ("block",) if self.group.is_smart else ("unlabel", "block")
             if self.has_org_perm("msgs.broadcast_create"):
                 actions += ("send",)
             if self.has_org_perm("flows.flow_start"):
                 actions += ("start-flow",)
+            # archive always trails the other actions
+            if can_update and self.group.is_smart:
+                actions += ("archive",)
             return actions
 
         def get_bulk_action_labels(self):
