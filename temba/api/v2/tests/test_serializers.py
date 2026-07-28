@@ -191,6 +191,18 @@ class FieldsTest(APITest):
             field.run_validation([{"type": "location", "text": "Click"}]),
             {"eng": [{"type": "location", "text": "Click"}]},
         )
+        self.assertEqual(
+            field.run_validation([{"type": "form", "text": "Book now", "extra": "123456"}]),
+            {"eng": [{"type": "form", "text": "Book now", "extra": "123456"}]},
+        )
+        self.assertEqual(
+            field.run_validation([{"type": "url", "text": "Create Quotation", "extra": "https://example.com/quote"}]),
+            {"eng": [{"type": "url", "text": "Create Quotation", "extra": "https://example.com/quote"}]},
+        )
+        self.assertEqual(
+            field.run_validation([{"text": "Red", "extra": "x" * 1000}]),
+            {"eng": [{"type": "text", "text": "Red", "extra": "x" * 1000}]},
+        )
 
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": ""})  # empty
         self.assertRaises(serializers.ValidationError, field.run_validation, "")  # empty
@@ -202,11 +214,20 @@ class FieldsTest(APITest):
         self.assertRaises(serializers.ValidationError, field.run_validation, {"base": [{"text": "Red"}]})  # not a lang
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": "1"}] * 11})  # too many
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": "a" * 65}]})  # too long
+        self.assertRaises(
+            serializers.ValidationError, field.run_validation, {"eng": [{"text": "Red", "extra": "x" * 1001}]}
+        )  # extra too long
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"foo": "??"}]})
         self.assertRaises(serializers.ValidationError, field.run_validation, {"eng": [{"text": {}}]})  # invalid text
         self.assertRaises(
             serializers.ValidationError, field.run_validation, {"eng": [{"type": "text"}]}
         )  # missing text
+        self.assertRaises(
+            serializers.ValidationError, field.run_validation, {"eng": [{"type": "form", "text": "Book now"}]}
+        )  # missing extra for form type
+        self.assertRaises(
+            serializers.ValidationError, field.run_validation, {"eng": [{"type": "url", "extra": "http://x.com"}]}
+        )  # missing text for url type
         self.assertRaises(
             serializers.ValidationError, field.run_validation, {"eng": [{"type": "location", "extra": "what?"}]}
         )  # can't have extra for location type

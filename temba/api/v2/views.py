@@ -2230,7 +2230,11 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
      * **contact** - the UUID of the contact (string)
      * **text** - the text of the message (string)
      * **attachments** - the attachments of the message (list of strings, maximum 10)
-     * **quick_replies** - the quick_replies of the message (list of objects, maximum 10)
+     * **quick_replies** - the quick_replies of the message (list of objects, maximum 10). Each is an object with a
+       `type` which can be `text` (default), `form`, `url` or `location`, a `text` value (max. 64 characters) and an
+       `extra` value (max. 1000 characters). For type `text`, `extra` is an optional description, for type `form` it's
+       the channel specific ID of the form to be opened (e.g. a WhatsApp flow ID), and for type `url` it's the URL to
+       be opened.
 
     Example:
 
@@ -2239,7 +2243,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             "contact": "d33e9ad5-5c35-414c-abd4-e7451c69ff1d",
             "text": "Burger or pizza?",
             "attachments": [],
-            "quick_repies": [{"text": "Burger", "extra": "With cheese"}, {"text": "Pizza"}]
+            "quick_replies": [{"text": "Burger", "extra": "With cheese"}, {"text": "Pizza"}]
 
         }
 

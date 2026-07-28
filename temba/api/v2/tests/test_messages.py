@@ -288,13 +288,34 @@ class MessagesEndpointTest(APITest):
         self.assertIsNone(msg_json["urn"])
         self.assertEqual("failed", msg_json["status"])
 
+        # try to create a message with invalid quick replies
+        response = self.assertPost(
+            endpoint_url,
+            self.admin,
+            {
+                "contact": joe.uuid,
+                "text": "Book an appointment",
+                "quick_replies": [{"type": "form", "text": "Book now"}],
+            },
+            status=400,
+        )
+        self.assertEqual(
+            {"quick_replies": {"0": ["Quick replies of type 'form' require 'text' and 'extra' values."]}},
+            response.json(),
+        )
+
         response = self.assertPost(
             endpoint_url,
             self.admin,
             {
                 "contact": joe.uuid,
                 "text": "What is your preferred color?",
-                "quick_replies": [{"text": "Red"}, {"text": "Green", "extra": "Like grass"}, {"text": "Blue"}],
+                "quick_replies": [
+                    {"text": "Red"},
+                    {"text": "Green", "extra": "Like grass"},
+                    {"type": "form", "text": "Book now", "extra": "123456"},
+                    {"type": "url", "text": "Visit us", "extra": "https://example.com"},
+                ],
             },
             status=201,
         )
@@ -308,7 +329,8 @@ class MessagesEndpointTest(APITest):
                 [
                     {"type": "text", "text": "Red"},
                     {"type": "text", "text": "Green", "extra": "Like grass"},
-                    {"type": "text", "text": "Blue"},
+                    {"type": "form", "text": "Book now", "extra": "123456"},
+                    {"type": "url", "text": "Visit us", "extra": "https://example.com"},
                 ],
             ),
             mr_mocks.calls["msg_send"][-1],
@@ -327,7 +349,8 @@ class MessagesEndpointTest(APITest):
                 "quick_replies": [
                     {"type": "text", "text": "Red"},
                     {"type": "text", "text": "Green", "extra": "Like grass"},
-                    {"type": "text", "text": "Blue"},
+                    {"type": "form", "text": "Book now", "extra": "123456"},
+                    {"type": "url", "text": "Visit us", "extra": "https://example.com"},
                 ],
                 "archived": False,
                 "broadcast": None,
