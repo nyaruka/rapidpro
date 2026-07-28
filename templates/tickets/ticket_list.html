@@ -355,6 +355,7 @@
       var contactHeader = document.querySelector("temba-contact-name-fetch");
       var notepad = document.querySelector("temba-contact-notepad");
       var chat = document.querySelector("temba-contact-chat");
+      var details = document.querySelector("temba-contact-details");
       var empty = document.querySelector(".chat-pane .empty");
 
       var fields = document.querySelectorAll("temba-contact-fields");
@@ -370,6 +371,7 @@
         chat.currentTicket = contact.ticket;
         notepad.contact = contact.uuid;
         contactHeader.contact = contact.uuid;
+        details.contact = contact.uuid;
         fields.forEach(function(contactFields) {
           contactFields.contact = contact.uuid;
         });
@@ -420,6 +422,10 @@
         if (notepad) {
           notepad.contact = null;
         }
+
+        if (details) {
+          details.contact = null;
+        }
       }
 
       updateTicketList();
@@ -452,6 +458,9 @@
     }
 
     function handleFieldSearch(evt) {
+      if (!evt.detail || evt.detail.key === undefined || evt.detail.value === undefined) {
+        return;
+      }
       var url = "/contact/?search=" + encodeURIComponent(evt.detail.key) + "+%3D+" + encodeURIComponent("\"" + evt.detail.value + "\"")
       if (typeof spaGet !== 'undefined') {
         spaGet(url)
@@ -535,6 +544,11 @@
       const chat = document.querySelector('temba-contact-chat');
       chat.refresh();
 
+      const details = document.querySelector('temba-contact-details');
+      if (details) {
+        details.refresh();
+      }
+
       const contentMenu = document.querySelector("temba-content-menu#default-content-menu");
       contentMenu.refresh();
     }
@@ -555,6 +569,9 @@
     }
 
     onSpload(function() {
+      const details = document.querySelector("temba-contact-details");
+      details.schemes = JSON.parse(document.getElementById("contact-urn-schemes").textContent);
+
       const store = document.querySelector('temba-store');
       const width = store.get('ticket-list-width', '300');
       const resizer = document.querySelector('temba-resizer');
@@ -570,7 +587,6 @@
           <div class="flex mb-2 {% if folder == "all" %}hidden{% endif %}" id="title-row">
             <div class="flex-grow relative" id="folder-title">
               <div id="title-text">{{ title }}</div>
-
             </div>
             <temba-content-menu endpoint="{% url 'tickets.ticket_folder' folder status uuid %}"
                                 -temba-selection="handleContentMenuSelected(event)"
@@ -580,16 +596,18 @@
             </temba-content-menu>
           </div>
           <temba-user-select name="assignee-filter"
-                            placeholder="{% trans "All Agents" %}"
-                            onchange="handleAssigneeFilterChanged(event)"
-                            valueKey="uuid"
-                            {% if assignee_uuid %}value="{{ assignee_uuid }}"{% endif %}
-                            class="{% if folder != "all" %}hidden{% endif %}"
-                            style="z-index:3; margin-bottom:0.5em; width:100%;"
-                            searchable
-                            searchOnFocus
-                            clearable>
-              </temba-user-select>
+                             placeholder="{% trans "All Agents" %}"
+                             onchange="handleAssigneeFilterChanged(event)"
+                             valueKey="uuid"
+                             {% if assignee_uuid %}value="{{ assignee_uuid }}"{% endif %}
+                             class="{% if folder != "all" %}hidden{% endif %}"
+                             style="z-index:3;
+                                    margin-bottom:0.5em;
+                                    width:100%"
+                             searchable
+                             searchOnFocus
+                             clearable>
+          </temba-user-select>
           <temba-select style="z-index:2"
                         name="ticket-status"
                         onchange="handleStatusFilterChanged(event)"
@@ -687,12 +705,18 @@
                                 avatar="{{ branding.logos.avatar }}">
             </temba-contact-chat>
           </temba-tab>
+          <temba-tab icon="info" name="{{ _("Details") |escapejs }}">
+            <temba-contact-details -temba-button-clicked="handleFieldSearch"
+                                   {% if org_perms.contacts.contact_update %}editable{% endif %}
+                                   {% if request.org.is_anon %}anon{% endif %}>
+            </temba-contact-details>
+          </temba-tab>
           <temba-tab icon="fields" name="{{ _("Fields") |escapejs }}">
             <div style="border-top-right-radius: var(--curvature)"
                  class="flex flex-grow flex-col py-4 px-1 overflow-y-auto">
               <temba-contact-fields timezone="{{ object.org.timezone }}"
                                     -temba-button-clicked="handleFieldSearch"
-                                    role="{{ request.role.code }}">
+                                    role="{{ user_role }}">
                 <div slot="empty" class="no-fields p-16 text-center" style="opacity:1">
                   <div class="text-xl mb-4">{% trans "No Fields" %}</div>
                 </div>
@@ -704,6 +728,7 @@
             </temba-contact-notepad>
           </temba-tab>
         </temba-tabs>
+        {{ contact_urn_schemes|json_script:"contact-urn-schemes" }}
       </div>
     </div>
   </div>

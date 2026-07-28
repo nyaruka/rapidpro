@@ -10,7 +10,7 @@ from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.contacts.models import ContactExport, ContactField, ContactGroup
+from temba.contacts.models import Contact, ContactExport, ContactField, ContactGroup
 from temba.flows.models import Flow, FlowLabel
 from temba.msgs.models import Broadcast, Msg
 from temba.notifications.types import ExportFinishedNotificationType
@@ -244,7 +244,7 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         # anonymous users can't read; agents hold the contacts.contact_list api perm (as for /api/v2/contacts)
         self.assertGetNotPermitted(endpoint_url, [None])
-        self.assertPostNotAllowed(endpoint_url)
+        self.assertPostNotPermitted(endpoint_url, [None])
         self.assertDeleteNotAllowed(endpoint_url)
 
         joe = self.create_contact("Joe", phone="+1234567001", fields={"gender": "male"})
@@ -359,6 +359,110 @@ class EndpointsTest(APITestMixin, TembaTest):
         mr_mocks.contact_search("", contacts=[joe, frank])
         self.assertGet(endpoint_url + "?sort=-field:gender&page_size=0", [self.admin], results=[joe, frank])
         self.assertEqual(50, mr_mocks.calls["contact_search"][-1].kwargs["limit"])
+
+    @mock_mailroom
+    def test_contacts_update(self, mr_mocks):
+        endpoint_url = reverse("api.internal.contacts") + ".json"
+
+        joe = self.create_contact("Joe", urns=["tel:+250788111111", "facebook:123456"])
+        other_org_contact = self.create_contact("Fred", phone="+250788666666", org=self.org2)
+
+        # a uuid param is required - contacts can never be created here, unlike on /api/v2/contacts
+        self.assertPost(endpoint_url, self.editor, {"name": "X"}, errors={None: "URL must contain uuid parameter."})
+
+        # can't update contacts in other orgs
+        self.assertPost(endpoint_url + f"?uuid={other_org_contact.uuid}", self.editor, {"name": "X"}, status=404)
+
+        # update name and language
+        response = self.assertPost(
+            endpoint_url + f"?uuid={joe.uuid}", self.editor, {"name": "Joseph", "language": "fra"}
+        )
+        joe.refresh_from_db()
+        self.assertEqual("Joseph", joe.name)
+        self.assertEqual("fra", joe.language)
+
+        # the response is the editor's read shape: urns come back expanded and in priority order
+        self.assertEqual(str(joe.uuid), response.json()["uuid"])
+        self.assertEqual("active", response.json()["status"])
+        self.assertEqual(
+            ["tel:+250788111111", "facebook:123456"],
+            [f"{urn['scheme']}:{urn['path']}" for urn in response.json()["urns"]],
+        )
+        self.assertIsNotNone(response.json()["urns"][0]["channel"])
+
+        # reordering urns is reflected in the response
+        response = self.assertPost(
+            endpoint_url + f"?uuid={joe.uuid}", self.editor, {"urns": ["facebook:123456", "tel:+250788111111"]}
+        )
+        self.assertEqual(
+            ["facebook:123456", "tel:+250788111111"],
+            [f"{urn['scheme']}:{urn['path']}" for urn in response.json()["urns"]],
+        )
+
+        group = self.create_group("Testers", contacts=[])
+
+        # status can be updated but groups submitted alongside a deactivation are dropped because mailroom
+        # removes non-active contacts from all groups
+        self.assertPost(endpoint_url + f"?uuid={joe.uuid}", self.editor, {"status": "blocked", "groups": [group.uuid]})
+        joe.refresh_from_db()
+        self.assertEqual(Contact.STATUS_BLOCKED, joe.status)
+        self.assertEqual(set(), set(joe.get_groups(manual_only=True)))
+
+        # groups can't be added to a non-active contact that isn't being restored
+        self.assertPost(
+            endpoint_url + f"?uuid={joe.uuid}",
+            self.editor,
+            {"groups": [group.uuid]},
+            errors={"groups": "Non-active contacts can't be added to groups"},
+        )
+
+        # but groups can be submitted alongside a restore to active since the restore is applied first
+        self.assertPost(endpoint_url + f"?uuid={joe.uuid}", self.editor, {"status": "active", "groups": [group.uuid]})
+        joe.refresh_from_db()
+        self.assertEqual(Contact.STATUS_ACTIVE, joe.status)
+        self.assertEqual({group}, set(joe.get_groups(manual_only=True)))
+
+        self.assertPost(endpoint_url + f"?uuid={joe.uuid}", self.editor, {"status": "stopped"})
+        joe.refresh_from_db()
+        self.assertEqual(Contact.STATUS_STOPPED, joe.status)
+
+        self.assertPost(endpoint_url + f"?uuid={joe.uuid}", self.editor, {"status": "archived"})
+        joe.refresh_from_db()
+        self.assertEqual(Contact.STATUS_ARCHIVED, joe.status)
+
+        self.assertPost(endpoint_url + f"?uuid={joe.uuid}", self.editor, {"status": "active"})
+        joe.refresh_from_db()
+        self.assertEqual(Contact.STATUS_ACTIVE, joe.status)
+
+        # an invalid status is rejected
+        self.assertPost(
+            endpoint_url + f"?uuid={joe.uuid}",
+            self.editor,
+            {"status": "sleeping"},
+            errors={"status": '"sleeping" is not a valid choice.'},
+        )
+
+        # fields can be updated, subject to the same agent access rules as the public API
+        self.create_field("nickname", "Nickname", agent_access=ContactField.ACCESS_VIEW)
+        self.assertPost(endpoint_url + f"?uuid={joe.uuid}", self.editor, {"fields": {"nickname": "Jo"}})
+        joe.refresh_from_db()
+        self.assertEqual("Jo", joe.get_field_value(self.org.fields.get(key="nickname")))
+        self.assertPost(
+            endpoint_url + f"?uuid={joe.uuid}",
+            self.agent,
+            {"fields": {"nickname": "Joey"}},
+            errors={"fields": "Editing of 'nickname' values disallowed for current user."},
+        )
+
+        # deleted contacts can't be modified
+        deleted = self.create_contact("Del", phone="+250788000000")
+        deleted.release(self.admin)
+        self.assertPost(
+            endpoint_url + f"?uuid={deleted.uuid}",
+            self.editor,
+            {"name": "X"},
+            errors={"non_field_errors": "Deleted contacts can't be modified."},
+        )
 
     def test_campaigns(self):
         endpoint_url = reverse("api.internal.campaigns") + ".json"

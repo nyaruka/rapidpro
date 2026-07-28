@@ -799,7 +799,6 @@ def apply_modifiers(org, user, contacts, modifiers: list):
 
     for mod in modifiers:
         fields = dict()
-        clear_groups = False
 
         if mod.type == "name":
             fields = dict(name=mod.name)
@@ -814,13 +813,10 @@ def apply_modifiers(org, user, contacts, modifiers: list):
         elif mod.type == "status":
             if mod.status == "blocked":
                 fields = dict(status=Contact.STATUS_BLOCKED)
-                clear_groups = True
             elif mod.status == "stopped":
                 fields = dict(status=Contact.STATUS_STOPPED)
-                clear_groups = True
             elif mod.status == "archived":
                 fields = dict(status=Contact.STATUS_ARCHIVED)
-                clear_groups = True
             else:
                 fields = dict(status=Contact.STATUS_ACTIVE)
 
@@ -850,8 +846,11 @@ def apply_modifiers(org, user, contacts, modifiers: list):
         Contact.objects.filter(id__in=[c.id for c in contacts]).update(
             modified_by=user, modified_on=timezone.now(), **fields
         )
-        if clear_groups:
-            for c in contacts:
+
+        # like mailroom, ensure that non-active contacts belong to no groups after each modifier
+        for c in contacts:
+            c.refresh_from_db()
+            if c.status != Contact.STATUS_ACTIVE:
                 for g in c.get_groups():
                     g.contacts.remove(c)
 

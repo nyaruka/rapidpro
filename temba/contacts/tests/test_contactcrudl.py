@@ -576,25 +576,27 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         self.assertRequestDisallowed(read_url, [None, self.agent])
 
-        self.assertContentMenu(read_url, self.editor, ["Edit", "Start Flow", "Open Ticket"])
-        self.assertContentMenu(read_url, self.admin, ["Edit", "Start Flow", "Open Ticket"])
+        self.assertContentMenu(read_url, self.editor, ["Start Flow", "Open Ticket"])
+        self.assertContentMenu(read_url, self.admin, ["Start Flow", "Open Ticket"])
 
         # if there's an open ticket already, don't show open ticket option
         self.create_ticket(joe)
-        self.assertContentMenu(read_url, self.editor, ["Edit", "Start Flow"])
+        self.assertContentMenu(read_url, self.editor, ["Start Flow"])
 
         # login as admin
         self.login(self.admin)
 
         response = self.client.get(read_url)
         self.assertContains(response, "Joe")
+        self.assertContains(response, '-temba-button-clicked="handleFieldSearch"')
+        self.assertContains(response, "evt.detail.key === undefined")
         self.assertEqual("/contact/active", response.headers[TEMBA_MENU_SELECTION])
 
         # block the contact
         joe.block(self.admin)
         self.assertTrue(Contact.objects.get(pk=joe.id, status="B"))
 
-        self.assertContentMenu(read_url, self.admin, ["Edit"])
+        self.assertContentMenu(read_url, self.admin, [])
 
         response = self.client.get(read_url)
         self.assertContains(response, "Joe")
@@ -640,6 +642,8 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(read_url)
         self.assertContains(response, "temba-card-layout")
         self.assertContains(response, "temba-page-header")
+        self.assertContains(response, '-temba-button-clicked="handleFieldSearch"')
+        self.assertContains(response, "evt.detail.key === undefined")
         self.assertNotContains(response, "temba-tabs")
 
         # card state defaults to empty
@@ -1073,7 +1077,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual("Bobby", contact.name)
         self.assertEqual(Contact.STATUS_BLOCKED, contact.status)
         self.assertEqual("spa", contact.language)
-        self.assertEqual({testers}, set(contact.get_groups()))
+
+        # contact is no longer in the group because blocking removes contacts from all groups
+        self.assertEqual(set(), set(contact.get_groups()))
         self.assertEqual(
             ["tel:+593979333333", "telegram:78686776", "facebook:9898989"],
             [u.identity for u in contact.urns.order_by("-priority")],
@@ -1931,14 +1937,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # should see start flow option
         response = self.client.get(read_url)
-        self.assertContentMenu(read_url, self.admin, ["Edit", "Start Flow", "Open Ticket"])
+        self.assertContentMenu(read_url, self.admin, ["Start Flow", "Open Ticket"])
 
         MockSessionWriter(contact, self.create_flow("Test")).wait().save()
         MockSessionWriter(other_org_contact, self.create_flow("Test", org=self.org2)).wait().save()
 
         # start option is still present even for a contact in a flow - the start modal handles
         # confirming the interruption
-        self.assertContentMenu(read_url, self.admin, ["Edit", "Start Flow", "Open Ticket"])
+        self.assertContentMenu(read_url, self.admin, ["Start Flow", "Open Ticket"])
 
         # can't interrupt if not logged in
         self.client.logout()

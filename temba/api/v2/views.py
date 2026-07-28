@@ -1213,9 +1213,17 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint
 
         if str_to_bool(self.request.query_params.get("expand_urns")):
             contact_info = Contact.bulk_inspect(object_list)
+            priority_order = self.request.query_params.get("urn_order") == "priority"
 
             for contact in object_list:
-                contact.expanded_urns = contact_info[contact]["urns"]
+                expanded_urns = contact_info[contact]["urns"]
+                if priority_order:
+                    urn_order = {(urn.scheme, urn.path): index for index, urn in enumerate(contact.get_urns())}
+                    expanded_urns = sorted(
+                        expanded_urns,
+                        key=lambda urn: urn_order.get((urn["scheme"], urn["path"]), len(urn_order)),
+                    )
+                contact.expanded_urns = expanded_urns
 
     def get_serializer_context(self):
         """
@@ -1276,7 +1284,7 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint
                 {"name": "urn", "required": False, "help": "URN of the contact to be updated. ex: tel:+250788123123"},
             ],
             "fields": [
-                {"name": "name", "required": False, "help": "List of UUIDs of this contact's groups."},
+                {"name": "name", "required": False, "help": "Full name of the contact."},
                 {
                     "name": "language",
                     "required": False,

@@ -23,8 +23,13 @@
       </temba-contact-chat>
     </temba-tab>
     <temba-tab icon="info" name="{{ _("Details") |escapejs }}">
-      <temba-contact-details contact="{{ object.uuid }}" class="py-4 px-1 overflow-y-auto">
+      <temba-contact-details contact="{{ object.uuid }}"
+                             class="py-4 px-1 overflow-y-auto"
+                             -temba-button-clicked="handleFieldSearch"
+                             {% if org_perms.contacts.contact_update %}editable{% endif %}
+                             {% if object.org.is_anon %}anon{% endif %}>
       </temba-contact-details>
+      {{ contact_urn_schemes|json_script:"contact-urn-schemes" }}
     </temba-tab>
     <temba-tab icon="fields" name="{{ _("Fields") |escapejs }}">
       <div style="border-top-right-radius: var(--curvature)"
@@ -69,6 +74,11 @@
 {% endblock extra-style %}
 {% block extra-script %}
   <script type="text/javascript">
+    onSpload(function() {
+      const details = document.querySelector("temba-contact-details");
+      details.schemes = JSON.parse(document.getElementById("contact-urn-schemes").textContent);
+    });
+
     function handleInterruptContact(event) {
       const options = {
         onSubmit: "contactUpdated()"
@@ -110,6 +120,9 @@
     }
 
     function handleFieldSearch(evt) {
+      if (!evt.detail || evt.detail.key === undefined || evt.detail.value === undefined) {
+        return;
+      }
       spaGet("/contact/?search=" + encodeURIComponent(evt.detail.key) + "+%3D+" + encodeURIComponent("\"" + evt.detail.value + "\""))
     }
 

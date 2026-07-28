@@ -39,6 +39,8 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(list_url)
         self.assertContains(response, "temba-tabs")
         self.assertNotContains(response, "temba-card-layout")
+        self.assertContains(response, "temba-contact-details")
+        self.assertRegex(response.content.decode(), r"<temba-contact-details\b[^>]*\beditable(?:\s|>)")
 
         # by default we get the chat + card layout, sharing the contact card settings
         self.setLegacyUI(False)
@@ -49,10 +51,24 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(list_url)
         self.assertContains(response, "temba-card-layout")
         self.assertContains(response, "temba-page-header")
+        self.assertContains(response, 'id="card-details"')
+        self.assertContains(response, "temba-contact-details")
+        self.assertContains(response, "details.contact = contact.uuid;")
+        self.assertContains(response, 'details.schemes = JSON.parse(document.getElementById("contact-urn-schemes")')
         self.assertNotContains(response, "temba-tabs")
+        self.assertRegex(response.content.decode(), r"<temba-contact-details\b[^>]*\beditable(?:\s|>)")
         self.assertEqual(
             '{"order": ["card-notepad", "card-fields"], "collapsed": []}', response.context["card_settings"]
         )
+        self.assertIn({"value": "tel", "name": "Phone Number"}, response.context["contact_urn_schemes"])
+
+        # human agents can see contact details on tickets but can't edit them
+        self.login(self.agent)
+        response = self.client.get(list_url)
+        self.assertContains(response, 'id="card-details"')
+        self.assertContains(response, "temba-contact-details")
+        self.assertContains(response, 'role="T"')
+        self.assertNotRegex(response.content.decode(), r"<temba-contact-details\b[^>]*\beditable(?:\s|>)")
 
     def test_list(self):
         list_url = reverse("tickets.ticket_list")

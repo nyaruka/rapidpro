@@ -15,8 +15,9 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from temba.contacts.models import URN
 from temba.msgs.models import Msg
-from temba.orgs.models import Org
+from temba.orgs.models import Org, OrgRole
 from temba.orgs.views.base import (
     BaseCreateModal,
     BaseDeleteModal,
@@ -338,6 +339,9 @@ class TicketCRUDL(SmartCRUDL):
             context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
             # serialized for temba-card-layout's settings attribute
             context["card_settings"] = json.dumps(self.request.user.settings.get("contact_cards", {}))
+            context["contact_urn_schemes"] = [
+                {"value": value, "name": str(label)} for value, label in URN.SCHEME_CHOICES
+            ]
 
             if ticket:
                 context["nextUUID" if in_page else "uuid"] = str(ticket.uuid)
@@ -349,6 +353,7 @@ class TicketCRUDL(SmartCRUDL):
 
             # pass agent permission flags to template
             membership = self.request.org.get_membership(self.request.user)
+            context["user_role"] = membership.role_code if membership else OrgRole.ADMINISTRATOR.code
             context["can_assign"] = membership.can_assign if membership else True
             context["can_reply_non_own"] = membership.can_reply_non_own if membership else True
 
