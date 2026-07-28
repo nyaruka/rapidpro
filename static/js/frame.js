@@ -392,6 +392,12 @@ function fetchAjax(url, options, fullPage = false) {
     });
 }
 
+// anything with its own scheme (http:, mailto:, tel:) or protocol relative
+// leaves the app, everything else is an in-app path we can load in the spa
+function isExternalUrl(href) {
+  return /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith('//');
+}
+
 function handleMenuClicked(event) {
   var items = event.detail;
 
@@ -412,9 +418,16 @@ function handleMenuClicked(event) {
     return;
   }
 
-  // posterize if called for
-  if (item.href && item.posterize) {
-    posterize(item.href);
+  // popup parents open their menu, they don't navigate
+  if (item.href && !item.popup) {
+    // posterize if called for
+    if (item.posterize) {
+      posterize(item.href);
+    } else if (item.target == '_blank' || isExternalUrl(item.href)) {
+      window.open(item.href, '_blank', 'noopener');
+    } else {
+      spaGet(item.href);
+    }
   }
 }
 
