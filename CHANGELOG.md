@@ -1,3 +1,11 @@
+v26.3.21 (2026-07-28)
+-------------------------
+ * Update @nyaruka/temba-components to 0.168.1
+ * Put archive last in list bulk actions
+ * Add subscription authorization for flow channels to websockets API using pattern-based socket routes
+ * Update smartmin to 6.1.0
+ * Bump postcss from 8.5.10 to 8.5.18
+
 v26.3.20 (2026-07-28)
 -------------------------
  * Update @nyaruka/temba-components to 0.168.0
