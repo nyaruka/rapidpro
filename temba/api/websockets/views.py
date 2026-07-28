@@ -17,6 +17,8 @@ isn't the realtime server even if the path is ever reachable - but the secret is
 API off the public internet.
 """
 
+import re
+
 from django_valkey import get_valkey_connection
 from rest_framework.permissions import BasePermission
 from rest_framework.renderers import JSONRenderer
@@ -28,7 +30,6 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 
 from temba.tickets.models import Ticket
-from temba.utils.uuid import is_uuid
 
 from ..support import APISessionAuthentication
 
@@ -146,73 +147,83 @@ class SubscriptionEndpoint(BaseEndpoint):
         """Unix time at which the realtime server should next re-check this subscription via the sub_refresh proxy."""
         return int(timezone.now().timestamp()) + SUBSCRIPTION_WINDOW
 
+    # the channel patterns we authorize, routed to handler methods below with the named groups as kwargs. Like a URL
+    # conf, the pattern does all the shape validation: a channel that doesn't fully match a route - unknown namespace,
+    # wrong number of segments, or a segment that isn't a canonical lowercase-dashed uuid - is denied before any
+    # handler runs, so handlers never see a malformed value (the uuid columns they query would raise on one). Only
+    # canonical uuids are accepted because a channel name is an exact string key: events are published to the
+    # canonical form, so a subscription to any other encoding could never receive anything anyway.
+    UUID_PATTERN = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    CHANNEL_ROUTES = (
+        (
+            re.compile(rf"^notifications:(?P<org_uuid>{UUID_PATTERN}):(?P<user_uuid>{UUID_PATTERN})$"),
+            "_notifications_allowed",
+        ),
+        (re.compile(rf"^history:(?P<contact_uuid>{UUID_PATTERN})$"), "_contact_history_allowed"),
+        (
+            re.compile(rf"^history:(?P<contact_uuid>{UUID_PATTERN}):(?P<ticket_uuid>{UUID_PATTERN})$"),
+            "_ticket_history_allowed",
+        ),
+        (re.compile(rf"^flow:(?P<flow_uuid>{UUID_PATTERN})$"), "_flow_allowed"),
+    )
+
     def is_allowed(self, request, channel: str) -> bool:
         """
-        Default-deny authorization of a client-requested channel for the current user's current workspace. Channels
-        are namespaced (``<namespace>:<...>``); this dispatches on the namespace so adding a new channel type later is
-        a one-method change. Callers must have already established an authenticated user with a current workspace.
+        Default-deny authorization of a client-requested channel for the current user's current workspace, routed by
+        matching the channel name against ``CHANNEL_ROUTES`` - so adding a new channel type later is one route and one
+        handler. Callers must have already established an authenticated user with a current workspace.
         """
         if not isinstance(channel, str):  # malformed payload (e.g. a non-string channel) is just a denial, not a 500
             return False
 
-        namespace, *parts = channel.split(":")
-
-        if namespace == "notifications":
-            return self._notifications_allowed(request, parts)
-        if namespace == "history":
-            return self._history_allowed(request, parts)
-        if namespace == "flow":
-            return self._flow_allowed(request, parts)
+        for pattern, handler in self.CHANNEL_ROUTES:
+            match = pattern.match(channel)
+            if match:
+                return getattr(self, handler)(request, **match.groupdict())
 
         return False
 
-    def _notifications_allowed(self, request, parts: list) -> bool:
+    def _notifications_allowed(self, request, org_uuid: str, user_uuid: str) -> bool:
         """
         ``notifications:<org-uuid>:<user-uuid>`` - a user's own notifications in their current workspace. There's
         nothing to look up: a user may watch exactly the channel scoped to their current org and their own uuid, so we
-        just match the requested segments against the live session rather than touching the database. Any other shape -
-        a different user, a different workspace, or the wrong number of segments - simply fails the equality check.
+        just match the requested segments against the live session rather than touching the database.
         """
-        return parts == [str(request.org.uuid), str(request.user.uuid)]
+        return org_uuid == str(request.org.uuid) and user_uuid == str(request.user.uuid)
 
-    def _history_allowed(self, request, parts: list) -> bool:
+    def _contact_history_allowed(self, request, contact_uuid: str) -> bool:
         """
-        ``history:<contact-uuid>`` (a contact's history) or ``history:<contact-uuid>:<ticket-uuid>`` (a ticket's
-        history). The contact must belong to the workspace and be active. For the ticket form the ticket must in turn
-        belong to that contact - and so to the same workspace, since a ticket always shares its contact's org - and the
-        user must actually be allowed to view it: an agent on a topic-restricted team can only see tickets in their
-        team's topics (plus any assigned to them), exactly as the ticketing UI scopes them, so we authorize through
-        ``Ticket.get_accessible`` rather than just checking the ticket exists. Every segment is validated as a uuid
-        before it reaches a query, since the uuid columns are ``UUIDField`` and would raise on a malformed value.
+        ``history:<contact-uuid>`` - a contact's history. The contact must belong to the workspace and be active.
         """
-        if not (1 <= len(parts) <= 2) or not all(is_uuid(p) for p in parts):
-            return False
+        return request.org.contacts.filter(uuid=contact_uuid, is_active=True).exists()
 
+    def _ticket_history_allowed(self, request, contact_uuid: str, ticket_uuid: str) -> bool:
+        """
+        ``history:<contact-uuid>:<ticket-uuid>`` - a ticket's history. The contact must belong to the workspace and be
+        active, and the ticket must in turn belong to that contact - and so to the same workspace, since a ticket
+        always shares its contact's org - and the user must actually be allowed to view it: an agent on a
+        topic-restricted team can only see tickets in their team's topics (plus any assigned to them), exactly as the
+        ticketing UI scopes them, so we authorize through ``Ticket.get_accessible`` rather than just checking the
+        ticket exists.
+        """
         org = request.org
-        contact = org.contacts.filter(uuid=parts[0], is_active=True).first()
+        contact = org.contacts.filter(uuid=contact_uuid, is_active=True).first()
         if not contact:
             return False
 
-        if len(parts) == 1:
-            return True
+        return Ticket.get_accessible(org, request.user).filter(uuid=ticket_uuid, contact=contact).exists()
 
-        return Ticket.get_accessible(org, request.user).filter(uuid=parts[1], contact=contact).exists()
-
-    def _flow_allowed(self, request, parts: list) -> bool:
+    def _flow_allowed(self, request, flow_uuid: str) -> bool:
         """
         ``flow:<flow-uuid>`` - realtime events for a flow open in the editor (e.g. activity changes). Access mirrors
         the editor's own read views: the flow must belong to the workspace and be active (archived flows can still be
         opened in the editor, so they aren't excluded), and the user must have the ``flows.flow_editor`` permission in
-        the workspace. The uuid is validated before it reaches a query, since the uuid column would raise on a
-        malformed value.
+        the workspace.
         """
-        if len(parts) != 1 or not is_uuid(parts[0]):
-            return False
-
         if not request.user.has_org_perm(request.org, "flows.flow_editor"):
             return False
 
-        return request.org.flows.filter(uuid=parts[0], is_active=True).exists()
+        return request.org.flows.filter(uuid=flow_uuid, is_active=True).exists()
 
     def record_subscription(self, channel: str):
         """
