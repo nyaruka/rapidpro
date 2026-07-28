@@ -4,7 +4,7 @@ browsers directly.
 
 These handle connection authentication and lifecycle: ``connect`` authenticates a new connection from the forwarded
 session cookie, and ``refresh`` periodically re-validates it. The connect result also attaches the user's identity to
-the connection's server-side ``meta``, so the proxies that authorize individual channel subscriptions (handled by
+the connection's server-side ``meta``, so the proxies that authorize individual socket subscriptions (handled by
 another internal service) can act on that identity without re-reading the Django session.
 
 Unlike the rest of the internal API (``/api/internal/``), which is called by the editor running in the user's
@@ -40,7 +40,7 @@ CONNECTION_TTL = 5 * 60
 # it lapses so we can re-authorize.
 SUBSCRIPTION_WINDOW = 60
 
-# how long (seconds) a channel's presence key survives without a refresh. It must comfortably exceed SUBSCRIPTION_WINDOW
+# how long (seconds) a socket's presence key survives without a refresh. It must comfortably exceed SUBSCRIPTION_WINDOW
 # plus the realtime server's refresh delay: the server drives sub_refresh from the expire_at we return (one window),
 # but refresh requests can be delayed up to ~1 minute, so consecutive refreshes can be ~SUBSCRIPTION_WINDOW + 60s apart.
 # 150s (60s window + ~60s delay + buffer) keeps the key alive across that gap while still expiring within a couple of
@@ -94,9 +94,9 @@ class ConnectEndpoint(BaseEndpoint):
 
     On success the result carries:
       * ``user`` - the user identifier (uuid);
-      * ``channels`` - empty: there are no server-side channels. The browser subscribes to everything it wants - its
-        own ``notifications:<org-uuid>:<user-uuid>`` channel, any contact/ticket ``history`` channels, and any
-        ``flow`` channels for flows open in the editor - through the subscribe proxy, which authorizes each one
+      * ``channels`` - empty: there are no server-side subscriptions. The browser subscribes to every socket it wants
+        - its own ``notifications:<org-uuid>:<user-uuid>`` socket, any contact/ticket ``history`` sockets, and any
+        ``flow`` sockets for flows open in the editor - through the subscribe proxy, which authorizes each one
         against the live session;
       * ``meta`` - the user's identity (uuids and ids) attached to the connection so the subscription-authorization
         proxies can act on it without re-reading the session; ``meta`` is server-side only and never sent to the browser;
@@ -137,24 +137,28 @@ class RefreshEndpoint(BaseEndpoint):
 
 class SubscriptionEndpoint(BaseEndpoint):
     """
-    Base for the channel-subscription proxies (``subscribe`` and ``sub_refresh``). Both authorize a single
-    client-requested channel against the live Django session - ``request.user`` and ``request.org`` - and, when
+    Base for the socket-subscription proxies (``subscribe`` and ``sub_refresh``). Both authorize a single
+    client-requested socket against the live Django session - ``request.user`` and ``request.org`` - and, when
     allowed, record the subscription in a valkey index. The authorization deliberately reads the *current* workspace
     rather than anything carried on the connection, so access that has been revoked since connect stops working here.
+
+    We call these subscribable names "sockets" (matching the services that publish to them) rather than the realtime
+    server's own term "channel", which is already taken by messaging channels - the ``channel`` fields in the proxy
+    request bodies are the realtime server's protocol and keep its naming.
     """
 
     def subscription_expire_at(self) -> int:
         """Unix time at which the realtime server should next re-check this subscription via the sub_refresh proxy."""
         return int(timezone.now().timestamp()) + SUBSCRIPTION_WINDOW
 
-    # the channel patterns we authorize, routed to handler methods below with the named groups as kwargs. Like a URL
-    # conf, the pattern does all the shape validation: a channel that doesn't fully match a route - unknown namespace,
-    # wrong number of segments, or a segment that isn't a canonical lowercase-dashed uuid - is denied before any
-    # handler runs, so handlers never see a malformed value (the uuid columns they query would raise on one). Only
-    # canonical uuids are accepted because a channel name is an exact string key: events are published to the
-    # canonical form, so a subscription to any other encoding could never receive anything anyway.
+    # the socket name patterns we authorize, routed to handler methods below with the named groups as kwargs. Like a
+    # URL conf, the pattern does all the shape validation: a socket that doesn't fully match a route - unknown
+    # namespace, wrong number of segments, or a segment that isn't a canonical lowercase-dashed uuid - is denied before
+    # any handler runs, so handlers never see a malformed value (the uuid columns they query would raise on one). Only
+    # canonical uuids are accepted because a socket name is an exact string key: events are published to the canonical
+    # form, so a subscription to any other encoding could never receive anything anyway.
     UUID_PATTERN = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-    CHANNEL_ROUTES = (
+    SOCKET_ROUTES = (
         (
             re.compile(rf"^notifications:(?P<org_uuid>{UUID_PATTERN}):(?P<user_uuid>{UUID_PATTERN})$"),
             "_notifications_allowed",
@@ -167,17 +171,17 @@ class SubscriptionEndpoint(BaseEndpoint):
         (re.compile(rf"^flow:(?P<flow_uuid>{UUID_PATTERN})$"), "_flow_allowed"),
     )
 
-    def is_allowed(self, request, channel: str) -> bool:
+    def is_allowed(self, request, socket: str) -> bool:
         """
-        Default-deny authorization of a client-requested channel for the current user's current workspace, routed by
-        matching the channel name against ``CHANNEL_ROUTES`` - so adding a new channel type later is one route and one
+        Default-deny authorization of a client-requested socket for the current user's current workspace, routed by
+        matching the socket name against ``SOCKET_ROUTES`` - so adding a new socket type later is one route and one
         handler. Callers must have already established an authenticated user with a current workspace.
         """
-        if not isinstance(channel, str):  # malformed payload (e.g. a non-string channel) is just a denial, not a 500
+        if not isinstance(socket, str):  # malformed payload (e.g. a non-string socket) is just a denial, not a 500
             return False
 
-        for pattern, handler in self.CHANNEL_ROUTES:
-            match = pattern.match(channel)
+        for pattern, handler in self.SOCKET_ROUTES:
+            match = pattern.match(socket)
             if match:
                 return getattr(self, handler)(request, **match.groupdict())
 
@@ -186,7 +190,7 @@ class SubscriptionEndpoint(BaseEndpoint):
     def _notifications_allowed(self, request, org_uuid: str, user_uuid: str) -> bool:
         """
         ``notifications:<org-uuid>:<user-uuid>`` - a user's own notifications in their current workspace. There's
-        nothing to look up: a user may watch exactly the channel scoped to their current org and their own uuid, so we
+        nothing to look up: a user may watch exactly the socket scoped to their current org and their own uuid, so we
         just match the requested segments against the live session rather than touching the database.
         """
         return org_uuid == str(request.org.uuid) and user_uuid == str(request.user.uuid)
@@ -225,29 +229,29 @@ class SubscriptionEndpoint(BaseEndpoint):
 
         return request.org.flows.filter(uuid=flow_uuid, is_active=True).exists()
 
-    def record_subscription(self, channel: str):
+    def record_subscription(self, socket: str):
         """
-        Mark a channel as having at least one active subscriber by (re)setting a per-channel presence key in valkey
-        with a TTL. We track presence only - whether a channel has any subscribers, not who or how many - because the
-        consuming service (which publishes a channel's events) only needs to know whether anyone is watching before it
-        bothers publishing, so one key per channel is all we keep. Every subscribe and sub_refresh re-sets the key, so
+        Mark a socket as having at least one active subscriber by (re)setting a per-socket presence key in valkey
+        with a TTL. We track presence only - whether a socket has any subscribers, not who or how many - because the
+        consuming service (which publishes a socket's events) only needs to know whether anyone is watching before it
+        bothers publishing, so one key per socket is all we keep. Every subscribe and sub_refresh re-sets the key, so
         it stays present while some subscriber keeps refreshing and expires once the last one stops. The realtime
         server has no unsubscribe or disconnect callback, so this TTL is the only garbage collection.
 
-        The key name (``socket-subs:<channel>``) and the presence-via-``EXISTS`` semantics are a contract shared with
+        The key name (``socket-subs:<socket>``) and the presence-via-``EXISTS`` semantics are a contract shared with
         the consuming service that reads it - keep them in sync.
         """
         r = get_valkey_connection()
-        r.set(f"socket-subs:{channel}", "1", ex=SUBSCRIPTION_TTL)
+        r.set(f"socket-subs:{socket}", "1", ex=SUBSCRIPTION_TTL)
 
 
 class SubscribeEndpoint(SubscriptionEndpoint):
     """
-    Subscribe proxy called by the realtime messaging server when a browser asks to subscribe to a channel. The request
-    body carries the requested ``channel``, which we authorize against the live session.
+    Subscribe proxy called by the realtime messaging server when a browser asks to subscribe to a socket. The request
+    body carries the requested socket name (in its ``channel`` field), which we authorize against the live session.
 
     An unauthenticated request is told to disconnect (its connection should never have got this far). Otherwise, if the
-    user has a current workspace and may access the channel, we record the subscription and return an ``expire_at`` so
+    user has a current workspace and may access the socket, we record the subscription and return an ``expire_at`` so
     the realtime server schedules a sub_refresh; anything else is refused with a forbidden error, which Centrifugo
     surfaces to the browser as a failed subscribe without tearing down the whole connection.
     """
@@ -256,10 +260,10 @@ class SubscribeEndpoint(SubscriptionEndpoint):
         if not request.user.is_authenticated:
             return Response({"disconnect": {"code": 4401, "reason": "unauthorized"}})
 
-        channel = request.data.get("channel", "")
+        socket = request.data.get("channel", "")
 
-        if request.org and self.is_allowed(request, channel):
-            self.record_subscription(channel)
+        if request.org and self.is_allowed(request, socket):
+            self.record_subscription(socket)
             return Response({"result": {"expire_at": self.subscription_expire_at()}})
 
         return Response({"error": {"code": 403, "message": "forbidden"}})
@@ -274,10 +278,10 @@ class SubRefreshEndpoint(SubscriptionEndpoint):
     """
 
     def post(self, request, *args, **kwargs):
-        channel = request.data.get("channel", "")
+        socket = request.data.get("channel", "")
 
-        if request.user.is_authenticated and request.org and self.is_allowed(request, channel):
-            self.record_subscription(channel)
+        if request.user.is_authenticated and request.org and self.is_allowed(request, socket):
+            self.record_subscription(socket)
             return Response({"result": {"expire_at": self.subscription_expire_at()}})
 
         return Response({"result": {"expired": True}})
