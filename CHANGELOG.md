@@ -1,3 +1,7 @@
+v26.3.22 (2026-07-28)
+-------------------------
+ * Convert primary keys of more tables to bigint
+
 v26.3.21 (2026-07-28)
 -------------------------
  * Update @nyaruka/temba-components to 0.168.1
