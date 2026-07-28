@@ -424,7 +424,7 @@ function handleMenuClicked(event) {
     if (item.posterize) {
       posterize(item.href);
     } else if (item.target == '_blank' || isExternalUrl(item.href)) {
-      window.open(item.href, '_blank');
+      window.open(item.href, '_blank', 'noopener');
     } else {
       spaGet(item.href);
     }
