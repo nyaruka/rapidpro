@@ -34,7 +34,7 @@ from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
 from temba.utils.db.functions import SplitPart
 from temba.utils.export import response_from_workbook
 from temba.utils.fields import InputWidget
-from temba.utils.uuid import UUID_REGEX
+from temba.utils.uuid import UUID_REGEX, is_uuid
 from temba.utils.views.mixins import ChartViewMixin, ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .forms import ShortcutForm, TeamForm, TopicForm
@@ -561,15 +561,30 @@ class TicketCRUDL(SmartCRUDL):
             matches = mailroom.get_client().msg_search(org, text, in_ticket=True)
 
             # look up the tickets the matched events belong to, limited to those this user can access
-            ticket_uuids = {event.get("ticket_uuid") for _, event in matches if event.get("ticket_uuid")}
+            ticket_uuids = {e.get("ticket_uuid") for _, e in matches if is_uuid(e.get("ticket_uuid"))}
             tickets_by_uuid = {
                 str(t.uuid): t for t in Ticket.get_accessible(org, request.user).filter(uuid__in=ticket_uuids)
             }
 
+            # mailroom caps how many matches it returns, and we filter for accessibility after that, so a user with
+            # restricted topic access can end up with nothing to show even though their query did match. Of the
+            # matches we drop, count the ones that belong to a real ticket in this org that they just can't access
+            # (as opposed to a ticket in another org or one that no longer exists) so the client can tell the
+            # difference between "nothing matched" and "nothing you can see matched".
+            unresolved = ticket_uuids - tickets_by_uuid.keys()
+            inaccessible = (
+                {str(u) for u in org.tickets.filter(uuid__in=unresolved).values_list("uuid", flat=True)}
+                if unresolved
+                else set()
+            )
+
             results = []
+            dropped = 0
             for contact, event in matches:
                 ticket = tickets_by_uuid.get(event.get("ticket_uuid"))
                 if not ticket:
+                    if event.get("ticket_uuid") in inaccessible:
+                        dropped += 1
                     continue
 
                 results.append(
@@ -583,7 +598,7 @@ class TicketCRUDL(SmartCRUDL):
                     }
                 )
 
-            return JsonResponse({"results": results})
+            return JsonResponse({"results": results, "dropped": dropped})
 
     class Update(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.ModelForm):

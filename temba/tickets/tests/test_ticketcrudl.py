@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -586,12 +586,15 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                         "ticket": {"uuid": str(ticket2.uuid), "status": "closed"},
                         "event": event2,
                     },
-                ]
+                ],
+                "dropped": 0,
             },
             response.json(),
         )
+        self.assertEqual([call(self.org, "help", in_ticket=True)], mr_mocks.calls["msg_search"])
 
-        # an agent in a topic-restricted team only sees results for tickets they can access
+        # an agent in a topic-restricted team only sees results for tickets they can access, and the matches they
+        # can't see are counted so the client can say so
         mr_mocks.msg_search([(contact1, event1), (contact2, event2)])
 
         self.login(self.agent2, choose_org=self.org)
@@ -606,10 +609,38 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                         "ticket": {"uuid": str(ticket2.uuid), "status": "closed"},
                         "event": event2,
                     },
-                ]
+                ],
+                "dropped": 1,
             },
             response.json(),
         )
+
+        # tickets in another org, and malformed uuids, are dropped but aren't accessibility drops
+        other_org_contact = self.create_contact("Jim", phone="125", org=self.org2)
+        other_org_ticket = self.create_ticket(other_org_contact)
+
+        event4 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be626e",
+            "type": "msg_received",
+            "msg": {"text": "help in another org"},
+            "created_on": "2025-11-17T16:03:00+00:00",
+            "ticket_uuid": str(other_org_ticket.uuid),
+        }
+        event5 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be627e",
+            "type": "msg_received",
+            "msg": {"text": "help with a junk ticket uuid"},
+            "created_on": "2025-11-17T16:04:00+00:00",
+            "ticket_uuid": "not-a-uuid",
+        }
+
+        mr_mocks.msg_search([(contact1, event4), (contact1, event5)])
+
+        self.login(self.admin)
+
+        response = self.client.get(search_url + "?text=help")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"results": [], "dropped": 0}, response.json())
 
     @mock_mailroom
     def test_note(self, mr_mocks):
