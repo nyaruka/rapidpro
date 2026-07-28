@@ -218,6 +218,54 @@ class EndpointsTest(APITestMixin, TembaTest):
         session.save()
         assertForbidden(f"notifications:{self.org.uuid}:{self.admin.uuid}")
 
+    def test_subscribe_flow(self):
+        flow = self.create_flow("Test Flow")
+        other_flow = self.create_flow("Other Flow", org=self.org2)
+
+        def subscribe(channel, client="conn-1"):
+            return self.post("api.websockets.subscribe", {"channel": channel, "client": client})
+
+        def assertAllowed(channel):
+            response = subscribe(channel)
+            self.assertEqual(200, response.status_code)
+            self.assertExpiry(response.json()["result"]["expire_at"])
+
+        def assertForbidden(channel):
+            response = subscribe(channel)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
+        self.login(self.editor)
+
+        # a user with the flow editor permission may watch a flow in their current workspace
+        assertAllowed(f"flow:{flow.uuid}")
+
+        assertForbidden(f"flow:{other_flow.uuid}")  # flow in another workspace
+        assertForbidden(f"flow:{uuid4()}")  # flow not found
+        assertForbidden("flow:not-a-uuid")  # malformed flow uuid
+        assertForbidden(f"flow:{flow.uuid}:extra")  # too many segments
+        assertForbidden("flow")  # too few segments
+
+        # an inactive flow is denied
+        flow.is_active = False
+        flow.save(update_fields=("is_active",))
+        assertForbidden(f"flow:{flow.uuid}")
+        flow.is_active = True
+        flow.save(update_fields=("is_active",))
+
+        # sub_refresh applies the same authorization, so revoked access expires on the next refresh
+        response = self.post("api.websockets.sub_refresh", {"channel": f"flow:{flow.uuid}", "client": "conn-1"})
+        self.assertEqual(200, response.status_code)
+        self.assertExpiry(response.json()["result"]["expire_at"])
+
+        response = self.post("api.websockets.sub_refresh", {"channel": f"flow:{other_flow.uuid}", "client": "conn-1"})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {"expired": True}}, response.json())
+
+        # an agent's role lacks the flow editor permission, so they can't watch any flow
+        self.login(self.agent)
+        assertForbidden(f"flow:{flow.uuid}")
+
     def test_subscribe_ticket_topic_access(self):
         # an agent restricted to a team's topics can only watch the history of tickets they're allowed to view - the
         # same scoping the ticketing UI applies, not just "the ticket exists for this contact"
