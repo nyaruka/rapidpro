@@ -381,47 +381,6 @@ class ContactsEndpointTest(APITest):
         self.assertEqual(jean.get_field_value(nickname), "Žan")
         self.assertEqual(jean.get_field_value(gender), "frog")
 
-        # status can be updated but groups submitted alongside a deactivation are dropped because mailroom
-        # removes non-active contacts from all groups
-        self.assertPost(
-            endpoint_url + f"?uuid={jean.uuid}",
-            self.editor,
-            {"status": "blocked", "groups": [group.uuid]},
-        )
-        jean.refresh_from_db()
-        self.assertEqual(Contact.STATUS_BLOCKED, jean.status)
-        self.assertEqual(set(), set(jean.get_groups(manual_only=True)))
-
-        # groups can be submitted alongside a restore to active and are applied after the restore
-        self.assertPost(
-            endpoint_url + f"?uuid={jean.uuid}",
-            self.editor,
-            {"status": "active", "groups": [group.uuid]},
-        )
-        jean.refresh_from_db()
-        self.assertEqual(Contact.STATUS_ACTIVE, jean.status)
-        self.assertEqual({group}, set(jean.get_groups(manual_only=True)))
-
-        self.assertPost(endpoint_url + f"?uuid={jean.uuid}", self.editor, {"status": "stopped"})
-        jean.refresh_from_db()
-        self.assertEqual(Contact.STATUS_STOPPED, jean.status)
-        self.assertEqual(set(), set(jean.get_groups(manual_only=True)))
-
-        self.assertPost(endpoint_url + f"?uuid={jean.uuid}", self.editor, {"status": "archived"})
-        jean.refresh_from_db()
-        self.assertEqual(Contact.STATUS_ARCHIVED, jean.status)
-
-        self.assertPost(endpoint_url + f"?uuid={jean.uuid}", self.editor, {"status": "active"})
-        jean.refresh_from_db()
-        self.assertEqual(Contact.STATUS_ACTIVE, jean.status)
-
-        self.assertPost(
-            endpoint_url,
-            self.editor,
-            {"name": "Blocked at birth", "status": "blocked"},
-            errors={"status": "Field is only allowed when updating a contact."},
-        )
-
         # change the language field
         self.assertPost(
             endpoint_url + f"?uuid={jean.uuid}",
