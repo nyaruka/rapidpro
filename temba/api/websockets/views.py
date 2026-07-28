@@ -94,8 +94,9 @@ class ConnectEndpoint(BaseEndpoint):
     On success the result carries:
       * ``user`` - the user identifier (uuid);
       * ``channels`` - empty: there are no server-side channels. The browser subscribes to everything it wants - its
-        own ``notifications:<org-uuid>:<user-uuid>`` channel and any contact/ticket ``history`` channels - through the
-        subscribe proxy, which authorizes each one against the live session;
+        own ``notifications:<org-uuid>:<user-uuid>`` channel, any contact/ticket ``history`` channels, and any
+        ``flow`` channels for flows open in the editor - through the subscribe proxy, which authorizes each one
+        against the live session;
       * ``meta`` - the user's identity (uuids and ids) attached to the connection so the subscription-authorization
         proxies can act on it without re-reading the session; ``meta`` is server-side only and never sent to the browser;
       * ``expire_at`` - when the realtime server should next call the refresh proxy to re-validate the connection.
@@ -160,6 +161,8 @@ class SubscriptionEndpoint(BaseEndpoint):
             return self._notifications_allowed(request, parts)
         if namespace == "history":
             return self._history_allowed(request, parts)
+        if namespace == "flow":
+            return self._flow_allowed(request, parts)
 
         return False
 
@@ -194,6 +197,22 @@ class SubscriptionEndpoint(BaseEndpoint):
             return True
 
         return Ticket.get_accessible(org, request.user).filter(uuid=parts[1], contact=contact).exists()
+
+    def _flow_allowed(self, request, parts: list) -> bool:
+        """
+        ``flow:<flow-uuid>`` - realtime events for a flow open in the editor (e.g. activity changes). Access mirrors
+        the editor's own read views: the flow must belong to the workspace and be active (archived flows can still be
+        opened in the editor, so they aren't excluded), and the user must have the ``flows.flow_editor`` permission in
+        the workspace. The uuid is validated before it reaches a query, since the uuid column would raise on a
+        malformed value.
+        """
+        if len(parts) != 1 or not is_uuid(parts[0]):
+            return False
+
+        if not request.user.has_org_perm(request.org, "flows.flow_editor"):
+            return False
+
+        return request.org.flows.filter(uuid=parts[0], is_active=True).exists()
 
     def record_subscription(self, channel: str):
         """
