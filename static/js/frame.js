@@ -412,9 +412,15 @@ function handleMenuClicked(event) {
     return;
   }
 
-  // posterize if called for
-  if (item.href && item.posterize) {
-    posterize(item.href);
+  if (item.href) {
+    // posterize if called for
+    if (item.posterize) {
+      posterize(item.href);
+    } else if (item.target == '_blank' || item.href.startsWith('http')) {
+      window.open(item.href, '_blank');
+    } else {
+      spaGet(item.href);
+    }
   }
 }
 
