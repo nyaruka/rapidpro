@@ -160,6 +160,8 @@ class EndpointsTest(APITestMixin, TembaTest):
         assertForbidden({"not": "a string"})  # non-string socket is a clean deny, not a 500
         assertForbidden("history:not-a-uuid")  # malformed contact uuid
         assertForbidden(f"history:{contact.uuid}:not-a-uuid")  # malformed ticket uuid
+        assertForbidden(f"history:{contact.uuid}\n")  # trailing newline isn't part of the canonical name
+        assertForbidden(f"history:{str(contact.uuid).upper()}")  # nor is an uppercase uuid encoding
         assertForbidden(f"history:{contact.uuid}:{ticket.uuid}:extra")  # too many segments
         assertForbidden("history")  # too few segments
         assertForbidden(f"presence:{contact.uuid}")  # unknown namespace

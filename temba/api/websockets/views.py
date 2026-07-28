@@ -160,15 +160,15 @@ class SubscriptionEndpoint(BaseEndpoint):
     UUID_PATTERN = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
     SOCKET_ROUTES = (
         (
-            re.compile(rf"^notifications:(?P<org_uuid>{UUID_PATTERN}):(?P<user_uuid>{UUID_PATTERN})$"),
+            re.compile(rf"notifications:(?P<org_uuid>{UUID_PATTERN}):(?P<user_uuid>{UUID_PATTERN})"),
             "_notifications_allowed",
         ),
-        (re.compile(rf"^history:(?P<contact_uuid>{UUID_PATTERN})$"), "_contact_history_allowed"),
+        (re.compile(rf"history:(?P<contact_uuid>{UUID_PATTERN})"), "_contact_history_allowed"),
         (
-            re.compile(rf"^history:(?P<contact_uuid>{UUID_PATTERN}):(?P<ticket_uuid>{UUID_PATTERN})$"),
+            re.compile(rf"history:(?P<contact_uuid>{UUID_PATTERN}):(?P<ticket_uuid>{UUID_PATTERN})"),
             "_ticket_history_allowed",
         ),
-        (re.compile(rf"^flow:(?P<flow_uuid>{UUID_PATTERN})$"), "_flow_allowed"),
+        (re.compile(rf"flow:(?P<flow_uuid>{UUID_PATTERN})"), "_flow_allowed"),
     )
 
     def is_allowed(self, request, socket: str) -> bool:
@@ -181,7 +181,7 @@ class SubscriptionEndpoint(BaseEndpoint):
             return False
 
         for pattern, handler in self.SOCKET_ROUTES:
-            match = pattern.match(socket)
+            match = pattern.fullmatch(socket)  # unlike $ anchoring, fullmatch won't tolerate a trailing newline
             if match:
                 return getattr(self, handler)(request, **match.groupdict())
 
