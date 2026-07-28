@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from temba import mailroom
 from temba.contacts.models import URN
 from temba.msgs.models import Msg
 from temba.orgs.models import Org, OrgRole
@@ -170,6 +171,7 @@ class TicketCRUDL(SmartCRUDL):
         "menu",
         "list",
         "folder",
+        "search",
         "update",
         "note",
         "chart",
@@ -542,6 +544,46 @@ class TicketCRUDL(SmartCRUDL):
                 results["next"] = f"{folder_url}?before={datetime_to_timestamp(last_time)}"
 
             return JsonResponse(results)
+
+    class Search(OrgPermsMixin, SmartTemplateView):
+        """
+        Searches message text across the tickets in this org that the user has access to.
+        """
+
+        permission = "tickets.ticket_list"
+
+        def get(self, request, *args, **kwargs):
+            org = request.org
+            text = request.GET.get("text", "").strip()
+            if not text:
+                return JsonResponse({"results": []})
+
+            matches = mailroom.get_client().msg_search(org, text, in_ticket=True)
+
+            # look up the tickets the matched events belong to, limited to those this user can access
+            ticket_uuids = {event.get("ticket_uuid") for _, event in matches if event.get("ticket_uuid")}
+            tickets_by_uuid = {
+                str(t.uuid): t for t in Ticket.get_accessible(org, request.user).filter(uuid__in=ticket_uuids)
+            }
+
+            results = []
+            for contact, event in matches:
+                ticket = tickets_by_uuid.get(event.get("ticket_uuid"))
+                if not ticket:
+                    continue
+
+                results.append(
+                    {
+                        "contact": {"uuid": str(contact.uuid), "name": contact.get_display(org=org)},
+                        "ticket": {
+                            "uuid": str(ticket.uuid),
+                            "status": "open" if ticket.status == Ticket.STATUS_OPEN else "closed",
+                        },
+                        "event": event,
+                    }
+                )
+
+            return JsonResponse({"results": results})
 
     class Update(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.ModelForm):

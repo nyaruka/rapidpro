@@ -525,6 +525,93 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertIsNotNone(response.json()["next"])
 
     @mock_mailroom
+    def test_search(self, mr_mocks):
+        contact1 = self.create_contact("Joe", phone="123")
+        contact2 = self.create_contact("Frank", phone="124")
+
+        ticket1 = self.create_ticket(contact1)
+        ticket2 = self.create_ticket(contact2, topic=self.sales, closed_on=timezone.now())
+
+        search_url = reverse("tickets.ticket_search")
+
+        self.assertRequestDisallowed(search_url, [None])
+
+        self.login(self.admin)
+
+        # empty or missing text returns empty results without hitting mailroom
+        response = self.client.get(search_url + "?text=")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"results": []}, response.json())
+
+        response = self.client.get(search_url)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"results": []}, response.json())
+
+        event1 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be623e",
+            "type": "msg_received",
+            "msg": {"text": "I need help"},
+            "created_on": "2025-11-17T16:00:00+00:00",
+            "ticket_uuid": str(ticket1.uuid),
+        }
+        event2 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be624e",
+            "type": "msg_created",
+            "msg": {"text": "Happy to help"},
+            "created_on": "2025-11-17T16:01:00+00:00",
+            "ticket_uuid": str(ticket2.uuid),
+        }
+        event3 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be625e",
+            "type": "msg_received",
+            "msg": {"text": "help but no ticket"},
+            "created_on": "2025-11-17T16:02:00+00:00",
+        }
+
+        # results without a resolvable ticket are dropped
+        mr_mocks.msg_search([(contact1, event1), (contact2, event2), (contact1, event3)])
+
+        response = self.client.get(search_url + "?text=help")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "results": [
+                    {
+                        "contact": {"uuid": str(contact1.uuid), "name": "Joe"},
+                        "ticket": {"uuid": str(ticket1.uuid), "status": "open"},
+                        "event": event1,
+                    },
+                    {
+                        "contact": {"uuid": str(contact2.uuid), "name": "Frank"},
+                        "ticket": {"uuid": str(ticket2.uuid), "status": "closed"},
+                        "event": event2,
+                    },
+                ]
+            },
+            response.json(),
+        )
+
+        # an agent in a topic-restricted team only sees results for tickets they can access
+        mr_mocks.msg_search([(contact1, event1), (contact2, event2)])
+
+        self.login(self.agent2, choose_org=self.org)
+
+        response = self.client.get(search_url + "?text=help")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "results": [
+                    {
+                        "contact": {"uuid": str(contact2.uuid), "name": "Frank"},
+                        "ticket": {"uuid": str(ticket2.uuid), "status": "closed"},
+                        "event": event2,
+                    },
+                ]
+            },
+            response.json(),
+        )
+
+    @mock_mailroom
     def test_note(self, mr_mocks):
         ticket = self.create_ticket(self.contact)
 

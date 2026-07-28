@@ -560,9 +560,26 @@ class ContactCRUDL(SmartCRUDL):
                 return JsonResponse({"results": []})
 
             contact = self.get_object()
-            results = mailroom.get_client().msg_search(request.org, text, contact=contact)
 
-            return JsonResponse({"results": [event for _, event in results]})
+            # an optional ticket scopes the search to that ticket's messages
+            ticket = None
+            if ticket_uuid := request.GET.get("ticket"):
+                try:
+                    ticket = request.org.tickets.filter(uuid=UUID(ticket_uuid), contact=contact).first()
+                except ValueError:
+                    ticket = None
+
+                # a ticket we can't resolve has no messages to match
+                if not ticket:
+                    return JsonResponse({"results": []})
+
+            results = mailroom.get_client().msg_search(request.org, text, contact=contact, in_ticket=ticket is not None)
+            events = [event for _, event in results]
+
+            if ticket:
+                events = [e for e in events if e.get("ticket_uuid") == str(ticket.uuid)]
+
+            return JsonResponse({"results": events})
 
     class Search(ContactListView):
         template_name = "contacts/contact_list.html"
