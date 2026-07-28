@@ -56,7 +56,6 @@ class Topic(TembaModel, DependencyMixin):
     The topic of a ticket which controls who can access that ticket.
     """
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="topics")
     is_default = models.BooleanField(default=False)
 
@@ -204,7 +203,6 @@ class Ticket(models.Model):
 
     MAX_NOTE_LENGTH = 10_000
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="tickets", db_index=False)  # indexed below
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, related_name="tickets", db_index=False)
