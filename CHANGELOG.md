@@ -1,3 +1,13 @@
+v26.3.20 (2026-07-28)
+-------------------------
+ * Update @nyaruka/temba-components to 0.168.0
+ * Support form and url quick reply types in API and raise extra max length to 1000
+ * Stop offering optins as a feature in the flow editor
+ * Navigate plain href items in menu popups and open external links with noopener
+ * Use internal API endpoint for contact editor writes instead of public API
+ * Persist list column widths in user settings
+ * Enable inline contact editing
+
 v26.3.19 (2026-07-27)
 -------------------------
  * Convert primary keys of small tables to bigint
