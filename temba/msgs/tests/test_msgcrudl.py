@@ -77,7 +77,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.setLegacyUI()
 
         # check that we have the appropriate bulk actions
-        self.assertEqual(("archive", "label"), response.context["actions"])
+        self.assertEqual(("label", "archive"), response.context["actions"])
 
         # error response if search query too long
         self.assertListFetch(inbox_url + "?search=" + "x" * 1001, [self.editor], status=413)
@@ -153,7 +153,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(flows_url, [None, self.agent])
         response = self.assertListFetch(flows_url, [self.editor, self.admin], context_objects=[msg2, msg1])
 
-        self.assertEqual(("archive", "label"), response.context["actions"])
+        self.assertEqual(("label", "archive"), response.context["actions"])
 
     @mock_mailroom
     def test_archived(self, mr_mocks):
@@ -354,7 +354,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(label3_url, self.editor, HTTP_X_TEMBA_SPA=1)
         self.assertEqual(f"/msg/labels/{label3.uuid}", response.headers[TEMBA_MENU_SELECTION])
         self.assertEqual(200, response.status_code)
-        self.assertEqual(("archive", "label"), response.context["actions"])
+        self.assertEqual(("label", "archive"), response.context["actions"])
 
         # check that non-visible messages are excluded, and messages and ordered newest to oldest
         self.assertEqual([msg6, msg3, msg2, msg1], list(response.context["object_list"]))

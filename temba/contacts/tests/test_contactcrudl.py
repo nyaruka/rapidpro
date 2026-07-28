@@ -155,7 +155,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         self.assertEqual([frank, joe], list(response.context["object_list"]))
         self.assertIsNone(response.context["search_error"])
-        self.assertEqual(["block", "archive", "send", "start-flow"], list(response.context["actions"]))
+        self.assertEqual(["block", "send", "start-flow", "archive"], list(response.context["actions"]))
         self.assertContentMenu(list_url, self.editor, ["New Contact", "New Group", "Export"])
 
         active_contacts = self.org.active_contacts_group
@@ -224,7 +224,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         age_query = "?search=age%20%3E%2050"
         response = self.client.get(list_url)
         self.assertEqual([frank, joe], list(response.context["object_list"]))
-        self.assertEqual(["block", "archive", "send", "start-flow"], list(response.context["actions"]))
+        self.assertEqual(["block", "send", "start-flow", "archive"], list(response.context["actions"]))
 
         self.assertContentMenu(
             list_url,
@@ -299,7 +299,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # send / start-flow are clientOnly (they open a modal); the group dropdown carries a labelsEndpoint of the
         # workspace's static groups; the rest post to the action endpoint
         actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
-        self.assertEqual(["label", "block", "archive", "send", "start-flow"], list(actions.keys()))
+        self.assertEqual(["label", "block", "send", "start-flow", "archive"], list(actions.keys()))
         self.assertTrue(actions["send"]["clientOnly"])
         self.assertTrue(actions["start-flow"]["clientOnly"])
         self.assertNotIn("clientOnly", actions["archive"])
@@ -537,7 +537,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.assertReadFetch(group2_url, [self.editor])
 
         self.assertEqual([frank], list(response.context["object_list"]))
-        self.assertEqual(["block", "archive", "send", "start-flow"], list(response.context["actions"]))
+        self.assertEqual(["block", "send", "start-flow", "archive"], list(response.context["actions"]))
         self.assertContains(response, "age &gt; 40")
 
         # try unlabel bulk action
@@ -548,7 +548,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # can access system group like any other except no options to edit or delete
         response = self.assertReadFetch(open_tickets_url, [self.editor])
         self.assertEqual([], list(response.context["object_list"]))
-        self.assertEqual(["block", "archive", "send", "start-flow"], list(response.context["actions"]))
+        self.assertEqual(["block", "send", "start-flow", "archive"], list(response.context["actions"]))
         self.assertContains(response, "tickets &gt; 0")
         self.assertContentMenu(open_tickets_url, self.admin, ["Export", "Usages"])
 

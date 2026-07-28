@@ -839,7 +839,7 @@ class MsgCRUDL(SmartCRUDL):
         subtitle = _("Incoming messages that weren't automatically handled by a flow.")
         folder = MsgFolder.INBOX
         search_fields = ("text__icontains", "contact__name__icontains")
-        bulk_actions = ("archive", "label")
+        bulk_actions = ("label", "archive")
         allow_export = True
         menu_path = "/msg/inbox"
 
@@ -855,7 +855,7 @@ class MsgCRUDL(SmartCRUDL):
         subtitle = _("Incoming messages that were handled by a flow.")
         folder = MsgFolder.HANDLED
         search_fields = ("text__icontains", "contact__name__icontains")
-        bulk_actions = ("archive", "label")
+        bulk_actions = ("label", "archive")
         allow_export = True
         menu_path = "/msg/handled"
 
@@ -907,7 +907,7 @@ class MsgCRUDL(SmartCRUDL):
 
     class Filter(MsgListView):
         search_fields = ("text__icontains", "contact__name__icontains")
-        bulk_actions = ("archive", "label")
+        bulk_actions = ("label", "archive")
 
         def derive_menu_path(self):
             return f"/msg/labels/{self.label.uuid}"
