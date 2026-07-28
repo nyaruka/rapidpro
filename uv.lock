@@ -1679,7 +1679,7 @@ wheels = [
 
 [[package]]
 name = "smartmin"
-version = "6.0.1"
+version = "6.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
@@ -1687,9 +1687,9 @@ dependencies = [
     { name = "xlrd" },
     { name = "xlwt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3e/3d/2f9c2a7442335a5fbb5653c683e918a976c47733b512698aa3fea26b7ced/smartmin-6.0.1.tar.gz", hash = "sha256:1379059ba13c486113dd63fa5749ffb0da2a174b223d3d3857945d36f4e26207", size = 503431, upload-time = "2026-07-13T16:37:27.445Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/87/64/1b50519259470b9a5dcfb7f9cbdab7d9d8b40638343ec74eae59b3c6349d/smartmin-6.1.0.tar.gz", hash = "sha256:38e2cf29567cb578f7f589f083351c93c8a87985e0e3e07572640d0461e43bd9", size = 485925, upload-time = "2026-07-27T19:29:02.605Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/59/86/06f3e7cd595ad4c3f1ad3782b2af234e2247d9264abb8a5b0f5a3250f704/smartmin-6.0.1-py3-none-any.whl", hash = "sha256:4c23d6822487b19397aa4057ef4de83d196a52336b28bb69e427c7c499bf492f", size = 351568, upload-time = "2026-07-13T16:37:26.107Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/b3/6a47e64f4d6b415f73a8aae9186fb9f435fa133a516911dc7fb2e55d3b7c/smartmin-6.1.0-py3-none-any.whl", hash = "sha256:525e989c40185d8a9ef2ef3db26a74b0c133fcd826784cda0f3bf388fce94d23", size = 351035, upload-time = "2026-07-27T19:29:01.304Z" },
 ]
 
 [[package]]
@@ -1814,7 +1814,7 @@ requires-dist = [
     { name = "python-magic", specifier = "~=0.4.27" },
     { name = "requests-toolbelt", specifier = "~=1.0.0" },
     { name = "slack-sdk", specifier = "~=3.17.0" },
-    { name = "smartmin", specifier = ">=6.0.1,<7.0.0" },
+    { name = "smartmin", specifier = ">=6.1.0,<7.0.0" },
     { name = "twilio", specifier = ">=9.10.9,<10.0.0" },
     { name = "tzdata", specifier = ">=2025.2" },
     { name = "vonage", specifier = "~=3.17.4" },
