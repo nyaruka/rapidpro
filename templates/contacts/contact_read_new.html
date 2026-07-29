@@ -50,12 +50,11 @@
   <div class="read-page">
     <temba-header-bar>
       <temba-page-header content-menu-endpoint="{{ request.path }}" -temba-selection="handleContentMenuSelected(event)">
-        <temba-contact-name-fetch slot="title"
-                                  contact="{{ object.uuid }}"
-                                  icon-size="16"
-                                  -temba-refreshed="handleContactRefreshed"
-                                  showLoading>
-        </temba-contact-name-fetch>
+        <temba-contact-name slot="title"
+                            contact="{{ object.uuid }}"
+                            icon-size="16"
+                            -temba-refreshed="handleContactRefreshed">
+        </temba-contact-name>
       </temba-page-header>
     </temba-header-bar>
     <temba-card-layout id="card-layout"

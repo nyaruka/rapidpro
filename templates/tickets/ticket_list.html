@@ -138,7 +138,7 @@
         max-height: 7em;
       }
 
-      temba-contact-name-fetch {
+      temba-contact-name {
         display: none;
       }
 
@@ -232,9 +232,6 @@
     }
 
     function handleFlowStarted(event) {
-
-      var name = document.querySelector("temba-contact-name-fetch");
-      name.refresh();
 
       // give our flow a chance to start
       window.setTimeout(function() {
@@ -352,7 +349,7 @@
       messageSent = false;
       const ticketUI = document.querySelector('.ticket-ui');
 
-      var contactHeader = document.querySelector("temba-contact-name-fetch");
+      var contactHeader = document.querySelector("temba-contact-name");
       var notepad = document.querySelector("temba-contact-notepad");
       var chat = document.querySelector("temba-contact-chat");
       var details = document.querySelector("temba-contact-details");
@@ -678,10 +675,10 @@
           <div class="flex">
             <temba-icon size="1.2" class="back-button" name="arrow_left" clickable onclick="handleContactChanged()">
             </temba-icon>
-            <temba-contact-name-fetch -temba-refreshed="handleContactRefreshed"
-                                      onclick="{% if org_perms.contacts.contact_read %}handleNameClicked(){% endif %}"
-                                      class="{% if org_perms.contacts.contact_read %}clickable{% endif %} text-2xl mb-4">
-            </temba-contact-name-fetch>
+            <temba-contact-name -temba-refreshed="handleContactRefreshed"
+                                onclick="{% if org_perms.contacts.contact_read %}handleNameClicked(){% endif %}"
+                                class="{% if org_perms.contacts.contact_read %}clickable{% endif %} text-2xl mb-4">
+            </temba-contact-name>
             <div class="flex-grow"></div>
             {% include "spa_page_menu.html" %}
           </div>
