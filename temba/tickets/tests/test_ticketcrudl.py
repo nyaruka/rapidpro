@@ -603,6 +603,37 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertNotIn("next", response.json())
 
     @mock_mailroom
+    def test_folder_refresh_bounding(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        base = timezone.now().replace(microsecond=0)
+
+        # 8 tickets in distinct milliseconds
+        spread = [self.create_ticket(contact) for _ in range(8)]
+        for i, ticket in enumerate(spread):
+            Ticket.objects.filter(id=ticket.id).update(last_activity_on=base + timedelta(milliseconds=i))
+
+        after = datetime_to_timestamp(base - timedelta(seconds=1))
+
+        with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 5):
+            # a full refresh page is capped, extended to a whole millisecond
+            response = self.requestView(f"/ticket/folder/all/?after={after}", self.admin)
+            self.assertEqual(
+                [str(t.uuid) for t in spread[:5]], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+
+            # a bulk update can put more than a page of tickets inside a single millisecond - the cap must
+            # yield so the client's millisecond resolution cursor can still advance
+            tied = [self.create_ticket(contact) for _ in range(8)]
+            for i, ticket in enumerate(tied):
+                Ticket.objects.filter(id=ticket.id).update(
+                    last_activity_on=base + timedelta(seconds=1, microseconds=i + 1)
+                )
+
+            after = datetime_to_timestamp(base + timedelta(seconds=1))
+            response = self.requestView(f"/ticket/folder/all/?after={after}", self.admin)
+            self.assertEqual([str(t.uuid) for t in tied], [t["ticket"]["uuid"] for t in response.json()["results"]])
+
+    @mock_mailroom
     def test_folder_merged_page_ties(self, mr_mocks):
         contact = self.create_contact("Joe", phone="123")
         open1 = self.create_ticket(contact)

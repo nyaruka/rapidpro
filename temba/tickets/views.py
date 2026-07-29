@@ -320,7 +320,7 @@ class TicketCRUDL(SmartCRUDL):
                 if status_slug:
                     first_page_qs = first_page_qs.filter(status=status)
 
-                for ticket in list(first_page_qs[:25]):
+                for ticket in list(first_page_qs[: TicketCRUDL.Folder.paginate_by]):
                     if str(ticket.uuid) == uuid:
                         return folder, ticket.status, ticket, True
 
@@ -474,9 +474,10 @@ class TicketCRUDL(SmartCRUDL):
             # last_activity_on so status always needs to be constrained - as equality for a status specific
             # fetch, or as both statuses so the planner can still use the index for the merged fetch
             if after:
+                after = timestamp_to_datetime(after)
                 qs = (
                     self._get_queryset(ordered=False)
-                    .filter(last_activity_on__gt=timestamp_to_datetime(after))
+                    .filter(last_activity_on__gt=after)
                     .order_by("last_activity_on", "id")
                 )
                 qs = (
@@ -484,9 +485,24 @@ class TicketCRUDL(SmartCRUDL):
                     if status
                     else qs.filter(status__in=(Ticket.STATUS_OPEN, Ticket.STATUS_CLOSED))
                 )
+
                 # bounded so a long gap in polling can't return the world - the client advances its cursor and
                 # polls again so it still catches up
-                return list(qs[: self.paginate_by])
+                tickets = list(qs[: self.paginate_by])
+
+                if len(tickets) == self.paginate_by:
+                    # the client's cursor only has millisecond resolution (timestamps are serialized to JSON
+                    # with milliseconds) so a full page must reach past its last row's millisecond for the
+                    # cursor to advance - extend it to that boundary, and if even that doesn't get past the
+                    # cursor's own millisecond (a bulk update can put a whole page inside one), don't cap
+                    last = tickets[-1].last_activity_on
+                    cutoff = last.replace(microsecond=(last.microsecond // 1000) * 1000) + timedelta(milliseconds=1)
+                    if cutoff > after + timedelta(milliseconds=1):
+                        tickets = list(qs.filter(last_activity_on__lt=cutoff))
+                    else:
+                        tickets = list(qs)
+
+                return tickets
 
             # pages are read in index order - open before closed, then most recent activity - and paged by an
             # exact (last_activity_on, id) cursor so that tickets sharing a timestamp can't be lost
