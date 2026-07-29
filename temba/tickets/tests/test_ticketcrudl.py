@@ -435,10 +435,12 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         bulk_tickets = []
         for i in range(24):
             bulk_tickets.append(self.create_ticket(contact3, assignee=self.admin))
-        # now we have 25 admin-assigned tickets total (c1_t1 + 24 new ones), which triggers pagination re-query
+        # now we have 25 admin-assigned tickets total (c1_t1 + 24 new ones) which fills a page, so we get a next
+        # link and it has to carry the assignee filter
         response = self.requestView(f"{all_open_url}?assignee={self.admin.uuid}", self.admin)
         actual = [t["ticket"]["uuid"] for t in response.json()["results"]]
         self.assertEqual(25, len(actual))
+        self.assertIn(f"assignee={self.admin.uuid}", response.json()["next"])
         for bt in bulk_tickets:
             bt.delete()
 
@@ -612,6 +614,39 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.requestView(response.json()["next"], self.admin)
             self.assertEqual([], response.json()["results"])
             self.assertNotIn("next", response.json())
+
+    @mock_mailroom
+    def test_folder_invalid_params(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        ticket1 = self.create_ticket(contact)
+        ticket2 = self.create_ticket(contact, assignee=self.admin)
+
+        all_url = reverse("tickets.ticket_folder", kwargs={"folder": "all"})
+
+        # a malformed ticket uuid in the path is treated as not found rather than blowing up
+        response = self.requestView(f"{all_url}notauuid", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([], response.json()["results"])
+
+        # a malformed assignee is ignored, same as an unknown one
+        response = self.requestView(f"{all_url}?assignee=notauuid", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        # non-numeric cursor params are ignored so we just get the first page
+        response = self.requestView(f"{all_url}?after=NaN&before=x&before_id=y", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        # and a malformed ticket uuid in a list view deep link doesn't blow up either
+        response = self.requestView(f"{reverse('tickets.ticket_list')}all/notauuid/", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertNotIn("uuid", response.context)
+        self.assertNotIn("nextUUID", response.context)
 
     @mock_mailroom
     def test_note(self, mr_mocks):

@@ -34,7 +34,7 @@ from temba.utils.dates import datetime_to_timestamp, timestamp_to_datetime
 from temba.utils.db.functions import SplitPart
 from temba.utils.export import response_from_workbook
 from temba.utils.fields import InputWidget
-from temba.utils.uuid import UUID_REGEX
+from temba.utils.uuid import UUID_REGEX, is_uuid
 from temba.utils.views.mixins import ChartViewMixin, ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .forms import ShortcutForm, TeamForm, TopicForm
@@ -313,8 +313,8 @@ class TicketCRUDL(SmartCRUDL):
             status_slug = self.kwargs.get("status")  # only legacy URLs include a status
             status = Ticket.STATUS_CLOSED if status_slug == "closed" else Ticket.STATUS_OPEN
 
-            # is the request for a specific ticket?
-            if uuid := self.kwargs.get("uuid"):
+            # is the request for a specific ticket? (a malformed uuid is treated as not found)
+            if (uuid := self.kwargs.get("uuid")) and is_uuid(uuid):
                 # is the ticket in the first page of the current folder?
                 first_page_qs = folder.get_queryset(org, user, ordered=True)
                 if status_slug:
@@ -425,9 +425,9 @@ class TicketCRUDL(SmartCRUDL):
 
         @cached_property
         def assignee(self):
-            # filtering by assignee only applies to the All folder
+            # filtering by assignee only applies to the All folder, and a malformed uuid is ignored
             assignee_uuid = self.request.GET.get("assignee")
-            if assignee_uuid and isinstance(self.folder, AllFolder):
+            if assignee_uuid and is_uuid(assignee_uuid) and isinstance(self.folder, AllFolder):
                 return User.objects.filter(uuid=assignee_uuid).first()
             return None
 
@@ -437,16 +437,29 @@ class TicketCRUDL(SmartCRUDL):
                 qs = qs.filter(assignee=self.assignee)
             return qs
 
+        def _int_param(self, name: str) -> int:
+            """
+            Reads an integer query param, ignoring any non-numeric value so that a bad cursor from a client can't
+            break its polling.
+            """
+            try:
+                return int(self.request.GET.get(name, 0))
+            except ValueError:
+                return 0
+
         def get_tickets(self) -> list:
             uuid = self.kwargs.get("uuid", None)
             status_slug = self.kwargs.get("status")
             status = (Ticket.STATUS_OPEN if status_slug == "open" else Ticket.STATUS_CLOSED) if status_slug else None
-            after = int(self.request.GET.get("after", 0))
-            before = int(self.request.GET.get("before", 0))
-            before_id = int(self.request.GET.get("before_id", 0))
+            after = self._int_param("after")
+            before = self._int_param("before")
+            before_id = self._int_param("before_id")
 
             # request for a specific ticket
             if uuid:
+                if not is_uuid(uuid):  # malformed uuid can't match anything
+                    return []
+
                 qs = self._get_queryset(ordered=True)
                 if status:
                     qs = qs.filter(status=status)
@@ -466,7 +479,9 @@ class TicketCRUDL(SmartCRUDL):
                     if status
                     else qs.filter(status__in=(Ticket.STATUS_OPEN, Ticket.STATUS_CLOSED))
                 )
-                return list(qs)
+                # bounded so a long gap in polling can't return the world - the client advances its cursor and
+                # polls again so it still catches up
+                return list(qs[: self.paginate_by])
 
             # pages are read in index order - open before closed, then most recent activity - and paged by an
             # exact (last_activity_on, id) cursor so that tickets sharing a timestamp can't be lost
@@ -491,8 +506,10 @@ class TicketCRUDL(SmartCRUDL):
                         output_field=models.BooleanField(),
                     )
                 qs = qs.filter(cursor)
-            elif before:
-                # kept for any in-flight links from before cursors included ids
+            elif before and status:
+                # kept for any in-flight links from before cursors included ids - only meaningful for a status
+                # specific fetch, on the merged fetch a timestamp alone can't say which side of the open/closed
+                # boundary it's on so it's ignored and the first page is served
                 qs = qs.filter(last_activity_on__lt=timestamp_to_datetime(before))
 
             return list(qs[: self.paginate_by])
