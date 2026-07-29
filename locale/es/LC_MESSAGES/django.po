@@ -3635,7 +3635,7 @@ msgid "There already exists a trigger of this type with these options."
 msgstr "Ya existe un disparador de este tipo con estas opciones."
 
 msgid "Channel"
-msgstr "Transmisor"
+msgstr "Canal"
 
 msgid "Only include activity from this channel."
 msgstr "Incluir solo la actividad de este canal."
