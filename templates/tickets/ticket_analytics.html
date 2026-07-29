@@ -140,7 +140,7 @@
             return;
           }
           tbody.innerHTML = data.results.map(function(user) {
-            return '<tr><td><a href="/ticket/all/open/?assignee=' + user.uuid + '">' +
+            return '<tr><td><a href="/ticket/all/?assignee=' + user.uuid + '">' +
               escapeHtml(user.name) + '</a></td><td>' + user.replies.toLocaleString() + '</td></tr>';
           }).join("");
         })
