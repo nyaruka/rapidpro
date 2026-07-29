@@ -2,7 +2,7 @@ from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.models import EmailAddress
 from allauth.core import context as allauth_context
 from allauth.mfa.adapter import DefaultMFAAdapter
-from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter, get_adapter as get_socialaccount_adapter
 from allauth.socialaccount.signals import social_account_added
 
 from django.conf import settings
@@ -66,8 +66,14 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
         # users whose email domain should be using SSO get a warning when they login with a password instead
         is_sso = bool(signal_kwargs and signal_kwargs.get("sociallogin"))
         domain = user.email.rsplit("@", 1)[-1].lower() if user.email else ""
-        if not is_sso and domain in {d.lower() for d in settings.SSO_LOGIN_WARNING_DOMAINS}:
-            request.session["sso_login_warning"] = True
+        warn_domains = {d.lower(): p for d, p in settings.SSO_LOGIN_WARNING_DOMAINS.items()}
+        if not is_sso and domain in warn_domains:
+            try:
+                provider_name = get_socialaccount_adapter().get_provider(request, warn_domains[domain]).name
+            except Exception:
+                provider_name = None  # misconfigured provider id still warns, just without naming the provider
+
+            request.session["sso_login_warning"] = {"provider": provider_name}
 
         return super().post_login(
             request,

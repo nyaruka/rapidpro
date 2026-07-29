@@ -96,11 +96,17 @@ class UserAuthTest(TembaTest):
         self.assertTrue(emails.filter(email="newemail@temba.io").exists())
 
     @override_settings(
-        SSO_LOGIN_WARNING_DOMAINS=["sso-corp.com"],
+        SSO_LOGIN_WARNING_DOMAINS={"SSO-Corp.com": "google", "no-sso-corp.com": "acme"},
         SOCIALACCOUNT_PROVIDERS={"google": {"APPS": [{"client_id": "test-id", "secret": "test-secret", "key": ""}]}},
     )
     def test_sso_login_warning(self):
         login_url = reverse("account_login")
+
+        def create_verified_user(email):
+            user = self.create_user(email)
+            EmailAddress.objects.create(user=user, email=email, verified=True, primary=True)
+            self.org.add_user(user, OrgRole.EDITOR)
+            return user
 
         # logging in with a password from a non-matching domain doesn't warn
         response = self.client.post(
@@ -110,10 +116,8 @@ class UserAuthTest(TembaTest):
 
         self.client.logout()
 
-        # but a user whose email domain should be using SSO gets warned
-        user = self.create_user("uma@sso-corp.com")
-        EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
-        self.org.add_user(user, OrgRole.EDITOR)
+        # but a user whose email domain should be using SSO gets a warning named after the mapped provider
+        user = create_verified_user("uma@sso-corp.com")
 
         response = self.client.post(login_url, {"login": user.email, "password": self.default_password}, follow=True)
         self.assertContains(response, "sso-login-warning")
@@ -122,6 +126,15 @@ class UserAuthTest(TembaTest):
         # only on the first page load after login
         response = self.client.get(response.request["PATH_INFO"])
         self.assertNotContains(response, "sso-login-warning")
+
+        self.client.logout()
+
+        # a domain mapped to a provider that isn't configured still warns, just generically
+        user2 = create_verified_user("ursula@no-sso-corp.com")
+
+        response = self.client.post(login_url, {"login": user2.email, "password": self.default_password}, follow=True)
+        self.assertContains(response, "sso-login-warning")
+        self.assertContains(response, 'header="Use Single Sign-On"')
 
     @override_settings(BRAND={"features": []})
     def test_invite_with_closed_signups(self):

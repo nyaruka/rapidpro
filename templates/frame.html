@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-{% load humanize i18n smartmin sms compress static temba socialaccount %}
+{% load humanize i18n smartmin sms compress static temba %}
 
 {% block html-tag %}
   <html lang="{{ LANGUAGE_CODE }}">
@@ -213,9 +213,8 @@
           </temba-toast>
           {% pop_session "sso_login_warning" as sso_login_warning %}
           {% if sso_login_warning %}
-            {% get_providers as sso_providers %}
-            {% if sso_providers %}
-              {% blocktrans with provider=sso_providers.0.name asvar sso_warning_title %}Sign In with {{ provider }}{% endblocktrans %}
+            {% if sso_login_warning.provider %}
+              {% blocktrans with provider=sso_login_warning.provider asvar sso_warning_title %}Sign In with {{ provider }}{% endblocktrans %}
             {% else %}
               {% trans "Use Single Sign-On" as sso_warning_title %}
             {% endif %}
@@ -227,8 +226,8 @@
                           hideOnClick
                           id="sso-login-warning">
               <div class="p-6">
-                {% if sso_providers %}
-                  {% blocktrans trimmed with provider=sso_providers.0.name %}
+                {% if sso_login_warning.provider %}
+                  {% blocktrans trimmed with provider=sso_login_warning.provider %}
                     Signing in with an email and password is going away for your organization. To keep access to your
                     account, please use <b>Sign In with {{ provider }}</b> the next time you sign in.
                   {% endblocktrans %}
