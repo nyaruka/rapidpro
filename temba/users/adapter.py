@@ -66,7 +66,7 @@ class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
         # users whose email domain should be using SSO get a warning when they login with a password instead
         is_sso = bool(signal_kwargs and signal_kwargs.get("sociallogin"))
         domain = user.email.rsplit("@", 1)[-1].lower() if user.email else ""
-        if not is_sso and domain in settings.SSO_LOGIN_WARNING_DOMAINS:
+        if not is_sso and domain in {d.lower() for d in settings.SSO_LOGIN_WARNING_DOMAINS}:
             request.session["sso_login_warning"] = True
 
         return super().post_login(
