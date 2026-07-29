@@ -15,8 +15,15 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
     def setUp(self):
         super().setUp()
 
-        self.openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
-        self.anthropic = LLM.create(self.org, self.admin, AnthropicType(), "claude-haiku-4-5-20251001", "Claude", {})
+        self.openai = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {"api_key": "openai-key"})
+        self.anthropic = LLM.create(
+            self.org,
+            self.admin,
+            AnthropicType(),
+            "claude-haiku-4-5-20251001",
+            "Claude",
+            {"api_key": "anthropic-key"},
+        )
         LLM.create(self.org2, self.admin2, OpenAIType(), "gpt-4o", "Other Org", {})
 
     def test_list(self):
@@ -33,7 +40,7 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
             list_url, [self.editor, self.admin], context_objects=[self.anthropic, self.openai]
         )
         self.assertEqual("settings/ai", response.headers[TEMBA_MENU_SELECTION])
-        self.assertContentMenu(list_url, self.admin, ["New Anthropic", "New Google", "New OpenAI", "New Azure OpenAI"])
+        self.assertContentMenu(list_url, self.admin, ["New Model"])
         self.assertContentMenu(list_url, self.editor, [])
 
         with override_settings(ORG_LIMIT_DEFAULTS={"llms": 2}):
@@ -41,36 +48,91 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertContains(response, "You have reached the per-workspace limit")
             self.assertContentMenu(list_url, self.admin, [])
 
-        # types that aren't available to the user are hidden from the menu
+        # types that aren't available to the user are hidden from provider selection
         with patch.object(AnthropicType, "is_available_to", lambda self, org, user: user.is_staff):
-            self.assertContentMenu(list_url, self.admin, ["New Google", "New OpenAI", "New Azure OpenAI"])
-            self.assertContentMenu(
-                list_url,
-                self.customer_support,
-                ["New Anthropic", "New Google", "New OpenAI", "New Azure OpenAI"],
-                choose_org=self.org,
-            )
+            self.assertContentMenu(list_url, self.admin, ["New Model"])
+            self.assertContentMenu(list_url, self.customer_support, ["New Model"], choose_org=self.org)
 
-    def test_update(self):
+            response = self.requestView(reverse("ai.llm_connect"), self.admin)
+            providers = dict(response.context["form"].fields["provider"].choices)
+            self.assertNotIn("anthropic", providers)
+            self.assertEqual("Google", providers["google"])
+            self.assertEqual("OpenAI", providers["openai"])
+            self.assertEqual("Azure OpenAI", providers["openai_azure"])
+
+    @patch.object(OpenAIType, "get_model_choices", return_value=[("gpt-4o", "gpt-4o"), ("gpt-4.1", "gpt-4.1")])
+    def test_connect_reuses_api_key(self, mock_get_models):
+        connect_url = reverse("ai.llm_connect")
+        self.login(self.admin)
+
+        response = self.process_wizard("connect", connect_url, {"provider": {"provider": "openai"}})
+        self.assertFalse(response.context["form"].fields["api_key"].required)
+        self.assertEqual("••••••••", response.context["form"].fields["api_key"].widget.attrs["placeholder"])
+        self.assertContains(response, "Leave blank to use the existing API key for this provider.")
+        self.assertNotContains(response, "openai-key")
+
+        response = self.process_wizard("connect", connect_url, {"credentials": {"api_key": ""}})
+        self.assertEqual(
+            [("gpt-4o", "gpt-4o"), ("gpt-4.1", "gpt-4.1")], response.context["form"].fields["model"].choices
+        )
+
+        response = self.process_wizard(
+            "connect", connect_url, {"model": {"model": "gpt-4.1", "name": "Flow Assistant"}}
+        )
+        self.assertRedirects(response, reverse("ai.llm_list"))
+
+        llm = self.org.llms.get(name="Flow Assistant")
+        self.assertEqual({"api_key": "openai-key"}, llm.config)
+        self.assertGreaterEqual(mock_get_models.call_count, 2)
+
+    @patch.object(OpenAIType, "get_model_choices", return_value=[("gpt-4o", "gpt-4o"), ("gpt-4.1", "gpt-4.1")])
+    def test_update(self, mock_get_models):
         update_url = reverse("ai.llm_update", args=[self.openai.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.editor, self.admin2])
 
-        self.assertUpdateFetch(update_url, [self.admin], form_fields={"name": "GPT-4"})
+        response = self.assertUpdateFetch(update_url, [self.admin], form_fields={"provider": "openai"})
+        providers = dict(response.context["form"].fields["provider"].choices)
+        self.assertEqual("Anthropic", providers["anthropic"])
+        self.assertEqual("Google", providers["google"])
+        self.assertEqual("OpenAI", providers["openai"])
+        self.assertEqual("Azure OpenAI", providers["openai_azure"])
+
+        # existing keys are never sent to the browser and can be preserved by leaving the field blank
+        response = self.process_wizard("update", update_url, {"provider": {"provider": "openai"}})
+        self.assertFalse(response.context["form"].fields["api_key"].required)
+        self.assertEqual("••••••••", response.context["form"].fields["api_key"].widget.attrs["placeholder"])
+        self.assertNotContains(response, "openai-key")
+
+        response = self.process_wizard("update", update_url, {"credentials": {"api_key": ""}})
+        self.assertEqual(
+            [("gpt-4o", "gpt-4o"), ("gpt-4.1", "gpt-4.1")], response.context["form"].fields["model"].choices
+        )
+        self.assertEqual("gpt-4o", response.context["form"].initial["model"])
+        self.assertEqual("GPT-4", response.context["form"].initial["name"])
 
         # names must be unique (case-insensitive)
-        self.assertUpdateSubmit(
-            update_url,
-            self.admin,
-            {"name": "claude"},
-            form_errors={"name": "Must be unique."},
-            object_unchanged=self.openai,
-        )
+        response = self.process_wizard("update", update_url, {"model": {"model": "gpt-4.1", "name": "claude"}})
+        self.assertFormError(response.context["form"], "name", "Must be unique.")
 
-        self.assertUpdateSubmit(update_url, self.admin, {"name": "GPT-4-Turbo"}, success_status=302)
+        # update the model and name while preserving the existing key
+        response = self.process_wizard(
+            "update",
+            update_url,
+            {
+                "provider": {"provider": "openai"},
+                "credentials": {"api_key": ""},
+                "model": {"model": "gpt-4.1", "name": "Translation Assistant"},
+            },
+        )
+        self.assertRedirects(response, reverse("ai.llm_list"))
 
         self.openai.refresh_from_db()
-        self.assertEqual(self.openai.name, "GPT-4-Turbo")
+        self.assertEqual("Translation Assistant", self.openai.name)
+        self.assertEqual("gpt-4.1", self.openai.model)
+        self.assertEqual({"api_key": "openai-key"}, self.openai.config)
+        self.assertEqual(32_768, self.openai.max_output_tokens)
+        self.assertGreaterEqual(mock_get_models.call_count, 2)
 
         # system LLMs can't be edited
         self.openai.is_system = True
@@ -78,6 +140,54 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
         self.assertEqual(404, self.client.get(update_url).status_code)
+
+    @patch.object(AnthropicType, "get_model_choices", return_value=[("claude-sonnet-5", "Claude Sonnet 5")])
+    def test_update_provider(self, mock_get_models):
+        update_url = reverse("ai.llm_update", args=[self.openai.uuid])
+        self.login(self.admin)
+
+        response = self.process_wizard("update", update_url, {"provider": {"provider": "anthropic"}})
+        self.assertFalse(response.context["form"].fields["api_key"].required)
+        self.assertEqual("••••••••", response.context["form"].fields["api_key"].widget.attrs["placeholder"])
+        self.assertNotContains(response, "anthropic-key")
+
+        response = self.process_wizard(
+            "update",
+            update_url,
+            {
+                "credentials": {"api_key": ""},
+                "model": {"model": "claude-sonnet-5", "name": "Support Assistant"},
+            },
+        )
+        self.assertRedirects(response, reverse("ai.llm_list"))
+
+        self.openai.refresh_from_db()
+        self.assertEqual("anthropic", self.openai.llm_type)
+        self.assertEqual("claude-sonnet-5", self.openai.model)
+        self.assertEqual("Support Assistant", self.openai.name)
+        self.assertEqual({"api_key": "anthropic-key"}, self.openai.config)
+        self.assertEqual(128_000, self.openai.max_output_tokens)
+        self.assertGreaterEqual(mock_get_models.call_count, 2)
+
+    @patch.object(OpenAIType, "get_model_choices", return_value=[("gpt-4o", "gpt-4o")])
+    def test_update_api_key(self, mock_get_models):
+        update_url = reverse("ai.llm_update", args=[self.openai.uuid])
+        self.login(self.admin)
+
+        response = self.process_wizard(
+            "update",
+            update_url,
+            {
+                "provider": {"provider": "openai"},
+                "credentials": {"api_key": "openai-new-key"},
+                "model": {"model": "gpt-4o", "name": "GPT-4"},
+            },
+        )
+        self.assertRedirects(response, reverse("ai.llm_list"))
+
+        self.openai.refresh_from_db()
+        self.assertEqual({"api_key": "openai-new-key"}, self.openai.config)
+        self.assertGreaterEqual(mock_get_models.call_count, 2)
 
     @mock_mailroom
     def test_translate(self, mr_mocks):
