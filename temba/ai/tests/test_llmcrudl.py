@@ -83,7 +83,28 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
 
         llm = self.org.llms.get(name="Flow Assistant")
         self.assertEqual({"api_key": "openai-key"}, llm.config)
-        self.assertGreaterEqual(mock_get_models.call_count, 2)
+        mock_get_models.assert_called_once_with("openai-key")
+
+    def test_connect_does_not_reuse_ineligible_api_keys(self):
+        self.openai.is_active = False
+        self.openai.save(update_fields=("is_active",))
+
+        other_org = self.org2.llms.get(name="Other Org")
+        other_org.config = {"api_key": "other-org-key"}
+        other_org.save(update_fields=("config",))
+
+        inactive = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "Inactive", {"api_key": "inactive-key"})
+        inactive.is_active = False
+        inactive.save(update_fields=("is_active",))
+
+        system = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "System", {"api_key": "system-key"})
+        system.is_system = True
+        system.save(update_fields=("is_system",))
+
+        self.login(self.admin)
+        response = self.process_wizard("connect", reverse("ai.llm_connect"), {"provider": {"provider": "openai"}})
+        self.assertTrue(response.context["form"].fields["api_key"].required)
+        self.assertNotIn("placeholder", response.context["form"].fields["api_key"].widget.attrs)
 
     @patch.object(OpenAIType, "get_model_choices", return_value=[("gpt-4o", "gpt-4o"), ("gpt-4.1", "gpt-4.1")])
     def test_update(self, mock_get_models):
@@ -132,7 +153,7 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("gpt-4.1", self.openai.model)
         self.assertEqual({"api_key": "openai-key"}, self.openai.config)
         self.assertEqual(32_768, self.openai.max_output_tokens)
-        self.assertGreaterEqual(mock_get_models.call_count, 2)
+        mock_get_models.assert_called_once_with("openai-key")
 
         # system LLMs can't be edited
         self.openai.is_system = True
@@ -167,7 +188,7 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Support Assistant", self.openai.name)
         self.assertEqual({"api_key": "anthropic-key"}, self.openai.config)
         self.assertEqual(128_000, self.openai.max_output_tokens)
-        self.assertGreaterEqual(mock_get_models.call_count, 2)
+        mock_get_models.assert_called_once_with("anthropic-key")
 
     @patch.object(OpenAIType, "get_model_choices", return_value=[("gpt-4o", "gpt-4o")])
     def test_update_api_key(self, mock_get_models):
@@ -187,7 +208,7 @@ class LLMCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.openai.refresh_from_db()
         self.assertEqual({"api_key": "openai-new-key"}, self.openai.config)
-        self.assertGreaterEqual(mock_get_models.call_count, 2)
+        mock_get_models.assert_called_once_with("openai-new-key")
 
     @mock_mailroom
     def test_translate(self, mr_mocks):

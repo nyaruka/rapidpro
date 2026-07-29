@@ -6,6 +6,7 @@ from django import forms
 from django.db.models.functions import Lower
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
+from django.utils.crypto import salted_hmac
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
@@ -47,9 +48,10 @@ class ProviderForm(ModelWizardForm):
 class CredentialsForm(ModelWizardForm):
     api_key = forms.CharField(label=_("API Key"), widget=InputWidget(attrs={"password": True}))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, validation_cache=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.validation_cache = validation_cache
         existing_key = self.get_existing_api_key()
         self.fields["api_key"].help_text = self.llm_type.api_key_help
         if existing_key:
@@ -81,12 +83,26 @@ class CredentialsForm(ModelWizardForm):
         if not api_key:
             api_key = self.get_existing_api_key()
 
-        try:
-            model_choices = self.llm_type.get_model_choices(api_key)
-        except LLMCredentialsError as e:
-            raise forms.ValidationError(str(e))
+        api_key_hash = salted_hmac("temba.ai.credentials", api_key).hexdigest()
+        cache = self.validation_cache
+        if (
+            cache
+            and cache.get("llm_type") == self.llm_type.slug
+            and cache.get("api_key_hash") == api_key_hash
+            and cache.get("model_choices") is not None
+        ):
+            model_choices = cache["model_choices"]
+        else:
+            try:
+                model_choices = self.llm_type.get_model_choices(api_key)
+            except LLMCredentialsError as e:
+                raise forms.ValidationError(str(e))
 
-        self.extra_data = {"model_choices": model_choices}
+        self.extra_data = {
+            "validated_api_key_hash": api_key_hash,
+            "validated_llm_type": self.llm_type.slug,
+            "model_choices": model_choices,
+        }
         return api_key
 
 
@@ -143,8 +159,17 @@ class ModelWizardMixin:
         provider = self.get_cleaned_data_for_step("provider")["provider"]
         return next(t for t in LLM.get_types() if t.slug == provider)
 
-    def get_model_choices(self):
-        return self.storage.data["step_data"]["credentials"]["model_choices"][0]
+    def get_credentials_validation(self):
+        # Extra data added by SmartWizardView.process_step is list-wrapped by the wizard's MultiValueDict storage.
+        data = self.storage.get_step_data("credentials")
+        if not data:
+            return None
+
+        return {
+            "api_key_hash": data.get("validated_api_key_hash"),
+            "llm_type": data.get("validated_llm_type"),
+            "model_choices": data.get("model_choices"),
+        }
 
     def get_form_kwargs(self, step=None):
         kwargs = super().get_form_kwargs(step)
@@ -152,8 +177,10 @@ class ModelWizardMixin:
 
         if step != "provider":
             kwargs["llm_type"] = self.get_selected_type()
-        if step == "model":
-            kwargs["model_choices"] = self.get_model_choices()
+        if step == "credentials":
+            kwargs["validation_cache"] = self.get_credentials_validation()
+        elif step == "model":
+            kwargs["model_choices"] = self.get_credentials_validation()["model_choices"]
 
         return kwargs
 
