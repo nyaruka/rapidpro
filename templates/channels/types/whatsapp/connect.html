@@ -10,6 +10,7 @@
       {{ claim_error }}
     </temba-alert>
   {% endif %}
+  <temba-alert level="error" class="my-4 hidden" id="connect-error"></temba-alert>
 {% endblock pre-form %}
 {% block form %}
   <div class="mt-4 card">
@@ -44,6 +45,18 @@
       const urlParams = new URLSearchParams(window.location.search)
 
       var accessToken = urlParams.get("code") || result.long_lived_token || result.access_token;
+
+      var oauthError = urlParams.get("error") || result.error;
+      var errorDescription = urlParams.get("error_description");
+      if (!errorDescription && result.error_description) {
+        errorDescription = decodeURIComponent(result.error_description.replace(/\+/g, " "));
+      }
+
+      // don't leave the code/token or error details in the address bar and browser history
+      if (accessToken || oauthError) {
+        history.replaceState(null, "", window.location.pathname);
+      }
+
       if (accessToken) {
         var userAccessToken = document.getElementById("user-access-token");
         var claimForm = document.getElementById("claim-form");
@@ -54,6 +67,10 @@
         if (claimForm) {
           claimForm.submit();
         }
+      } else if (oauthError) {
+        var errorAlert = document.getElementById("connect-error");
+        errorAlert.textContent = errorDescription || "{% trans 'Login was cancelled or failed, please try again.' %}";
+        errorAlert.classList.remove("hidden");
       }
     });
 
