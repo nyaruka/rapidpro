@@ -2,6 +2,27 @@
 
 from django.contrib.postgres.operations import AddIndexConcurrently, RemoveIndexConcurrently
 from django.db import migrations, models
+from django.db.migrations.operations.models import AddIndex, RemoveIndex
+
+
+class AddIndexConcurrentlyPlainReverse(AddIndexConcurrently):
+    """
+    Adds the index concurrently but reverses with a plain drop, so that migration tests - which roll the graph
+    backwards inside a transaction - can unapply it.
+    """
+
+    def database_backwards(self, app_label, schema_editor, from_state, to_state):
+        AddIndex.database_backwards(self, app_label, schema_editor, from_state, to_state)
+
+
+class RemoveIndexConcurrentlyPlainReverse(RemoveIndexConcurrently):
+    """
+    Removes the index concurrently but reverses with a plain create, so that migration tests - which roll the graph
+    backwards inside a transaction - can unapply it.
+    """
+
+    def database_backwards(self, app_label, schema_editor, from_state, to_state):
+        RemoveIndex.database_backwards(self, app_label, schema_editor, from_state, to_state)
 
 
 class Migration(migrations.Migration):
@@ -15,22 +36,22 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        AddIndexConcurrently(
+        AddIndexConcurrentlyPlainReverse(
             model_name="ticket",
             index=models.Index(fields=["org", "-status", "-last_activity_on", "-id"], name="tickets_org_status_desc"),
         ),
-        AddIndexConcurrently(
+        AddIndexConcurrentlyPlainReverse(
             model_name="ticket",
             index=models.Index(
                 fields=["org", "assignee", "-status", "-last_activity_on", "-id"],
                 name="tickets_org_assign_status_desc",
             ),
         ),
-        RemoveIndexConcurrently(
+        RemoveIndexConcurrentlyPlainReverse(
             model_name="ticket",
             name="tickets_org_status",
         ),
-        RemoveIndexConcurrently(
+        RemoveIndexConcurrentlyPlainReverse(
             model_name="ticket",
             name="tickets_org_assignee_status",
         ),
