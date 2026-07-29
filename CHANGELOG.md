@@ -1,3 +1,11 @@
+v26.3.23 (2026-07-29)
+-------------------------
+ * Update @nyaruka/temba-components to 0.170.0
+ * Complete Spanish translations and update PO and MO files
+ * Add login warning for users who should be using SSO, with per-provider domain mapping
+ * Pass featured-field priority endpoint to the contact list
+ * Merge open and closed tickets into a single list
+
 v26.3.22 (2026-07-28)
 -------------------------
  * Convert primary keys of more tables to bigint
