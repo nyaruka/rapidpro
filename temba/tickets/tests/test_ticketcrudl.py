@@ -157,6 +157,17 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertNotIn("assignee_uuid", response.context)
 
+        # a malformed assignee is ignored, same as on the folder endpoint
+        response = self.assertListFetch(f"{list_url}all/open/?assignee=notauuid", [self.admin], context_objects=[])
+        self.assertNotIn("assignee_uuid", response.context)
+
+        # a deep link to a valid but unknown uuid stays in the requested folder
+        response = self.assertListFetch(f"{list_url}unassigned/open/{uuid4()}/", [self.admin], context_objects=[])
+        self.assertEqual("Unassigned", response.context["title"])
+        self.assertEqual("unassigned", response.context["folder"])
+        self.assertNotIn("uuid", response.context)
+        self.assertNotIn("nextUUID", response.context)
+
         # non-existent topic should give a 404
         bad_topic_link = f"{list_url}{uuid4()}/open/{ticket.uuid}/"
         response = self.requestView(bad_topic_link, self.agent)
@@ -520,6 +531,12 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(f"{all_url}?after={datetime_to_timestamp(c2_t2.last_activity_on)}")
         self.assertEqual([str(c3_t1.uuid), str(c3_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]])
 
+        # refreshes are never paged, so even a full page of new activity doesn't get a next link
+        with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 1):
+            response = self.client.get(f"{all_url}?after={datetime_to_timestamp(c2_t2.last_activity_on)}")
+            self.assertEqual([str(c3_t1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]])
+            self.assertNotIn("next", response.json())
+
         # assignee filtering works on the merged list too
         assert_tickets(f"{all_url}?assignee={self.admin.uuid}", self.admin, expected=[c1_t1])
 
@@ -637,6 +654,19 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # non-numeric cursor params are ignored so we just get the first page
         response = self.requestView(f"{all_url}?after=NaN&before=x&before_id=y", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        # as are numeric cursor params too big (or small) to be a timestamp
+        response = self.requestView(f"{all_url}?after=100000000000000000000", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        response = self.requestView(f"{all_url}?before=-100000000000000000000&before_id={ticket1.id}", self.admin)
         self.assertEqual(200, response.status_code)
         self.assertEqual(
             [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]

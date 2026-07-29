@@ -327,9 +327,9 @@ class TicketCRUDL(SmartCRUDL):
                 # if not, see if we can access it in the All or Mine tickets folders and if so switch to that
                 mine_folder = TicketFolder.from_slug(org, user, MineFolder.slug)
                 all_folder = TicketFolder.from_slug(org, user, AllFolder.slug)
-                for folder in (mine_folder, all_folder):
-                    if ticket := folder.get_queryset(org, user, ordered=False).filter(uuid=uuid).first():
-                        return folder, ticket.status, ticket, False
+                for fallback in (mine_folder, all_folder):  # don't rebind folder, we fall back to it below
+                    if ticket := fallback.get_queryset(org, user, ordered=False).filter(uuid=uuid).first():
+                        return fallback, ticket.status, ticket, False
 
             return folder, status, None, False
 
@@ -352,9 +352,9 @@ class TicketCRUDL(SmartCRUDL):
             if ticket:
                 context["nextUUID" if in_page else "uuid"] = str(ticket.uuid)
 
-            # pass assignee filter to template if provided
+            # pass assignee filter to template if provided (a malformed uuid is ignored, same as in Folder)
             assignee_uuid = self.request.GET.get("assignee")
-            if assignee_uuid and isinstance(folder, AllFolder):
+            if assignee_uuid and is_uuid(assignee_uuid) and isinstance(folder, AllFolder):
                 context["assignee_uuid"] = assignee_uuid
 
             # pass agent permission flags to template
@@ -391,6 +391,9 @@ class TicketCRUDL(SmartCRUDL):
     class Folder(ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
         permission = "tickets.ticket_list"
         paginate_by = 25
+
+        # microsecond timestamp of 9999-12-31 23:59:59 - anything beyond this can't be converted to a datetime
+        MAX_CURSOR = 253_402_300_799_000_000
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -439,13 +442,15 @@ class TicketCRUDL(SmartCRUDL):
 
         def _int_param(self, name: str) -> int:
             """
-            Reads an integer query param, ignoring any non-numeric value so that a bad cursor from a client can't
-            break its polling.
+            Reads an integer query param, ignoring any non-numeric or out of range value so that a bad cursor from a
+            client can't break its polling.
             """
             try:
-                return int(self.request.GET.get(name, 0))
+                value = int(self.request.GET.get(name, 0))
             except ValueError:
                 return 0
+
+            return value if 0 <= value <= self.MAX_CURSOR else 0
 
         def get_tickets(self) -> list:
             uuid = self.kwargs.get("uuid", None)
@@ -572,8 +577,9 @@ class TicketCRUDL(SmartCRUDL):
 
             results = {"results": [as_json(t) for t in context["tickets"]]}
 
-            # build up our next link if we have more
-            if len(context["tickets"]) >= self.paginate_by:
+            # build up our next link if we have more - refreshes (?after=) are never paged because they're ordered
+            # oldest first, so a next link from the newest ticket would page backwards from an arbitrary point
+            if not self._int_param("after") and len(context["tickets"]) >= self.paginate_by:
                 last = context["tickets"][-1]
 
                 # merged paging continues without a status until it crosses into closed tickets
