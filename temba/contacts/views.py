@@ -945,7 +945,7 @@ class ContactCRUDL(SmartCRUDL):
             )
 
         def get_success_url(self):
-            return f"{reverse('tickets.ticket_list')}all/open/{self.ticket.uuid}/"
+            return f"{reverse('tickets.ticket_list')}all/{self.ticket.uuid}/"
 
     class Interrupt(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         """

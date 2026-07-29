@@ -318,12 +318,13 @@ class Ticket(models.Model):
 
     class Meta:
         indexes = [
-            # used by the All folder
-            models.Index(name="tickets_org_status", fields=["org", "status", "-last_activity_on", "-id"]),
+            # used by the All folder - status is descending so that a forward scan yields the ticket UI's
+            # display order of open ('O') before closed ('C'), then most recent activity
+            models.Index(name="tickets_org_status", fields=["org", "-status", "-last_activity_on", "-id"]),
             # used by the Unassigned and Mine folders
             models.Index(
                 name="tickets_org_assignee_status",
-                fields=["org", "assignee", "status", "-last_activity_on", "-id"],
+                fields=["org", "assignee", "-status", "-last_activity_on", "-id"],
             ),
             # used by engine to load a contact with its open tickets
             models.Index(name="tickets_contact_open", fields=["contact", "opened_on"], condition=Q(status="O")),
@@ -352,7 +353,9 @@ class TicketFolder(metaclass=ABCMeta):
                 qs = qs.filter(topic__in=restricted)
 
         if ordered:
-            qs = qs.order_by("-last_activity_on", "-id")
+            # the ticket UI's display order: open ('O' > 'C') before closed, then most recent activity - for
+            # status filtered fetches the leading term is constant so this is just most recent activity
+            qs = qs.order_by("-status", "-last_activity_on", "-id")
 
         return qs.select_related("topic", "assignee").prefetch_related("contact")
 

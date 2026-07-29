@@ -8,6 +8,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import F, Sum, Value
 from django.db.models.aggregates import Max
+from django.db.models.expressions import RawSQL
 from django.db.models.functions import Cast, Lower
 from django.http import Http404, JsonResponse
 from django.urls import reverse
@@ -112,7 +113,7 @@ class TopicCRUDL(SmartCRUDL):
             return context
 
         def get_redirect_url(self, **kwargs):
-            return f"/ticket/{self.request.org.default_topic.uuid}/open/"
+            return f"/ticket/{self.request.org.default_topic.uuid}/"
 
 
 class TeamCRUDL(SmartCRUDL):
@@ -198,7 +199,7 @@ class TicketCRUDL(SmartCRUDL):
                         "name": folder.name,
                         "icon": folder.get_icon(counts[folder.slug]),
                         "count": counts[folder.slug],
-                        "href": f"/ticket/{folder.slug}/open/",
+                        "href": f"/ticket/{folder.slug}/",
                     }
                 )
 
@@ -242,7 +243,7 @@ class TicketCRUDL(SmartCRUDL):
                         "name": topic.name,
                         "icon": "topic",
                         "count": counts[topic],
-                        "href": f"/ticket/{topic.uuid}/open/",
+                        "href": f"/ticket/{topic.uuid}/",
                     }
                 )
 
@@ -288,7 +289,7 @@ class TicketCRUDL(SmartCRUDL):
         @classmethod
         def derive_url_pattern(cls, path, action):
             folders = "|".join(TicketFolder.all().keys())
-            return rf"^ticket/((?P<folder>{folders}|{UUID_REGEX.pattern})/((?P<status>open|closed)/((?P<uuid>[a-z0-9\-]+)/)?)?)?$"
+            return rf"^ticket/((?P<folder>{folders}|{UUID_REGEX.pattern})/((?P<status>open|closed)/)?((?P<uuid>[a-z0-9\-]+)/)?)?$"
 
         def derive_menu_path(self):
             folder, status, ticket, in_page = self.tickets_path
@@ -309,14 +310,19 @@ class TicketCRUDL(SmartCRUDL):
             if not folder:
                 raise Http404()
 
-            status = Ticket.STATUS_OPEN if self.kwargs.get("status", "open") == "open" else Ticket.STATUS_CLOSED
+            status_slug = self.kwargs.get("status")  # only legacy URLs include a status
+            status = Ticket.STATUS_CLOSED if status_slug == "closed" else Ticket.STATUS_OPEN
 
             # is the request for a specific ticket?
             if uuid := self.kwargs.get("uuid"):
-                # is the ticket in the first page from of current folder?
-                for ticket in list(folder.get_queryset(org, user, ordered=True).filter(status=status)[:25]):
+                # is the ticket in the first page of the current folder?
+                first_page_qs = folder.get_queryset(org, user, ordered=True)
+                if status_slug:
+                    first_page_qs = first_page_qs.filter(status=status)
+
+                for ticket in list(first_page_qs[:25]):
                     if str(ticket.uuid) == uuid:
-                        return folder, status, ticket, True
+                        return folder, ticket.status, ticket, True
 
                 # if not, see if we can access it in the All or Mine tickets folders and if so switch to that
                 mine_folder = TicketFolder.from_slug(org, user, MineFolder.slug)
@@ -389,7 +395,7 @@ class TicketCRUDL(SmartCRUDL):
         @classmethod
         def derive_url_pattern(cls, path, action):
             folders = "|".join(TicketFolder.all().keys())
-            return rf"^{path}/{action}/(?P<folder>{folders}|{UUID_REGEX.pattern})/(?P<status>open|closed)/((?P<uuid>[a-z0-9\-]+))?$"
+            return rf"^{path}/{action}/(?P<folder>{folders}|{UUID_REGEX.pattern})/((?P<status>open|closed)/)?((?P<uuid>[a-z0-9\-]+))?$"
 
         @cached_property
         def folder(self) -> TicketFolder:
@@ -417,68 +423,84 @@ class TicketCRUDL(SmartCRUDL):
                         title=_("Delete Topic"),
                     )
 
-        def get_queryset(self, **kwargs):
-            org = self.request.org
-            user = self.request.user
-            status = Ticket.STATUS_OPEN if self.kwargs["status"] == "open" else Ticket.STATUS_CLOSED
+        @cached_property
+        def assignee(self):
+            # filtering by assignee only applies to the All folder
+            assignee_uuid = self.request.GET.get("assignee")
+            if assignee_uuid and isinstance(self.folder, AllFolder):
+                return User.objects.filter(uuid=assignee_uuid).first()
+            return None
+
+        def _get_queryset(self, *, ordered: bool):
+            qs = self.folder.get_queryset(self.request.org, self.request.user, ordered=ordered)
+            if self.assignee:
+                qs = qs.filter(assignee=self.assignee)
+            return qs
+
+        def get_tickets(self) -> list:
             uuid = self.kwargs.get("uuid", None)
+            status_slug = self.kwargs.get("status")
+            status = (Ticket.STATUS_OPEN if status_slug == "open" else Ticket.STATUS_CLOSED) if status_slug else None
             after = int(self.request.GET.get("after", 0))
             before = int(self.request.GET.get("before", 0))
-            assignee_uuid = self.request.GET.get("assignee", None)
+            before_id = int(self.request.GET.get("before_id", 0))
 
-            # fetching new activity gets a different order later
-            ordered = False if after else True
-            qs = self.folder.get_queryset(org, user, ordered=ordered).filter(status=status)
-
-            # filter by assignee if specified (only applies to All folder)
-            if assignee_uuid and isinstance(self.folder, AllFolder):
-                assignee = User.objects.filter(uuid=assignee_uuid).first()
-                if assignee:
-                    qs = qs.filter(assignee=assignee)
-
-            # all new activity
-            after = int(self.request.GET.get("after", 0))
-            if after:
-                after = timestamp_to_datetime(after)
-                qs = qs.filter(last_activity_on__gt=after).order_by("last_activity_on", "id")
-
-            # historical page
-            if before:
-                before = timestamp_to_datetime(before)
-                qs = qs.filter(last_activity_on__lt=before)
-
-            # if we have exactly one historical page, redo our query for anything including the date
-            # of our last ticket to make sure we don't lose items in our paging
-            if not after and not uuid:
-                qs = qs[: self.paginate_by]
-                count = len(qs)
-
-                if count == self.paginate_by:
-                    last_ticket = qs[len(qs) - 1]
-                    qs = self.folder.get_queryset(org, user, ordered=ordered).filter(
-                        status=status, last_activity_on__gte=last_ticket.last_activity_on
-                    )
-
-                    # reapply assignee filter if set
-                    if assignee_uuid and isinstance(self.folder, AllFolder):
-                        assignee = User.objects.filter(uuid=assignee_uuid).first()
-                        if assignee:
-                            qs = qs.filter(assignee=assignee)
-
-                    # now reapply our before if we have one
-                    if before:
-                        qs = qs.filter(last_activity_on__lt=before)  # pragma: needs cover
-
+            # request for a specific ticket
             if uuid:
-                qs = qs.filter(uuid=uuid)
+                qs = self._get_queryset(ordered=True)
+                if status:
+                    qs = qs.filter(status=status)
+                return list(qs.filter(uuid=uuid))
 
-            return qs
+            # all new activity since a previous fetch.. our indexes have status between org/assignee and
+            # last_activity_on so status always needs to be constrained - as equality for a status specific
+            # fetch, or as both statuses so the planner can still use the index for the merged fetch
+            if after:
+                qs = (
+                    self._get_queryset(ordered=False)
+                    .filter(last_activity_on__gt=timestamp_to_datetime(after))
+                    .order_by("last_activity_on", "id")
+                )
+                qs = (
+                    qs.filter(status=status)
+                    if status
+                    else qs.filter(status__in=(Ticket.STATUS_OPEN, Ticket.STATUS_CLOSED))
+                )
+                return list(qs)
+
+            # pages are read in index order - open before closed, then most recent activity - and paged by an
+            # exact (last_activity_on, id) cursor so that tickets sharing a timestamp can't be lost
+            qs = self._get_queryset(ordered=True)
+            if status:
+                qs = qs.filter(status=status)
+
+            if before and before_id:
+                before = timestamp_to_datetime(before)
+                if status:
+                    cursor = RawSQL(
+                        "(tickets_ticket.last_activity_on, tickets_ticket.id) < (%s, %s)",
+                        (before, before_id),
+                        output_field=models.BooleanField(),
+                    )
+                else:
+                    # a merged cursor is always in the open tickets because next links switch to the closed
+                    # URL once a page ends in a closed ticket
+                    cursor = RawSQL(
+                        "(tickets_ticket.status, tickets_ticket.last_activity_on, tickets_ticket.id) < (%s, %s, %s)",
+                        (Ticket.STATUS_OPEN, before, before_id),
+                        output_field=models.BooleanField(),
+                    )
+                qs = qs.filter(cursor)
+            elif before:
+                # kept for any in-flight links from before cursors included ids
+                qs = qs.filter(last_activity_on__lt=timestamp_to_datetime(before))
+
+            return list(qs[: self.paginate_by])
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            # convert queryset to list so it can't change later
-            tickets = self.get_queryset()
+            tickets = self.get_tickets()
             context["tickets"] = tickets
 
             # get the last message for each contact that these tickets belong to
@@ -535,11 +557,23 @@ class TicketCRUDL(SmartCRUDL):
 
             # build up our next link if we have more
             if len(context["tickets"]) >= self.paginate_by:
-                folder_url = reverse(
-                    "tickets.ticket_folder", kwargs={"folder": self.folder.slug, "status": self.kwargs["status"]}
-                )
-                last_time = results["results"][-1]["ticket"]["last_activity_on"]
-                results["next"] = f"{folder_url}?before={datetime_to_timestamp(last_time)}"
+                last = context["tickets"][-1]
+
+                # merged paging continues without a status until it crosses into closed tickets
+                status_slug = self.kwargs.get("status")
+                if not status_slug and last.status == Ticket.STATUS_CLOSED:
+                    status_slug = "closed"
+
+                # the status and uuid parts of the pattern are optional so it can only be reversed by folder
+                folder_url = reverse("tickets.ticket_folder", kwargs={"folder": self.folder.slug})
+                if status_slug:
+                    folder_url += f"{status_slug}/"
+
+                next_url = f"{folder_url}?before={datetime_to_timestamp(last.last_activity_on)}&before_id={last.id}"
+                if self.assignee:
+                    next_url += f"&assignee={self.assignee.uuid}"
+
+                results["next"] = next_url
 
             return JsonResponse(results)
 
