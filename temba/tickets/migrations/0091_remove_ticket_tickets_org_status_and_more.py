@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("orgs", "0186_alter_export_id_alter_invitation_id_and_more"),
-        ("tickets", "0088_alter_shortcut_id_alter_team_id"),
+        ("tickets", "0090_alter_ticket_id"),
     ]
 
     operations = [
