@@ -955,6 +955,9 @@ MFA_ADAPTER = "temba.users.adapter.TembaMFAAdapter"
 SOCIALACCOUNT_PROVIDERS = {}
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# email domains whose users should be warned to switch to SSO when they login with a password instead
+SSO_LOGIN_WARNING_DOMAINS = []
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 ACCOUNT_LOGIN_METHODS = ("email",)

@@ -5,6 +5,7 @@ from allauth.mfa.adapter import DefaultMFAAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.signals import social_account_added
 
+from django.conf import settings
 from django.contrib import messages
 from django.dispatch import receiver
 from django.utils import timezone
@@ -61,6 +62,23 @@ class InviteAdapterMixin:
 
 
 class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):
+    def post_login(self, request, user, *, email_verification, signal_kwargs, email, signup, redirect_url):
+        # users whose email domain should be using SSO get a warning when they login with a password instead
+        is_sso = bool(signal_kwargs and signal_kwargs.get("sociallogin"))
+        domain = user.email.rsplit("@", 1)[-1].lower() if user.email else ""
+        if not is_sso and domain in settings.SSO_LOGIN_WARNING_DOMAINS:
+            request.session["sso_login_warning"] = True
+
+        return super().post_login(
+            request,
+            user,
+            email_verification=email_verification,
+            signal_kwargs=signal_kwargs,
+            email=email,
+            signup=signup,
+            redirect_url=redirect_url,
+        )
+
     def send_mail(self, template_prefix, email, context):
         # our emails need some additional context
         context["branding"] = self.request.branding

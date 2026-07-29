@@ -144,3 +144,11 @@ def format_datetime(context, dt, seconds: bool = False):
 def absolute_url(context, url_pattern):
     request = context["request"]
     return request.build_absolute_uri(reverse(url_pattern))
+
+
+@register.simple_tag(takes_context=True)
+def pop_session(context, key):
+    """
+    Removes and returns a value from the request session - for one-time flags such as login warnings.
+    """
+    return context["request"].session.pop(key, None)

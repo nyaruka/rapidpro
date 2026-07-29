@@ -1,5 +1,7 @@
 from urllib.parse import urlencode
 
+from allauth.account.models import EmailAddress
+
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
@@ -92,6 +94,34 @@ class UserAuthTest(TembaTest):
         emails = self.admin.emailaddress_set.all()
         self.assertEqual(2, emails.count())
         self.assertTrue(emails.filter(email="newemail@temba.io").exists())
+
+    @override_settings(
+        SSO_LOGIN_WARNING_DOMAINS=["sso-corp.com"],
+        SOCIALACCOUNT_PROVIDERS={"google": {"APPS": [{"client_id": "test-id", "secret": "test-secret", "key": ""}]}},
+    )
+    def test_sso_login_warning(self):
+        login_url = reverse("account_login")
+
+        # logging in with a password from a non-matching domain doesn't warn
+        response = self.client.post(
+            login_url, {"login": self.admin.email, "password": self.default_password}, follow=True
+        )
+        self.assertNotContains(response, "sso-login-warning")
+
+        self.client.logout()
+
+        # but a user whose email domain should be using SSO gets warned
+        user = self.create_user("uma@sso-corp.com")
+        EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
+        self.org.add_user(user, OrgRole.EDITOR)
+
+        response = self.client.post(login_url, {"login": user.email, "password": self.default_password}, follow=True)
+        self.assertContains(response, "sso-login-warning")
+        self.assertContains(response, 'header="Sign In with Google"')
+
+        # only on the first page load after login
+        response = self.client.get(response.request["PATH_INFO"])
+        self.assertNotContains(response, "sso-login-warning")
 
     @override_settings(BRAND={"features": []})
     def test_invite_with_closed_signups(self):
