@@ -826,9 +826,7 @@ msgid "MT Response check"
 msgstr "MT checagem de resposta"
 
 msgid "The content that must be in the response to consider the request successful"
-msgstr ""
-"O conteúdo que precisa estar na resposta para considerar a \n"
-"solicitação bem sucedida."
+msgstr "O conteúdo que precisa estar na resposta para considerar a solicitação bem sucedida"
 
 msgid "Invalid JSON, make sure to remove quotes around variables"
 msgstr "JSON inválido, certifique-se de remover as aspas em torno das variáveis"
