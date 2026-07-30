@@ -103,7 +103,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                 tps=45,
             )
         except forms.ValidationError as e:
-            form._errors["__all__"] = form.error_class(e.messages)
+            form.add_error(None, e)
             return self.form_invalid(form)
 
         return super().form_valid(form)
