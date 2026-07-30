@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 15:35+0000\n"
+"POT-Creation-Date: 2026-07-30 17:09+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Rowan Seymour <rowanseymour@gmail.com>, 2022\n"
 "Language-Team: French (https://www.transifex.com/rapidpro/teams/226/fr/)\n"
@@ -3507,89 +3507,17 @@ msgstr "Vous devez spécifier une heure de début située dans le futur."
 msgid "English"
 msgstr "Anglais"
 
-msgid "Czech"
-msgstr "Tchèque"
-
 msgid "Spanish"
 msgstr "Espanol"
 
 msgid "French"
 msgstr "Français"
 
-msgid "Mongolian"
-msgstr "Mongole"
-
 msgid "Portuguese"
 msgstr "Portugais"
 
-msgid "Russian"
-msgstr "Russe"
-
 msgid "Visually build nationally scalable mobile applications anywhere in the world."
 msgstr "Créez visuellement des applications mobiles déployables à l'échelle nationale, partout dans le monde."
-
-msgid "Edit Workspace"
-msgstr "Modifier l'espace de travail"
-
-msgid "Flag"
-msgstr "Marquer"
-
-msgid "Unflag"
-msgstr "Ne pas marquer"
-
-msgid "Suspend"
-msgstr "Suspendre"
-
-msgid "Unsuspend"
-msgstr "Lever la suspension"
-
-msgid "Verify"
-msgstr "Vérifier"
-
-msgid "Service"
-msgstr "Service"
-
-msgid "Anonymous"
-msgstr "Anonyme"
-
-msgid "Flagged"
-msgstr "Signalé"
-
-msgid "Suspended"
-msgstr "Suspendu"
-
-msgid "Verified"
-msgstr "Vérifié"
-
-msgid "Edit User"
-msgstr "Modifier l'utilisateur"
-
-msgid "Unverify"
-msgstr "Annuler la vérification"
-
-msgid "Disable MFA"
-msgstr "Désactiver la MFA"
-
-msgid "Delete User"
-msgstr "Supprimer l'utilisateur"
-
-msgid "Optional: Select permissions groups."
-msgstr "Optionnel : sélectionnez des groupes de permissions."
-
-msgid "You can reset the user's password by entering a new password here"
-msgstr "Vous pouvez réinitialiser le mot de passe de l'utilisateur en saisissant un nouveau mot de passe ici"
-
-msgid "User updated successfully."
-msgstr "Utilisateur mis à jour avec succès."
-
-msgid "Update User"
-msgstr "Mettre à jour l'utilisateur"
-
-msgid "Beta"
-msgstr "Bêta"
-
-msgid "✓"
-msgstr "✓"
 
 msgid "Approved"
 msgstr "Approuvé"
@@ -5874,6 +5802,9 @@ msgstr "Jeton de 8 caractères"
 msgid "Use Device"
 msgstr "Utiliser le dispositif"
 
+msgid "Verify"
+msgstr "Vérifier"
+
 msgid "Open the one-time password application with which you setup two-factor authentication on your account and enter the code below to verify your identity."
 msgstr "Ouvrez l'application de mot de passe à usage unique avec laquelle vous avez configuré l'authentification à deux facteurs sur votre compte et saisissez le code ci-dessous pour vérifier votre identité."
 
@@ -6076,11 +6007,17 @@ msgstr "Réinitialiser le mot de passe"
 msgid "Enter the email address you used to sign up. We will send you an email with details on how to reset your password."
 msgstr "Saisissez l'adresse e-mail que vous avez utilisée lors de votre inscription. Nous vous enverrons un e-mail expliquant comment réinitialiser votre mot de passe."
 
+msgid "Update User"
+msgstr "Mettre à jour l'utilisateur"
+
 msgid "Remove User"
 msgstr "Retirer l'utilisateur"
 
 msgid "2FA"
 msgstr "2FA"
+
+msgid "Verified"
+msgstr "Vérifié"
 
 msgid "No users"
 msgstr "Aucun utilisateur"
@@ -6489,27 +6426,6 @@ msgstr "Compte tiers déconnecté"
 msgid "Accept Invitation with %(provider)s"
 msgstr "Accepter l'invitation avec %(provider)s"
 
-#, python-format
-msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."
-msgstr "La page que vous demandez appartient à un autre espace de travail, <b>%(org)s</b>. Pour la consulter, vous devrez accéder à leur compte en mode assistance."
-
-#, python-format
-msgid "You are about to service the workspace, <b>%(org)s</b>."
-msgstr "Vous êtes sur le point d'accéder en mode assistance à l'espace de travail <b>%(org)s</b>."
-
-msgid "Service Account"
-msgstr "Compte d'assistance"
-
-msgid "Invalid org, servicing not available."
-msgstr "Organisation non valide, l'accès en mode assistance n'est pas disponible."
-
-msgid "Deleting this user will also delete the following workspaces owned by this user."
-msgstr "La suppression de cet utilisateur entraînera également la suppression des espaces de travail suivants dont il est propriétaire."
-
-#, python-format
-msgid "Are you sure you want to delete <b>%(email)s</b>?\""
-msgstr "Voulez-vous vraiment supprimer <b>%(email)s</b> ?\""
-
 msgid "Uses unsupported component types."
 msgstr "Utilise des types de composants non pris en charge."
 
@@ -6728,6 +6644,90 @@ msgstr "${count} trouvé pour ${query}"
 
 msgid "Next"
 msgstr "Suivant"
+
+#~ msgid "Czech"
+#~ msgstr "Tchèque"
+
+#~ msgid "Mongolian"
+#~ msgstr "Mongole"
+
+#~ msgid "Russian"
+#~ msgstr "Russe"
+
+#~ msgid "Edit Workspace"
+#~ msgstr "Modifier l'espace de travail"
+
+#~ msgid "Flag"
+#~ msgstr "Marquer"
+
+#~ msgid "Unflag"
+#~ msgstr "Ne pas marquer"
+
+#~ msgid "Suspend"
+#~ msgstr "Suspendre"
+
+#~ msgid "Unsuspend"
+#~ msgstr "Lever la suspension"
+
+#~ msgid "Service"
+#~ msgstr "Service"
+
+#~ msgid "Anonymous"
+#~ msgstr "Anonyme"
+
+#~ msgid "Flagged"
+#~ msgstr "Signalé"
+
+#~ msgid "Suspended"
+#~ msgstr "Suspendu"
+
+#~ msgid "Edit User"
+#~ msgstr "Modifier l'utilisateur"
+
+#~ msgid "Unverify"
+#~ msgstr "Annuler la vérification"
+
+#~ msgid "Disable MFA"
+#~ msgstr "Désactiver la MFA"
+
+#~ msgid "Delete User"
+#~ msgstr "Supprimer l'utilisateur"
+
+#~ msgid "Optional: Select permissions groups."
+#~ msgstr "Optionnel : sélectionnez des groupes de permissions."
+
+#~ msgid "You can reset the user's password by entering a new password here"
+#~ msgstr "Vous pouvez réinitialiser le mot de passe de l'utilisateur en saisissant un nouveau mot de passe ici"
+
+#~ msgid "User updated successfully."
+#~ msgstr "Utilisateur mis à jour avec succès."
+
+#~ msgid "Beta"
+#~ msgstr "Bêta"
+
+#~ msgid "✓"
+#~ msgstr "✓"
+
+#, python-format
+#~ msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."
+#~ msgstr "La page que vous demandez appartient à un autre espace de travail, <b>%(org)s</b>. Pour la consulter, vous devrez accéder à leur compte en mode assistance."
+
+#, python-format
+#~ msgid "You are about to service the workspace, <b>%(org)s</b>."
+#~ msgstr "Vous êtes sur le point d'accéder en mode assistance à l'espace de travail <b>%(org)s</b>."
+
+#~ msgid "Service Account"
+#~ msgstr "Compte d'assistance"
+
+#~ msgid "Invalid org, servicing not available."
+#~ msgstr "Organisation non valide, l'accès en mode assistance n'est pas disponible."
+
+#~ msgid "Deleting this user will also delete the following workspaces owned by this user."
+#~ msgstr "La suppression de cet utilisateur entraînera également la suppression des espaces de travail suivants dont il est propriétaire."
+
+#, python-format
+#~ msgid "Are you sure you want to delete <b>%(email)s</b>?\""
+#~ msgstr "Voulez-vous vraiment supprimer <b>%(email)s</b> ?\""
 
 #~ msgid "File not found"
 #~ msgstr "Fichier introuvable"

@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 15:18+0000\n"
+"POT-Creation-Date: 2026-07-30 17:09+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Rowan Seymour <rowanseymour@gmail.com>, 2022\n"
 "Language-Team: Spanish (https://www.transifex.com/rapidpro/teams/226/es/)\n"
@@ -3507,89 +3507,17 @@ msgstr "Debe especificar una hora de inicio que esté en el futuro."
 msgid "English"
 msgstr "Inglés"
 
-msgid "Czech"
-msgstr "Checo"
-
 msgid "Spanish"
 msgstr "Español"
 
 msgid "French"
 msgstr "Francés"
 
-msgid "Mongolian"
-msgstr "Mongol"
-
 msgid "Portuguese"
 msgstr "Portugués"
 
-msgid "Russian"
-msgstr "ruso"
-
 msgid "Visually build nationally scalable mobile applications anywhere in the world."
 msgstr "Cree visualmente aplicaciones móviles escalables a nivel nacional en cualquier parte del mundo."
-
-msgid "Edit Workspace"
-msgstr "Editar Workspace"
-
-msgid "Flag"
-msgstr "Bandera"
-
-msgid "Unflag"
-msgstr "Desmarcar"
-
-msgid "Suspend"
-msgstr "Suspender"
-
-msgid "Unsuspend"
-msgstr "Reactivar"
-
-msgid "Verify"
-msgstr "Verificar"
-
-msgid "Service"
-msgstr "Servicio"
-
-msgid "Anonymous"
-msgstr "Anónimo"
-
-msgid "Flagged"
-msgstr "Marcado"
-
-msgid "Suspended"
-msgstr "Suspendido"
-
-msgid "Verified"
-msgstr "Verificado"
-
-msgid "Edit User"
-msgstr "Editar usuario"
-
-msgid "Unverify"
-msgstr "Anular verificación"
-
-msgid "Disable MFA"
-msgstr "Deshabilitar MFA"
-
-msgid "Delete User"
-msgstr "Eliminar Usuario"
-
-msgid "Optional: Select permissions groups."
-msgstr "Opcional: seleccione grupos de permisos."
-
-msgid "You can reset the user's password by entering a new password here"
-msgstr "Puede restablecer la contraseña del usuario introduciendo una nueva contraseña aquí"
-
-msgid "User updated successfully."
-msgstr "Usuario actualizado correctamente."
-
-msgid "Update User"
-msgstr "Actualizar Usuario"
-
-msgid "Beta"
-msgstr "Beta"
-
-msgid "✓"
-msgstr "✓"
 
 msgid "Approved"
 msgstr "Aprobado"
@@ -4010,6 +3938,7 @@ msgstr "Ingresar"
 msgid "You're Invited!"
 msgstr "¡Está invitado!"
 
+#, python-format
 msgid "Enter your password to accept your invitation to the <b>%(org)s</b> workspace."
 msgstr "Ingrese su contraseña para aceptar su invitación al workspace <b>%(org)s</b>."
 
@@ -4214,6 +4143,7 @@ msgstr "Descargar Ahora"
 msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
 msgstr "¿Está seguro de que desea eliminar <b> %(name)s </b>? Esto no se puede deshacer."
 
+#, python-format
 msgid "%(counter)s event"
 msgid_plural "%(counter)s events"
 msgstr[0] "%(counter)s evento"
@@ -4241,6 +4171,7 @@ msgstr "Está a punto de eliminar este evento. No hay forma de deshacer esto. ¿
 msgid "This event is currently being scheduled and can't be edited again until that completes."
 msgstr "Este evento se está programando actualmente y no se puede volver a editar hasta que eso finalice."
 
+#, python-format
 msgid "<b>%(count)s</b> scheduled contacts"
 msgstr "<b>%(count)s</b> contactos programados"
 
@@ -4307,6 +4238,7 @@ msgstr "Seleccione un número que ya posee para conectarlo a su cuenta."
 msgid "(Unsupported)"
 msgstr "(No admitido)"
 
+#, python-format
 msgid "%(channel)s Configuration"
 msgstr "Configuración de %(channel)s"
 
@@ -5319,6 +5251,7 @@ msgstr "¡Oh, no!"
 msgid "We tried our best, but there was an error processing your request. If this keeps happening, please refresh your browser."
 msgstr "Hicimos todo lo posible, pero se produjo un error al procesar su solicitud. Si esto sigue ocurriendo, actualice su navegador."
 
+#, python-format
 msgid "Sign In with %(provider)s"
 msgstr "Iniciar sesión con %(provider)s"
 
@@ -5328,6 +5261,7 @@ msgstr "Usar inicio de sesión único"
 msgid "Ok"
 msgstr "Ok"
 
+#, python-format
 msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use <b>Sign In with %(provider)s</b> the next time you sign in."
 msgstr "El inicio de sesión con correo electrónico y contraseña dejará de estar disponible para su organización. Para mantener el acceso a su cuenta, use <b>Iniciar sesión con %(provider)s</b> la próxima vez que inicie sesión."
 
@@ -5359,6 +5293,7 @@ msgstr "Activo en los últimos %(days)s días"
 msgid "There is already an export in progress. You must wait for that export to complete before starting another."
 msgstr "Ya hay una exportación en curso. Debe esperar a que se complete esa exportación antes de iniciar otra."
 
+#, python-format
 msgid "(%(counter)s retry)"
 msgid_plural "(%(counter)s retries)"
 msgstr[0] "(%(counter)s reintento)"
@@ -5863,6 +5798,9 @@ msgstr "Token de 8 carácteres"
 msgid "Use Device"
 msgstr "Usar dispositivo"
 
+msgid "Verify"
+msgstr "Verificar"
+
 msgid "Open the one-time password application with which you setup two-factor authentication on your account and enter the code below to verify your identity."
 msgstr "Abra la aplicación de contraseña de un solo uso con la que configuró la autenticación de dos factores en su cuenta e ingrese el código a continuación para verificar su identidad."
 
@@ -5992,6 +5930,7 @@ msgstr "Necesita un workspace para utilizar %(brand)s. Asígnele un nombre que d
 msgid "Different Workspace"
 msgstr "Workspace diferente"
 
+#, python-format
 msgid "The page you are requesting belongs to one of your other workspaces, <b>%(org)s</b>. To see it, you will need to switch to that workspace."
 msgstr "La página que está solicitando pertenece a otro de sus workspaces, <b>%(org)s</b>. Para verla, deberá cambiar a ese workspace."
 
@@ -6064,11 +6003,17 @@ msgstr "Restablecer la contraseña"
 msgid "Enter the email address you used to sign up. We will send you an email with details on how to reset your password."
 msgstr "Introduzca la dirección de correo electrónico que utilizó para registrarse. Le enviaremos un correo electrónico con los detalles sobre cómo restablecer su contraseña."
 
+msgid "Update User"
+msgstr "Actualizar Usuario"
+
 msgid "Remove User"
 msgstr "Eliminar usuario"
 
 msgid "2FA"
 msgstr "2FA"
+
+msgid "Verified"
+msgstr "Verificado"
 
 msgid "No users"
 msgstr "Sin usuarios"
@@ -6445,9 +6390,11 @@ msgstr "Esto <b>no se repetirá</b>."
 msgid "Not scheduled"
 msgstr "No programada"
 
+#, python-format
 msgid "Remove %(object)s?"
 msgstr "¿Eliminar %(object)s?"
 
+#, python-format
 msgid "Are you sure you want to remove <b>%(object)s</b> from your account?"
 msgstr "¿Está seguro de que desea eliminar <b>%(object)s</b> de su cuenta?"
 
@@ -6477,27 +6424,9 @@ msgstr "Se ha desconectado de su cuenta una cuenta de terceros de %(provider)s."
 msgid "Third-Party Account Disconnected"
 msgstr "Cuenta de terceros desconectada"
 
+#, python-format
 msgid "Accept Invitation with %(provider)s"
 msgstr "Aceptar invitación con %(provider)s"
-
-msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."
-msgstr "La página que está solicitando pertenece a un workspace diferente, <b>%(org)s</b>. Para verla, deberá dar servicio a su cuenta."
-
-msgid "You are about to service the workspace, <b>%(org)s</b>."
-msgstr "Está a punto de dar servicio al workspace, <b>%(org)s</b>."
-
-msgid "Service Account"
-msgstr "Dar servicio a la cuenta"
-
-msgid "Invalid org, servicing not available."
-msgstr "Org no válida, el servicio no está disponible."
-
-msgid "Deleting this user will also delete the following workspaces owned by this user."
-msgstr "Al eliminar este usuario también se eliminarán los siguientes workspaces cuyo propietario es este usuario."
-
-#, python-format
-msgid "Are you sure you want to delete <b>%(email)s</b>?\""
-msgstr "¿Está seguro de que desea eliminar <b>%(email)s</b>?\""
 
 msgid "Uses unsupported component types."
 msgstr "Utiliza tipos de componentes no compatibles."
@@ -6717,6 +6646,88 @@ msgstr "Se encontró $ {count} por $ {query}"
 
 msgid "Next"
 msgstr "Siguiente"
+
+#~ msgid "Czech"
+#~ msgstr "Checo"
+
+#~ msgid "Mongolian"
+#~ msgstr "Mongol"
+
+#~ msgid "Russian"
+#~ msgstr "ruso"
+
+#~ msgid "Edit Workspace"
+#~ msgstr "Editar Workspace"
+
+#~ msgid "Flag"
+#~ msgstr "Bandera"
+
+#~ msgid "Unflag"
+#~ msgstr "Desmarcar"
+
+#~ msgid "Suspend"
+#~ msgstr "Suspender"
+
+#~ msgid "Unsuspend"
+#~ msgstr "Reactivar"
+
+#~ msgid "Service"
+#~ msgstr "Servicio"
+
+#~ msgid "Anonymous"
+#~ msgstr "Anónimo"
+
+#~ msgid "Flagged"
+#~ msgstr "Marcado"
+
+#~ msgid "Suspended"
+#~ msgstr "Suspendido"
+
+#~ msgid "Edit User"
+#~ msgstr "Editar usuario"
+
+#~ msgid "Unverify"
+#~ msgstr "Anular verificación"
+
+#~ msgid "Disable MFA"
+#~ msgstr "Deshabilitar MFA"
+
+#~ msgid "Delete User"
+#~ msgstr "Eliminar Usuario"
+
+#~ msgid "Optional: Select permissions groups."
+#~ msgstr "Opcional: seleccione grupos de permisos."
+
+#~ msgid "You can reset the user's password by entering a new password here"
+#~ msgstr "Puede restablecer la contraseña del usuario introduciendo una nueva contraseña aquí"
+
+#~ msgid "User updated successfully."
+#~ msgstr "Usuario actualizado correctamente."
+
+#~ msgid "Beta"
+#~ msgstr "Beta"
+
+#~ msgid "✓"
+#~ msgstr "✓"
+
+#~ msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."
+#~ msgstr "La página que está solicitando pertenece a un workspace diferente, <b>%(org)s</b>. Para verla, deberá dar servicio a su cuenta."
+
+#~ msgid "You are about to service the workspace, <b>%(org)s</b>."
+#~ msgstr "Está a punto de dar servicio al workspace, <b>%(org)s</b>."
+
+#~ msgid "Service Account"
+#~ msgstr "Dar servicio a la cuenta"
+
+#~ msgid "Invalid org, servicing not available."
+#~ msgstr "Org no válida, el servicio no está disponible."
+
+#~ msgid "Deleting this user will also delete the following workspaces owned by this user."
+#~ msgstr "Al eliminar este usuario también se eliminarán los siguientes workspaces cuyo propietario es este usuario."
+
+#, python-format
+#~ msgid "Are you sure you want to delete <b>%(email)s</b>?\""
+#~ msgstr "¿Está seguro de que desea eliminar <b>%(email)s</b>?\""
 
 #~ msgid "File not found"
 #~ msgstr "Archivo no encontrado"

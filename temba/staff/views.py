@@ -11,7 +11,6 @@ from django.contrib.auth.models import Group
 from django.db.models import Prefetch
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from temba.orgs.models import Org, OrgRole
@@ -32,31 +31,31 @@ class OrgCRUDL(SmartCRUDL):
                 return
 
             menu.add_modax(
-                _("Edit"),
+                "Edit",
                 "update-workspace",
                 reverse("staff.org_update", args=[obj.id]),
-                title=_("Edit Workspace"),
+                title="Edit Workspace",
                 as_button=True,
                 on_submit="handleWorkspaceUpdated()",
             )
 
             if not obj.is_flagged:
-                menu.add_url_post(_("Flag"), f"{reverse('staff.org_update', args=[obj.id])}?action=flag")
+                menu.add_url_post("Flag", f"{reverse('staff.org_update', args=[obj.id])}?action=flag")
             else:
-                menu.add_url_post(_("Unflag"), f"{reverse('staff.org_update', args=[obj.id])}?action=unflag")
+                menu.add_url_post("Unflag", f"{reverse('staff.org_update', args=[obj.id])}?action=unflag")
 
             if not obj.is_child:
                 if not obj.is_suspended:
-                    menu.add_url_post(_("Suspend"), f"{reverse('staff.org_update', args=[obj.id])}?action=suspend")
+                    menu.add_url_post("Suspend", f"{reverse('staff.org_update', args=[obj.id])}?action=suspend")
                 else:
-                    menu.add_url_post(_("Unsuspend"), f"{reverse('staff.org_update', args=[obj.id])}?action=unsuspend")
+                    menu.add_url_post("Unsuspend", f"{reverse('staff.org_update', args=[obj.id])}?action=unsuspend")
 
             if not obj.is_verified:
-                menu.add_url_post(_("Verify"), f"{reverse('staff.org_update', args=[obj.id])}?action=verify")
+                menu.add_url_post("Verify", f"{reverse('staff.org_update', args=[obj.id])}?action=verify")
 
             menu.new_group()
             menu.add_url_post(
-                _("Service"),
+                "Service",
                 f"{reverse('staff.org_service')}?other_org={obj.id}&next={reverse('msgs.msg_inbox', args=[])}",
             )
 
@@ -81,11 +80,11 @@ class OrgCRUDL(SmartCRUDL):
         search_fields = ("name__icontains", "created_by__email__iexact", "config__icontains")
         link_fields = ("name", "owner")
         filters = (
-            ("all", _("All"), dict(), ("-created_on",)),
-            ("anon", _("Anonymous"), dict(is_anon=True, is_suspended=False), None),
-            ("flagged", _("Flagged"), dict(is_flagged=True, is_suspended=False), None),
-            ("suspended", _("Suspended"), dict(is_suspended=True), None),
-            ("verified", _("Verified"), dict(config__verified=True, is_suspended=False), None),
+            ("all", "All", dict(), ("-created_on",)),
+            ("anon", "Anonymous", dict(is_anon=True, is_suspended=False), None),
+            ("flagged", "Flagged", dict(is_flagged=True, is_suspended=False), None),
+            ("suspended", "Suspended", dict(is_suspended=True), None),
+            ("verified", "Verified", dict(config__verified=True, is_suspended=False), None),
         )
 
         @csrf_exempt
@@ -277,24 +276,22 @@ class UserCRUDL(SmartCRUDL):
         def build_context_menu(self, menu):
             obj = self.get_object()
             menu.add_modax(
-                _("Edit"),
+                "Edit",
                 "user-update",
                 reverse("staff.user_update", args=[obj.id]),
-                title=_("Edit User"),
+                title="Edit User",
                 as_button=True,
             )
 
             if not obj.is_verified():
-                menu.add_url_post(_("Verify"), f"{reverse('staff.user_update', args=[obj.id])}?action=verify")
+                menu.add_url_post("Verify", f"{reverse('staff.user_update', args=[obj.id])}?action=verify")
             else:
-                menu.add_url_post(_("Unverify"), f"{reverse('staff.user_update', args=[obj.id])}?action=unverify")
+                menu.add_url_post("Unverify", f"{reverse('staff.user_update', args=[obj.id])}?action=unverify")
 
             if obj.is_mfa_enabled:
-                menu.add_url_post(_("Disable MFA"), f"{reverse('staff.user_update', args=[obj.id])}?action=disable-mfa")
+                menu.add_url_post("Disable MFA", f"{reverse('staff.user_update', args=[obj.id])}?action=disable-mfa")
 
-            menu.add_modax(
-                _("Delete"), "user-delete", reverse("staff.user_delete", args=[obj.id]), title=_("Delete User")
-            )
+            menu.add_modax("Delete", "user-delete", reverse("staff.user_delete", args=[obj.id]), title="Delete User")
 
     class Update(StaffOnlyMixin, ModalFormMixin, ComponentFormMixin, ContextMenuMixin, SmartUpdateView):
         ACTION_VERIFY = "verify"
@@ -304,7 +301,7 @@ class UserCRUDL(SmartCRUDL):
         class Form(forms.ModelForm):
             groups = forms.ModelMultipleChoiceField(
                 widget=SelectMultipleWidget(
-                    attrs={"placeholder": _("Optional: Select permissions groups."), "searchable": True}
+                    attrs={"placeholder": "Optional: Select permissions groups.", "searchable": True}
                 ),
                 queryset=Group.objects.all(),
                 required=False,
@@ -313,11 +310,11 @@ class UserCRUDL(SmartCRUDL):
             class Meta:
                 model = User
                 fields = ("email", "first_name", "last_name", "groups")
-                help_texts = {"new_password": _("You can reset the user's password by entering a new password here")}
+                help_texts = {"new_password": "You can reset the user's password by entering a new password here"}
 
         form_class = Form
-        success_message = _("User updated successfully.")
-        title = _("Update User")
+        success_message = "User updated successfully."
+        title = "Update User"
 
         def post(self, request, *args, **kwargs):
             obj = self.get_object()
@@ -353,7 +350,7 @@ class UserCRUDL(SmartCRUDL):
     class Delete(StaffOnlyMixin, ModalFormMixin, SmartDeleteView):
         fields = ("id",)
         permission = "staff.user_update"
-        submit_button_name = _("Delete")
+        submit_button_name = "Delete"
         cancel_url = "@staff.user_list"
 
         def get_context_data(self, **kwargs):
@@ -374,7 +371,7 @@ class UserCRUDL(SmartCRUDL):
         fields = ("email", "name", "date_joined", "2fa", "verified")
         ordering = ("-date_joined",)
         search_fields = ("email__icontains", "first_name__icontains", "last_name__icontains")
-        filters = (("all", _("All")), ("beta", _("Beta")), ("staff", _("Staff")))
+        filters = (("all", "All"), ("beta", "Beta"), ("staff", "Staff"))
 
         def derive_menu_path(self):
             return f"/staff/users/{self.request.GET.get('filter', 'all')}"
@@ -406,7 +403,7 @@ class UserCRUDL(SmartCRUDL):
             return context
 
         def get_2fa(self, obj):
-            return _("✓") if obj.is_mfa_enabled else _("")
+            return "✓" if obj.is_mfa_enabled else ""
 
         def get_verified(self, obj):
-            return _("✓") if obj.email_verified else _("")
+            return "✓" if obj.email_verified else ""

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 17:02+0000\n"
+"POT-Creation-Date: 2026-07-30 17:09+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Rowan Seymour <rowanseymour@gmail.com>, 2022\n"
 "Language-Team: Portuguese (Brazil) (https://www.transifex.com/rapidpro/teams/226/pt_BR/)\n"
@@ -3525,69 +3525,6 @@ msgstr "Português"
 msgid "Visually build nationally scalable mobile applications anywhere in the world."
 msgstr "Crie visualmente aplicações móveis escaláveis em escala nacional em qualquer lugar do mundo."
 
-msgid "Edit Workspace"
-msgstr "Editar área de trabalho"
-
-msgid "Flag"
-msgstr "Sinalizar"
-
-msgid "Unflag"
-msgstr "Não sinalizar"
-
-msgid "Suspend"
-msgstr "Suspender"
-
-msgid "Unsuspend"
-msgstr "Remover suspensão"
-
-msgid "Verify"
-msgstr "Verificar"
-
-msgid "Service"
-msgstr "Serviço"
-
-msgid "Anonymous"
-msgstr "Anônima"
-
-msgid "Flagged"
-msgstr "Sinalizada"
-
-msgid "Suspended"
-msgstr "Suspensa"
-
-msgid "Verified"
-msgstr "Verificada"
-
-msgid "Edit User"
-msgstr "Editar usuário"
-
-msgid "Unverify"
-msgstr "Remover verificação"
-
-msgid "Disable MFA"
-msgstr "Desabilitar MFA"
-
-msgid "Delete User"
-msgstr "Deletar usuário"
-
-msgid "Optional: Select permissions groups."
-msgstr "Opcional: selecione os grupos de permissões."
-
-msgid "You can reset the user's password by entering a new password here"
-msgstr "Você pode redefinir a senha do usuário digitando uma nova senha aqui"
-
-msgid "User updated successfully."
-msgstr "Usuário atualizado com sucesso."
-
-msgid "Update User"
-msgstr "Atualizar usuário"
-
-msgid "Beta"
-msgstr "Beta"
-
-msgid "✓"
-msgstr "✓"
-
 msgid "Approved"
 msgstr "Aprovado"
 
@@ -5867,6 +5804,9 @@ msgstr "Token de 8-caracteres"
 msgid "Use Device"
 msgstr "Utilizar Dispositivo"
 
+msgid "Verify"
+msgstr "Verificar"
+
 msgid "Open the one-time password application with which you setup two-factor authentication on your account and enter the code below to verify your identity."
 msgstr "Abra a aplicação de senha única no qual você irá configurar a sua autenticação de 2-fatores na sua conta, e entre o código abaixo para verificar a sua identidade."
 
@@ -6069,11 +6009,17 @@ msgstr "Reconfigurar Senha"
 msgid "Enter the email address you used to sign up. We will send you an email with details on how to reset your password."
 msgstr "Digite o endereço de e-mail que você usou no cadastro. Nós lhe enviaremos um e-mail com os detalhes sobre como redefinir a sua senha."
 
+msgid "Update User"
+msgstr "Atualizar usuário"
+
 msgid "Remove User"
 msgstr "Remover usuário"
 
 msgid "2FA"
 msgstr "2FA"
+
+msgid "Verified"
+msgstr "Verificada"
 
 msgid "No users"
 msgstr "Nenhum usuário"
@@ -6475,27 +6421,6 @@ msgstr "Conta de terceiros desconectada"
 msgid "Accept Invitation with %(provider)s"
 msgstr "Aceitar convite com %(provider)s"
 
-#, python-format
-msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."
-msgstr "A página que você está solicitando pertence a outra área de trabalho, <b>%(org)s</b>. Para vê-la, você precisará atender a conta deles."
-
-#, python-format
-msgid "You are about to service the workspace, <b>%(org)s</b>."
-msgstr "Você está prestes a atender a área de trabalho <b>%(org)s</b>."
-
-msgid "Service Account"
-msgstr "Atender conta"
-
-msgid "Invalid org, servicing not available."
-msgstr "Organização inválida, atendimento não disponível."
-
-msgid "Deleting this user will also delete the following workspaces owned by this user."
-msgstr "Deletar este usuário também deletará as seguintes áreas de trabalho pertencentes a ele."
-
-#, python-format
-msgid "Are you sure you want to delete <b>%(email)s</b>?\""
-msgstr "Você tem certeza que quer deletar <b>%(email)s</b>?\""
-
 msgid "Uses unsupported component types."
 msgstr "Usa tipos de componente não suportados."
 
@@ -6714,6 +6639,81 @@ msgstr "Encontrado ${count} para ${query}"
 
 msgid "Next"
 msgstr "Próximo"
+
+#~ msgid "Edit Workspace"
+#~ msgstr "Editar área de trabalho"
+
+#~ msgid "Flag"
+#~ msgstr "Sinalizar"
+
+#~ msgid "Unflag"
+#~ msgstr "Não sinalizar"
+
+#~ msgid "Suspend"
+#~ msgstr "Suspender"
+
+#~ msgid "Unsuspend"
+#~ msgstr "Remover suspensão"
+
+#~ msgid "Service"
+#~ msgstr "Serviço"
+
+#~ msgid "Anonymous"
+#~ msgstr "Anônima"
+
+#~ msgid "Flagged"
+#~ msgstr "Sinalizada"
+
+#~ msgid "Suspended"
+#~ msgstr "Suspensa"
+
+#~ msgid "Edit User"
+#~ msgstr "Editar usuário"
+
+#~ msgid "Unverify"
+#~ msgstr "Remover verificação"
+
+#~ msgid "Disable MFA"
+#~ msgstr "Desabilitar MFA"
+
+#~ msgid "Delete User"
+#~ msgstr "Deletar usuário"
+
+#~ msgid "Optional: Select permissions groups."
+#~ msgstr "Opcional: selecione os grupos de permissões."
+
+#~ msgid "You can reset the user's password by entering a new password here"
+#~ msgstr "Você pode redefinir a senha do usuário digitando uma nova senha aqui"
+
+#~ msgid "User updated successfully."
+#~ msgstr "Usuário atualizado com sucesso."
+
+#~ msgid "Beta"
+#~ msgstr "Beta"
+
+#~ msgid "✓"
+#~ msgstr "✓"
+
+#, python-format
+#~ msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."
+#~ msgstr "A página que você está solicitando pertence a outra área de trabalho, <b>%(org)s</b>. Para vê-la, você precisará atender a conta deles."
+
+#, python-format
+#~ msgid "You are about to service the workspace, <b>%(org)s</b>."
+#~ msgstr "Você está prestes a atender a área de trabalho <b>%(org)s</b>."
+
+#~ msgid "Service Account"
+#~ msgstr "Atender conta"
+
+#~ msgid "Invalid org, servicing not available."
+#~ msgstr "Organização inválida, atendimento não disponível."
+
+#~ msgid "Deleting this user will also delete the following workspaces owned by this user."
+#~ msgstr "Deletar este usuário também deletará as seguintes áreas de trabalho pertencentes a ele."
+
+#, python-format
+#~ msgid "Are you sure you want to delete <b>%(email)s</b>?\""
+#~ msgstr "Você tem certeza que quer deletar <b>%(email)s</b>?\""
 
 #~ msgid "Russian"
 #~ msgstr "Russo"
