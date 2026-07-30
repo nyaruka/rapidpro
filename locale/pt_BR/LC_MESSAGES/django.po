@@ -3779,7 +3779,7 @@ msgid "There already exists a trigger of this type with these options."
 msgstr "Já existe um disparador deste tipo com estas opções."
 
 msgid "Channel"
-msgstr "Transmissor"
+msgstr "Canal"
 
 msgid "Only include activity from this channel."
 msgstr "Incluir somente atividade deste canal."
@@ -6406,7 +6406,7 @@ msgid "No sync events yet"
 msgstr "Ainda não há eventos de sincronização"
 
 msgid "Channel Event"
-msgstr "Evento do transmissor"
+msgstr "Evento do canal"
 
 msgid "Elapsed"
 msgstr "Decorrido"
