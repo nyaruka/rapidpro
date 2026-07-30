@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 19:40+0000\n"
+"POT-Creation-Date: 2026-07-30 14:26+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Rowan Seymour <rowanseymour@gmail.com>, 2022\n"
 "Language-Team: Spanish (https://www.transifex.com/rapidpro/teams/226/es/)\n"
@@ -289,6 +289,14 @@ msgstr "Enviar el mensaje"
 
 msgid "This field is required."
 msgstr "Este campo es obligatorio."
+
+#, python-format
+msgid "Maximum allowed text is %(limit)d characters."
+msgstr "El texto máximo permitido es de %(limit)d caracteres."
+
+#, python-format
+msgid "Maximum allowed attachments is %(limit)d files."
+msgstr "El máximo de adjuntos permitidos es de %(limit)d archivos."
 
 msgid "The attachment for the WhatsApp template is required."
 msgstr "El adjunto de la plantilla de WhatsApp es obligatorio."
@@ -1951,6 +1959,10 @@ msgstr "Tu canal ha sido eliminado."
 msgid "We have disconnected your Twilio number. If you do not need this number you can delete it from the Twilio website."
 msgstr "Hemos desconectado tu número de Twilio. Si no necesita este número, puede eliminarlo del sitio web de Twilio."
 
+#, python-format
+msgid "Twilio reported an error removing your channel (error code %(code)s). Please try again later."
+msgstr "Twilio informó un error al eliminar tu canal (código de error %(code)s). Por favor, inténtelo de nuevo más tarde."
+
 msgid "Makes channel available for sending. Incoming messages will be archived if not enabled."
 msgstr "Hace que el canal esté disponible para el envío. Los mensajes entrantes se archivarán si no está habilitado."
 
@@ -1987,6 +1999,14 @@ msgstr "Grupos"
 
 msgid "Select groups for this contact"
 msgstr "Seleccionar grupos para este contacto"
+
+#, python-format
+msgid "%(language)s (Missing)"
+msgstr "%(language)s (No encontrado)"
+
+#, python-format
+msgid "%(label)s for this contact"
+msgstr "%(label)s para este contacto"
 
 msgid "Invalid format."
 msgstr "Formato no válido."
@@ -2562,6 +2582,14 @@ msgstr "Es probable que sus canales tarden más de un día en alcanzar a todos l
 msgid "This flow uses message templates which may incur additional fees from your channel provider."
 msgstr "Este flujo utiliza plantillas de mensajes que pueden generar cargos adicionales de su proveedor de canal."
 
+#, python-format
+msgid "The message template %(name)s does not exist on your account and cannot be sent."
+msgstr "La plantilla de mensaje %(name)s no existe en su cuenta y no se puede enviar."
+
+#, python-format
+msgid "Your message template %(name)s is not approved and cannot be sent."
+msgstr "Su plantilla de mensaje %(name)s no está aprobada y no se puede enviar."
+
 msgid "Enter contact query"
 msgstr "Ingresar consulta de contacto"
 
@@ -2982,6 +3010,14 @@ msgstr "Opcional: campos para incluir"
 
 msgid "Optional: Group memberships to include"
 msgstr "Opcional: membresías de grupo a incluir"
+
+#, python-format
+msgid "You can only include up to %(limit)d fields."
+msgstr "Solo puede incluir hasta %(limit)d campos."
+
+#, python-format
+msgid "You can only include up to %(limit)d groups."
+msgstr "Solo puede incluir hasta %(limit)d grupos."
 
 msgid "Start date can't be in the future."
 msgstr "La fecha de inicio no puede ser posterior a la actual."
@@ -3648,6 +3684,10 @@ msgstr "Nuevo activador"
 
 msgid "Are you sure you want to delete the selected triggers? This cannot be undone."
 msgstr "¿Está seguro de que desea eliminar los activadores seleccionados? Esto no se puede deshacer."
+
+#, python-format
+msgid "To accept this invitation, please login with %(email)s."
+msgstr "Para aceptar esta invitación, por favor inicie sesión con %(email)s."
 
 msgid "First name"
 msgstr "Primer nombre"
@@ -5127,6 +5167,23 @@ msgstr[2] "<b>%(count)s</b> contactos"
 
 msgid "We tried our best, but there was an error processing your request. If this keeps happening, please refresh your browser."
 msgstr "Hicimos todo lo posible, pero se produjo un error al procesar su solicitud. Si esto sigue ocurriendo, actualice su navegador."
+
+#, python-format
+msgid "Sign In with %(provider)s"
+msgstr ""
+
+msgid "Use Single Sign-On"
+msgstr ""
+
+msgid "Ok"
+msgstr ""
+
+#, python-format
+msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use <b>Sign In with %(provider)s</b> the next time you sign in."
+msgstr ""
+
+msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use the single sign-on option the next time you sign in."
+msgstr ""
 
 msgid "Are you sure you want to continue? This cannot be undone."
 msgstr "Estás seguro de que quieres continuar? Esto no se puede deshacer."
@@ -6806,10 +6863,6 @@ msgstr "Siguiente"
 #~ msgid "Outgoing IVR"
 #~ msgstr "IVR Saliente"
 
-#, python-brace-format
-#~ msgid "Twilio reported an error removing your channel (error code {e.code}). Please try again later."
-#~ msgstr "Twilio informó un error al eliminar tu canal (código de error {e.code}). Por favor, inténtelo de nuevo más tarde."
-
 #~ msgid "A connection to a Vonage account is required"
 #~ msgstr "Se requiere una conexión a una cuenta de Vonage"
 
@@ -6887,14 +6940,6 @@ msgstr "Siguiente"
 
 #~ msgid "Already used by another group."
 #~ msgstr "Ya usado por otro grupo."
-
-#, python-brace-format
-#~ msgid "{label} for this contact"
-#~ msgstr "{label} para este contacto"
-
-#, python-brace-format
-#~ msgid "{lang_name} (Missing)"
-#~ msgstr "{lang_name} (No encontrado)"
 
 #~ msgid "The groups which this contact belongs to"
 #~ msgstr "Los grupos a los que pertenece este contacto"
@@ -7011,13 +7056,6 @@ msgstr "Siguiente"
 
 #~ msgid "This flow does not specify a Facebook topic. You may still start this flow but Facebook contacts who have not sent an incoming message in the last 24 hours may not receive it."
 #~ msgstr "Este flujo no especifica un tema de Facebook. Aún puede iniciar este flujo, pero es posible que los contactos de Facebook que no hayan enviado un mensaje entrante en las últimas 24 horas no lo reciban."
-
-#~ msgid "The message template {ref['name']} does not exist on your account and cannot be sent."
-#~ msgstr "La plantilla de mensaje {ref ['name']} no existe en su cuenta y no se puede enviar."
-
-#, python-brace-format
-#~ msgid "Your message template {template.name} is not approved and cannot be sent."
-#~ msgstr "Su plantilla de mensaje {template.name} no está aprobada y no se puede enviar."
 
 #~ msgid "The contacts to send the message to"
 #~ msgstr "Los contactos a los que enviar el mensaje"
