@@ -28,7 +28,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
                     raise Exception("Received non-200 response: %d", resp.status_code)
 
             except Exception:
-                raise forms.ValidationError("Unable to retrieve token, please check username and password")
+                raise forms.ValidationError(_("Unable to retrieve token, please check username and password"))
 
             return self.cleaned_data
 

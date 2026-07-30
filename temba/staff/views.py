@@ -316,8 +316,8 @@ class UserCRUDL(SmartCRUDL):
                 help_texts = {"new_password": _("You can reset the user's password by entering a new password here")}
 
         form_class = Form
-        success_message = "User updated successfully."
-        title = "Update User"
+        success_message = _("User updated successfully.")
+        title = _("Update User")
 
         def post(self, request, *args, **kwargs):
             obj = self.get_object()

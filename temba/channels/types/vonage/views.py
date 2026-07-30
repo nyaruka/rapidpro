@@ -475,11 +475,11 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
 
     form_class = VonageConnectForm
     permission = "channels.channel_claim"
-    submit_button_name = "Save"
-    success_message = "Vonage Account successfully connected."
+    submit_button_name = _("Save")
+    success_message = _("Vonage Account successfully connected.")
     template_name = "channels/types/vonage/connect.html"
     menu_path = "/settings/channels/new-channel"
-    title = "Connect Vonage"
+    title = _("Connect Vonage")
 
     def get_success_url(self):
         return reverse("channels.types.vonage.claim")

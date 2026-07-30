@@ -714,12 +714,12 @@ class TicketCRUDL(SmartCRUDL):
                 avg = (total // count) if count else 0
                 data.append(avg)
 
-            return [d.strftime("%Y-%m-%d") for d in labels], [{"label": "Response Time", "data": data}]
+            return [d.strftime("%Y-%m-%d") for d in labels], [{"label": _("Response Time"), "data": data}]
 
         def get_replies_chart(self, org, since, until) -> tuple:
             teams_by_id = {t.id: t.name for t in org.teams.filter(is_active=True)}
             # Add default team (id=0) for users not assigned to specific teams
-            teams_by_id[0] = "No Team"
+            teams_by_id[0] = _("No Team")
 
             # Follow the pattern from get_topic_counts - use database aggregation to extract team_id
             # scope format: msgs:ticketreplies:{team_id}:{user_id} - team_id is at position 3 (1-indexed)

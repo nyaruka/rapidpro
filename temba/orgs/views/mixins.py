@@ -178,7 +178,7 @@ class BulkActionMixin:
             action = cleaned_data.get("action")
             label = cleaned_data.get("label")
             if action in ("label", "unlabel") and not label:
-                raise forms.ValidationError("Must specify a label")
+                raise forms.ValidationError(_("Must specify a label"))
 
             # TODO update frontend to send back unlabel actions
             if action == "label" and self.data.get("add", "").lower() == "false":

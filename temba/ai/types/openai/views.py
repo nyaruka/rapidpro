@@ -11,7 +11,7 @@ from temba.utils.fields import InputWidget
 
 class CredentialsForm(BaseConnectWizard.Form):
     api_key = forms.CharField(
-        widget=InputWidget({"placeholder": "API Key", "widget_only": False, "label": "API Key", "value": ""}),
+        widget=InputWidget({"placeholder": _("API Key"), "widget_only": False, "label": _("API Key"), "value": ""}),
         label="",
         help_text=_("You can find your API key at https://platform.openai.com/account/api-key"),
     )
