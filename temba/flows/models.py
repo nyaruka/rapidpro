@@ -27,6 +27,7 @@ from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.globals.models import Global
 from temba.msgs.models import Label, OptIn
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org
+from temba.orgs.realtime import publish_asset_changed
 from temba.templates.models import Template
 from temba.tickets.models import Topic
 from temba.users.models import User
@@ -78,6 +79,18 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
     TYPE_SURVEY = "S"
     TYPE_VOICE = "V"
     TYPE_USSD = "U"
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        old_name = None
+        if not self._state.adding and (update_fields is None or "name" in update_fields):
+            using = kwargs.get("using") or self._state.db
+            old_name = Flow.objects.using(using).filter(pk=self.pk).values_list("name", flat=True).first()
+
+        super().save(*args, **kwargs)
+
+        if old_name is not None and old_name != self.name:
+            publish_asset_changed(self.org, "flow", self.uuid, self.name)
 
     TYPE_CHOICES = (
         (TYPE_MESSAGE, _("Messaging")),

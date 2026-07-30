@@ -9,6 +9,7 @@ from temba.msgs.api import BroadcastsEndpoint, MessagesEndpoint
 from temba.triggers.api import TriggersEndpoint
 
 from .views import (
+    AssetsEndpoint,
     LLMsEndpoint,
     LocationsEndpoint,
     NotificationsEndpoint,
@@ -28,10 +29,11 @@ urlpatterns = [
     re_path(r"^locations$", LocationsEndpoint.as_view(), name="api.internal.locations"),
     re_path(r"^messages$", MessagesEndpoint.as_view(), name="api.internal.messages"),
     re_path(r"^notifications$", NotificationsEndpoint.as_view(), name="api.internal.notifications"),
+    re_path(r"^assets$", AssetsEndpoint.as_view(), name="api.internal.assets"),
+    re_path(r"^orgs$", OrgsEndpoint.as_view(), name="api.internal.orgs"),
     re_path(r"^shortcuts$", ShortcutsEndpoint.as_view(), name="api.internal.shortcuts"),
     re_path(r"^templates$", TemplatesEndpoint.as_view(), name="api.internal.templates"),
     re_path(r"^triggers$", TriggersEndpoint.as_view(), name="api.internal.triggers"),
-    re_path(r"^orgs$", OrgsEndpoint.as_view(), name="api.internal.orgs"),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns, allowed=["json"])

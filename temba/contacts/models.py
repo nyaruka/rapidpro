@@ -28,6 +28,7 @@ from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.mailroom import ContactSpec, modifiers
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, OrgRole
+from temba.orgs.realtime import publish_asset_changed
 from temba.utils import dynamo, format_number, on_transaction_commit
 from temba.utils.export import MultiSheetExporter
 from temba.utils.models import JSONField, LegacyUUIDMixin, TembaModel, delete_in_batches
@@ -1542,6 +1543,18 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     org_limit_key = Org.LIMIT_GROUPS
     soft_dependent_types = {"flow", "trigger"}
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        old_name = None
+        if not self._state.adding and (update_fields is None or "name" in update_fields):
+            using = kwargs.get("using") or self._state.db
+            old_name = ContactGroup.objects.using(using).filter(pk=self.pk).values_list("name", flat=True).first()
+
+        super().save(*args, **kwargs)
+
+        if old_name is not None and old_name != self.name:
+            publish_asset_changed(self.org, "group", self.uuid, self.name)
 
     @classmethod
     def create_system_groups(cls, org):

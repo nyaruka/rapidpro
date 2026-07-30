@@ -50,6 +50,22 @@ class FlowTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(f"{'X' * 62} 2", Flow.get_unique_name(self.org, "X" * 64))
 
+    def test_rename_publishes_workspace_event(self):
+        flow = self.create_flow("Old Name")
+
+        with patch("temba.mailroom.get_client") as get_client:
+            with self.captureOnCommitCallbacks(execute=True):
+                flow.name = "New Name"
+                flow.save(update_fields=("name",))
+
+            get_client.return_value.org_publish.assert_called_once_with(
+                self.org,
+                {
+                    "type": "asset_changed",
+                    "asset": {"type": "flow", "uuid": str(flow.uuid), "name": "New Name"},
+                },
+            )
+
     def test_clean_name(self):
         self.assertEqual("Hello", Flow.clean_name("Hello\0"))
         self.assertEqual("Hello/n", Flow.clean_name("Hello\\n"))

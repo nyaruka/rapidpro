@@ -268,6 +268,26 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.login(self.agent)
         assertForbidden(f"flow:{flow.uuid}")
 
+    def test_subscribe_org(self):
+        def subscribe(socket):
+            return self.post("api.websockets.subscribe", {"channel": socket, "client": "conn-1"})
+
+        self.login(self.agent)
+
+        response = subscribe(f"org:{self.org.uuid}")
+        self.assertEqual(200, response.status_code)
+        self.assertExpiry(response.json()["result"]["expire_at"])
+
+        for socket in (
+            f"org:{self.org2.uuid}",
+            "org:not-a-uuid",
+            f"org:{self.org.uuid}:extra",
+            "org",
+        ):
+            response = subscribe(socket)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
     def test_subscribe_ticket_topic_access(self):
         # an agent restricted to a team's topics can only watch the history of tickets they're allowed to view - the
         # same scoping the ticketing UI applies, not just "the ticket exists for this contact"
