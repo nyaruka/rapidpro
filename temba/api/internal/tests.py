@@ -10,7 +10,7 @@ from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.contacts.models import Contact, ContactExport, ContactField, ContactGroup
+from temba.contacts.models import Contact, ContactExport, ContactField, ContactGroup, ContactURN
 from temba.flows.models import Flow, FlowLabel
 from temba.globals.models import Global
 from temba.msgs.models import Broadcast, Msg, OptIn
@@ -765,7 +765,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             self.assertEqual(expected, response.json()["results"])
 
         # a payload of a single type only queries for that type, and duplicate references are only resolved once
-        with self.mockReadOnly():
+        with self.mockReadOnly(assert_models={Flow}):
             response = self._postJSON(endpoint_url, self.editor, {"flow": [str(flow.uuid), str(flow.uuid)]})
 
         self.assertEqual(200, response.status_code)
@@ -774,7 +774,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         # db maintained system groups aren't resolvable as flows never reference them
         active = self.org.groups.get(group_type=ContactGroup.TYPE_DB_ACTIVE)
 
-        with self.mockReadOnly():
+        with self.mockReadOnly(assert_models={ContactGroup}):
             response = self._postJSON(endpoint_url, self.editor, {"group": [str(active.uuid)]})
 
         self.assertEqual(200, response.status_code)
@@ -795,7 +795,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         # a contact without a name resolves to their formatted URN, and mailroom publishes the same value for renames
         nameless_contact = self.create_contact(phone="+12065551212")
 
-        with self.mockReadOnly():
+        with self.mockReadOnly(assert_models={Contact, ContactURN}):
             response = self._postJSON(endpoint_url, self.editor, {"contact": [str(nameless_contact.uuid)]})
 
         self.assertEqual(200, response.status_code)
@@ -826,7 +826,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.org.save(update_fields=("is_anon",))
 
         # exactly the maximum number of references is allowed
-        with self.mockReadOnly():
+        with self.mockReadOnly(assert_models={ContactField}):
             response = self._postJSON(endpoint_url, self.editor, {"field": [f"field_{i}" for i in range(100)]})
 
         self.assertEqual(200, response.status_code)

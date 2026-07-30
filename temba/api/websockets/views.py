@@ -200,9 +200,9 @@ class SubscriptionEndpoint(BaseEndpoint):
         """
         ``org:<org-uuid>`` - shared state changes for the current workspace, i.e. renames of assets referenced across the
         UI. Any member of the workspace may watch it, deliberately unlike ``flow:`` below which requires flow editing
-        permission: this socket also carries contact renames which agents need for the ticketing UI. That means agents
-        see flow and group renames too, which we accept because nothing is published beyond a UUID and a new name -
-        agents can't enumerate assets this way, only learn the new name of one they were already sent.
+        permission: this socket also carries contact renames which agents need for the ticketing UI. That means an agent
+        learns the UUID and new name of any flow or group renamed while it's subscribed, which we accept: there's no
+        listing, no attributes beyond the UUID and the new name, and nothing at all about assets that are never renamed.
         """
         return org_uuid == str(request.org.uuid)
 

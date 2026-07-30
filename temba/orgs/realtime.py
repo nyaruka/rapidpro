@@ -4,9 +4,9 @@ asset names fresh without refetching or reloading.
 
 Phase one deliberately only publishes renames of flows and groups (see `AssetNameMixin`) as those are the references
 which appear most often in flow definitions. The other asset types resolvable via the internal assets endpoint
-(channels, labels, LLMs, opt-ins, templates, topics, fields, globals, contacts and users) don't publish yet, so clients
-still fall back to refetching or a page reload to see those renames. Contact name changes are published to this same
-socket by mailroom rather than here.
+(channels, labels, LLMs, opt-ins, templates, topics, fields, globals and users) don't publish yet, so clients still fall
+back to refetching or a page reload to see those renames. Contact name changes are published to this same socket by
+mailroom rather than here.
 """
 
 import logging
@@ -60,10 +60,17 @@ class AssetNameMixin:
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
+        # if name wasn't written then any in-memory change to it isn't persisted, so there's nothing to publish and we
+        # mustn't start tracking it either (Model.save is keyword only so update_fields is always in kwargs if given)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "name" not in update_fields:
+            return
+
         loaded_name = getattr(self, "_loaded_name", None)
 
-        # don't publish for objects we just created, or ones being deactivated as release() renames to a tombstone
-        if self.is_active and loaded_name is not None and loaded_name != self.name:
+        # don't publish for objects we just created, or ones being deactivated as release() renames to a tombstone.
+        # is_active is checked last as it's the only part which can cost a query, if it was deferred when loading.
+        if loaded_name is not None and loaded_name != self.name and self.is_active:
             publish_asset_changed(self.org, self.asset_type, self.uuid, self.name)
 
         self._loaded_name = self.name

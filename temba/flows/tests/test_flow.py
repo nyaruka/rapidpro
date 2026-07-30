@@ -61,8 +61,17 @@ class FlowTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual([], mr_mocks.calls["org_publish"])
 
+        # nor does a name changed in memory but excluded from update_fields, as it isn't actually persisted
+        flow.name = "New Name"
+
         with self.captureOnCommitCallbacks(execute=True):
-            flow.name = "New Name"
+            flow.save(update_fields=("is_archived", "modified_on"))
+
+        self.assertEqual([], mr_mocks.calls["org_publish"])
+        self.assertEqual("Old Name", Flow.objects.get(id=flow.id).name)
+
+        # and the save which does persist it still publishes, i.e. the tracked name wasn't poisoned above
+        with self.captureOnCommitCallbacks(execute=True):
             flow.save(update_fields=("name",))
 
         self.assertEqual(
@@ -74,6 +83,15 @@ class FlowTest(TembaTest, CRUDLTestMixin):
             ],
             mr_mocks.calls["org_publish"],
         )
+        self.assertEqual("New Name", Flow.objects.get(id=flow.id).name)
+
+        # a rename on an instance loaded without is_active costs no extra queries when the name is unchanged
+        partial = Flow.objects.only("id", "name").get(id=flow.id)
+
+        with self.assertNumQueries(1):
+            partial.save(update_fields=("name",))
+
+        self.assertEqual(1, len(mr_mocks.calls["org_publish"]))
 
         # releasing renames the flow to a tombstone but that isn't published
         with self.captureOnCommitCallbacks(execute=True):
