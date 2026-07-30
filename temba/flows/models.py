@@ -1248,7 +1248,6 @@ class FlowRevision(models.Model):
     LAST_TRIM_KEY = "temba:last_flow_revision_trim"
     MAX_REVISIONS = 500
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="revisions")
     definition = JSONAsTextField(default=dict)
     spec_version = models.CharField(default=Flow.FINAL_LEGACY_VERSION, max_length=8)
