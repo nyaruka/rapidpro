@@ -91,15 +91,19 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             CONFIG_FB_TEMPLATE_LIST_DOMAIN: "whatsapp.turn.io",
         }
 
-        self.object = Channel.create(
-            self.request.org,
-            self.request.user,
-            data["country"],
-            self.channel_type,
-            name="WhatsApp: %s" % data["address"],
-            address=data["address"],
-            config=config,
-            tps=45,
-        )
+        try:
+            self.object = Channel.create(
+                self.request.org,
+                self.request.user,
+                data["country"],
+                self.channel_type,
+                name="WhatsApp: %s" % data["address"],
+                address=data["address"],
+                config=config,
+                tps=45,
+            )
+        except forms.ValidationError as e:
+            form._errors["__all__"] = form.error_class(e.messages)
+            return self.form_invalid(form)
 
         return super().form_valid(form)
