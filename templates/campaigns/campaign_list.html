@@ -23,7 +23,13 @@
               <div class="recipients inline-block">{% include "includes/recipients_group.html" with group=obj.group %}</div>
             {% endif %}
           </td>
-          <td class="whitespace-nowrap">{{ obj.get_events|length }} event{{ obj.get_events|length|pluralize }}</td>
+          <td class="whitespace-nowrap">
+            {% blocktrans trimmed count counter=obj.get_events|length %}
+              {{ counter }} event
+            {% plural %}
+              {{ counter }} events
+            {% endblocktrans %}
+          </td>
         </tr>
       {% empty %}
         <tr class="empty_list">

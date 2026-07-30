@@ -24,7 +24,7 @@
 {% endblock extra-style %}
 {% block pre-table %}
   <form method="get" id="search-form">
-    <temba-textinput name="search" value="{{ search }}" placeholder="Search">
+    <temba-textinput name="search" value="{{ search }}" placeholder="{% trans "Search" %}">
     </temba-textinput>
     <input type="submit" value="Submit" class="hidden">
   </form>
