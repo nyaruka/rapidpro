@@ -1349,10 +1349,14 @@ class FlowCRUDL(SmartCRUDL):
                     template = flow.org.templates.filter(uuid=ref["uuid"]).first()
                     if not template:
                         warnings.append(
-                            _(f"The message template {ref['name']} does not exist on your account and cannot be sent.")
+                            _("The message template %(name)s does not exist on your account and cannot be sent.")
+                            % {"name": ref["name"]}
                         )
                     elif not template.is_approved():
-                        warnings.append(_(f"Your message template {template.name} is not approved and cannot be sent."))
+                        warnings.append(
+                            _("Your message template %(name)s is not approved and cannot be sent.")
+                            % {"name": template.name}
+                        )
 
             # warn about potential template costs if the flow uses templates and brand has cost warnings enabled
             if "cost_warnings" in features and templates:

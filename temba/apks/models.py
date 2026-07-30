@@ -1,10 +1,9 @@
-from gettext import gettext as _
-
 from markdown import markdown
 
 from django.db import models
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _
 
 
 class Apk(models.Model):

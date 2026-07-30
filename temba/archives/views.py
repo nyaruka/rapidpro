@@ -1,8 +1,7 @@
-from gettext import gettext as _
-
 from smartmin.views import SmartCRUDL
 
 from django.http import HttpResponseRedirect
+from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.views.base import BaseListView, BaseReadView
 from temba.utils.views.mixins import SpaMixin

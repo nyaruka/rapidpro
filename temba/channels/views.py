@@ -669,7 +669,8 @@ class ChannelCRUDL(SmartCRUDL):
             except TwilioRestException as e:
                 messages.error(
                     request,
-                    _(f"Twilio reported an error removing your channel (error code {e.code}). Please try again later."),
+                    _("Twilio reported an error removing your channel (error code %(code)s). Please try again later.")
+                    % {"code": e.code},
                 )
 
                 response = HttpResponse()
