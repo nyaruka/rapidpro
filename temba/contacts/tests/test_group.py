@@ -1,3 +1,5 @@
+from unittest.mock import call
+
 from django.urls import reverse
 from django.utils import timezone
 
@@ -134,6 +136,30 @@ class ContactGroupTest(TembaTest):
         self.create_group("X" * 64, contacts=[])
 
         self.assertEqual(f"{'X' * 62} 2", ContactGroup.get_unique_name(self.org, "X" * 64))
+
+    @mock_mailroom
+    def test_rename_publishes_asset_changed(self, mr_mocks):
+        self.create_group("Customers", contacts=[])
+        group = ContactGroup.objects.get(name="Customers")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            group.name = "VIPs"
+            group.save(update_fields=("name",))
+
+        self.assertEqual(
+            [
+                call(
+                    self.org,
+                    {"type": "asset_changed", "asset": {"type": "group", "uuid": str(group.uuid), "name": "VIPs"}},
+                )
+            ],
+            mr_mocks.calls["org_publish"],
+        )
+
+        # releasing renames the group to a tombstone but that isn't published
+        group.release(self.admin)
+
+        self.assertEqual(1, len(mr_mocks.calls["org_publish"]))
 
     @mock_mailroom
     def test_member_count(self, mr_mocks):

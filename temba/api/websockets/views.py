@@ -197,7 +197,13 @@ class SubscriptionEndpoint(BaseEndpoint):
         return org_uuid == str(request.org.uuid) and user_uuid == str(request.user.uuid)
 
     def _org_allowed(self, request, org_uuid: str) -> bool:
-        """``org:<org-uuid>`` - shared state changes for the current workspace."""
+        """
+        ``org:<org-uuid>`` - shared state changes for the current workspace, i.e. renames of assets referenced across the
+        UI. Any member of the workspace may watch it, deliberately unlike ``flow:`` below which requires flow editing
+        permission: this socket also carries contact renames which agents need for the ticketing UI. That means agents
+        see flow and group renames too, which we accept because nothing is published beyond a UUID and a new name -
+        agents can't enumerate assets this way, only learn the new name of one they were already sent.
+        """
         return org_uuid == str(request.org.uuid)
 
     def _contact_history_allowed(self, request, contact_uuid: str) -> bool:

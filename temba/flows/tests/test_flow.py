@@ -50,21 +50,47 @@ class FlowTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual(f"{'X' * 62} 2", Flow.get_unique_name(self.org, "X" * 64))
 
-    def test_rename_publishes_workspace_event(self):
-        flow = self.create_flow("Old Name")
+    @mock_mailroom
+    def test_rename_publishes_asset_changed(self, mr_mocks):
+        self.create_flow("Old Name")
+        flow = Flow.objects.get(name="Old Name")
 
-        with patch("temba.mailroom.get_client") as get_client:
+        # a save which doesn't touch the name publishes nothing, and costs no extra queries
+        with self.assertNumQueries(1):
+            flow.save(update_fields=("is_archived", "modified_on"))
+
+        self.assertEqual([], mr_mocks.calls["org_publish"])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            flow.name = "New Name"
+            flow.save(update_fields=("name",))
+
+        self.assertEqual(
+            [
+                call(
+                    self.org,
+                    {"type": "asset_changed", "asset": {"type": "flow", "uuid": str(flow.uuid), "name": "New Name"}},
+                )
+            ],
+            mr_mocks.calls["org_publish"],
+        )
+
+        # releasing renames the flow to a tombstone but that isn't published
+        with self.captureOnCommitCallbacks(execute=True):
+            flow.release(self.admin)
+
+        self.assertEqual(1, len(mr_mocks.calls["org_publish"]))
+
+        # publishing is best effort - a mailroom failure is logged rather than raised
+        flow2 = Flow.objects.get(id=self.create_flow("Other").id)
+        mr_mocks.exception(ConnectionError("mailroom unreachable"))
+
+        with self.assertLogs("temba.orgs.realtime", level="ERROR"):
             with self.captureOnCommitCallbacks(execute=True):
-                flow.name = "New Name"
-                flow.save(update_fields=("name",))
+                flow2.name = "Other Renamed"
+                flow2.save(update_fields=("name",))
 
-            get_client.return_value.org_publish.assert_called_once_with(
-                self.org,
-                {
-                    "type": "asset_changed",
-                    "asset": {"type": "flow", "uuid": str(flow.uuid), "name": "New Name"},
-                },
-            )
+        self.assertEqual("Other Renamed", Flow.objects.get(id=flow2.id).name)
 
     def test_clean_name(self):
         self.assertEqual("Hello", Flow.clean_name("Hello\0"))

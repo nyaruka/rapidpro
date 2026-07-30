@@ -15,6 +15,7 @@ from temba.flows.models import Flow, FlowLabel
 from temba.globals.models import Global
 from temba.msgs.models import Broadcast, Msg, OptIn
 from temba.notifications.types import ExportFinishedNotificationType
+from temba.orgs.models import OrgRole
 from temba.schedules.models import Schedule
 from temba.templates.models import Template, TemplateTranslation
 from temba.tests import TembaTest, matchers, mock_mailroom
@@ -763,6 +764,74 @@ class EndpointsTest(APITestMixin, TembaTest):
             self.assertEqual(200, response.status_code)
             self.assertEqual(expected, response.json()["results"])
 
+        # a payload of a single type only queries for that type, and duplicate references are only resolved once
+        with self.mockReadOnly():
+            response = self._postJSON(endpoint_url, self.editor, {"flow": [str(flow.uuid), str(flow.uuid)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([{"type": "flow", "uuid": str(flow.uuid), "name": "Welcome"}], response.json()["results"])
+
+        # db maintained system groups aren't resolvable as flows never reference them
+        active = self.org.groups.get(group_type=ContactGroup.TYPE_DB_ACTIVE)
+
+        with self.mockReadOnly():
+            response = self._postJSON(endpoint_url, self.editor, {"group": [str(active.uuid)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([], response.json()["results"])
+
+        # users without a name fall back to their email like they do everywhere else
+        nameless = self.create_user("nameless@textit.com")
+        self.org.add_user(nameless, OrgRole.EDITOR)
+
+        with self.mockReadOnly():
+            response = self._postJSON(endpoint_url, self.editor, {"user": [str(nameless.uuid)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [{"type": "user", "uuid": str(nameless.uuid), "name": "nameless@textit.com"}], response.json()["results"]
+        )
+
+        # a contact without a name resolves to their formatted URN, and mailroom publishes the same value for renames
+        nameless_contact = self.create_contact(phone="+12065551212")
+
+        with self.mockReadOnly():
+            response = self._postJSON(endpoint_url, self.editor, {"contact": [str(nameless_contact.uuid)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [{"type": "contact", "uuid": str(nameless_contact.uuid), "name": "(206) 555-1212"}],
+            response.json()["results"],
+        )
+
+        # in an anon workspace a named contact still resolves to their name but a nameless one to their obfuscated ref
+        self.org.is_anon = True
+        self.org.save(update_fields=("is_anon",))
+
+        with self.mockReadOnly():
+            response = self._postJSON(
+                endpoint_url, self.editor, {"contact": [str(contact.uuid), str(nameless_contact.uuid)]}
+            )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [
+                {"type": "contact", "uuid": str(contact.uuid), "name": "Alice"},
+                {"type": "contact", "uuid": str(nameless_contact.uuid), "name": nameless_contact.ref},
+            ],
+            response.json()["results"],
+        )
+
+        self.org.is_anon = False
+        self.org.save(update_fields=("is_anon",))
+
+        # exactly the maximum number of references is allowed
+        with self.mockReadOnly():
+            response = self._postJSON(endpoint_url, self.editor, {"field": [f"field_{i}" for i in range(100)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([], response.json()["results"])
+
         response = self._postJSON(endpoint_url, self.editor, {"flow": ["not-a-uuid"]})
         self.assertEqual(400, response.status_code)
         self.assertIn("badly formed hexadecimal UUID string", response.json()["detail"])
@@ -774,6 +843,17 @@ class EndpointsTest(APITestMixin, TembaTest):
         response = self._postJSON(endpoint_url, self.editor, {"unknown": ["value"]})
         self.assertEqual(400, response.status_code)
         self.assertEqual("Unsupported asset type: unknown.", response.json()["detail"])
+
+        response = self._postJSON(endpoint_url, self.editor, [str(flow.uuid)])
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(
+            "Payload must be an object mapping asset types to lists of identifiers.", response.json()["detail"]
+        )
+
+        for bad_values in (str(flow.uuid), [1]):
+            response = self._postJSON(endpoint_url, self.editor, {"flow": bad_values})
+            self.assertEqual(400, response.status_code)
+            self.assertEqual("Asset type 'flow' must be a list of identifiers.", response.json()["detail"])
 
     def test_orgs(self):
         endpoint_url = reverse("api.internal.orgs") + ".json"

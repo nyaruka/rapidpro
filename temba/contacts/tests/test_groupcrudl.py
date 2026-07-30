@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import call, patch
+from unittest.mock import call
 
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -23,20 +23,6 @@ class ContactGroupCRUDLTest(TembaTest, CRUDLTestMixin):
         self.joe_and_frank = self.create_group("Customers", [self.joe, self.frank])
 
         self.other_org_group = self.create_group("Customers", contacts=[], org=self.org2)
-
-    @patch("temba.mailroom.get_client")
-    def test_rename_publishes_workspace_event(self, get_client):
-        with self.captureOnCommitCallbacks(execute=True):
-            self.joe_and_frank.name = "VIPs"
-            self.joe_and_frank.save(update_fields=("name",))
-
-        get_client.return_value.org_publish.assert_called_once_with(
-            self.org,
-            {
-                "type": "asset_changed",
-                "asset": {"type": "group", "uuid": str(self.joe_and_frank.uuid), "name": "VIPs"},
-            },
-        )
 
     @override_settings(ORG_LIMIT_DEFAULTS={"groups": 10})
     @mock_mailroom
