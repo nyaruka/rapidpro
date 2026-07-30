@@ -325,6 +325,13 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.create_outgoing_msg(contact3, "Yes", created_by=self.agent)
 
+        # tickets created back to back can land in the same millisecond, and the timestamp cursors below only have
+        # millisecond resolution, so space out activity to keep paging deterministic
+        base = timezone.now().replace(microsecond=0) - timedelta(minutes=1)
+        for i, ticket in enumerate([c1_t1, c1_t2, c2_t1, c2_t2, c3_t1, c3_t2]):
+            Ticket.objects.filter(id=ticket.id).update(last_activity_on=base + timedelta(seconds=i))
+            ticket.last_activity_on = base + timedelta(seconds=i)
+
         # fetching open folder returns all open tickets
         self.login(self.admin)
         with self.assertNumQueries(11):
