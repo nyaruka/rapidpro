@@ -40,25 +40,25 @@ class SomlengType(ChannelType):
         endpoints=[
             ConfigUI.Endpoint(
                 courier="receive",
-                label="Incoming Messages",
+                label=_("Incoming Messages"),
                 help=_("New incoming messages should be sent to this endpoint."),
                 roles=(Channel.ROLE_RECEIVE,),
             ),
             ConfigUI.Endpoint(
                 courier="status",
-                label="Message Status Updates",
+                label=_("Message Status Updates"),
                 help=_("Message status updates should be sent to this endpoint."),
                 roles=(Channel.ROLE_SEND,),
             ),
             ConfigUI.Endpoint(
                 mailroom="incoming",
-                label="Incoming Calls",
+                label=_("Incoming Calls"),
                 help=_("New incoming calls should be sent to this endpoint."),
                 roles=(Channel.ROLE_ANSWER,),
             ),
             ConfigUI.Endpoint(
                 mailroom="status",
-                label="Call Status Updates",
+                label=_("Call Status Updates"),
                 help=_("Call status updates should be sent to this endpoint."),
                 roles=(Channel.ROLE_CALL, Channel.ROLE_ANSWER),
             ),

@@ -621,7 +621,7 @@ class ChannelCRUDL(SmartCRUDL):
             whitelisted_domain = forms.URLField(
                 required=True,
                 initial="https://",
-                help_text="The domain to whitelist for Messenger extensions ex: https://yourdomain.com",
+                help_text=_("The domain to whitelist for Messenger extensions ex: https://yourdomain.com"),
             )
 
         slug_url_kwarg = "uuid"

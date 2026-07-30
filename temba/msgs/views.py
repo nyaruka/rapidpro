@@ -924,7 +924,7 @@ class MsgCRUDL(SmartCRUDL):
                     _("Edit"),
                     "update-label",
                     reverse("msgs.label_update", args=[self.label.id]),
-                    title="Edit Label",
+                    title=_("Edit Label"),
                 )
 
             if self.has_org_perm("msgs.label_delete"):
@@ -932,7 +932,7 @@ class MsgCRUDL(SmartCRUDL):
                     _("Delete"),
                     "delete-label",
                     reverse("msgs.label_delete", args=[self.label.uuid]),
-                    title="Delete Label",
+                    title=_("Delete Label"),
                 )
 
             menu.new_group()

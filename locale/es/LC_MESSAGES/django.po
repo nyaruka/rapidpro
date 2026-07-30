@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 14:26+0000\n"
+"POT-Creation-Date: 2026-07-30 14:53+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Rowan Seymour <rowanseymour@gmail.com>, 2022\n"
 "Language-Team: Spanish (https://www.transifex.com/rapidpro/teams/226/es/)\n"
@@ -22,6 +22,9 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+
+msgid "API Key"
+msgstr "Clave API"
 
 msgid "You can find your API key at https://console.anthropic.com/settings/keys"
 msgstr "Puede encontrar su clave de API en https://console.anthropic.com/settings/keys"
@@ -65,6 +68,9 @@ msgstr "Transferencias Recientes de Tiempo-aire"
 msgid "Airtime Transfer Details"
 msgstr "Detalles de Transferencia de Tiempo-aire"
 
+msgid "Time"
+msgstr "Hora"
+
 msgid "The organization this resthook belongs to"
 msgstr "La organización a la cual pertenece este resthook"
 
@@ -98,6 +104,15 @@ msgstr "Aplicación de Relayer APK"
 
 msgid "Message Pack Application APK"
 msgstr "Aplicación de paquete de mensajes APK"
+
+msgid "Our version, ex: 1.9.8"
+msgstr "Nuestra versión, ej: 1.9.8"
+
+msgid "Our pack number if this is a message pack (otherwise blank)"
+msgstr "Nuestro número de paquete si es un paquete de mensajes (de lo contrario en blanco)"
+
+msgid "Changelog for this version, markdown supported"
+msgstr "Registro de cambios de esta versión, compatible con markdown"
 
 msgid "Message"
 msgstr "Mensaje"
@@ -572,9 +587,6 @@ msgstr "ID de cuenta"
 msgid "Your account ID on Bandwidth"
 msgstr "Su ID de cuenta en Bandwidth"
 
-msgid "API Key"
-msgstr "Clave API"
-
 msgid "The API key as found on your settings page"
 msgstr "La clave de API que se encuentra en su página de configuración"
 
@@ -757,6 +769,9 @@ msgstr "Su nombre de usuario en DMark Mobile"
 msgid "Your password on DMark Mobile"
 msgstr "Su contraseña en DMark Mobile"
 
+msgid "Unable to retrieve token, please check username and password"
+msgstr "No se puede recuperar el token, verifique el nombre de usuario y la contraseña"
+
 msgid "Use our pluggable API to connect an external service you already have."
 msgstr "Use nuestro API insertable para conectar un servicio externo que ya tenga."
 
@@ -817,6 +832,9 @@ msgstr "JSON no válido, asegúrese de eliminar las comillas alrededor de las va
 msgid "The URL we will POST to when sending messages, with variable substitutions"
 msgstr "La URL a la que llamaremos (POST) cuando enviemos mensajes, con sustituciones de variables"
 
+msgid "Connect External Service"
+msgstr "Conectar Servicio Externo"
+
 msgid "Receive"
 msgstr "Recibir"
 
@@ -841,6 +859,9 @@ msgstr "El token de acceso de usuario"
 
 msgid "The name of the Facebook page"
 msgstr "El nombre de la página de Facebook"
+
+msgid "The Facebook Page ID"
+msgstr "El ID de la página de Facebook"
 
 msgid "Sorry your Facebook channel could not be connected. Please try again"
 msgstr "Lo sentimos, su canal de Facebook no se pudo conectar. Inténtalo de nuevo"
@@ -1353,6 +1374,12 @@ msgstr "Su token de autenticación de Plivo"
 msgid "Your Plivo auth ID and auth token seem invalid. Please check them again and retry."
 msgstr "Su ID de autenticación de Plivo y su token de autenticación parecen no válidos. Revíselos de nuevo y vuelva a intentarlo."
 
+msgid "Save"
+msgstr "Guardar"
+
+msgid "Plivo credentials verified. You can now add a Plivo channel."
+msgstr "Credenciales de Plivo verificadas. Ahora puede agregar un canal de Plivo."
+
 msgid "Connection to RocketChat is taking too long."
 msgstr "La conexión a RocketChat está tardando demasiado."
 
@@ -1416,6 +1443,15 @@ msgstr "Para terminar de configurar este canal, puede que necesite establecer es
 msgid "This endpoint will be called by SignalWire when new messages are received to your number."
 msgstr "SignalWire llamará a este punto final cuando se reciban nuevos mensajes en su número."
 
+msgid "Unable to connect to SignalWire, please check your domain, key and token"
+msgstr "No se puede conectar a SignalWire, verifique su dominio, clave y token"
+
+msgid "Unable to find number %(number)s on your account, please check and try again"
+msgstr "No se puede encontrar el número %(number)s en su cuenta, verifique e intente nuevamente"
+
+msgid "Unable to update your phone number settings, please check your domain, key and token"
+msgstr "No se puede actualizar la configuración de su número de teléfono, verifique su dominio, clave y token"
+
 msgid "The phone number or short code you are connecting."
 msgstr "El número de teléfono o el código corto que está conectando."
 
@@ -1436,6 +1472,12 @@ msgstr "El token de API que se utilizará para autenticar, por ejemplo: FPd199eb
 
 msgid "Enter a valid space name."
 msgstr "Introduzca un nombre de espacio válido."
+
+msgid "Unable to connect to SignalWire, please check your space, key and token"
+msgstr "No se puede conectar a SignalWire, verifique su espacio, clave y token"
+
+msgid "Unable to find phone with number %(number)s on your account"
+msgstr "No se puede encontrar el teléfono con el número %(number)s en su cuenta"
 
 #, python-format
 msgid "Add a %(link)s bot to send and receive messages to Slack users, on your slack workspace."
@@ -1474,14 +1516,26 @@ msgstr "Conéctese a una instancia de Somleng."
 msgid "To finish configuring this channel, you'll need to set the following callback URLs on your Somleng instance."
 msgstr "Para terminar de configurar este canal, deberá establecer las siguientes URL de callback en su instancia de Somleng."
 
+msgid "Incoming Messages"
+msgstr "Mensajes Entrantes"
+
 msgid "New incoming messages should be sent to this endpoint."
 msgstr "Los mensajes entrantes nuevos deben enviarse a este endpoint."
+
+msgid "Message Status Updates"
+msgstr "Actualizaciones de estado de mensajes"
 
 msgid "Message status updates should be sent to this endpoint."
 msgstr "Las actualizaciones de estado de los mensajes deben enviarse a este endpoint."
 
+msgid "Incoming Calls"
+msgstr "Llamadas Entrantes"
+
 msgid "New incoming calls should be sent to this endpoint."
 msgstr "Las llamadas entrantes nuevas deben enviarse a este endpoint."
+
+msgid "Call Status Updates"
+msgstr "Actualizaciones de estado de llamadas"
 
 msgid "Call status updates should be sent to this endpoint."
 msgstr "Las actualizaciones de estado de las llamadas deben enviarse a este endpoint."
@@ -1641,6 +1695,12 @@ msgstr "El SID de su Cuenta Twilio"
 msgid "Your Twilio Account Token"
 msgstr "El Token de su Cuenta Twilio"
 
+msgid "Twilio Account successfully connected."
+msgstr "Cuenta de Twilio conectada correctamente."
+
+msgid "Connect Twilio"
+msgstr "Conectar Twilio"
+
 #, python-format
 msgid "You can connect a messaging service from your Twilio account to benefit from %(link)s features."
 msgstr "Puede conectar un servicio de mensajería desde su cuenta Twilio para beneficiarse de las funciones %(link)s."
@@ -1694,6 +1754,9 @@ msgstr "Tu canal de Viber está conectado. Si es necesario, los puntos finales d
 
 msgid "The authentication token provided by Viber"
 msgstr "El token de autenticación proporcionado por Viber"
+
+msgid "Error validating authentication token: %(error)s"
+msgstr "Error al validar el token de autenticación: %(error)s"
 
 msgid "Missing auth token"
 msgstr "Falta el token de autenticación"
@@ -1752,6 +1815,12 @@ msgstr "Su secret de API de Vonage"
 
 msgid "Your API key and secret seem invalid. Please check them again and retry."
 msgstr "Su clave de API y su secreto parecen no válidos. Revíselos de nuevo y vuelva a intentarlo."
+
+msgid "Vonage Account successfully connected."
+msgstr "Cuenta de Vonage conectada correctamente."
+
+msgid "Connect Vonage"
+msgstr "Conectar Vonage"
 
 msgid "To finish configuring this channel, you need to have Movile/Wavy configure the URL below for your number."
 msgstr "Para terminar de configurar este canal, debe hacer que Movile/Wavy configure la URL de abajo para su número."
@@ -1827,6 +1896,12 @@ msgstr "No se pudo registrar el teléfono %s con ID %s de la WABA con ID %s"
 
 msgid "Sorry account could not be connected. Please try again"
 msgstr "Lo sentimos, no se pudo conectar la cuenta. Vuelva a intentarlo"
+
+msgid "WhatsApp Account successfully connected."
+msgstr "Cuenta de WhatsApp conectada correctamente."
+
+msgid "Connect WhatsApp"
+msgstr "Conectar WhatsApp"
 
 #, python-format
 msgid "If you are based in Uganda, you can integrate with %(link)s to send and receive messages on your short code."
@@ -1950,6 +2025,9 @@ msgstr "Voz Entrante"
 msgid "Outgoing Voice"
 msgstr "Voz Saliente"
 
+msgid "The domain to whitelist for Messenger extensions ex: https://yourdomain.com"
+msgstr "El dominio a incluir en la lista blanca para las extensiones de Messenger, ej: https://yourdomain.com"
+
 msgid "An error occured contacting the Facebook API"
 msgstr "Ocurrió un error al contactar la API de Facebook"
 
@@ -1999,6 +2077,9 @@ msgstr "Grupos"
 
 msgid "Select groups for this contact"
 msgstr "Seleccionar grupos para este contacto"
+
+msgid "No Preference"
+msgstr "Sin preferencia"
 
 #, python-format
 msgid "%(language)s (Missing)"
@@ -2668,6 +2749,9 @@ msgstr "Nunca"
 msgid "Calls"
 msgstr "Llamadas"
 
+msgid "The name for our alias"
+msgstr "El nombre de nuestro alias"
+
 msgid "You must select a country for your workspace."
 msgstr "Debes seleccionar un país para tu workspace."
 
@@ -2801,9 +2885,6 @@ msgstr "Difusiones"
 
 msgid "Scheduled Broadcasts"
 msgstr "Difusiones programadas"
-
-msgid "Save"
-msgstr "Guardar"
 
 #, python-format
 msgid "To get started you need to <a href=\"%(link)s\">add a channel</a> to your workspace which will allow you to send messages to your contacts."
@@ -3078,6 +3159,9 @@ msgstr "La prueba de la configuración SMTP falló con el error: %s"
 msgid "SMTP settings test failed."
 msgstr "La prueba de la configuración SMTP falló."
 
+msgid "Must specify a label"
+msgstr "Debe especificar una etiqueta"
+
 msgid "An error occurred while making your changes. Please try again."
 msgstr "Se produjo un error al realizar los cambios. Inténtalo de nuevo."
 
@@ -3225,11 +3309,23 @@ msgstr "Se requiere contraseña para un nuevo login."
 msgid "Create Workspace Account"
 msgstr "Crear Cuenta de Workspace"
 
+msgid "Workspace successfully created."
+msgstr "Workspace creado correctamente."
+
 msgid "Sign Up"
 msgstr "Registrarse"
 
+msgid "Enter a name for your event. ex: new-registration"
+msgstr "Ingrese un nombre para su evento. ej: new-registration"
+
+msgid "This event name has already been used."
+msgstr "Este nombre de evento ya está en uso."
+
 msgid "The country used for location values. (optional)"
 msgstr "El país usado para los valores de ubicación. (opcional)"
+
+msgid "State and district names will be searched against this country."
+msgstr "Los nombres de estados y distritos se buscarán en este país."
 
 msgid "Default Flow Language"
 msgstr "Idioma de Flujo Predeterminado"
@@ -3480,6 +3576,12 @@ msgstr "Opcional: seleccione grupos de permisos."
 msgid "You can reset the user's password by entering a new password here"
 msgstr "Puede restablecer la contraseña del usuario introduciendo una nueva contraseña aquí"
 
+msgid "User updated successfully."
+msgstr "Usuario actualizado correctamente."
+
+msgid "Update User"
+msgstr "Actualizar Usuario"
+
 msgid "Beta"
 msgstr "Beta"
 
@@ -3555,6 +3657,12 @@ msgstr "Eliminar tema"
 
 msgid "Notes can only be seen by the support team"
 msgstr "Las notas solo pueden ser vistas por el equipo de soporte"
+
+msgid "Response Time"
+msgstr "Tiempo de respuesta"
+
+msgid "No Team"
+msgstr "Sin equipo"
 
 #, python-format
 msgid "Field '%(field)s' is required."
@@ -3968,9 +4076,6 @@ msgstr "Moneda"
 
 msgid "Amount"
 msgstr "Importe"
-
-msgid "Time"
-msgstr "Hora"
 
 msgid "No airtime transfers"
 msgstr "Sin transferencias de tiempo aire"
@@ -4769,9 +4874,6 @@ msgstr "Ha conectado una cuenta de prueba de Twilio que tiene algunas restriccio
 msgid "Read more about the limits placed on Twilio's Free Trial numbers."
 msgstr "Lea más sobre los límites impuestos a los números de prueba gratuita de Twilio."
 
-msgid "Connect Twilio"
-msgstr "Conectar Twilio"
-
 #, python-format
 msgid "To connect your Twilio Account you will need to provide us your Twilio account SID and auth token. Both values can be found on your <a target=\"twilio\" href=\"%(settings_url)s\">Twilio account page</a>."
 msgstr "Para conectar su cuenta de Twilio, deberá proporcionar el SID de su cuenta de Twilio y el token de autenticación. Ambos valores se pueden encontrar en la página de <a target=\"twilio\" href=\"%(settings_url)s\">su cuenta de Twilio</a>."
@@ -4824,9 +4926,6 @@ msgstr "Para completar la configuración, deberá ingresar algunas cosas en su c
 #, python-format
 msgid "<div class=\"code mt-4\">Manage > API Usage > Callback API > Server Settings</div> <div class=\"mt-2\"> Enter the Webhook URL below for the <div class=\"code inline py-1\">URL</div> field and the Verify Token in the <div class=\"code inline py-1\">Secret Key</div> field. </div> <div class=\"code mt-6\">Manage > API Usage > Callback API > Event Types</div> <div class=\"mt-2\">Check the option %(option)s</div>"
 msgstr "<div class=\"code mt-4\">Manage > API Usage > Callback API > Server Settings</div> <div class=\"mt-2\"> Introduzca la URL del webhook de abajo en el campo <div class=\"code inline py-1\">URL</div> y el Verify Token en el campo <div class=\"code inline py-1\">Secret Key</div>. </div> <div class=\"code mt-6\">Manage > API Usage > Callback API > Event Types</div> <div class=\"mt-2\">Marque la opción %(option)s</div>"
-
-msgid "Connect Vonage"
-msgstr "Conectar Vonage"
 
 #, python-format
 msgid "To connect your Vonage Account you will need to provide us your API key and secret. Both values can be found on your <a target=\"vonage\" href=\"%(settings_url)s\">Vonage settings</a> page in the API Settings section."
@@ -5888,9 +5987,6 @@ msgstr "Restablecer la contraseña"
 msgid "Enter the email address you used to sign up. We will send you an email with details on how to reset your password."
 msgstr "Introduzca la dirección de correo electrónico que utilizó para registrarse. Le enviaremos un correo electrónico con los detalles sobre cómo restablecer su contraseña."
 
-msgid "Update User"
-msgstr "Actualizar Usuario"
-
 msgid "Remove User"
 msgstr "Eliminar usuario"
 
@@ -6562,9 +6658,6 @@ msgstr "Siguiente"
 #~ msgid "Android Phone"
 #~ msgstr "Teléfono Android"
 
-#~ msgid "Incoming Message"
-#~ msgstr "Mensaje Entrante"
-
 #~ msgid "Outgoing Message"
 #~ msgstr "Mensaje Saliente"
 
@@ -6881,14 +6974,8 @@ msgstr "Siguiente"
 #~ msgid "More Calls"
 #~ msgstr "Mas Llamadas"
 
-#~ msgid "The name of your bot"
-#~ msgstr "El nombre de tu bot"
-
 #~ msgid "Access token for your bot, leave out leading Bearer"
 #~ msgstr "Token de acceso para su bot, omita al portador principal"
-
-#~ msgid "Unable to access bothub with credentials, please check and try again"
-#~ msgstr "No se puede acceder a bothub con las credenciales, verifique e intente nuevamente"
 
 #~ msgid "Production"
 #~ msgstr "Producción"
@@ -7761,9 +7848,6 @@ msgstr "Siguiente"
 #~ msgid "Instead of using your Android phone to send messages, you can use your Vonage Account to send messages to over 200 countries."
 #~ msgstr "En lugar de usar tu teléfono Android para enviar mensajes, puedes usar tu cuenta de Vonage para enviar mensajes a más de 200 países."
 
-#~ msgid "Connect External API"
-#~ msgstr "Conectar API externa"
-
 #~ msgid "If you have an external provider you want to use to send messages, you can connect it using our External API."
 #~ msgstr "Si tiene un proveedor externo que desea usar para enviar mensajes, puede conectarlo usando nuestra API externa."
 
@@ -8135,9 +8219,6 @@ msgstr "Siguiente"
 #~ msgid "Airtime transfer failed"
 #~ msgstr "Error en la transferencia de tiempo aire"
 
-#~ msgid "Call Started"
-#~ msgstr "Llamada iniciada"
-
 #~ msgid "Missed outgoing call"
 #~ msgstr "Llamada saliente perdida"
 
@@ -8217,9 +8298,6 @@ msgstr "Siguiente"
 #, python-format
 #~ msgid "Closed ticket <b>%(subject)s</b>"
 #~ msgstr "Ticket cerrado <b>%(subject)s</b>"
-
-#~ msgid "Successfully called"
-#~ msgstr "Llamado exitosamente"
 
 #~ msgid "Failed to call"
 #~ msgstr "No se pudo llamar"
