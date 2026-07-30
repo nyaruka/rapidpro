@@ -40,6 +40,21 @@ class GlobalCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertContains(response, "You have reached the per-workspace limit")
             self.assertContentMenu(list_url, self.admin, [])
 
+    def test_translation(self):
+        # regression test: strings in this module were previously wrapped with the stdlib gettext instead of Django's
+        # and so always rendered in English regardless of the user's language
+        self.admin.language = "es"
+        self.admin.save(update_fields=("language",))
+        self.login(self.admin)
+
+        # page title should be translated
+        response = self.client.get(reverse("globals.global_list"))
+        self.assertContains(response, "Globales")
+
+        # as should form validation errors
+        response = self.client.post(reverse("globals.global_create"), {"name": "/?:", "value": "123"})
+        self.assertFormError(response.context["form"], "name", "Solo puede contener letras, números y guiones.")
+
     @override_settings(ORG_LIMIT_DEFAULTS={"globals": 4})
     def test_create(self):
         create_url = reverse("globals.global_create")
