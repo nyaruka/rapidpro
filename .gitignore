@@ -20,6 +20,7 @@ __pycache__/
 .coverage
 
 # Project specific
+locale/*/LC_MESSAGES/*.mo
 node_modules
 sitestatic
 celerybeat-schedule
