@@ -1,3 +1,7 @@
+v26.3.25 (2026-07-30)
+-------------------------
+ * Convert schedule and template primary keys to bigint
+
 v26.3.24 (2026-07-30)
 -------------------------
  * Check PO files are up to date in CI and stop committing compiled MO files
