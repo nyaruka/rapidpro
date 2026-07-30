@@ -199,10 +199,9 @@ class SubscriptionEndpoint(BaseEndpoint):
     def _org_allowed(self, request, org_uuid: str) -> bool:
         """
         ``org:<org-uuid>`` - shared state changes for the current workspace, i.e. renames of assets referenced across the
-        UI. Any member of the workspace may watch it, deliberately unlike ``flow:`` below which requires flow editing
-        permission: this socket also carries contact renames which agents need for the ticketing UI. That means an agent
-        learns the UUID and new name of any flow or group renamed while it's subscribed, which we accept: there's no
-        listing, no attributes beyond the UUID and the new name, and nothing at all about assets that are never renamed.
+        UI. Any member of the workspace may watch it. An agent may therefore learn the UUID and new name of any flow or
+        group renamed while subscribed, which we accept: there's no listing, no attributes beyond the UUID and the new
+        name, and nothing at all about assets that are never renamed.
         """
         return org_uuid == str(request.org.uuid)
 

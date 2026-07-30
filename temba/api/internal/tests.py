@@ -792,7 +792,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             [{"type": "user", "uuid": str(nameless.uuid), "name": "nameless@textit.com"}], response.json()["results"]
         )
 
-        # a contact without a name resolves to their formatted URN, and mailroom publishes the same value for renames
+        # a contact without a name resolves to their formatted URN
         nameless_contact = self.create_contact(phone="+12065551212")
 
         with self.mockReadOnly(assert_models={Contact, ContactURN}):

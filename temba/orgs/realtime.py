@@ -4,9 +4,8 @@ asset names fresh without refetching or reloading.
 
 Phase one deliberately only publishes renames of flows and groups (see `AssetNameMixin`) as those are the references
 which appear most often in flow definitions. The other asset types resolvable via the internal assets endpoint
-(channels, labels, LLMs, opt-ins, templates, topics, fields, globals and users) don't publish yet, so clients still fall
-back to refetching or a page reload to see those renames. Contact name changes are published to this same socket by
-mailroom rather than here.
+(channels, contacts, labels, LLMs, opt-ins, templates, topics, fields, globals and users) don't publish, so clients
+still fall back to refetching or a page reload to see those renames.
 """
 
 import logging
