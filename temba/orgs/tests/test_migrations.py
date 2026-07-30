@@ -99,3 +99,32 @@ class NormalizeTimezonesTest(MigrationTest):
         self.assertEqual("Africa/Kigali", str(self.org.timezone))
         self.assertEqual("America/Los_Angeles", str(self.org2.timezone))
         self.assertEqual("UTC", str(self.org3.timezone))
+
+
+class ResetDroppedLanguagesTest(MigrationTest):
+    app = "orgs"
+    migrate_from = "0186_alter_export_id_alter_invitation_id_and_more"
+    migrate_to = "0188_reset_dropped_languages"
+
+    def setUpBeforeMigration(self, apps):
+        # self.org keeps a still supported language and should be untouched
+        Org.objects.filter(id=self.org.id).update(language="pt-br")
+        Org.objects.filter(id=self.org2.id).update(language="ru")
+
+        self.org3 = Org.objects.create(
+            name="No Language",
+            timezone=ZoneInfo("Africa/Kigali"),
+            flow_languages=["eng"],
+            language=None,
+            created_by=self.admin,
+            modified_by=self.admin,
+        )
+
+    def test_migration(self):
+        self.org.refresh_from_db()
+        self.org2.refresh_from_db()
+        self.org3.refresh_from_db()
+
+        self.assertEqual("pt-br", self.org.language)
+        self.assertEqual("en-us", self.org2.language)
+        self.assertIsNone(self.org3.language)
