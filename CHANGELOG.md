@@ -1,3 +1,17 @@
+v26.3.24 (2026-07-30)
+-------------------------
+ * Check PO files are up to date in CI and stop committing compiled MO files
+ * Fix translations that never reached users at runtime and add regression test
+ * Wrap untranslatable user-facing strings and template copy in gettext/i18n tags
+ * Complete French and Brazilian Portuguese translations
+ * Update Spanish translations for reworked message ids and use consistent term for channel
+ * Regenerate PO files, dropping obsolete entries and translator/team headers
+ * Remove translation service sync command and references to it
+ * Drop unused Czech, Mongolian and Russian website localizations
+ * Remove unused legacy simulator and contact fields templates
+ * Publicize uuid filtering on tickets API endpoint and remove ticket alias
+ * Fix flakey ticket folder test by giving tickets deterministic activity timestamps
+
 v26.3.23 (2026-07-29)
 -------------------------
  * Update @nyaruka/temba-components to 0.170.0
