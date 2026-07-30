@@ -128,8 +128,8 @@
       padding: 8px 0 8px 8px;
     }
 
-    /* the list column's content (status filter, rows) runs to the column
-       edge — its header strip contents align to that same edge */
+    /* the list column's content runs to the column edge — its header
+       strip contents align to that same edge */
     .ticket-list temba-header-bar {
       padding-right: 0;
     }
@@ -234,7 +234,6 @@
   <script type="text/javascript">
     // current state
     var folder = '{{folder}}';
-    var status = '{{status}}';
     var ticketUUID = '{{uuid}}';
     var initialTicket = '{{uuid}}';
     var focusNext;
@@ -260,7 +259,6 @@
     }
 
     function handleTicketsMenuChanged(menuItem) {
-      var statusSelect = document.querySelector('temba-select[name="ticket-status"]');
       var assigneeSelect = document.querySelector('temba-user-select[name="assignee-filter"]');
       ticketUUID = null;
       focusNext = null;
@@ -286,13 +284,8 @@
           assigneeFilter = null;
         }
 
-        // whenever our menu changes, reset filter
-        if (statusSelect) {
-          status = "open";
-          folder = menuItem.id;
-          statusSelect.setSelectedValue(status)
-          updateTicketList();
-        }
+        folder = menuItem.id;
+        updateTicketList();
       }
     }
 
@@ -326,7 +319,7 @@
       }
 
       // if we have auto selecting, dont clear the chat
-      var ticketsEndpoint = `/ticket/folder/${folder}/${status}/${initialTicket || ''}`;
+      var ticketsEndpoint = `/ticket/folder/${folder}/${initialTicket || ''}`;
 
       // add assignee filter if set
       if (assigneeFilter) {
@@ -350,15 +343,8 @@
       }
     }
 
-    function handleStatusFilterChanged(event) {
-      ticketUUID = null;
-      focusNext = null;
-      status = event.target.value
-      updateTicketList();
-    }
-
     function updateBrowserUrl() {
-      var path = `/ticket/${folder}/${status}/`;
+      var path = `/ticket/${folder}/`;
       if (ticketUUID) {
         path += `${ticketUUID}/`;
       }
@@ -495,7 +481,7 @@
 
       var header = document.querySelector("#page-header");
       if (header) {
-        var menuPath = `/ticket/${folder}/${status}/`;
+        var menuPath = `/ticket/${folder}/`;
         if (ticketUUID) {
           menuPath += `${ticketUUID}/`;
         }
@@ -582,14 +568,9 @@
           else if ((!ticket.assignee || ticket.assignee.email != '{{request.user.email}}') && folder == "mine" && previous.assignee) {
             removeTicket(ticket.uuid);
           }
-          // ticket was reopened
-          else if (ticket.status != previous.status && ticket.status !== status) {
-            removeTicket(ticket.uuid);
-          }
-          // ticket was closed
-          else if (ticket.status == "closed" && previous.status != "closed") {
-            removeTicket(ticket.uuid);
-          } else if (folder == previous.topic.uuid && folder != ticket.topic.uuid) {
+          // closed and reopened tickets stay in the list - the refresh below
+          // resorts and restyles them
+          else if (folder == previous.topic.uuid && folder != ticket.topic.uuid) {
             removeTicket(ticket.uuid);
           }
 
@@ -658,7 +639,7 @@
               <div class="flex-grow relative" id="folder-title">
                 <div id="title-text">{{ title }}</div>
               </div>
-              <temba-content-menu endpoint="{% url 'tickets.ticket_folder' folder status uuid %}"
+              <temba-content-menu endpoint="/ticket/folder/{{ folder }}/{{ uuid }}"
                                   -temba-selection="handleContentMenuSelected(event)"
                                   arrowtopleft
                                   class="relative"
@@ -678,20 +659,10 @@
             </temba-user-select>
           </temba-header-bar>
           <div class="list-body flex flex-col flex-grow min-h-0">
-            <temba-select style="z-index:2"
-                          name="ticket-status"
-                          onchange="handleStatusFilterChanged(event)"
-                          value="{{ status }}"
-                          class="mb-2">
-              <temba-option name="Open" value="open" icon="tickets_open">
-              </temba-option>
-              <temba-option name="Closed" value="closed" icon="tickets_closed">
-              </temba-option>
-            </temba-select>
             <div style="max-height:100%;" class="flex flex-grow">
               {% if uuid %}
                 <temba-ticket-list agent="{{ request.user.email }}"
-                                   endpoint="{% url 'tickets.ticket_folder' folder status uuid %}"
+                                   endpoint="/ticket/folder/{{ folder }}/{{ uuid }}"
                                    -temba-refreshed="handleTicketsRefreshed"
                                    onchange="handleContactSelected(event)"
                                    class="flex-grow">
@@ -702,7 +673,7 @@
               {% else %}
                 <temba-ticket-list nextselection="{{ nextUUID }}"
                                    agent="{{ request.user.email }}"
-                                   endpoint="{% url 'tickets.ticket_folder' folder status %}"
+                                   endpoint="/ticket/folder/{{ folder }}/"
                                    -temba-refreshed="handleTicketsRefreshed"
                                    onchange="handleContactSelected(event)"
                                    class="flex-grow">

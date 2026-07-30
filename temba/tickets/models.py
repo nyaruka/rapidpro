@@ -318,12 +318,18 @@ class Ticket(models.Model):
 
     class Meta:
         indexes = [
-            # used by the All folder
-            models.Index(name="tickets_org_status", fields=["org", "status", "-last_activity_on", "-id"]),
+            # used by the All folder - status is descending so that a forward scan yields the ticket UI's
+            # display order of open ('O') before closed ('C'), then most recent activity.
+            #
+            # both the column order and the descending directions of these two indexes are load-bearing for the
+            # folder view's keyset cursor (the RawSQL row comparison in tickets/views.py) - it relies on a forward
+            # scan of the index already being in display order, so changing either the order of the columns or
+            # their directions silently degrades folder paging to sort-based plans.
+            models.Index(name="tickets_org_status_desc", fields=["org", "-status", "-last_activity_on", "-id"]),
             # used by the Unassigned and Mine folders
             models.Index(
-                name="tickets_org_assignee_status",
-                fields=["org", "assignee", "status", "-last_activity_on", "-id"],
+                name="tickets_org_assign_status_desc",
+                fields=["org", "assignee", "-status", "-last_activity_on", "-id"],
             ),
             # used by engine to load a contact with its open tickets
             models.Index(name="tickets_contact_open", fields=["contact", "opened_on"], condition=Q(status="O")),
@@ -352,7 +358,9 @@ class TicketFolder(metaclass=ABCMeta):
                 qs = qs.filter(topic__in=restricted)
 
         if ordered:
-            qs = qs.order_by("-last_activity_on", "-id")
+            # the ticket UI's display order: open ('O' > 'C') before closed, then most recent activity - for
+            # status filtered fetches the leading term is constant so this is just most recent activity
+            qs = qs.order_by("-status", "-last_activity_on", "-id")
 
         return qs.select_related("topic", "assignee").prefetch_related("contact")
 

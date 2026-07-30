@@ -63,11 +63,11 @@ class MessageHistory(OrgPermsMixin, ChartViewMixin, SmartTemplateView):
 
         return [d.strftime("%Y-%m-%d") for d in labels], [
             {
-                "label": "Incoming",
+                "label": _("Incoming"),
                 "data": [values_by_scope[ChannelCount.SCOPE_TEXT_IN].get(d, 0) for d in labels],
             },
             {
-                "label": "Outgoing",
+                "label": _("Outgoing"),
                 "data": [values_by_scope[ChannelCount.SCOPE_TEXT_OUT].get(d, 0) for d in labels],
             },
         ]
@@ -147,7 +147,7 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
                 "period": [since, until],
                 "data": {
                     "labels": categories,
-                    "datasets": [{"label": "Incoming", "data": inbound}, {"label": "Outgoing", "data": outbound}],
+                    "datasets": [{"label": _("Incoming"), "data": inbound}, {"label": _("Outgoing"), "data": outbound}],
                 },
             }
         )

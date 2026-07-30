@@ -1923,7 +1923,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertIsNone(ticket.assignee)
 
         # and we're redirected to that ticket
-        self.assertRedirect(response, f"/ticket/all/open/{ticket.uuid}/")
+        self.assertRedirect(response, f"/ticket/all/{ticket.uuid}/")
 
     @mock_mailroom
     def test_interrupt(self, mr_mocks):

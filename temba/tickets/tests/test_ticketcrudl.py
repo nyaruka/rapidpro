@@ -100,6 +100,11 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         with self.assertNumQueries(10):
             self.client.get(deep_link)
 
+        # status-less deep links check the merged first page
+        response = self.assertListFetch(f"{list_url}all/{ticket.uuid}/", [self.admin], context_objects=[])
+        self.assertEqual("all", response.context["folder"])
+        self.assertEqual(str(ticket.uuid), response.context["nextUUID"])
+
         # try same request but for agent that can't see this ticket
         response = self.assertListFetch(deep_link, [self.agent2], context_objects=[])
         self.assertEqual("All", response.context["title"])
@@ -151,6 +156,17 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             f"{list_url}mine/open/?assignee={self.admin.uuid}", [self.admin], context_objects=[]
         )
         self.assertNotIn("assignee_uuid", response.context)
+
+        # a malformed assignee is ignored, same as on the folder endpoint
+        response = self.assertListFetch(f"{list_url}all/open/?assignee=notauuid", [self.admin], context_objects=[])
+        self.assertNotIn("assignee_uuid", response.context)
+
+        # a deep link to a valid but unknown uuid stays in the requested folder
+        response = self.assertListFetch(f"{list_url}unassigned/open/{uuid4()}/", [self.admin], context_objects=[])
+        self.assertEqual("Unassigned", response.context["title"])
+        self.assertEqual("unassigned", response.context["folder"])
+        self.assertNotIn("uuid", response.context)
+        self.assertNotIn("nextUUID", response.context)
 
         # non-existent topic should give a 404
         bad_topic_link = f"{list_url}{uuid4()}/open/{ticket.uuid}/"
@@ -252,16 +268,17 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.create_contact("Mary No tickets", phone="126", last_seen_on=timezone.now())
         self.create_contact("Mr Other Org", phone="126", last_seen_on=timezone.now(), org=self.org2)
 
-        all_open_url = reverse("tickets.ticket_folder", kwargs={"folder": "all", "status": "open"})
-        all_closed_url = reverse("tickets.ticket_folder", kwargs={"folder": "all", "status": "closed"})
-        mine_open_url = reverse("tickets.ticket_folder", kwargs={"folder": "mine", "status": "open"})
-        unassigned_open_url = reverse("tickets.ticket_folder", kwargs={"folder": "unassigned", "status": "open"})
-        general_open_url = reverse(
-            "tickets.ticket_folder", kwargs={"folder": self.org.default_topic.uuid, "status": "open"}
-        )
-        sales_open_url = reverse("tickets.ticket_folder", kwargs={"folder": self.sales.uuid, "status": "open"})
-        sales_closed_url = reverse("tickets.ticket_folder", kwargs={"folder": self.sales.uuid, "status": "closed"})
-        bad_topic_url = reverse("tickets.ticket_folder", kwargs={"folder": uuid4(), "status": "open"})
+        # the status and uuid parts of the pattern are optional so URLs can only be reversed by folder
+        all_url = reverse("tickets.ticket_folder", kwargs={"folder": "all"})
+        mine_url = reverse("tickets.ticket_folder", kwargs={"folder": "mine"})
+        all_open_url = f"{all_url}open/"
+        all_closed_url = f"{all_url}closed/"
+        mine_open_url = f"{mine_url}open/"
+        unassigned_open_url = "/ticket/folder/unassigned/open/"
+        general_open_url = f"/ticket/folder/{self.org.default_topic.uuid}/open/"
+        sales_open_url = f"/ticket/folder/{self.sales.uuid}/open/"
+        sales_closed_url = f"/ticket/folder/{self.sales.uuid}/closed/"
+        bad_topic_url = f"/ticket/folder/{uuid4()}/open/"
 
         def assert_tickets(url: str, user, *, expected: list | int, choose_org=None):
             response = self.requestView(url, user, choose_org=choose_org)
@@ -307,6 +324,13 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         c3_t2 = self.create_ticket(contact3, closed_on=timezone.now())
 
         self.create_outgoing_msg(contact3, "Yes", created_by=self.agent)
+
+        # tickets created back to back can land in the same millisecond, and the timestamp cursors below only have
+        # millisecond resolution, so space out activity to keep paging deterministic
+        base = timezone.now().replace(microsecond=0) - timedelta(minutes=1)
+        for i, ticket in enumerate([c1_t1, c1_t2, c2_t1, c2_t2, c3_t1, c3_t2]):
+            Ticket.objects.filter(id=ticket.id).update(last_activity_on=base + timedelta(seconds=i))
+            ticket.last_activity_on = base + timedelta(seconds=i)
 
         # fetching open folder returns all open tickets
         self.login(self.admin)
@@ -429,10 +453,12 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         bulk_tickets = []
         for i in range(24):
             bulk_tickets.append(self.create_ticket(contact3, assignee=self.admin))
-        # now we have 25 admin-assigned tickets total (c1_t1 + 24 new ones), which triggers pagination re-query
+        # now we have 25 admin-assigned tickets total (c1_t1 + 24 new ones) which fills a page, so we get a next
+        # link and it has to carry the assignee filter
         response = self.requestView(f"{all_open_url}?assignee={self.admin.uuid}", self.admin)
         actual = [t["ticket"]["uuid"] for t in response.json()["results"]]
         self.assertEqual(25, len(actual))
+        self.assertIn(f"assignee={self.admin.uuid}", response.json()["next"])
         for bt in bulk_tickets:
             bt.delete()
 
@@ -503,6 +529,24 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json()["results"][0],
         )
 
+        # fetching a folder without a status returns open tickets followed by closed tickets
+        assert_tickets(all_url, self.admin, expected=[c2_t1, c1_t2, c1_t1, c3_t2, c3_t1, c2_t2])
+        assert_tickets(all_url, self.agent2, expected=[c1_t2, c3_t1])  # only sales topic
+        assert_tickets(mine_url, self.admin, expected=[c1_t1])
+
+        # fetching new activity without a status returns both open and closed tickets (oldest first)
+        response = self.client.get(f"{all_url}?after={datetime_to_timestamp(c2_t2.last_activity_on)}")
+        self.assertEqual([str(c3_t1.uuid), str(c3_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]])
+
+        # refreshes are never paged, so even a full page of new activity doesn't get a next link
+        with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 1):
+            response = self.client.get(f"{all_url}?after={datetime_to_timestamp(c2_t2.last_activity_on)}")
+            self.assertEqual([str(c3_t1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]])
+            self.assertNotIn("next", response.json())
+
+        # assignee filtering works on the merged list too
+        assert_tickets(f"{all_url}?assignee={self.admin.uuid}", self.admin, expected=[c1_t1])
+
         # deep linking to a single ticket returns just that ticket
         assert_tickets(f"{all_open_url}{str(c1_t1.uuid)}", self.admin, expected=[c1_t1])
         assert_tickets(f"{all_open_url}{str(c1_t1.uuid)}", self.editor, expected=[c1_t1])
@@ -519,10 +563,158 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.admin, expected=[])
         assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[c1_t2])  # can access via Mine
 
-        # make sure when paging we get a next url
+        # status-less deep links work for both open and closed tickets
+        assert_tickets(f"{all_url}{str(c1_t1.uuid)}", self.admin, expected=[c1_t1])
+        assert_tickets(f"{all_url}{str(c2_t2.uuid)}", self.admin, expected=[c2_t2])
+
+        # make sure when paging we get a next url and status specific pages continue within that status
         with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 1):
             response = self.requestView(all_open_url + "?_format=json", self.admin)
-            self.assertIsNotNone(response.json()["next"])
+            self.assertEqual(
+                f"{all_open_url}?before={datetime_to_timestamp(c2_t1.last_activity_on)}&before_id={c2_t1.id}",
+                response.json()["next"],
+            )
+
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual([str(c1_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]])
+
+        # merged paging serves open pages first, crossing into closed tickets when open runs short
+        with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 2):
+            response = self.requestView(all_url, self.admin)
+            self.assertEqual(
+                [str(c2_t1.uuid), str(c1_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+            self.assertEqual(
+                f"{all_url}?before={datetime_to_timestamp(c1_t2.last_activity_on)}&before_id={c1_t2.id}",
+                response.json()["next"],
+            )
+
+            # second page is the last open ticket plus the newest closed ticket
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual(
+                [str(c1_t1.uuid), str(c3_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+            self.assertEqual(
+                f"{all_closed_url}?before={datetime_to_timestamp(c3_t2.last_activity_on)}&before_id={c3_t2.id}",
+                response.json()["next"],
+            )
+
+            # subsequent pages continue within the closed tickets
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual(
+                [str(c3_t1.uuid), str(c2_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual([], response.json()["results"])
+            self.assertNotIn("next", response.json())
+
+    @mock_mailroom
+    def test_folder_refresh_bounding(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        base = timezone.now().replace(microsecond=0)
+
+        # 8 tickets in distinct milliseconds
+        spread = [self.create_ticket(contact) for _ in range(8)]
+        for i, ticket in enumerate(spread):
+            Ticket.objects.filter(id=ticket.id).update(last_activity_on=base + timedelta(milliseconds=i))
+
+        after = datetime_to_timestamp(base - timedelta(seconds=1))
+
+        with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 5):
+            # a full refresh page is capped, extended to a whole millisecond
+            response = self.requestView(f"/ticket/folder/all/?after={after}", self.admin)
+            self.assertEqual(
+                [str(t.uuid) for t in spread[:5]], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+
+            # a bulk update can put more than a page of tickets inside a single millisecond - the cap must
+            # yield so the client's millisecond resolution cursor can still advance
+            tied = [self.create_ticket(contact) for _ in range(8)]
+            for i, ticket in enumerate(tied):
+                Ticket.objects.filter(id=ticket.id).update(
+                    last_activity_on=base + timedelta(seconds=1, microseconds=i + 1)
+                )
+
+            after = datetime_to_timestamp(base + timedelta(seconds=1))
+            response = self.requestView(f"/ticket/folder/all/?after={after}", self.admin)
+            self.assertEqual([str(t.uuid) for t in tied], [t["ticket"]["uuid"] for t in response.json()["results"]])
+
+    @mock_mailroom
+    def test_folder_merged_page_ties(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        open1 = self.create_ticket(contact)
+        closed1 = self.create_ticket(contact, closed_on=timezone.now())
+        closed2 = self.create_ticket(contact, closed_on=timezone.now())
+        closed3 = self.create_ticket(contact, closed_on=timezone.now())
+
+        # two newest closed tickets share the same last activity timestamp
+        tied = timezone.now()
+        Ticket.objects.filter(id__in=[closed2.id, closed3.id]).update(last_activity_on=tied)
+
+        with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 2):
+            # the cursor includes the ticket id so tickets sharing the timestamp we page from aren't lost
+            response = self.requestView("/ticket/folder/all/", self.admin)
+            self.assertEqual(
+                [str(open1.uuid), str(closed3.uuid)],
+                [t["ticket"]["uuid"] for t in response.json()["results"]],
+            )
+
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual(
+                [str(closed2.uuid), str(closed1.uuid)],
+                [t["ticket"]["uuid"] for t in response.json()["results"]],
+            )
+
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual([], response.json()["results"])
+            self.assertNotIn("next", response.json())
+
+    @mock_mailroom
+    def test_folder_invalid_params(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        ticket1 = self.create_ticket(contact)
+        ticket2 = self.create_ticket(contact, assignee=self.admin)
+
+        all_url = reverse("tickets.ticket_folder", kwargs={"folder": "all"})
+
+        # a malformed ticket uuid in the path is treated as not found rather than blowing up
+        response = self.requestView(f"{all_url}notauuid", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([], response.json()["results"])
+
+        # a malformed assignee is ignored, same as an unknown one
+        response = self.requestView(f"{all_url}?assignee=notauuid", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        # non-numeric cursor params are ignored so we just get the first page
+        response = self.requestView(f"{all_url}?after=NaN&before=x&before_id=y", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        # as are numeric cursor params too big (or small) to be a timestamp
+        response = self.requestView(f"{all_url}?after=100000000000000000000", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        response = self.requestView(f"{all_url}?before=-100000000000000000000&before_id={ticket1.id}", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        # and a malformed ticket uuid in a list view deep link doesn't blow up either
+        response = self.requestView(f"{reverse('tickets.ticket_list')}all/notauuid/", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertNotIn("uuid", response.context)
+        self.assertNotIn("nextUUID", response.context)
 
     @mock_mailroom
     def test_note(self, mr_mocks):

@@ -491,9 +491,20 @@ class CampaignEventForm(forms.ModelForm):
                     text = values.get("text", "")
                     attachments = values.get("attachments", [])
                     if text and len(text) > Msg.MAX_TEXT_LEN:
-                        self.add_error("compose", _(f"Maximum allowed text is {Msg.MAX_TEXT_LEN} characters."))
+                        self.add_error(
+                            "compose",
+                            forms.ValidationError(
+                                _("Maximum allowed text is %(limit)d characters."), params={"limit": Msg.MAX_TEXT_LEN}
+                            ),
+                        )
                     if attachments and len(attachments) > Msg.MAX_ATTACHMENTS:
-                        self.add_error("compose", _(f"Maximum allowed attachments is {Msg.MAX_ATTACHMENTS} files."))
+                        self.add_error(
+                            "compose",
+                            forms.ValidationError(
+                                _("Maximum allowed attachments is %(limit)d files."),
+                                params={"limit": Msg.MAX_ATTACHMENTS},
+                            ),
+                        )
 
             primary_values = compose.get(primary_language) or compose.get(base_language, {})
             template = primary_values.get("template", None)

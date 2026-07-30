@@ -176,7 +176,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             help_text=_("The content that must be in the response to consider the request successful"),
         )
 
-    title = "Connect External Service"
+    title = _("Connect External Service")
     permission = "channels.channel_claim"
     success_url = "uuid@channels.channel_configuration"
 

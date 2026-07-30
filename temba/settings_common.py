@@ -98,12 +98,9 @@ LANGUAGE_CODE = "en-us"
 
 LANGUAGES = (
     ("en-us", _("English")),
-    ("cs", _("Czech")),
     ("es", _("Spanish")),
     ("fr", _("French")),
-    ("mn", _("Mongolian")),
     ("pt-br", _("Portuguese")),
-    ("ru", _("Russian")),
 )
 DEFAULT_LANGUAGE = "en-us"
 

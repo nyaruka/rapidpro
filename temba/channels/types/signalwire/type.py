@@ -112,10 +112,12 @@ class SignalWireType(ChannelType):
                     break
 
         except Exception:
-            raise ValidationError("Unable to connect to SignalWire, please check your domain, key and token")
+            raise ValidationError(_("Unable to connect to SignalWire, please check your domain, key and token"))
 
         if phone_sid == "":
-            raise ValidationError(f"Unable to find number {address} on your account, please check and try again")
+            raise ValidationError(
+                _("Unable to find number %(number)s on your account, please check and try again") % {"number": address}
+            )
 
         channel_uuid = channel.uuid
         sms_url = "https://" + callback_domain + reverse("courier.sw", args=[channel_uuid, "receive"])
@@ -144,7 +146,7 @@ class SignalWireType(ChannelType):
 
         except Exception:
             raise ValidationError(
-                "Unable to update your phone number settings, please check your domain, key and token"
+                _("Unable to update your phone number settings, please check your domain, key and token")
             )
 
     def get_error_ref_url(self, channel, code: str) -> str:
