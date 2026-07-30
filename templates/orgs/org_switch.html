@@ -1,5 +1,5 @@
 {% extends "orgs/login/login_base.html" %}
-{% load smartmin %}
+{% load smartmin i18n %}
 
 {% block extra-script %}
   {{ block.super }}
@@ -12,16 +12,20 @@
 {% block content %}
   {% if other_org %}
     <div class="mt-4">
-      <div class="text-xl">Different Workspace</div>
+      <div class="text-xl">{% trans "Different Workspace" %}</div>
       <div class="mt-4 mb-12">
-        {% if next %}The page you are requesting belongs to one of your other workspaces, <b>{{ other_org.name }}</b>. To see it, you will need to switch to that workspace.{% endif %}
+        {% if next %}
+          {% blocktrans trimmed with org=other_org.name %}
+            The page you are requesting belongs to one of your other workspaces, <b>{{ org }}</b>. To see it, you will need to switch to that workspace.
+          {% endblocktrans %}
+        {% endif %}
       </div>
       <form method="post" action="{% url 'orgs.org_switch' %}">
         {% for field in form.fields %}
           {% render_field field %}
         {% endfor %}
         {% csrf_token %}
-        <input type="submit" value="Switch Workspace" class="button button-primary">
+        <input type="submit" value="{% trans "Switch Workspace" %}" class="button button-primary">
       </form>
     </div>
   {% endif %}

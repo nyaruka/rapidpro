@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 14:53+0000\n"
+"POT-Creation-Date: 2026-07-30 15:18+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Last-Translator: Rowan Seymour <rowanseymour@gmail.com>, 2022\n"
 "Language-Team: Spanish (https://www.transifex.com/rapidpro/teams/226/es/)\n"
@@ -1446,6 +1446,7 @@ msgstr "SignalWire llamará a este punto final cuando se reciban nuevos mensajes
 msgid "Unable to connect to SignalWire, please check your domain, key and token"
 msgstr "No se puede conectar a SignalWire, verifique su dominio, clave y token"
 
+#, python-format
 msgid "Unable to find number %(number)s on your account, please check and try again"
 msgstr "No se puede encontrar el número %(number)s en su cuenta, verifique e intente nuevamente"
 
@@ -1476,6 +1477,7 @@ msgstr "Introduzca un nombre de espacio válido."
 msgid "Unable to connect to SignalWire, please check your space, key and token"
 msgstr "No se puede conectar a SignalWire, verifique su espacio, clave y token"
 
+#, python-format
 msgid "Unable to find phone with number %(number)s on your account"
 msgstr "No se puede encontrar el teléfono con el número %(number)s en su cuenta"
 
@@ -1755,6 +1757,7 @@ msgstr "Tu canal de Viber está conectado. Si es necesario, los puntos finales d
 msgid "The authentication token provided by Viber"
 msgstr "El token de autenticación proporcionado por Viber"
 
+#, python-format
 msgid "Error validating authentication token: %(error)s"
 msgstr "Error al validar el token de autenticación: %(error)s"
 
@@ -3904,6 +3907,15 @@ msgstr "Le escribimos para informarle sobre cierta actividad en su cuenta."
 msgid "If you do not recognize this change then please take proper security precautions immediately. Below are the details from where this change was made."
 msgstr "Si no reconoce este cambio, tome de inmediato las precauciones de seguridad adecuadas. A continuación se muestran los detalles desde donde se realizó este cambio."
 
+msgid "Date"
+msgstr "Fecha"
+
+msgid "IP address"
+msgstr "Dirección IP"
+
+msgid "Browser"
+msgstr "Navegador"
+
 #, python-format
 msgid "Your email has been changed from %(from_email)s to %(to_email)s."
 msgstr "Su correo electrónico se ha cambiado de %(from_email)s a %(to_email)s."
@@ -3998,8 +4010,17 @@ msgstr "Ingresar"
 msgid "You're Invited!"
 msgstr "¡Está invitado!"
 
+msgid "Enter your password to accept your invitation to the <b>%(org)s</b> workspace."
+msgstr "Ingrese su contraseña para aceptar su invitación al workspace <b>%(org)s</b>."
+
 msgid "Welcome Back"
 msgstr "Bienvenido de nuevo"
+
+msgid "Sign in with your email address and password"
+msgstr "Inicie sesión con su correo electrónico y contraseña"
+
+msgid "Accept Invitation"
+msgstr "Aceptar invitación"
 
 msgid "Sign in with a passkey"
 msgstr "Iniciar sesión con una clave de acceso"
@@ -4027,8 +4048,9 @@ msgstr "Cree una cuenta a continuación para aceptar su invitación y unirse al 
 msgid "Create Account"
 msgstr "Crear Cuenta"
 
-msgid "Accept Invitation"
-msgstr "Aceptar invitación"
+#, python-format
+msgid "Creating a %(brand)s account is free and only takes a minute."
+msgstr "Crear una cuenta %(brand)s es gratis y solo toma un minuto."
 
 msgid "Sign up using a passkey"
 msgstr "Registrarse con una clave de acceso"
@@ -4079,6 +4101,9 @@ msgstr "Importe"
 
 msgid "No airtime transfers"
 msgstr "Sin transferencias de tiempo aire"
+
+msgid "Back"
+msgstr "Atrás"
 
 msgid "HTTP Logs"
 msgstr "Registros HTTP"
@@ -4143,6 +4168,12 @@ msgstr "Todas las operaciones se realizan sobre datos reales del workspace <b>%(
 msgid "Query String Parameters"
 msgstr "Parámetros de cadena de consulta"
 
+msgid "required"
+msgstr "obligatorio"
+
+msgid "optional"
+msgstr "opcional"
+
 msgid "Post Body Fields"
 msgstr "Campos del cuerpo de Post"
 
@@ -4183,6 +4214,12 @@ msgstr "Descargar Ahora"
 msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
 msgstr "¿Está seguro de que desea eliminar <b> %(name)s </b>? Esto no se puede deshacer."
 
+msgid "%(counter)s event"
+msgid_plural "%(counter)s events"
+msgstr[0] "%(counter)s evento"
+msgstr[1] "%(counter)s eventos"
+msgstr[2] "%(counter)s eventos"
+
 msgid "No campaigns"
 msgstr "Sin campañas"
 
@@ -4203,6 +4240,9 @@ msgstr "Está a punto de eliminar este evento. No hay forma de deshacer esto. ¿
 
 msgid "This event is currently being scheduled and can't be edited again until that completes."
 msgstr "Este evento se está programando actualmente y no se puede volver a editar hasta que eso finalice."
+
+msgid "<b>%(count)s</b> scheduled contacts"
+msgstr "<b>%(count)s</b> contactos programados"
 
 #, python-format
 msgid "Translation provided in %(langs)s"
@@ -4267,6 +4307,9 @@ msgstr "Seleccione un número que ya posee para conectarlo a su cuenta."
 msgid "(Unsupported)"
 msgstr "(No admitido)"
 
+msgid "%(channel)s Configuration"
+msgstr "Configuración de %(channel)s"
+
 msgid "Webhook Secret"
 msgstr "Secret del webhook"
 
@@ -4294,9 +4337,6 @@ msgstr "a"
 
 msgid "Duration"
 msgstr "Duración"
-
-msgid "Date"
-msgstr "Fecha"
 
 msgid "Last synced"
 msgstr "Última sincronización"
@@ -5164,6 +5204,15 @@ msgstr[2] "Se ignoraron los registros %(count)s debido a errores"
 msgid "Row %(row)s: %(message)s"
 msgstr "Fila %(row)s: %(message)s"
 
+msgid "Message History"
+msgstr "Historial de mensajes"
+
+msgid "Workspace Statistics"
+msgstr "Estadísticas de workspaces"
+
+msgid "This email was generated at"
+msgstr "Este correo electrónico fue generado el"
+
 msgid "Sorry, this flow cannot be exported because it references another flow. To export it, please remove any actions that reference other flows and try again."
 msgstr "Lo sentimos, este flujo no se puede exportar porque hace referencia a otro flujo. Para exportarlo, elimine cualquier acción que haga referencia a otros flujos y vuelva a intentarlo."
 
@@ -5264,25 +5313,26 @@ msgstr[0] "<b>%(count)s</b> contacto"
 msgstr[1] "<b>%(count)s</b> contactos"
 msgstr[2] "<b>%(count)s</b> contactos"
 
+msgid "Uh oh!"
+msgstr "¡Oh, no!"
+
 msgid "We tried our best, but there was an error processing your request. If this keeps happening, please refresh your browser."
 msgstr "Hicimos todo lo posible, pero se produjo un error al procesar su solicitud. Si esto sigue ocurriendo, actualice su navegador."
 
-#, python-format
 msgid "Sign In with %(provider)s"
-msgstr ""
+msgstr "Iniciar sesión con %(provider)s"
 
 msgid "Use Single Sign-On"
-msgstr ""
+msgstr "Usar inicio de sesión único"
 
 msgid "Ok"
-msgstr ""
+msgstr "Ok"
 
-#, python-format
 msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use <b>Sign In with %(provider)s</b> the next time you sign in."
-msgstr ""
+msgstr "El inicio de sesión con correo electrónico y contraseña dejará de estar disponible para su organización. Para mantener el acceso a su cuenta, use <b>Iniciar sesión con %(provider)s</b> la próxima vez que inicie sesión."
 
 msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use the single sign-on option the next time you sign in."
-msgstr ""
+msgstr "El inicio de sesión con correo electrónico y contraseña dejará de estar disponible para su organización. Para mantener el acceso a su cuenta, use la opción de inicio de sesión único la próxima vez que inicie sesión."
 
 msgid "Are you sure you want to continue? This cannot be undone."
 msgstr "Estás seguro de que quieres continuar? Esto no se puede deshacer."
@@ -5308,6 +5358,12 @@ msgstr "Activo en los últimos %(days)s días"
 
 msgid "There is already an export in progress. You must wait for that export to complete before starting another."
 msgstr "Ya hay una exportación en curso. Debe esperar a que se complete esa exportación antes de iniciar otra."
+
+msgid "(%(counter)s retry)"
+msgid_plural "(%(counter)s retries)"
+msgstr[0] "(%(counter)s reintento)"
+msgstr[1] "(%(counter)s reintentos)"
+msgstr[2] "(%(counter)s reintentos)"
 
 msgid "Connection Error"
 msgstr "Error de conexión"
@@ -5510,6 +5566,9 @@ msgstr "Se repite cada <b>semana</b> el"
 msgid "at around the same time."
 msgstr "aproximadamente a la misma hora."
 
+msgid "Repeats <b>daily</b> at around the same time."
+msgstr "Se repite <b>diariamente</b> aproximadamente a la misma hora."
+
 #, python-format
 msgid ""
 "\n"
@@ -5531,6 +5590,9 @@ msgstr[2] ""
 "\n"
 "             %(message_count)s mensajes\n"
 "          "
+
+msgid "Interrupt Broadcast"
+msgstr "Interrumpir difusión"
 
 msgid "Your channels are taking a while to send messages. Please wait for the outbound queue to clear before sending new messages."
 msgstr "Sus canales están tardando en enviar mensajes. Espere a que se vacíe la cola de salida antes de enviar nuevos mensajes."
@@ -5704,6 +5766,9 @@ msgstr "Alguien ha solicitado que se restablezca la contraseña de esta direcci�
 #, python-format
 msgid "Clicking on the following link will allow you to reset the password for the account %(email)s:"
 msgstr "Al hacer clic en el siguiente enlace podrá restablecer la contraseña de la cuenta %(email)s:"
+
+msgid "Reset password"
+msgstr "Restablecer contraseña"
 
 msgid "If you did not request this, don't worry, this email has only been sent to you and your account remains secure."
 msgstr "Si no solicitó esto, no se preocupe: este correo electrónico solo se le ha enviado a usted y su cuenta sigue siendo segura."
@@ -5917,9 +5982,21 @@ msgstr "No ha habilitado la supervisión de <b>Prometheus</b> en su workspace."
 msgid "You can create flow events which external services can subscribe to. For example, Zapier can subscribe to flow events you create and trigger any number of Zapier integrations when they occur in your flows."
 msgstr "Puede crear eventos de flujo a los que se puedan suscribir servicios externos. Por ejemplo, Zapier puede suscribirse a los eventos de flujo que cree y activar cualquier número de integraciones de Zapier cuando ocurran en sus flujos."
 
+msgid "Flow Event"
+msgstr "Evento De Flujo"
+
 #, python-format
 msgid "You need a workspace to use %(brand)s. Give it a name that best describes your organization or project."
 msgstr "Necesita un workspace para utilizar %(brand)s. Asígnele un nombre que describa mejor su organización o proyecto."
+
+msgid "Different Workspace"
+msgstr "Workspace diferente"
+
+msgid "The page you are requesting belongs to one of your other workspaces, <b>%(org)s</b>. To see it, you will need to switch to that workspace."
+msgstr "La página que está solicitando pertenece a otro de sus workspaces, <b>%(org)s</b>. Para verla, deberá cambiar a ese workspace."
+
+msgid "Switch Workspace"
+msgstr "Cambiar de workspace"
 
 msgid "If you have an export file with flows and or campaigns, select it below to import it into your workspace."
 msgstr "Si tiene un archivo de exportación con flujos o campañas, selecciónelo a continuación para importarlo a su workspace."
@@ -6336,9 +6413,6 @@ msgstr "Más videos"
 msgid "No sync events yet"
 msgstr "Aún no hay eventos de sincronización"
 
-msgid "Flow Event"
-msgstr "Evento De Flujo"
-
 msgid "Channel Event"
 msgstr "Evento del transmisor"
 
@@ -6371,6 +6445,18 @@ msgstr "Esto <b>no se repetirá</b>."
 msgid "Not scheduled"
 msgstr "No programada"
 
+msgid "Remove %(object)s?"
+msgstr "¿Eliminar %(object)s?"
+
+msgid "Are you sure you want to remove <b>%(object)s</b> from your account?"
+msgstr "¿Está seguro de que desea eliminar <b>%(object)s</b> de su cuenta?"
+
+msgid "This cannot be undone."
+msgstr "Esto no se puede deshacer."
+
+msgid "Add"
+msgstr "Añadir"
+
 msgid "You can sign in to your account using any of the following third-party accounts:"
 msgstr "Puede iniciar sesión en su cuenta utilizando cualquiera de las siguientes cuentas de terceros:"
 
@@ -6390,6 +6476,21 @@ msgstr "Se ha desconectado de su cuenta una cuenta de terceros de %(provider)s."
 
 msgid "Third-Party Account Disconnected"
 msgstr "Cuenta de terceros desconectada"
+
+msgid "Accept Invitation with %(provider)s"
+msgstr "Aceptar invitación con %(provider)s"
+
+msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."
+msgstr "La página que está solicitando pertenece a un workspace diferente, <b>%(org)s</b>. Para verla, deberá dar servicio a su cuenta."
+
+msgid "You are about to service the workspace, <b>%(org)s</b>."
+msgstr "Está a punto de dar servicio al workspace, <b>%(org)s</b>."
+
+msgid "Service Account"
+msgstr "Dar servicio a la cuenta"
+
+msgid "Invalid org, servicing not available."
+msgstr "Org no válida, el servicio no está disponible."
 
 msgid "Deleting this user will also delete the following workspaces owned by this user."
 msgstr "Al eliminar este usuario también se eliminarán los siguientes workspaces cuyo propietario es este usuario."
@@ -6466,6 +6567,30 @@ msgstr "Temas"
 
 msgid "No teams"
 msgstr "Sin equipos"
+
+msgid "Tickets Opened"
+msgstr "Tickets abiertos"
+
+msgid "Response Count"
+msgstr "Número de respuestas"
+
+msgid "Top Responders"
+msgstr "Principales respondedores"
+
+msgid "User"
+msgstr "Usuario"
+
+msgid "Replies"
+msgstr "Respuestas"
+
+msgid "Loading..."
+msgstr "Cargando..."
+
+msgid "No replies in this period"
+msgstr "No hay respuestas en este período"
+
+msgid "Failed to load"
+msgstr "Error al cargar"
 
 msgid "Any tickets opened within the selected date range will be included. You may optionally include additional columns for fields for each contact."
 msgstr "Se incluirán todos los tickets abiertos dentro del rango de fechas seleccionado. Opcionalmente puede incluir columnas adicionales para los campos de cada contacto."
@@ -7676,9 +7801,6 @@ msgstr "Siguiente"
 #~ msgid "Secret is incorrect."
 #~ msgstr "El secret es incorrecto."
 
-#~ msgid "Add"
-#~ msgstr "Añadir"
-
 #, python-format
 #~ msgid "Connect %(ticketer)s"
 #~ msgstr "Conectar %(ticketer)s"
@@ -7817,9 +7939,6 @@ msgstr "Siguiente"
 
 #~ msgid "No group assigned to this campaign"
 #~ msgstr "Ningún grupo asignado a esta campaña"
-
-#~ msgid "No events in this campaign yet."
-#~ msgstr "Aún no hay eventos en esta campaña."
 
 #~ msgid "Start the"
 #~ msgstr "Iniciar el"
@@ -8299,9 +8418,6 @@ msgstr "Siguiente"
 #~ msgid "Closed ticket <b>%(subject)s</b>"
 #~ msgstr "Ticket cerrado <b>%(subject)s</b>"
 
-#~ msgid "Failed to call"
-#~ msgstr "No se pudo llamar"
-
 #, python-format
 #~ msgid "Any messages prior to %(start)s can be found in your"
 #~ msgstr "Cualquier mensaje anterior a %(start)s se puede encontrar en su"
@@ -8390,9 +8506,6 @@ msgstr "Siguiente"
 #~ msgid "This will change the default language of the flow to <b>%(language)s</b>. This means that by default the flow will be appear in that language and can be translated into other languages. Also if a contact is in this flow and no translation exists for their language or the default language of the workspace, communication with that contact will default to <b>%(language)s</b>."
 #~ msgstr "Esto cambiará el idioma predeterminado del flujo a <b> %(language)s </b>. Esto significa que, de forma predeterminada, el flujo aparecerá en ese idioma y se puede traducir a otros idiomas. Además, si un contacto está en este flujo y no existe una traducción para su idioma o el idioma predeterminado del workspace, la comunicación con ese contacto se establecerá de manera predeterminada en <b> %(language)s </b>."
 
-#~ msgid "Remove Label"
-#~ msgstr "Borrar etiqueta"
-
 #~ msgid "Are you sure you want to remove this label?"
 #~ msgstr "¿Está seguro de que desea retirar esta etiqueta?"
 
@@ -8419,9 +8532,6 @@ msgstr "Siguiente"
 
 #~ msgid "Upload"
 #~ msgstr "Subir"
-
-#~ msgid "Back"
-#~ msgstr "Atrás"
 
 #~ msgid "Webhook Call Log"
 #~ msgstr "Registro de Webhook"
@@ -9019,9 +9129,6 @@ msgstr "Siguiente"
 #~ msgid "Select Everthing Else"
 #~ msgstr "Elegir todo lo demás"
 
-#~ msgid "Workspace Settings"
-#~ msgstr "Configuración del Workspace"
-
 #~ msgid "Sign in"
 #~ msgstr "Ingresar"
 
@@ -9049,10 +9156,6 @@ msgstr "Siguiente"
 #~ msgstr[0] "Tiene <b>1 flow event</b> configured."
 #~ msgstr[1] "Tiene <b>%(counter)s eventos de flujo</b> configurados."
 #~ msgstr[2] "Tiene <b>%(counter)s eventos de flujo</b> configurados."
-
-#, python-format
-#~ msgid "Creating a %(brand)s account is free and only takes a minute."
-#~ msgstr "Crear una cuenta %(brand)s es gratis y solo toma un minuto."
 
 #, python-format
 #~ msgid "You can configure %(brand)s to send emails generated within flows from an email address of your choosing."
