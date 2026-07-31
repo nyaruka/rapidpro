@@ -31,7 +31,7 @@ from temba.templates.models import Template
 from temba.tickets.models import Topic
 from temba.users.models import User
 from temba.utils.export.models import MultiSheetExporter
-from temba.utils.models import JSONAsTextField, LegacyUUIDMixin, TembaModel, delete_in_batches
+from temba.utils.models import JSONAsTextField, LegacyIDMixin, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseScopedCount, BaseSquashableCount
 from temba.utils.uuid import uuid4
 
@@ -60,7 +60,7 @@ FLOW_LOCK_TTL = 60  # 1 minute
 FLOW_LOCK_KEY = "org:%d:lock:flow:%d:definition"
 
 
-class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
+class Flow(LegacyIDMixin, LegacyUUIDMixin, TembaModel, DependencyMixin):
     # items in the flow definition JSON
     DEFINITION_UUID = "uuid"
     DEFINITION_NAME = "name"
@@ -140,7 +140,6 @@ class Flow(LegacyUUIDMixin, TembaModel, DependencyMixin):
         TYPE_SURVEY: 0,
     }
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="flows")
     labels = models.ManyToManyField("FlowLabel", related_name="flows")
     is_archived = models.BooleanField(default=False)
@@ -1240,7 +1239,7 @@ class FlowRun(models.Model):
         ]
 
 
-class FlowRevision(models.Model):
+class FlowRevision(LegacyIDMixin, models.Model):
     """
     Each version of a flow's definition.
     """
@@ -1644,7 +1643,7 @@ class ResultsExport(ExportType):
         }
 
 
-class FlowStart(models.Model):
+class FlowStart(LegacyIDMixin, models.Model):
     """
     A queuable request to start contacts and groups in a flow
     """
@@ -1680,7 +1679,6 @@ class FlowStart(models.Model):
         (TYPE_TRIGGER, "Trigger"),
     )
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True, default=uuid4)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="flow_starts")
     flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="starts")

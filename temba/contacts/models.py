@@ -30,7 +30,7 @@ from temba.mailroom import ContactSpec, modifiers
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, OrgRole
 from temba.utils import dynamo, format_number, on_transaction_commit
 from temba.utils.export import MultiSheetExporter
-from temba.utils.models import JSONField, LegacyUUIDMixin, TembaModel, delete_in_batches
+from temba.utils.models import JSONField, LegacyIDMixin, LegacyUUIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseSquashableCount
 from temba.utils.text import obfuscate, unsnakify
 from temba.utils.urns import ParsedURN, parse_number, parse_urn
@@ -552,7 +552,7 @@ class ContactField(TembaModel, DependencyMixin):
         self.save(update_fields=("name", "is_active", "modified_on", "modified_by"))
 
 
-class Contact(LegacyUUIDMixin, SmartModel):
+class Contact(LegacyIDMixin, LegacyUUIDMixin, SmartModel):
     """
     A contact represents an individual with which we can communicate and collect data
     """
@@ -574,7 +574,6 @@ class Contact(LegacyUUIDMixin, SmartModel):
         STATUS_ARCHIVED: "archived",
     }
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="contacts")
     name = models.CharField(verbose_name=_("Name"), max_length=128, blank=True, null=True)
     language = models.CharField(
@@ -1403,7 +1402,7 @@ class Contact(LegacyUUIDMixin, SmartModel):
         ]
 
 
-class ContactURN(models.Model):
+class ContactURN(LegacyIDMixin, models.Model):
     """
     A Universal Resource Name used to uniquely identify contacts, e.g. tel:+1234567890 or twitter:example
     """
@@ -1425,7 +1424,6 @@ class ContactURN(models.Model):
     ANON_MASK = "*" * 8  # Returned instead of URN values for anon orgs
     ANON_MASK_HTML = "•" * 8  # Pretty HTML version of anon mask
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, related_name="urns", on_delete=models.PROTECT)
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, null=True, related_name="urns")
 
@@ -1495,7 +1493,7 @@ class ContactURN(models.Model):
         ]
 
 
-class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
+class ContactGroup(LegacyIDMixin, LegacyUUIDMixin, TembaModel, DependencyMixin):
     """
     A group of contacts whose membership can be manual or query based
     """
@@ -1530,7 +1528,6 @@ class ContactGroup(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     MAX_QUERY_LEN = 10_000
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="groups")
     group_type = models.CharField(max_length=1, choices=TYPE_CHOICES, default=TYPE_MANUAL)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_INITIALIZING)

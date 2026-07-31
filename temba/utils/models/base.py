@@ -67,6 +67,17 @@ def update_if_changed(obj, **kwargs) -> bool:
     return bool(update_fields)
 
 
+class LegacyIDMixin(models.Model):
+    """
+    Model mixin for things which still have a 32 bit int primary key which should eventually be converted to bigint
+    """
+
+    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
+
+    class Meta:
+        abstract = True
+
+
 class LegacyUUIDMixin(SmartModel):
     """
     Model mixin for things with an old-style VARCHAR(36) UUID
