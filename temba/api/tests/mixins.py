@@ -1,21 +1,6 @@
-from uuid import UUID
-
 from django.db import connection
 
 from temba.api.models import APIToken
-
-
-def jsonize(value):
-    """
-    Converts UUID values to strings as they would appear in JSON responses
-    """
-    if isinstance(value, UUID):
-        return str(value)
-    if isinstance(value, dict):
-        return {(str(k) if isinstance(k, UUID) else k): jsonize(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [jsonize(v) for v in value]
-    return value
 
 
 class APITestMixin:
@@ -124,7 +109,7 @@ class APITestMixin:
 
                     self.assertEqual(expected_ids, actual_ids)
                 else:
-                    self.assertEqual(jsonize(expected_results), actual_results)
+                    self.assertEqual(expected_results, actual_results)
             elif errors is not None:
                 for field, msg in errors.items():
                     self.assertResponseError(response, field, msg, status_code=400)
