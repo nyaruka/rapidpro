@@ -100,7 +100,7 @@ def sync(request, channel_id):
 
         cmds = body_parsed["cmds"]
 
-    if not channel.org and channel.uuid == cmds[0].get("uuid"):
+    if not channel.org and str(channel.uuid) == cmds[0].get("uuid"):
         # unclaimed channel with same UUID resend the registration commmands
         cmd = dict(
             cmd="reg", relayer_claim_code=channel.claim_code, relayer_secret=channel.secret, relayer_id=channel.id

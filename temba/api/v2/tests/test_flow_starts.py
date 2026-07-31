@@ -280,9 +280,9 @@ class FlowStartsEndpointTest(APITest):
             response.json()["results"][1],
             {
                 "uuid": str(start3.uuid),
-                "flow": {"uuid": flow.uuid, "name": "Test"},
+                "flow": {"uuid": str(flow.uuid), "name": "Test"},
                 "contacts": [{"uuid": joe.uuid, "name": "Joe Blow"}],
-                "groups": [{"uuid": hans_group.uuid, "name": "hans"}],
+                "groups": [{"uuid": str(hans_group.uuid), "name": "hans"}],
                 "status": "pending",
                 "progress": {"total": -1, "started": 0},
                 "params": {"first_name": "Bob", "last_name": "Marley"},

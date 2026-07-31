@@ -102,7 +102,7 @@ class GroupsEndpointTest(APITest):
         self.assertEqual(
             response.json(),
             {
-                "uuid": reporters.uuid,
+                "uuid": str(reporters.uuid),
                 "name": "Reporters",
                 "query": None,
                 "status": "ready",

@@ -1,6 +1,7 @@
 import datetime
 import decimal
 import json
+import uuid
 
 
 def loads(value):
@@ -43,6 +44,8 @@ class TembaEncoder(json.JSONEncoder):
             return encode_datetime(o)
         elif isinstance(o, decimal.Decimal):
             return float(o)
+        elif isinstance(o, uuid.UUID):
+            return str(o)
         else:
             return super().default(o)
 

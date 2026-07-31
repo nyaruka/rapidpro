@@ -27,4 +27,4 @@ class ArabiaCellTest(TembaTest):
         self.assertEqual("pass1", channel.config["password"])
         self.assertEqual("151515", channel.config["service_id"])
         self.assertEqual("0", channel.config["charging_level"])
-        self.assertContains(response, "/c/ac/" + channel.uuid + "/receive")
+        self.assertContains(response, f"/c/ac/{channel.uuid}/receive")

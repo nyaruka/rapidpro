@@ -1187,7 +1187,10 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint
         # filter by group name/uuid (optional)
         group_ref = params.get("group")
         if group_ref:
-            group = ContactGroup.get_groups(org).filter(Q(uuid=group_ref) | Q(name=group_ref)).first()
+            group_filter = Q(name=group_ref)
+            if is_uuid(group_ref):
+                group_filter |= Q(uuid=group_ref)
+            group = ContactGroup.get_groups(org).filter(group_filter).first()
             if group:
                 queryset = queryset.filter(groups=group)
             else:
@@ -3177,7 +3180,7 @@ class StatisticsEndpoint(BaseEndpoint):
         by_day = defaultdict(lambda: defaultdict(lambda: {"type": None}))
         for row in counts:
             day = row["day"]
-            ch_uuid = row["channel__uuid"]
+            ch_uuid = str(row["channel__uuid"])
             entry = by_day[day][ch_uuid]
             entry["type"] = Channel.get_type_from_code(row["channel__channel_type"]).slug
             entry[row["scope"]] = row["count_sum"]
