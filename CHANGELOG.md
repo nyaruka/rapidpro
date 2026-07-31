@@ -1,3 +1,8 @@
+v26.3.26 (2026-07-31)
+-------------------------
+ * Convert archive primary keys to bigint and add LegacyIDMixin for models still using int primary keys
+ * Update temba-components to 0.170.1
+
 v26.3.25 (2026-07-30)
 -------------------------
  * Convert schedule and template primary keys to bigint
