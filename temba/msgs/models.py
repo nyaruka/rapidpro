@@ -28,7 +28,7 @@ from temba.orgs.models import DependencyMixin, Export, ExportType, Org
 from temba.schedules.models import Schedule
 from temba.utils import languages, on_transaction_commit
 from temba.utils.export.models import MultiSheetExporter
-from temba.utils.models import TembaModel
+from temba.utils.models import LegacyIDMixin, TembaModel
 from temba.utils.models.counts import BaseSquashableCount
 from temba.utils.s3 import public_file_storage
 from temba.utils.uuid import uuid4
@@ -180,7 +180,7 @@ class Media(models.Model):
         ]
 
 
-class Broadcast(models.Model):
+class Broadcast(LegacyIDMixin, models.Model):
     """
     A broadcast is a message that is sent out to more than one recipient, such
     as a ContactGroup or a list of Contacts. It's nothing more than a way to tie
@@ -202,7 +202,6 @@ class Broadcast(models.Model):
         (STATUS_INTERRUPTED, "Interrupted"),
     )
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True)
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="broadcasts")
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
@@ -1109,12 +1108,11 @@ class LabelCount(BaseSquashableCount):
         return {lb: counts_by_label_id.get(lb.id, 0) for lb in labels}
 
 
-class OptIn(TembaModel):
+class OptIn(LegacyIDMixin, TembaModel):
     """
     Contact optin for a particular messaging topic.
     """
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="optins")
 
     @classmethod

@@ -27,6 +27,7 @@ from temba.orgs.models import DependencyMixin, Org
 from temba.utils import dynamo, on_transaction_commit, redact
 from temba.utils.models import (
     JSONAsTextField,
+    LegacyIDMixin,
     LegacyUUIDMixin,
     TembaModel,
     TembaUUIDMixin,
@@ -234,7 +235,7 @@ def _get_default_channel_scheme():
     return ["tel"]
 
 
-class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
+class Channel(LegacyIDMixin, LegacyUUIDMixin, TembaModel, DependencyMixin):
     """
     Notes:
         - we want to reuse keys as much as possible (2018-10-11)
@@ -310,7 +311,6 @@ class Channel(LegacyUUIDMixin, TembaModel, DependencyMixin):
 
     org_limit_key = Org.LIMIT_CHANNELS
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="channels", null=True)
     channel_type = models.CharField(max_length=3)
     name = models.CharField(max_length=64)
