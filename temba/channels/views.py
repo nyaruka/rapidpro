@@ -697,15 +697,6 @@ class ChannelCRUDL(SmartCRUDL):
         def derive_title(self):
             return _("%s Channel") % self.object.type.name
 
-        def derive_exclude(self):
-            if self.request.user.is_staff:
-                return []
-
-            if self.object.type.beta_only and not self.request.user.is_beta:
-                return ["is_enabled"]
-
-            return []
-
         def derive_readonly(self):
             return self.form.Meta.readonly if hasattr(self, "form") else []
 
