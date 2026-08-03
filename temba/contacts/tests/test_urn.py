@@ -17,11 +17,18 @@ class ContactURNTest(TembaTest):
         self.assertEqual(urn.get_display(self.org, international=True), "+250 788 383 383")
         self.assertEqual(urn.get_display(self.org, formatted=False, international=True), "+250788383383")
 
-        # friendly tel formatting for whatsapp too
+        # legacy all-digit whatsapp URNs still get friendly phone formatting
         urn = ContactURN.objects.create(
             org=self.org, scheme="whatsapp", path="12065551212", identity="whatsapp:12065551212", priority=50
         )
         self.assertEqual(urn.get_display(self.org), "(206) 555-1212")
+
+        # a business-scoped whatsapp id (not all digits) is shown as-is (no phone formatting, no leading +)
+        urn = ContactURN.objects.create(
+            org=self.org, scheme="whatsapp", path="US.abcDEF123", identity="whatsapp:US.abcDEF123", priority=50
+        )
+        self.assertEqual(urn.get_display(self.org), "US.abcDEF123")
+        self.assertEqual(urn.get_display(self.org, international=True), "US.abcDEF123")
 
         # use path for other schemes
         urn = ContactURN.objects.create(
@@ -81,8 +88,15 @@ class URNTest(TembaTest):
         self.assertTrue(URN.validate("instagram:12345678901234567"))
 
     def test_whatsapp_urn(self):
+        # whatsapp holds either a phone number (all digits, legacy) or a business-scoped id (CC.alphanumeric)
         self.assertTrue(URN.validate("whatsapp:12065551212"))
+        self.assertTrue(URN.validate("whatsapp:BR.1A2B3C4D5E6F7G8H9I0J"))
+        self.assertTrue(URN.validate("whatsapp:US.abcDEF123"))
+
+        # malformed values are still invalid
         self.assertFalse(URN.validate("whatsapp:+12065551212"))
+        self.assertFalse(URN.validate("whatsapp:br.1A2B3C4D"))
+        self.assertFalse(URN.validate("whatsapp:BR.abc-123"))
 
     def test_bsuid_urn(self):
         # valid BSUIDs: two-letter country code, dot, 1-128 alphanumerics
@@ -173,9 +187,11 @@ class URNTest(TembaTest):
         # external ids are case sensitive
         self.assertEqual(URN.normalize("ext: eXterNAL123 "), "ext:eXterNAL123")
 
-        # bsuid - uppercase the two-letter country code prefix
+        # whatsapp/bsuid business-scoped ids - uppercase the two-letter country code prefix
         self.assertEqual(URN.normalize("bsuid:br.1A2B3C4D"), "bsuid:BR.1A2B3C4D")
         self.assertEqual(URN.normalize("bsuid:BR.1A2B3C4D"), "bsuid:BR.1A2B3C4D")
+        self.assertEqual(URN.normalize("whatsapp:br.1A2B3C4D"), "whatsapp:BR.1A2B3C4D")
+        self.assertEqual(URN.normalize("whatsapp:BR.1A2B3C4D"), "whatsapp:BR.1A2B3C4D")
 
     def test_validate(self):
         self.assertFalse(URN.validate("xxxx", None))  # un-parseable URNs don't validate
