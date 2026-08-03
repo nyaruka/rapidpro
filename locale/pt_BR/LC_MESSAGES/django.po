@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 17:02+0000\n"
+"POT-Creation-Date: 2026-08-03 17:20+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -4989,6 +4989,11 @@ msgstr "Aprove as permissões; elas são necessárias para que possamos acessar 
 
 msgid "Add Facebook Business"
 msgstr "Adicionar Facebook Business"
+
+#, fuzzy
+#| msgid "An error happened, please try again."
+msgid "Login was cancelled or failed, please try again."
+msgstr "Ocorreu um erro, por favor tente novamente."
 
 msgid "Before clicking the button below, make sure you have access to the phone where you can read the verification code send by SMS message"
 msgstr "Antes de clicar no botão abaixo, certifique-se de ter acesso ao telefone onde você poderá ler o código de verificação enviado por SMS"

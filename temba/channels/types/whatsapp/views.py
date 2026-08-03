@@ -454,9 +454,6 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     menu_path = "/settings/workspace"
     title = _("Connect WhatsApp")
 
-    def has_permission(self, request, *args, **kwargs) -> bool:
-        return super().has_permission(request, *args, **kwargs) and self.request.user.is_beta
-
     def pre_process(self, request, *args, **kwargs):
         session_token = self.request.session.get(self.channel_type.SESSION_USER_TOKEN, None)
         if session_token:

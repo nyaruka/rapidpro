@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 18:29+0000\n"
+"POT-Creation-Date: 2026-08-03 17:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -4961,6 +4961,9 @@ msgid "Approve the permissions, these are required for us to access the API on y
 msgstr ""
 
 msgid "Add Facebook Business"
+msgstr ""
+
+msgid "Login was cancelled or failed, please try again."
 msgstr ""
 
 msgid "Before clicking the button below, make sure you have access to the phone where you can read the verification code send by SMS message"

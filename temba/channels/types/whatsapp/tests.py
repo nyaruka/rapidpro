@@ -37,16 +37,6 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
         claim_whatsapp_cloud_url = reverse("channels.types.whatsapp.claim")
         select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select_waba")
 
-        # make sure type is not listed the claim page
-        response = self.client.get(reverse("channels.channel_claim"))
-        self.assertNotContains(response, claim_whatsapp_cloud_url)
-
-        # or directly accessible
-        self.assertRedirect(self.client.get(claim_whatsapp_cloud_url), connect_whatsapp_cloud_url)
-        self.assertLoginRedirect(self.client.get(connect_whatsapp_cloud_url))
-
-        self.make_beta(self.admin)
-
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertContains(response, claim_whatsapp_cloud_url)
         self.assertRedirect(self.client.get(claim_whatsapp_cloud_url), connect_whatsapp_cloud_url)
@@ -522,7 +512,6 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
     )
     def test_select_view(self):
         self.login(self.admin)
-        self.make_beta(self.admin)
 
         select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select_waba")
         connect_whatsapp_cloud_url = reverse("channels.types.whatsapp.connect")
@@ -742,31 +731,7 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.editor, self.admin],
-            form_fields={"name": "WABA name"},
-        )
-
-        self.assertUpdateSubmit(
-            update_url,
-            self.admin,
-            {"name": "New WA Name", "is_enabled": False},
-        )
-
-        channel = Channel.objects.get(id=channel.id)
-        self.assertEqual("New WA Name", channel.name)
-        self.assertTrue(channel.is_enabled)  # is_enabled should not be updated as admin is not a beta user
-
-        # make admin a beta user
-        self.make_beta(self.admin)
-        self.assertUpdateFetch(
-            update_url,
-            [self.editor],
-            form_fields={"name": "New WA Name"},
-        )
-
-        self.assertUpdateFetch(
-            update_url,
-            [self.admin],
-            form_fields={"name": "New WA Name", "is_enabled": True},
+            form_fields={"name": "WABA name", "is_enabled": True},
         )
 
         self.assertUpdateSubmit(
