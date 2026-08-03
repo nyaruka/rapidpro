@@ -1,3 +1,7 @@
+v26.3.30 (2026-08-03)
+-------------------------
+ * Remove beta gating of WhatsApp channel type
+
 v26.3.29 (2026-08-03)
 -------------------------
  * Use full-page OAuth dialog for WhatsApp Cloud embedded signup
