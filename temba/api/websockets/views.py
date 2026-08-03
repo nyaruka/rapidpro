@@ -163,6 +163,7 @@ class SubscriptionEndpoint(BaseEndpoint):
             re.compile(rf"notifications:(?P<org_uuid>{UUID_PATTERN}):(?P<user_uuid>{UUID_PATTERN})"),
             "_notifications_allowed",
         ),
+        (re.compile(rf"org:(?P<org_uuid>{UUID_PATTERN})"), "_org_allowed"),
         (re.compile(rf"history:(?P<contact_uuid>{UUID_PATTERN})"), "_contact_history_allowed"),
         (
             re.compile(rf"history:(?P<contact_uuid>{UUID_PATTERN}):(?P<ticket_uuid>{UUID_PATTERN})"),
@@ -194,6 +195,15 @@ class SubscriptionEndpoint(BaseEndpoint):
         just match the requested segments against the live session rather than touching the database.
         """
         return org_uuid == str(request.org.uuid) and user_uuid == str(request.user.uuid)
+
+    def _org_allowed(self, request, org_uuid: str) -> bool:
+        """
+        ``org:<org-uuid>`` - shared state changes for the current workspace, i.e. renames of assets referenced across the
+        UI. Any member of the workspace may watch it. An agent may therefore learn the UUID and new name of any flow or
+        group renamed while subscribed, which we accept: there's no listing, no attributes beyond the UUID and the new
+        name, and nothing at all about assets that are never renamed.
+        """
+        return org_uuid == str(request.org.uuid)
 
     def _contact_history_allowed(self, request, contact_uuid: str) -> bool:
         """

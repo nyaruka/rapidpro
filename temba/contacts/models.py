@@ -28,6 +28,7 @@ from temba.channels.models import Channel
 from temba.locations.models import AdminBoundary
 from temba.mailroom import ContactSpec, modifiers
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org, OrgRole
+from temba.orgs.realtime import AssetNameMixin
 from temba.utils import dynamo, format_number, on_transaction_commit
 from temba.utils.export import MultiSheetExporter
 from temba.utils.models import JSONField, LegacyIDMixin, LegacyUUIDMixin, TembaModel, delete_in_batches
@@ -1493,10 +1494,12 @@ class ContactURN(LegacyIDMixin, models.Model):
         ]
 
 
-class ContactGroup(LegacyIDMixin, TembaModel, DependencyMixin):
+class ContactGroup(AssetNameMixin, LegacyIDMixin, TembaModel, DependencyMixin):
     """
     A group of contacts whose membership can be manual or query based
     """
+
+    asset_type = "group"
 
     TYPE_DB_ACTIVE = "A"  # maintained by db trigger on status=A
     TYPE_DB_BLOCKED = "B"  # maintained by db trigger on status=B

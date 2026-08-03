@@ -27,6 +27,7 @@ from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.globals.models import Global
 from temba.msgs.models import Label, OptIn
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org
+from temba.orgs.realtime import AssetNameMixin
 from temba.templates.models import Template
 from temba.tickets.models import Topic
 from temba.users.models import User
@@ -60,7 +61,9 @@ FLOW_LOCK_TTL = 60  # 1 minute
 FLOW_LOCK_KEY = "org:%d:lock:flow:%d:definition"
 
 
-class Flow(LegacyIDMixin, TembaModel, DependencyMixin):
+class Flow(AssetNameMixin, LegacyIDMixin, TembaModel, DependencyMixin):
+    asset_type = "flow"
+
     # items in the flow definition JSON
     DEFINITION_UUID = "uuid"
     DEFINITION_NAME = "name"

@@ -916,6 +916,25 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(f"{revisions_url}12345678/", self.admin)
         self.assertEqual(404, response.status_code)
 
+    @mock_mailroom
+    def test_revision_uses_freshly_inspected_dependencies(self, mr_mocks):
+        flow = self.create_flow("Parent")
+        child1 = self.create_flow("Child One")
+        child2 = self.create_flow("Child Two")
+
+        dependencies = [
+            {"type": "flow", "uuid": str(child1.uuid), "name": child1.name, "missing": False},
+            {"type": "flow", "uuid": str(child2.uuid), "name": child2.name, "missing": False},
+        ]
+        mr_mocks.flow_inspect(dependencies=dependencies)
+
+        self.login(self.editor)
+        response = self.client.get(f"{reverse('flows.flow_revisions', args=[flow.uuid])}latest/")
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(dependencies, response.json()["info"]["dependencies"])
+        self.assertEqual(response.json()["metadata"], response.json()["info"])
+
     def test_save_revisions(self):
         flow = self.create_flow("Go Flow")
         revisions_url = reverse("flows.flow_revisions", args=[flow.uuid])
