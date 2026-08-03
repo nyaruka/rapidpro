@@ -1,3 +1,9 @@
+v26.3.29 (2026-08-03)
+-------------------------
+ * Use full-page OAuth dialog for WhatsApp Cloud embedded signup
+ * Surface OAuth errors on WhatsApp connect and strip credentials from URL
+ * Bump WhatsApp Cloud Graph API calls to v25.0
+
 v26.3.28 (2026-08-03)
 -------------------------
  * Fix passing UUID objects to mailroom client when creating contacts
