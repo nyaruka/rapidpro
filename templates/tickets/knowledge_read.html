@@ -1,0 +1,47 @@
+{% extends "smartmin/read.html" %}
+{% load smartmin temba i18n %}
+
+{% block title-text %}
+  {{ object.name }}
+{% endblock title-text %}
+{% block content %}
+  {% if is_website %}
+    {% include "tickets/knowledge/read_website.html" %}
+  {% else %}
+    {% include "tickets/knowledge/read_documents.html" %}
+  {% endif %}
+{% endblock content %}
+{% block extra-script %}
+  {{ block.super }}
+  {% if is_documents %}
+    <script>
+      function uploadKnowledgeItem() {
+        document.querySelector("#knowledge-item-input").click();
+      }
+
+      function submitKnowledgeItem(input) {
+        const formData = new FormData();
+        formData.append("file", input.files[0]);
+        input.value = null;
+        fetchAjax("{{ upload_url }}", {
+          method: "POST",
+          body: formData
+        }).then((response) => response.json()).then((data) => {
+          if (data.error) {
+            var alert = document.querySelector("#upload-error");
+            alert.innerText = data.error;
+            alert.classList.remove("hide");
+          } else {
+            spaGet(window.location.pathname);
+          }
+        });
+      }
+
+      function showDeleteItemModal(uuid) {
+        var modax = document.querySelector('#delete-knowledge-item');
+        modax.endpoint = `/knowledgeitem/delete/${uuid}/`;
+        modax.open = true;
+      }
+    </script>
+  {% endif %}
+{% endblock extra-script %}

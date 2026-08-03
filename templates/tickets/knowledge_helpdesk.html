@@ -1,0 +1,30 @@
+{% extends "smartmin/read.html" %}
+{% load smartmin temba i18n %}
+
+{# phase 4: replaced by the authoring surface - see the master plan #}
+{% block content %}
+  <div class="mb-4">
+    {% blocktrans trimmed %}
+      Help articles written by your workspace. Published articles are searchable by AI agents.
+    {% endblocktrans %}
+  </div>
+  <table class="list lined scrolled">
+    <tbody>
+      {% for article in articles %}
+        <tr>
+          <td style="min-width: 50px">
+            <div class="{% if article.parent_id %}pl-6{% endif %}">{{ article.title }}</div>
+          </td>
+          <td>
+            <div class="lbl">{{ article.get_status_display }}</div>
+          </td>
+          <td class="text-right whitespace-nowrap">{{ article.modified_on|timedate }}</td>
+        </tr>
+      {% empty %}
+        <tr class="empty_list">
+          <td colspan="99" class="text-center">{% trans "No articles" %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock content %}

@@ -81,6 +81,40 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertPageMenu(f"{menu_url}staff/", self.customer_support, ["Workspaces", "Users"])
 
+        # orgs with the agents feature get a top level Library section
+        self.org.features = [Org.FEATURE_AGENTS]
+        self.org.save(update_fields=("features",))
+
+        self.assertPageMenu(
+            menu_url,
+            self.admin,
+            [
+                ("Workspace", ["Account", "Sign Out"]),
+                "Messages",
+                "Contacts",
+                "Flows",
+                "Triggers",
+                "Campaigns",
+                "Tickets",
+                "Library",
+                ("Notifications", []),
+                "Settings",
+            ],
+            choose_org=self.org,
+        )
+
+        # but not agents themselves who can't access the knowledge views
+        self.assertPageMenu(
+            menu_url,
+            self.agent,
+            [
+                ("Workspace", ["Nyaruka", "Account", "Sign Out"]),
+                "Tickets",
+                ("Notifications", []),
+                "Settings",
+            ],
+        )
+
         # if our org has new orgs but not child orgs, we should have a New Workspace button in the menu
         self.org.features = [Org.FEATURE_NEW_ORGS]
         self.org.save()

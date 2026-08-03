@@ -1,0 +1,26 @@
+{% load temba i18n %}
+
+<div class="card mb-4">
+  <div class="flex flex-col gap-1">
+    <div>
+      <span class="font-medium">{% trans "URL" %}:</span> <a href="{{ object.url }}" target="_blank" class="linked">{{ object.url }}</a>
+    </div>
+    <div>
+      <span class="font-medium">{% trans "Status" %}:</span> {{ object.get_status_display }}
+      {% if object.error %}<span class="text-error">{{ object.error }}</span>{% endif %}
+    </div>
+    {% if object.last_indexed_on %}
+      <div>
+        <span class="font-medium">{% trans "Last Indexed" %}:</span> {{ object.last_indexed_on|timedate }}
+      </div>
+    {% endif %}
+    <div>
+      <span class="font-medium">{% trans "Pages" %}:</span> {{ object.num_items }}
+    </div>
+  </div>
+</div>
+<table class="list lined scrolled">
+  <tbody>
+    {% include "tickets/knowledge/_item_rows.html" with items=items empty_message=_("No pages yet") %}
+  </tbody>
+</table>
