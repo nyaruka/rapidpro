@@ -331,13 +331,13 @@ class FieldsTest(APITest):
 
         self.assert_field(
             fields.ChannelField(source="test"),
-            submissions={self.channel.uuid: self.channel, deleted_channel.uuid: serializers.ValidationError},
+            submissions={str(self.channel.uuid): self.channel, str(deleted_channel.uuid): serializers.ValidationError},
             representations={self.channel: {"uuid": str(self.channel.uuid), "name": "Test Channel"}},
         )
 
         self.assert_field(
             fields.ContactGroupField(source="test"),
-            submissions={group.uuid: group},
+            submissions={str(group.uuid): group},
             representations={group: {"uuid": str(group.uuid), "name": "Customers"}},
         )
 
@@ -351,7 +351,7 @@ class FieldsTest(APITest):
 
         self.assert_field(
             fields.FlowField(source="test"),
-            submissions={flow.uuid: flow},
+            submissions={str(flow.uuid): flow},
             representations={flow: {"uuid": str(flow.uuid), "name": flow.name}},
         )
 

@@ -88,7 +88,7 @@ class BroadcastsEndpointTest(APITest):
                 "progress": {"total": 2, "started": 2},
                 "urns": ["facebook:12345"],
                 "contacts": [{"uuid": joe.uuid, "name": joe.name}],
-                "groups": [{"uuid": reporters.uuid, "name": reporters.name}],
+                "groups": [{"uuid": str(reporters.uuid), "name": reporters.name}],
                 "text": {"eng": "Hello 4"},
                 "attachments": {"eng": []},
                 "quick_replies": {"eng": []},

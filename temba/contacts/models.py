@@ -1493,7 +1493,7 @@ class ContactURN(LegacyIDMixin, models.Model):
         ]
 
 
-class ContactGroup(LegacyIDMixin, LegacyUUIDMixin, TembaModel, DependencyMixin):
+class ContactGroup(LegacyIDMixin, TembaModel, DependencyMixin):
     """
     A group of contacts whose membership can be manual or query based
     """

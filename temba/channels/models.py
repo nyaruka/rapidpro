@@ -28,7 +28,6 @@ from temba.utils import dynamo, on_transaction_commit, redact
 from temba.utils.models import (
     JSONAsTextField,
     LegacyIDMixin,
-    LegacyUUIDMixin,
     TembaModel,
     TembaUUIDMixin,
     delete_in_batches,
@@ -235,7 +234,7 @@ def _get_default_channel_scheme():
     return ["tel"]
 
 
-class Channel(LegacyIDMixin, LegacyUUIDMixin, TembaModel, DependencyMixin):
+class Channel(LegacyIDMixin, TembaModel, DependencyMixin):
     """
     Notes:
         - we want to reuse keys as much as possible (2018-10-11)

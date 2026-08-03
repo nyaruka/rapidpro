@@ -37,7 +37,7 @@ class ChannelEventsEndpointTest(APITest):
             resp_json["results"][0],
             {
                 "id": call4.pk,
-                "channel": {"uuid": self.channel.uuid, "name": "Test Channel"},
+                "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                 "type": "call-out",
                 "contact": {"uuid": joe.uuid, "name": joe.name},
                 "occurred_on": format_datetime(call4.occurred_on),

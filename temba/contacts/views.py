@@ -794,13 +794,16 @@ class ContactCRUDL(SmartCRUDL):
             return super().derive_subtitle()
 
         def derive_group(self):
-            return get_object_or_404(
-                ContactGroup.objects.filter(
-                    uuid=self.kwargs["uuid"],
-                    group_type__in=(ContactGroup.TYPE_MANUAL, ContactGroup.TYPE_SMART),
-                    is_active=True,
+            try:
+                return get_object_or_404(
+                    ContactGroup.objects.filter(
+                        uuid=self.kwargs["uuid"],
+                        group_type__in=(ContactGroup.TYPE_MANUAL, ContactGroup.TYPE_SMART),
+                        is_active=True,
+                    )
                 )
-            )
+            except ValidationError:  # not a valid UUID
+                raise Http404()
 
     class Create(NonAtomicMixin, ModalFormMixin, OrgPermsMixin, SmartCreateView):
         form_class = CreateContactForm

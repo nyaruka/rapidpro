@@ -197,7 +197,7 @@ class RunsEndpointTest(APITest):
                 {
                     "id": frank_run2.pk,
                     "uuid": str(frank_run2.uuid),
-                    "flow": {"uuid": flow1.uuid, "name": "Colors"},
+                    "flow": {"uuid": str(flow1.uuid), "name": "Colors"},
                     "contact": {
                         "uuid": frank.uuid,
                         "name": frank.name,

@@ -239,11 +239,11 @@ class ContactSearchWidget(forms.Widget):
             urn = contact.get_urn()
             if urn:
                 urn = urn.get_display(org=contact.org, international=True)
-            recipients.append({"id": contact.uuid, "name": contact.name, "urn": urn, "type": "contact"})
+            recipients.append({"id": str(contact.uuid), "name": contact.name, "urn": urn, "type": "contact"})
 
         for group in groups:
             recipients.append(
-                {"id": group.uuid, "name": group.name, "count": group.get_member_count(), "type": "group"}
+                {"id": str(group.uuid), "name": group.name, "count": group.get_member_count(), "type": "group"}
             )
         return recipients
 

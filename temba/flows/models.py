@@ -31,7 +31,7 @@ from temba.templates.models import Template
 from temba.tickets.models import Topic
 from temba.users.models import User
 from temba.utils.export.models import MultiSheetExporter
-from temba.utils.models import JSONAsTextField, LegacyIDMixin, LegacyUUIDMixin, TembaModel, delete_in_batches
+from temba.utils.models import JSONAsTextField, LegacyIDMixin, TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseScopedCount, BaseSquashableCount
 from temba.utils.uuid import uuid4
 
@@ -60,7 +60,7 @@ FLOW_LOCK_TTL = 60  # 1 minute
 FLOW_LOCK_KEY = "org:%d:lock:flow:%d:definition"
 
 
-class Flow(LegacyIDMixin, LegacyUUIDMixin, TembaModel, DependencyMixin):
+class Flow(LegacyIDMixin, TembaModel, DependencyMixin):
     # items in the flow definition JSON
     DEFINITION_UUID = "uuid"
     DEFINITION_NAME = "name"
@@ -725,12 +725,12 @@ class Flow(LegacyIDMixin, LegacyUUIDMixin, TembaModel, DependencyMixin):
         if self.is_legacy():
             if "metadata" not in definition:
                 definition["metadata"] = {}
-            definition["metadata"]["uuid"] = self.uuid
+            definition["metadata"]["uuid"] = str(self.uuid)
             definition["metadata"]["name"] = self.name
             definition["metadata"]["revision"] = rev.revision
             definition["metadata"]["expires"] = self.expires_after_minutes
         else:
-            definition[Flow.DEFINITION_UUID] = self.uuid
+            definition[Flow.DEFINITION_UUID] = str(self.uuid)
             definition[Flow.DEFINITION_NAME] = self.name
             definition[Flow.DEFINITION_REVISION] = rev.revision
             definition[Flow.DEFINITION_EXPIRE_AFTER_MINUTES] = self.expires_after_minutes
@@ -1493,7 +1493,7 @@ class ResultsExport(ExportType):
             for result_field in flow.info["results"]:
                 if not result_field["name"].startswith("_"):
                     result_field = result_field.copy()
-                    result_field["flow_uuid"] = flow.uuid
+                    result_field["flow_uuid"] = str(flow.uuid)
                     result_field["flow_name"] = flow.name
                     result_fields.append(result_field)
 

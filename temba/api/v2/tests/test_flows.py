@@ -46,7 +46,7 @@ class FlowsEndpointTest(APITest):
             [self.editor, self.admin],
             results=[
                 {
-                    "uuid": archived.uuid,
+                    "uuid": str(archived.uuid),
                     "name": "Favorites",
                     "type": "message",
                     "archived": True,
@@ -78,7 +78,7 @@ class FlowsEndpointTest(APITest):
                     "modified_on": format_datetime(archived.modified_on),
                 },
                 {
-                    "uuid": color.uuid,
+                    "uuid": str(color.uuid),
                     "name": "Colors",
                     "type": "message",
                     "archived": False,
@@ -98,7 +98,7 @@ class FlowsEndpointTest(APITest):
                     "modified_on": format_datetime(color.modified_on),
                 },
                 {
-                    "uuid": survey.uuid,
+                    "uuid": str(survey.uuid),
                     "name": "Media Survey",
                     "type": "survey",
                     "archived": False,

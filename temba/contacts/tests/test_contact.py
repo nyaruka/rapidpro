@@ -823,8 +823,8 @@ class ContactTest(TembaTest):
                 modifiers.Groups(
                     modification="add",
                     groups=[
-                        modifiers.GroupRef(uuid=spammers.uuid, name="Spammers"),
-                        modifiers.GroupRef(uuid=testers.uuid, name="Testers"),
+                        modifiers.GroupRef(uuid=str(spammers.uuid), name="Spammers"),
+                        modifiers.GroupRef(uuid=str(testers.uuid), name="Testers"),
                     ],
                 ),
             ],
@@ -839,10 +839,10 @@ class ContactTest(TembaTest):
         self.assertEqual(
             [
                 modifiers.Groups(
-                    modification="remove", groups=[modifiers.GroupRef(uuid=spammers.uuid, name="Spammers")]
+                    modification="remove", groups=[modifiers.GroupRef(uuid=str(spammers.uuid), name="Spammers")]
                 ),
                 modifiers.Groups(
-                    modification="add", groups=[modifiers.GroupRef(uuid=customers.uuid, name="Customers")]
+                    modification="add", groups=[modifiers.GroupRef(uuid=str(customers.uuid), name="Customers")]
                 ),
             ],
             mods,
