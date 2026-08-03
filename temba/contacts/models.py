@@ -616,7 +616,7 @@ class Contact(LegacyIDMixin, LegacyUUIDMixin, SmartModel):
     ):
         engine_status = cls.ENGINE_STATUSES[status]
         fields_by_key = {f.key: v for f, v in fields.items()}
-        group_uuids = [g.uuid for g in groups]
+        group_uuids = [str(g.uuid) for g in groups]
 
         return mailroom.get_client().contact_create(
             org,
