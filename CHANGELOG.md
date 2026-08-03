@@ -1,3 +1,10 @@
+v26.3.31 (2026-08-03)
+-------------------------
+ * Update @nyaruka/temba-components to 0.172.0
+ * Add internal assets endpoint and publish asset name changes to org sockets
+ * Avoid duplicate LLM credential validation
+ * Unify LLM model configuration
+
 v26.3.30 (2026-08-03)
 -------------------------
  * Remove beta gating of WhatsApp channel type
