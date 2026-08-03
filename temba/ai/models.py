@@ -1,12 +1,8 @@
-from abc import ABCMeta
-
 from django.conf import settings
 from django.contrib.postgres.indexes import OpClass
 from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
-from django.template import Engine
-from django.urls import re_path
 
 from temba import mailroom
 from temba.orgs.models import DependencyMixin, Org
@@ -14,7 +10,11 @@ from temba.utils.models import TembaModel, delete_in_batches
 from temba.utils.models.counts import BaseDailyCount
 
 
-class LLMType(metaclass=ABCMeta):
+class LLMCredentialsError(Exception):
+    pass
+
+
+class LLMType:
     """
     Base type for all LLM model types
     """
@@ -22,23 +22,8 @@ class LLMType(metaclass=ABCMeta):
     # icon to show in UI
     icon = "icon-llm"
 
-    # the view that handles connection of a new model
-    connect_view = None
-
-    # the blurb to show on the connect form page
-    form_blurb = None
-
-    def get_form_blurb(self):
-        """
-        Gets the blurb to show on the connect form
-        """
-        return Engine.get_default().from_string(self.form_blurb)
-
-    def get_urls(self):
-        """
-        Returns all the URLs this llm exposes to Django, the URL should be relative.
-        """
-        return [re_path(r"^connect", self.connect_view.as_view(llm_type=self), name="connect")]
+    # help text to show for the API key field
+    api_key_help = None
 
     @property
     def settings(self) -> dict:
@@ -53,6 +38,18 @@ class LLMType(metaclass=ABCMeta):
         Determines whether this LLM type is available to the given user.
         """
         return True
+
+    def get_model_choices(self, api_key: str) -> list[tuple[str, str]]:  # pragma: no cover
+        """
+        Validates the API key and returns the models available with it.
+        """
+        raise NotImplementedError()
+
+    def get_config(self, api_key: str) -> dict:
+        """
+        Returns the provider-specific configuration to persist for a model.
+        """
+        return {"api_key": api_key}
 
 
 class LLM(TembaModel, DependencyMixin):
@@ -74,11 +71,15 @@ class LLM(TembaModel, DependencyMixin):
 
     org_limit_key = Org.LIMIT_LLMS
 
-    @classmethod
-    def create(cls, org, user, typ, model: str, name: str, config: dict, roles: str = DEFAULT_ROLES):
+    @staticmethod
+    def _get_max_output_tokens(typ: LLMType, model: str) -> int:
         models_settings = typ.settings.get("models") or {}
         assert not models_settings or model in models_settings
 
+        return models_settings.get(model, LLM._meta.get_field("max_output_tokens").get_default())
+
+    @classmethod
+    def create(cls, org, user, typ, model: str, name: str, config: dict, roles: str = DEFAULT_ROLES):
         kwargs = dict(
             org=org,
             name=name,
@@ -88,11 +89,29 @@ class LLM(TembaModel, DependencyMixin):
             roles=roles,
             created_by=user,
             modified_by=user,
+            max_output_tokens=cls._get_max_output_tokens(typ, model),
         )
-        if model in models_settings:
-            kwargs["max_output_tokens"] = models_settings[model]
 
         return cls.objects.create(**kwargs)
+
+    def update_config(self, user, typ: LLMType, model: str, name: str, config: dict):
+        self.llm_type = typ.slug
+        self.model = model
+        self.name = name
+        self.config = config
+        self.max_output_tokens = self._get_max_output_tokens(typ, model)
+        self.modified_by = user
+        self.save(
+            update_fields=(
+                "llm_type",
+                "model",
+                "name",
+                "config",
+                "max_output_tokens",
+                "modified_by",
+                "modified_on",
+            )
+        )
 
     @property
     def type(self) -> LLMType:
