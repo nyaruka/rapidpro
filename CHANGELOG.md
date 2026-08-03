@@ -1,3 +1,7 @@
+v26.3.28 (2026-08-03)
+-------------------------
+ * Fix passing UUID objects to mailroom client when creating contacts
+
 v26.3.27 (2026-08-03)
 -------------------------
  * Convert Flow, ContactGroup and Channel uuid fields to real UUID fields
