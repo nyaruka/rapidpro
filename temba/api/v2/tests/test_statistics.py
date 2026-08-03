@@ -63,20 +63,20 @@ class StatisticsEndpointTest(APITest):
                 {
                     "date": "2026-02-10",
                     "channels": {
-                        self.channel.uuid: {
+                        str(self.channel.uuid): {
                             "type": "android",
                             "text:in": 100,
                             "text:out": 200,
                             "voice:in": 10,
                             "voice:out": 20,
                         },
-                        channel2.uuid: {"type": "facebook", "text:in": 50, "text:out": 75},
+                        str(channel2.uuid): {"type": "facebook", "text:in": 50, "text:out": 75},
                     },
                 },
                 {
                     "date": "2026-02-11",
                     "channels": {
-                        self.channel.uuid: {"type": "android", "text:in": 300, "text:out": 400},
+                        str(self.channel.uuid): {"type": "android", "text:in": 300, "text:out": 400},
                     },
                 },
             ],
@@ -90,14 +90,14 @@ class StatisticsEndpointTest(APITest):
                 {
                     "date": "2026-02-10",
                     "channels": {
-                        self.channel.uuid: {
+                        str(self.channel.uuid): {
                             "type": "android",
                             "text:in": 100,
                             "text:out": 200,
                             "voice:in": 10,
                             "voice:out": 20,
                         },
-                        channel2.uuid: {"type": "facebook", "text:in": 50, "text:out": 75},
+                        str(channel2.uuid): {"type": "facebook", "text:in": 50, "text:out": 75},
                     },
                 },
             ],
@@ -112,14 +112,14 @@ class StatisticsEndpointTest(APITest):
                 {
                     "date": "2026-02-10",
                     "channels": {
-                        self.channel.uuid: {
+                        str(self.channel.uuid): {
                             "type": "android",
                             "text:in": 100,
                             "text:out": 200,
                             "voice:in": 10,
                             "voice:out": 20,
                         },
-                        channel2.uuid: {"type": "facebook", "text:in": 50, "text:out": 75},
+                        str(channel2.uuid): {"type": "facebook", "text:in": 50, "text:out": 75},
                     },
                 },
             ],

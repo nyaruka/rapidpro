@@ -317,14 +317,18 @@ class BaseExportModal(ModalFormMixin, OrgPermsMixin, SmartFormView):
         def clean_with_fields(self):
             data = self.cleaned_data["with_fields"]
             if data and len(data) > self.MAX_FIELDS_COLS:
-                raise forms.ValidationError(_(f"You can only include up to {self.MAX_FIELDS_COLS} fields."))
+                raise forms.ValidationError(
+                    _("You can only include up to %(limit)d fields."), params={"limit": self.MAX_FIELDS_COLS}
+                )
 
             return data
 
         def clean_with_groups(self):
             data = self.cleaned_data["with_groups"]
             if data and len(data) > self.MAX_GROUPS_COLS:
-                raise forms.ValidationError(_(f"You can only include up to {self.MAX_GROUPS_COLS} groups."))
+                raise forms.ValidationError(
+                    _("You can only include up to %(limit)d groups."), params={"limit": self.MAX_GROUPS_COLS}
+                )
 
             return data
 

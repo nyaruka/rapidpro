@@ -42,7 +42,7 @@ class AirtimeCRUDL(SmartCRUDL):
             "actual_amount",
             "created_on",
         )
-        field_config = {"created_on": {"label": "Time"}}
+        field_config = {"created_on": {"label": _("Time")}}
 
         def get_status(self, obj):
             return obj.get_status_display()

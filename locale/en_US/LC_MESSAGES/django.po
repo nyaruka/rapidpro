@@ -8,14 +8,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-29 19:40+0000\n"
+"POT-Creation-Date: 2026-08-03 17:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+msgid "API Key"
+msgstr ""
 
 msgid "You can find your API key at https://console.anthropic.com/settings/keys"
 msgstr ""
@@ -59,6 +60,9 @@ msgstr ""
 msgid "Airtime Transfer Details"
 msgstr ""
 
+msgid "Time"
+msgstr ""
+
 msgid "The organization this resthook belongs to"
 msgstr ""
 
@@ -91,6 +95,15 @@ msgid "Relayer Application APK"
 msgstr ""
 
 msgid "Message Pack Application APK"
+msgstr ""
+
+msgid "Our version, ex: 1.9.8"
+msgstr ""
+
+msgid "Our pack number if this is a message pack (otherwise blank)"
+msgstr ""
+
+msgid "Changelog for this version, markdown supported"
 msgstr ""
 
 msgid "Message"
@@ -274,6 +287,14 @@ msgid "Send the message"
 msgstr ""
 
 msgid "This field is required."
+msgstr ""
+
+#, python-format
+msgid "Maximum allowed text is %(limit)d characters."
+msgstr ""
+
+#, python-format
+msgid "Maximum allowed attachments is %(limit)d files."
 msgstr ""
 
 msgid "The attachment for the WhatsApp template is required."
@@ -550,9 +571,6 @@ msgstr ""
 msgid "Your account ID on Bandwidth"
 msgstr ""
 
-msgid "API Key"
-msgstr ""
-
 msgid "The API key as found on your settings page"
 msgstr ""
 
@@ -735,6 +753,9 @@ msgstr ""
 msgid "Your password on DMark Mobile"
 msgstr ""
 
+msgid "Unable to retrieve token, please check username and password"
+msgstr ""
+
 msgid "Use our pluggable API to connect an external service you already have."
 msgstr ""
 
@@ -795,6 +816,9 @@ msgstr ""
 msgid "The URL we will POST to when sending messages, with variable substitutions"
 msgstr ""
 
+msgid "Connect External Service"
+msgstr ""
+
 msgid "Receive"
 msgstr ""
 
@@ -818,6 +842,9 @@ msgid "The User Access Token"
 msgstr ""
 
 msgid "The name of the Facebook page"
+msgstr ""
+
+msgid "The Facebook Page ID"
 msgstr ""
 
 msgid "Sorry your Facebook channel could not be connected. Please try again"
@@ -1331,6 +1358,12 @@ msgstr ""
 msgid "Your Plivo auth ID and auth token seem invalid. Please check them again and retry."
 msgstr ""
 
+msgid "Save"
+msgstr ""
+
+msgid "Plivo credentials verified. You can now add a Plivo channel."
+msgstr ""
+
 msgid "Connection to RocketChat is taking too long."
 msgstr ""
 
@@ -1394,6 +1427,16 @@ msgstr ""
 msgid "This endpoint will be called by SignalWire when new messages are received to your number."
 msgstr ""
 
+msgid "Unable to connect to SignalWire, please check your domain, key and token"
+msgstr ""
+
+#, python-format
+msgid "Unable to find number %(number)s on your account, please check and try again"
+msgstr ""
+
+msgid "Unable to update your phone number settings, please check your domain, key and token"
+msgstr ""
+
 msgid "The phone number or short code you are connecting."
 msgstr ""
 
@@ -1413,6 +1456,13 @@ msgid "The API token to use to authenticate ex: FPd199eb93e878f8a3tw9ttna313914t
 msgstr ""
 
 msgid "Enter a valid space name."
+msgstr ""
+
+msgid "Unable to connect to SignalWire, please check your space, key and token"
+msgstr ""
+
+#, python-format
+msgid "Unable to find phone with number %(number)s on your account"
 msgstr ""
 
 #, python-format
@@ -1452,13 +1502,25 @@ msgstr ""
 msgid "To finish configuring this channel, you'll need to set the following callback URLs on your Somleng instance."
 msgstr ""
 
+msgid "Incoming Messages"
+msgstr ""
+
 msgid "New incoming messages should be sent to this endpoint."
+msgstr ""
+
+msgid "Message Status Updates"
 msgstr ""
 
 msgid "Message status updates should be sent to this endpoint."
 msgstr ""
 
+msgid "Incoming Calls"
+msgstr ""
+
 msgid "New incoming calls should be sent to this endpoint."
+msgstr ""
+
+msgid "Call Status Updates"
 msgstr ""
 
 msgid "Call status updates should be sent to this endpoint."
@@ -1619,6 +1681,12 @@ msgstr ""
 msgid "Your Twilio Account Token"
 msgstr ""
 
+msgid "Twilio Account successfully connected."
+msgstr ""
+
+msgid "Connect Twilio"
+msgstr ""
+
 #, python-format
 msgid "You can connect a messaging service from your Twilio account to benefit from %(link)s features."
 msgstr ""
@@ -1671,6 +1739,10 @@ msgid "Your Viber channel is connected. If needed the webhook endpoints are list
 msgstr ""
 
 msgid "The authentication token provided by Viber"
+msgstr ""
+
+#, python-format
+msgid "Error validating authentication token: %(error)s"
 msgstr ""
 
 msgid "Missing auth token"
@@ -1729,6 +1801,12 @@ msgid "Your Vonage API secret"
 msgstr ""
 
 msgid "Your API key and secret seem invalid. Please check them again and retry."
+msgstr ""
+
+msgid "Vonage Account successfully connected."
+msgstr ""
+
+msgid "Connect Vonage"
 msgstr ""
 
 msgid "To finish configuring this channel, you need to have Movile/Wavy configure the URL below for your number."
@@ -1804,6 +1882,12 @@ msgid "Unable to register phone %s with ID %s from WABA with ID %s"
 msgstr ""
 
 msgid "Sorry account could not be connected. Please try again"
+msgstr ""
+
+msgid "WhatsApp Account successfully connected."
+msgstr ""
+
+msgid "Connect WhatsApp"
 msgstr ""
 
 #, python-format
@@ -1928,6 +2012,9 @@ msgstr ""
 msgid "Outgoing Voice"
 msgstr ""
 
+msgid "The domain to whitelist for Messenger extensions ex: https://yourdomain.com"
+msgstr ""
+
 msgid "An error occured contacting the Facebook API"
 msgstr ""
 
@@ -1935,6 +2022,10 @@ msgid "Your channel has been removed."
 msgstr ""
 
 msgid "We have disconnected your Twilio number. If you do not need this number you can delete it from the Twilio website."
+msgstr ""
+
+#, python-format
+msgid "Twilio reported an error removing your channel (error code %(code)s). Please try again later."
 msgstr ""
 
 msgid "Makes channel available for sending. Incoming messages will be archived if not enabled."
@@ -1972,6 +2063,17 @@ msgid "Groups"
 msgstr ""
 
 msgid "Select groups for this contact"
+msgstr ""
+
+msgid "No Preference"
+msgstr ""
+
+#, python-format
+msgid "%(language)s (Missing)"
+msgstr ""
+
+#, python-format
+msgid "%(label)s for this contact"
 msgstr ""
 
 msgid "Invalid format."
@@ -2548,6 +2650,14 @@ msgstr ""
 msgid "This flow uses message templates which may incur additional fees from your channel provider."
 msgstr ""
 
+#, python-format
+msgid "The message template %(name)s does not exist on your account and cannot be sent."
+msgstr ""
+
+#, python-format
+msgid "Your message template %(name)s is not approved and cannot be sent."
+msgstr ""
+
 msgid "Enter contact query"
 msgstr ""
 
@@ -2624,6 +2734,9 @@ msgid "Never"
 msgstr ""
 
 msgid "Calls"
+msgstr ""
+
+msgid "The name for our alias"
 msgstr ""
 
 msgid "You must select a country for your workspace."
@@ -2758,9 +2871,6 @@ msgid "Broadcasts"
 msgstr ""
 
 msgid "Scheduled Broadcasts"
-msgstr ""
-
-msgid "Save"
 msgstr ""
 
 #, python-format
@@ -2969,6 +3079,14 @@ msgstr ""
 msgid "Optional: Group memberships to include"
 msgstr ""
 
+#, python-format
+msgid "You can only include up to %(limit)d fields."
+msgstr ""
+
+#, python-format
+msgid "You can only include up to %(limit)d groups."
+msgstr ""
+
 msgid "Start date can't be in the future."
 msgstr ""
 
@@ -3026,6 +3144,9 @@ msgid "SMTP settings test failed with error: %s"
 msgstr ""
 
 msgid "SMTP settings test failed."
+msgstr ""
+
+msgid "Must specify a label"
 msgstr ""
 
 msgid "An error occurred while making your changes. Please try again."
@@ -3175,10 +3296,22 @@ msgstr ""
 msgid "Create Workspace Account"
 msgstr ""
 
+msgid "Workspace successfully created."
+msgstr ""
+
 msgid "Sign Up"
 msgstr ""
 
+msgid "Enter a name for your event. ex: new-registration"
+msgstr ""
+
+msgid "This event name has already been used."
+msgstr ""
+
 msgid "The country used for location values. (optional)"
+msgstr ""
+
+msgid "State and district names will be searched against this country."
 msgstr ""
 
 msgid "Default Flow Language"
@@ -3358,22 +3491,13 @@ msgstr ""
 msgid "English"
 msgstr ""
 
-msgid "Czech"
-msgstr ""
-
 msgid "Spanish"
 msgstr ""
 
 msgid "French"
 msgstr ""
 
-msgid "Mongolian"
-msgstr ""
-
 msgid "Portuguese"
-msgstr ""
-
-msgid "Russian"
 msgstr ""
 
 msgid "Visually build nationally scalable mobile applications anywhere in the world."
@@ -3428,6 +3552,12 @@ msgid "Optional: Select permissions groups."
 msgstr ""
 
 msgid "You can reset the user's password by entering a new password here"
+msgstr ""
+
+msgid "User updated successfully."
+msgstr ""
+
+msgid "Update User"
 msgstr ""
 
 msgid "Beta"
@@ -3504,6 +3634,12 @@ msgid "Delete Topic"
 msgstr ""
 
 msgid "Notes can only be seen by the support team"
+msgstr ""
+
+msgid "Response Time"
+msgstr ""
+
+msgid "No Team"
 msgstr ""
 
 #, python-format
@@ -3635,6 +3771,10 @@ msgstr ""
 msgid "Are you sure you want to delete the selected triggers? This cannot be undone."
 msgstr ""
 
+#, python-format
+msgid "To accept this invitation, please login with %(email)s."
+msgstr ""
+
 msgid "First name"
 msgstr ""
 
@@ -3742,6 +3882,15 @@ msgstr ""
 msgid "If you do not recognize this change then please take proper security precautions immediately. Below are the details from where this change was made."
 msgstr ""
 
+msgid "Date"
+msgstr ""
+
+msgid "IP address"
+msgstr ""
+
+msgid "Browser"
+msgstr ""
+
 #, python-format
 msgid "Your email has been changed from %(from_email)s to %(to_email)s."
 msgstr ""
@@ -3834,7 +3983,17 @@ msgstr ""
 msgid "You're Invited!"
 msgstr ""
 
+#, python-format
+msgid "Enter your password to accept your invitation to the <b>%(org)s</b> workspace."
+msgstr ""
+
 msgid "Welcome Back"
+msgstr ""
+
+msgid "Sign in with your email address and password"
+msgstr ""
+
+msgid "Accept Invitation"
 msgstr ""
 
 msgid "Sign in with a passkey"
@@ -3863,7 +4022,8 @@ msgstr ""
 msgid "Create Account"
 msgstr ""
 
-msgid "Accept Invitation"
+#, python-format
+msgid "Creating a %(brand)s account is free and only takes a minute."
 msgstr ""
 
 msgid "Sign up using a passkey"
@@ -3912,10 +4072,10 @@ msgstr ""
 msgid "Amount"
 msgstr ""
 
-msgid "Time"
+msgid "No airtime transfers"
 msgstr ""
 
-msgid "No airtime transfers"
+msgid "Back"
 msgstr ""
 
 msgid "HTTP Logs"
@@ -3978,6 +4138,12 @@ msgstr ""
 msgid "Query String Parameters"
 msgstr ""
 
+msgid "required"
+msgstr ""
+
+msgid "optional"
+msgstr ""
+
 msgid "Post Body Fields"
 msgstr ""
 
@@ -4018,6 +4184,12 @@ msgstr ""
 msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
 msgstr ""
 
+#, python-format
+msgid "%(counter)s event"
+msgid_plural "%(counter)s events"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "No campaigns"
 msgstr ""
 
@@ -4037,6 +4209,10 @@ msgid "You are about to delete this event. There is no way to undo this. Are you
 msgstr ""
 
 msgid "This event is currently being scheduled and can't be edited again until that completes."
+msgstr ""
+
+#, python-format
+msgid "<b>%(count)s</b> scheduled contacts"
 msgstr ""
 
 #, python-format
@@ -4101,6 +4277,10 @@ msgstr ""
 msgid "(Unsupported)"
 msgstr ""
 
+#, python-format
+msgid "%(channel)s Configuration"
+msgstr ""
+
 msgid "Webhook Secret"
 msgstr ""
 
@@ -4127,9 +4307,6 @@ msgid "to"
 msgstr ""
 
 msgid "Duration"
-msgstr ""
-
-msgid "Date"
 msgstr ""
 
 msgid "Last synced"
@@ -4707,9 +4884,6 @@ msgstr ""
 msgid "Read more about the limits placed on Twilio's Free Trial numbers."
 msgstr ""
 
-msgid "Connect Twilio"
-msgstr ""
-
 #, python-format
 msgid "To connect your Twilio Account you will need to provide us your Twilio account SID and auth token. Both values can be found on your <a target=\"twilio\" href=\"%(settings_url)s\">Twilio account page</a>."
 msgstr ""
@@ -4763,9 +4937,6 @@ msgstr ""
 msgid "<div class=\"code mt-4\">Manage > API Usage > Callback API > Server Settings</div> <div class=\"mt-2\"> Enter the Webhook URL below for the <div class=\"code inline py-1\">URL</div> field and the Verify Token in the <div class=\"code inline py-1\">Secret Key</div> field. </div> <div class=\"code mt-6\">Manage > API Usage > Callback API > Event Types</div> <div class=\"mt-2\">Check the option %(option)s</div>"
 msgstr ""
 
-msgid "Connect Vonage"
-msgstr ""
-
 #, python-format
 msgid "To connect your Vonage Account you will need to provide us your API key and secret. Both values can be found on your <a target=\"vonage\" href=\"%(settings_url)s\">Vonage settings</a> page in the API Settings section."
 msgstr ""
@@ -4790,6 +4961,9 @@ msgid "Approve the permissions, these are required for us to access the API on y
 msgstr ""
 
 msgid "Add Facebook Business"
+msgstr ""
+
+msgid "Login was cancelled or failed, please try again."
 msgstr ""
 
 msgid "Before clicking the button below, make sure you have access to the phone where you can read the verification code send by SMS message"
@@ -4999,6 +5173,15 @@ msgstr[1] ""
 msgid "Row %(row)s: %(message)s"
 msgstr ""
 
+msgid "Message History"
+msgstr ""
+
+msgid "Workspace Statistics"
+msgstr ""
+
+msgid "This email was generated at"
+msgstr ""
+
 msgid "Sorry, this flow cannot be exported because it references another flow. To export it, please remove any actions that reference other flows and try again."
 msgstr ""
 
@@ -5098,7 +5281,27 @@ msgid_plural "<b>%(count)s</b> contacts"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Uh oh!"
+msgstr ""
+
 msgid "We tried our best, but there was an error processing your request. If this keeps happening, please refresh your browser."
+msgstr ""
+
+#, python-format
+msgid "Sign In with %(provider)s"
+msgstr ""
+
+msgid "Use Single Sign-On"
+msgstr ""
+
+msgid "Ok"
+msgstr ""
+
+#, python-format
+msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use <b>Sign In with %(provider)s</b> the next time you sign in."
+msgstr ""
+
+msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use the single sign-on option the next time you sign in."
 msgstr ""
 
 msgid "Are you sure you want to continue? This cannot be undone."
@@ -5125,6 +5328,12 @@ msgstr ""
 
 msgid "There is already an export in progress. You must wait for that export to complete before starting another."
 msgstr ""
+
+#, python-format
+msgid "(%(counter)s retry)"
+msgid_plural "(%(counter)s retries)"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Connection Error"
 msgstr ""
@@ -5304,6 +5513,9 @@ msgstr ""
 msgid "at around the same time."
 msgstr ""
 
+msgid "Repeats <b>daily</b> at around the same time."
+msgstr ""
+
 #, python-format
 msgid ""
 "\n"
@@ -5315,6 +5527,9 @@ msgid_plural ""
 "          "
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Interrupt Broadcast"
+msgstr ""
 
 msgid "Your channels are taking a while to send messages. Please wait for the outbound queue to clear before sending new messages."
 msgstr ""
@@ -5479,6 +5694,9 @@ msgstr ""
 
 #, python-format
 msgid "Clicking on the following link will allow you to reset the password for the account %(email)s:"
+msgstr ""
+
+msgid "Reset password"
 msgstr ""
 
 msgid "If you did not request this, don't worry, this email has only been sent to you and your account remains secure."
@@ -5693,8 +5911,21 @@ msgstr ""
 msgid "You can create flow events which external services can subscribe to. For example, Zapier can subscribe to flow events you create and trigger any number of Zapier integrations when they occur in your flows."
 msgstr ""
 
+msgid "Flow Event"
+msgstr ""
+
 #, python-format
 msgid "You need a workspace to use %(brand)s. Give it a name that best describes your organization or project."
+msgstr ""
+
+msgid "Different Workspace"
+msgstr ""
+
+#, python-format
+msgid "The page you are requesting belongs to one of your other workspaces, <b>%(org)s</b>. To see it, you will need to switch to that workspace."
+msgstr ""
+
+msgid "Switch Workspace"
 msgstr ""
 
 msgid "If you have an export file with flows and or campaigns, select it below to import it into your workspace."
@@ -5760,9 +5991,6 @@ msgid "Reset Password"
 msgstr ""
 
 msgid "Enter the email address you used to sign up. We will send you an email with details on how to reset your password."
-msgstr ""
-
-msgid "Update User"
 msgstr ""
 
 msgid "Remove User"
@@ -6021,9 +6249,6 @@ msgstr ""
 msgid "No sync events yet"
 msgstr ""
 
-msgid "Flow Event"
-msgstr ""
-
 msgid "Channel Event"
 msgstr ""
 
@@ -6056,6 +6281,20 @@ msgstr ""
 msgid "Not scheduled"
 msgstr ""
 
+#, python-format
+msgid "Remove %(object)s?"
+msgstr ""
+
+#, python-format
+msgid "Are you sure you want to remove <b>%(object)s</b> from your account?"
+msgstr ""
+
+msgid "This cannot be undone."
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
 msgid "You can sign in to your account using any of the following third-party accounts:"
 msgstr ""
 
@@ -6074,6 +6313,24 @@ msgid "A third-party account from %(provider)s has been disconnected from your a
 msgstr ""
 
 msgid "Third-Party Account Disconnected"
+msgstr ""
+
+#, python-format
+msgid "Accept Invitation with %(provider)s"
+msgstr ""
+
+#, python-format
+msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."
+msgstr ""
+
+#, python-format
+msgid "You are about to service the workspace, <b>%(org)s</b>."
+msgstr ""
+
+msgid "Service Account"
+msgstr ""
+
+msgid "Invalid org, servicing not available."
 msgstr ""
 
 msgid "Deleting this user will also delete the following workspaces owned by this user."
@@ -6148,6 +6405,30 @@ msgid "Topics"
 msgstr ""
 
 msgid "No teams"
+msgstr ""
+
+msgid "Tickets Opened"
+msgstr ""
+
+msgid "Response Count"
+msgstr ""
+
+msgid "Top Responders"
+msgstr ""
+
+msgid "User"
+msgstr ""
+
+msgid "Replies"
+msgstr ""
+
+msgid "Loading..."
+msgstr ""
+
+msgid "No replies in this period"
+msgstr ""
+
+msgid "Failed to load"
 msgstr ""
 
 msgid "Any tickets opened within the selected date range will be included. You may optionally include additional columns for fields for each contact."

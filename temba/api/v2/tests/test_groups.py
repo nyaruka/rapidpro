@@ -41,7 +41,7 @@ class GroupsEndpointTest(APITest):
             [self.editor, self.admin],
             results=[
                 {
-                    "uuid": dynamic.uuid,
+                    "uuid": str(dynamic.uuid),
                     "name": "Big Group",
                     "query": 'isdeveloper = "NO"',
                     "status": "evaluating",
@@ -49,7 +49,7 @@ class GroupsEndpointTest(APITest):
                     "count": 0,
                 },
                 {
-                    "uuid": developers.uuid,
+                    "uuid": str(developers.uuid),
                     "name": "Developers",
                     "query": 'isdeveloper = "YES"',
                     "status": "ready",
@@ -57,7 +57,7 @@ class GroupsEndpointTest(APITest):
                     "count": 0,
                 },
                 {
-                    "uuid": customers.uuid,
+                    "uuid": str(customers.uuid),
                     "name": "Customers",
                     "query": None,
                     "status": "ready",
@@ -65,7 +65,7 @@ class GroupsEndpointTest(APITest):
                     "count": 1,
                 },
                 {
-                    "uuid": open_tickets.uuid,
+                    "uuid": str(open_tickets.uuid),
                     "name": "Open Tickets",
                     "query": "tickets > 0",
                     "status": "ready",
@@ -102,7 +102,7 @@ class GroupsEndpointTest(APITest):
         self.assertEqual(
             response.json(),
             {
-                "uuid": reporters.uuid,
+                "uuid": str(reporters.uuid),
                 "name": "Reporters",
                 "query": None,
                 "status": "ready",

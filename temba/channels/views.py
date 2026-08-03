@@ -621,7 +621,7 @@ class ChannelCRUDL(SmartCRUDL):
             whitelisted_domain = forms.URLField(
                 required=True,
                 initial="https://",
-                help_text="The domain to whitelist for Messenger extensions ex: https://yourdomain.com",
+                help_text=_("The domain to whitelist for Messenger extensions ex: https://yourdomain.com"),
             )
 
         slug_url_kwarg = "uuid"
@@ -669,7 +669,8 @@ class ChannelCRUDL(SmartCRUDL):
             except TwilioRestException as e:
                 messages.error(
                     request,
-                    _(f"Twilio reported an error removing your channel (error code {e.code}). Please try again later."),
+                    _("Twilio reported an error removing your channel (error code %(code)s). Please try again later.")
+                    % {"code": e.code},
                 )
 
                 response = HttpResponse()
@@ -695,15 +696,6 @@ class ChannelCRUDL(SmartCRUDL):
 
         def derive_title(self):
             return _("%s Channel") % self.object.type.name
-
-        def derive_exclude(self):
-            if self.request.user.is_staff:
-                return []
-
-            if self.object.type.beta_only and not self.request.user.is_beta:
-                return ["is_enabled"]
-
-            return []
 
         def derive_readonly(self):
             return self.form.Meta.readonly if hasattr(self, "form") else []

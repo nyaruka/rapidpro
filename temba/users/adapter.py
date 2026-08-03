@@ -35,7 +35,7 @@ class InviteAdapterMixin:
                     messages.add_message(
                         self.request,
                         messages.WARNING,
-                        _(f"To accept this invitation, please login with {invite.email}."),
+                        _("To accept this invitation, please login with %(email)s.") % {"email": invite.email},
                     )
                 else:
                     invite.accept(user)

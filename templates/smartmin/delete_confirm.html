@@ -37,18 +37,24 @@
     </div>
     <div class="span9">
       <div class="confirmation">
-        <h2>Remove {{ object }}?</h2>
+        <h2>
+          {% blocktrans trimmed %}
+            Remove {{ object }}?
+          {% endblocktrans %}
+        </h2>
         <p>
-          Are you sure you want to remove <b>{{ object }}</b> from your account?
+          {% blocktrans trimmed %}
+            Are you sure you want to remove <b>{{ object }}</b> from your account?
+          {% endblocktrans %}
         </p>
-        <p>This cannot be undone.</p>
+        <p>{% trans "This cannot be undone." %}</p>
         <form method="post">
           {% block delete_form %}
           {% endblock delete_form %}
           <div class="buttons">
-            <a class="btn" href="{{ cancel_url }}">Cancel</a>
+            <a class="btn" href="{{ cancel_url }}">{% trans "Cancel" %}</a>
             {% csrf_token %}
-            <input type="submit" class="btn btn-danger" value="Remove" />
+            <input type="submit" class="btn btn-danger" value="{% trans "Remove" %}" />
           </div>
         </form>
       </div>

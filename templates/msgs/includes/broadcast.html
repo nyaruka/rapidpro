@@ -3,10 +3,11 @@
 {% with translation=broadcast.get_translation %}
   <div style="--color-overlay-light:#fff;
               --color-background-hover:#FaFaFa;
-              min-height: 200px;"
+              min-height: 200px"
        class="broadcast flex flex-col card m-0 rounded overflow-hidden p-0 flex-shrink-0 {% if broadcast.schedule %}scheduled{% endif %}">
     <div class="broadcast-top-bar px-2 pt-2 pb-1 flex flex-row" style="background: #8e5ea7;">
-      <div class="flex-grow text-right mr-2 text-sm self-center font-normal -mt-1 date-text flex items-end" style="color: rgba(255,255,255,0.85);">
+      <div class="flex-grow text-right mr-2 text-sm self-center font-normal -mt-1 date-text flex items-end"
+           style="color: rgba(255,255,255,0.85)">
         <div class="flex-grow"></div>
         {% if broadcast.schedule.next_fire %}
           {{ broadcast.schedule.next_fire|duration }}
@@ -21,12 +22,23 @@
         {% include "includes/recipients.html" with groups=broadcast.groups.all contacts=broadcast.contacts.all query=broadcast.query node_uuid=broadcast.node_uuid %}
       </div>
       <div>
-        <div class="text" style="overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;">
-          <temba-expression-highlight>{{ translation.text }}</temba-expression-highlight>
+        <div class="text"
+             style="overflow: hidden;
+                    display: -webkit-box;
+                    -webkit-box-orient: vertical;
+                    -webkit-line-clamp: 3">
+          <temba-expression-highlight>
+            {{ translation.text }}
+          </temba-expression-highlight>
           {% if broadcast.template %}
             <div class="flex flex-row flex-wrap mt-2">
-              <div class="flex items-center px-2 py-1 mr-1 rounded" style="border: 1px solid #7dc8bc; background: #f0faf7; color: #128C7E; font-size: 0.85em;">
-                <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E;"></temba-icon>
+              <div class="flex items-center px-2 py-1 mr-1 rounded"
+                   style="border: 1px solid #7dc8bc;
+                          background: #f0faf7;
+                          color: #128C7E;
+                          font-size: 0.85em">
+                <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E;">
+                </temba-icon>
                 <div>{{ broadcast.template.name }}</div>
               </div>
             </div>
@@ -36,9 +48,15 @@
       {% if translation.quick_replies %}
         <div class="flex flex-row flex-wrap mt-2" style="gap: 6px;">
           {% for qr in translation.quick_replies %}
-            <span style="padding: 4px 8px; border-radius: 18px; border: 1px solid var(--color-quick-reply, rgb(60, 146, 221)); background: white; color: var(--color-quick-reply, rgb(60, 146, 221)); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              {{ qr.text }}
-            </span>
+            <span style="padding: 4px 8px;
+                         border-radius: 18px;
+                         border: 1px solid var(--color-quick-reply, rgb(60, 146, 221));
+                         background: white;
+                         color: var(--color-quick-reply, rgb(60, 146, 221));
+                         font-size: 11px;
+                         white-space: nowrap;
+                         overflow: hidden;
+                         text-overflow: ellipsis">{{ qr.text }}</span>
           {% endfor %}
         </div>
       {% endif %}
@@ -65,7 +83,9 @@
             at around the same time.
           {% endblocktrans %}
         {% elif broadcast.schedule.repeat_period == 'D' %}
-          Repeats <b>daily</b> at around the same time.
+          {% blocktrans trimmed %}
+            Repeats <b>daily</b> at around the same time.
+          {% endblocktrans %}
         {% endif %}
       </div>
     {% endif %}
@@ -76,9 +96,19 @@
           {% if broadcast.schedule %}
             {% if org_perms.msgs.broadcast_update %}
               <div class="flex-grow"></div>
-              <temba-icon name="edit" clickable onClick="editBroadcast({{ broadcast.id }})" style="--icon-color: #999; --icon-color-circle-hover: rgba(0,0,0,0.05);" class="self-center">
+              <temba-icon name="edit"
+                          clickable
+                          onClick="editBroadcast({{ broadcast.id }})"
+                          style="--icon-color: #999;
+                                 --icon-color-circle-hover: rgba(0,0,0,0.05)"
+                          class="self-center">
               </temba-icon>
-              <temba-icon name="delete" clickable onClick="deleteBroadcast({{ broadcast.id }})" style="--icon-color: #999; --icon-color-circle-hover: rgba(0,0,0,0.05);" class="ml-3 self-center">
+              <temba-icon name="delete"
+                          clickable
+                          onClick="deleteBroadcast({{ broadcast.id }})"
+                          style="--icon-color: #999;
+                                 --icon-color-circle-hover: rgba(0,0,0,0.05)"
+                          class="ml-3 self-center">
               </temba-icon>
             {% endif %}
           {% endif %}
@@ -101,7 +131,7 @@
           <div class="flex flex-row py-1">
             <temba-start-progress id="{{ broadcast.id }}"
                                   class="flex-grow"
-                                  interrupttitle="Interrupt Broadcast"
+                                  interrupttitle="{% trans "Interrupt Broadcast" %}"
                                   interruptendpoint="{% url 'msgs.broadcast_interrupt' broadcast.id %}"
                                   statusendpoint="{% url 'msgs.broadcast_status' %}?id={{ broadcast.id }}">
             </temba-start-progress>

@@ -1187,7 +1187,10 @@ class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint
         # filter by group name/uuid (optional)
         group_ref = params.get("group")
         if group_ref:
-            group = ContactGroup.get_groups(org).filter(Q(uuid=group_ref) | Q(name=group_ref)).first()
+            group_filter = Q(name=group_ref)
+            if is_uuid(group_ref):
+                group_filter |= Q(uuid=group_ref)
+            group = ContactGroup.get_groups(org).filter(group_filter).first()
             if group:
                 queryset = queryset.filter(groups=group)
             else:
@@ -3177,7 +3180,7 @@ class StatisticsEndpoint(BaseEndpoint):
         by_day = defaultdict(lambda: defaultdict(lambda: {"type": None}))
         for row in counts:
             day = row["day"]
-            ch_uuid = row["channel__uuid"]
+            ch_uuid = str(row["channel__uuid"])
             entry = by_day[day][ch_uuid]
             entry["type"] = Channel.get_type_from_code(row["channel__channel_type"]).slug
             entry[row["scope"]] = row["count_sum"]
@@ -3205,7 +3208,7 @@ class TicketsEndpoint(ListAPIMixin, BaseEndpoint):
     A **GET** returns the tickets for your organization, most recent first.
 
      * **uuid** - the UUID of the ticket, filterable as `uuid`.
-     * **contact** - the UUID and name of the contact (object), filterable as `contact` with UUID.
+     * **contact** - the UUID and name of the contact (object).
      * **status** - the status of the ticket, either `open` or `closed`.
      * **topic** - the topic of the ticket (object).
      * **assignee** - the user assigned to the ticket (object).
@@ -3259,7 +3262,7 @@ class TicketsEndpoint(ListAPIMixin, BaseEndpoint):
             else:
                 queryset = queryset.filter(id=-1)
 
-        uuid = params.get("uuid") or params.get("ticket")
+        uuid = params.get("uuid")
         if uuid:
             queryset = queryset.filter(uuid=uuid)
 
@@ -3282,9 +3285,9 @@ class TicketsEndpoint(ListAPIMixin, BaseEndpoint):
             "slug": "ticket-list",
             "params": [
                 {
-                    "name": "contact",
+                    "name": "uuid",
                     "required": False,
-                    "help": "A contact UUID to filter by, ex: 09d23a05-47fe-11e4-bfe9-b8f6b119e9ab",
+                    "help": "A ticket UUID to filter by, ex: 09d23a05-47fe-11e4-bfe9-b8f6b119e9ab",
                 },
             ],
         }

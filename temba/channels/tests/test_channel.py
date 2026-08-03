@@ -48,7 +48,10 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         """
         Helper function to register and claim a new Android channel
         """
-        cmds = [dict(cmd="fcm", fcm_id=fcm_id, uuid="uuid"), dict(cmd="status", cc="RW", dev="Nexus")]
+        cmds = [
+            dict(cmd="fcm", fcm_id=fcm_id, uuid="8a3fa886-8c34-4e0c-97f2-e0c1b3b60ec1"),
+            dict(cmd="status", cc="RW", dev="Nexus"),
+        ]
         response = self.client.post(reverse("register"), json.dumps({"cmds": cmds}), content_type="application/json")
         self.assertEqual(200, response.status_code)
 
@@ -658,7 +661,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         cmds = [
             # device fcm data
-            dict(cmd="fcm", fcm_id="12345", uuid="abcde"),
+            dict(cmd="fcm", fcm_id="12345", uuid="76d1e5d3-8a6b-4652-b95f-3b0d3b3d1a55"),
             # device details status
             dict(
                 cmd="status",
@@ -738,7 +741,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         # check our channel fcm and uuid were updated
         self.tel_channel = Channel.objects.get(pk=self.tel_channel.pk)
         self.assertEqual("12345", self.tel_channel.config["FCM_ID"])
-        self.assertEqual("abcde", self.tel_channel.uuid)
+        self.assertEqual("76d1e5d3-8a6b-4652-b95f-3b0d3b3d1a55", str(self.tel_channel.uuid))
 
         # should ignore incoming messages without text
         msgs_count = Msg.objects.all().count()
@@ -797,7 +800,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             self.tel_channel,
             cmds=[
                 # device fcm data
-                dict(cmd="fcm", fcm_id="12345", uuid="abcde")
+                dict(cmd="fcm", fcm_id="12345", uuid="76d1e5d3-8a6b-4652-b95f-3b0d3b3d1a55")
             ],
         )
 

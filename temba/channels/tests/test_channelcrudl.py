@@ -1,4 +1,3 @@
-from django.contrib.auth.models import Group
 from django.test.utils import override_settings
 from django.urls import reverse
 
@@ -75,7 +74,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(claim_url, [None, self.agent])
         response = self.assertReadFetch(claim_url, [self.editor, self.admin])
 
-        # should see all channel types not for beta only and having a category
+        # should see all channel types having a category
         self.assertEqual(["AT", "MT", "TG"], [t.code for t in response.context["recommended_channels"]])
 
         self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "AC")
@@ -86,25 +85,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3C")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][1].code, "FBA")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][2].code, "IG")
-        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-2].code, "WC")
-        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-1].code, "ZVW")
-
-        self.admin.groups.add(Group.objects.get(name="Beta"))
-
-        response = self.client.get(reverse("channels.channel_claim_all"))
-        self.assertEqual(200, response.status_code)
-
-        # should see all channel types having a category including beta only channel types
-        self.assertEqual(["AT", "MT", "TG"], [t.code for t in response.context["recommended_channels"]])
-
-        self.assertEqual(response.context["channel_types"]["PHONE"][0].code, "AC")
-        self.assertEqual(response.context["channel_types"]["PHONE"][1].code, "BW")
-        self.assertEqual(response.context["channel_types"]["PHONE"][2].code, "BS")
-        self.assertEqual(response.context["channel_types"]["PHONE"][-1].code, "A")
-
-        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][0].code, "D3C")
-        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][1].code, "FBA")
-        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][2].code, "IG")
+        self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-2].code, "WAC")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-1].code, "ZVW")
 
     def test_configuration(self):

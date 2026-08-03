@@ -37,16 +37,6 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
         claim_whatsapp_cloud_url = reverse("channels.types.whatsapp.claim")
         select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select_waba")
 
-        # make sure type is not listed the claim page
-        response = self.client.get(reverse("channels.channel_claim"))
-        self.assertNotContains(response, claim_whatsapp_cloud_url)
-
-        # or directly accessible
-        self.assertRedirect(self.client.get(claim_whatsapp_cloud_url), connect_whatsapp_cloud_url)
-        self.assertLoginRedirect(self.client.get(connect_whatsapp_cloud_url))
-
-        self.make_beta(self.admin)
-
         response = self.client.get(reverse("channels.channel_claim"))
         self.assertContains(response, claim_whatsapp_cloud_url)
         self.assertRedirect(self.client.get(claim_whatsapp_cloud_url), connect_whatsapp_cloud_url)
@@ -135,7 +125,7 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
             response = self.client.post(connect_whatsapp_cloud_url, dict(user_access_token="X" * 36), follow=True)
             self.assertEqual(response.status_code, 200)
 
-            self.assertEqual(wa_cloud_get.call_args_list[0][0][0], "https://graph.facebook.com/v22.0/debug_token")
+            self.assertEqual(wa_cloud_get.call_args_list[0][0][0], "https://graph.facebook.com/v25.0/debug_token")
             self.assertEqual(
                 wa_cloud_get.call_args_list[0][1],
                 {"params": {"access_token": "FB_APP_ID|FB_APP_SECRET", "input_token": "Z" * 48}},
@@ -288,18 +278,18 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
             self.assertEqual(3, wa_cloud_post.call_count)
 
             self.assertEqual(
-                "https://graph.facebook.com/v22.0/111111111111111/assigned_users",
+                "https://graph.facebook.com/v25.0/111111111111111/assigned_users",
                 wa_cloud_post.call_args_list[0][0][0],
             )
             self.assertEqual({"Authorization": "Bearer WA_ADMIN_TOKEN"}, wa_cloud_post.call_args_list[0][1]["headers"])
 
             self.assertEqual(
-                "https://graph.facebook.com/v22.0/111111111111111/subscribed_apps",
+                "https://graph.facebook.com/v25.0/111111111111111/subscribed_apps",
                 wa_cloud_post.call_args_list[1][0][0],
             )
 
             self.assertEqual(
-                "https://graph.facebook.com/v22.0/123123123/register", wa_cloud_post.call_args_list[2][0][0]
+                "https://graph.facebook.com/v25.0/123123123/register", wa_cloud_post.call_args_list[2][0][0]
             )
             self.assertEqual(
                 {"messaging_product": "whatsapp", "pin": "111111"}, wa_cloud_post.call_args_list[2][1]["data"]
@@ -342,7 +332,7 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
             )
             self.assertEqual(200, response.status_code)
 
-            self.assertEqual("https://graph.facebook.com/v22.0/123123123/request_code", wa_cloud_post.call_args[0][0])
+            self.assertEqual("https://graph.facebook.com/v25.0/123123123/request_code", wa_cloud_post.call_args[0][0])
 
             # submit verification code
             response = self.client.post(
@@ -352,7 +342,7 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
             )
             self.assertEqual(200, response.status_code)
 
-            self.assertEqual("https://graph.facebook.com/v22.0/123123123/register", wa_cloud_post.call_args[0][0])
+            self.assertEqual("https://graph.facebook.com/v25.0/123123123/register", wa_cloud_post.call_args[0][0])
             self.assertEqual({"messaging_product": "whatsapp", "pin": "111111"}, wa_cloud_post.call_args[1]["data"])
 
             response = self.client.get(reverse("channels.types.whatsapp.verify_code", args=(channel.uuid,)))
@@ -522,7 +512,6 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
     )
     def test_select_view(self):
         self.login(self.admin)
-        self.make_beta(self.admin)
 
         select_whatsapp_cloud_url = reverse("channels.types.whatsapp.select_waba")
         connect_whatsapp_cloud_url = reverse("channels.types.whatsapp.connect")
@@ -670,7 +659,7 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
             MockResponse(200, '{"data": ["foo", "bar"]}', headers={"Authorization": "Bearer WA_ADMIN_TOKEN"}),
             MockResponse(
                 200,
-                '{"data": ["foo"], "paging": {"cursors": {"after": "MjQZD"}, "next": "https://graph.facebook.com/v22.0/111111111111111/message_templates?after=MjQZD" } }',
+                '{"data": ["foo"], "paging": {"cursors": {"after": "MjQZD"}, "next": "https://graph.facebook.com/v25.0/111111111111111/message_templates?after=MjQZD" } }',
                 headers={"Authorization": "Bearer WA_ADMIN_TOKEN"},
             ),
             MockResponse(
@@ -702,7 +691,7 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
             self.assertNotIn("WA_ADMIN_TOKEN", json.dumps(log.get_display()))
 
         mock_get.assert_called_with(
-            "https://graph.facebook.com/v22.0/111111111111111/message_templates",
+            "https://graph.facebook.com/v25.0/111111111111111/message_templates",
             params={"limit": 255},
             headers={"Authorization": "Bearer WA_ADMIN_TOKEN"},
         )
@@ -714,12 +703,12 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
         mock_get.assert_has_calls(
             [
                 call(
-                    "https://graph.facebook.com/v22.0/111111111111111/message_templates",
+                    "https://graph.facebook.com/v25.0/111111111111111/message_templates",
                     params={"limit": 255},
                     headers={"Authorization": "Bearer WA_ADMIN_TOKEN"},
                 ),
                 call(
-                    "https://graph.facebook.com/v22.0/111111111111111/message_templates?after=MjQZD",
+                    "https://graph.facebook.com/v25.0/111111111111111/message_templates?after=MjQZD",
                     params={"limit": 255},
                     headers={"Authorization": "Bearer WA_ADMIN_TOKEN"},
                 ),
@@ -742,31 +731,7 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateFetch(
             update_url,
             [self.editor, self.admin],
-            form_fields={"name": "WABA name"},
-        )
-
-        self.assertUpdateSubmit(
-            update_url,
-            self.admin,
-            {"name": "New WA Name", "is_enabled": False},
-        )
-
-        channel = Channel.objects.get(id=channel.id)
-        self.assertEqual("New WA Name", channel.name)
-        self.assertTrue(channel.is_enabled)  # is_enabled should not be updated as admin is not a beta user
-
-        # make admin a beta user
-        self.make_beta(self.admin)
-        self.assertUpdateFetch(
-            update_url,
-            [self.editor],
-            form_fields={"name": "New WA Name"},
-        )
-
-        self.assertUpdateFetch(
-            update_url,
-            [self.admin],
-            form_fields={"name": "New WA Name", "is_enabled": True},
+            form_fields={"name": "WABA name", "is_enabled": True},
         )
 
         self.assertUpdateSubmit(

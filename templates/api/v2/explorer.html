@@ -2,7 +2,7 @@
 {% load smartmin i18n %}
 
 {% block page-title %}
-  {{ branding.name }} - API Explorer
+  {{ branding.name }} - {% trans "API Explorer" %}
 {% endblock page-title %}
 {% block content %}
   <script>
@@ -10,7 +10,7 @@
   </script>
   <div class="px-8 pb-8">
     <div class="flex mb-4">
-      <div class="flex-grow page-title">API Explorer</div>
+      <div class="flex-grow page-title">{% trans "API Explorer" %}</div>
       <div>
         <a class="button-light ml-4" href="{% url "api.v2.root" %}">{% trans "Documentation" %}</a>
       </div>
@@ -46,9 +46,9 @@
                     <td class="font-light">
                       {{ item.help }}
                       {% if item.required %}
-                        (required)
+                        ({% trans "required" %})
                       {% else %}
-                        (optional)
+                        ({% trans "optional" %})
                       {% endif %}
                     </td>
                   </tr>
@@ -66,9 +66,9 @@
                     <td class="font-light">
                       {{ item.help }}
                       {% if item.required %}
-                        (required)
+                        ({% trans "required" %})
                       {% else %}
-                        (optional)
+                        ({% trans "optional" %})
                       {% endif %}
                     </td>
                   </tr>

@@ -84,10 +84,12 @@ class SignalWireClaimView(ClaimViewMixin, SmartFormView):
                         phone_sid = phone.get("sid", "")
                         break
             except Exception:
-                raise ValidationError("Unable to connect to SignalWire, please check your space, key and token")
+                raise ValidationError(_("Unable to connect to SignalWire, please check your space, key and token"))
 
             if phone_sid == "":
-                raise ValidationError(f"Unable to find phone with number {number} on your account")
+                raise ValidationError(
+                    _("Unable to find phone with number %(number)s on your account") % {"number": number}
+                )
 
             return self.cleaned_data
 

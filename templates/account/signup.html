@@ -20,7 +20,11 @@
     {% element h2 %}
       {% trans "Create Account" %}
     {% endelement %}
-    <div class="mb-2">Creating a TextIt account is free and only takes a minute.</div>
+    <div class="mb-2">
+      {% blocktrans trimmed with brand=branding.name %}
+        Creating a {{ brand }} account is free and only takes a minute.
+      {% endblocktrans %}
+    </div>
   {% endif %}
   {% setvar link %}
   <a href="{{ login_url }}">

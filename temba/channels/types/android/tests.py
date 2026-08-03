@@ -21,7 +21,12 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
 
         Channel.objects.all().delete()
 
-        reg_data = dict(cmds=[dict(cmd="fcm", fcm_id="FCM111", uuid="uuid"), dict(cmd="status", cc="RW", dev="Nexus")])
+        reg_data = dict(
+            cmds=[
+                dict(cmd="fcm", fcm_id="FCM111", uuid="34c00a4c-e5b2-437e-9df5-9d20e3d80877"),
+                dict(cmd="status", cc="RW", dev="Nexus"),
+            ]
+        )
 
         # must be a post
         response = self.client.get(reverse("register"), content_type="application/json")
@@ -38,7 +43,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(android1.country, "RW")
         self.assertEqual(android1.device, "Nexus")
         self.assertEqual(android1.config["FCM_ID"], "FCM111")
-        self.assertEqual(android1.uuid, "uuid")
+        self.assertEqual(str(android1.uuid), "34c00a4c-e5b2-437e-9df5-9d20e3d80877")
         self.assertTrue(android1.secret)
         self.assertTrue(android1.claim_code)
         self.assertEqual(android1.created_by, User.get_system_user())
@@ -131,7 +136,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(android1.org, self.org)
         self.assertEqual(android1.address, "+250788123123")  # normalized
         self.assertEqual(android1.config["FCM_ID"], "FCM111")
-        self.assertEqual(android1.uuid, "uuid")
+        self.assertEqual(str(android1.uuid), "34c00a4c-e5b2-437e-9df5-9d20e3d80877")
         self.assertFalse(android1.claim_code)
 
         # try having a device register again
@@ -143,7 +148,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(android1.org, self.org)
         self.assertEqual(android1.address, "+250788123123")
         self.assertEqual(android1.config["FCM_ID"], "FCM111")
-        self.assertEqual(android1.uuid, "uuid")
+        self.assertEqual(str(android1.uuid), "34c00a4c-e5b2-437e-9df5-9d20e3d80877")
         self.assertEqual(android1.is_active, True)
         self.assertTrue(android1.claim_code)
         self.assertNotEqual(android1.secret, secret)
@@ -164,7 +169,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(android1.org, self.org)
         self.assertEqual(android1.address, "+250788123123")
         self.assertEqual(android1.config["FCM_ID"], "FCM222")
-        self.assertEqual(android1.uuid, "uuid")
+        self.assertEqual(str(android1.uuid), "34c00a4c-e5b2-437e-9df5-9d20e3d80877")
         self.assertEqual(android1.is_active, True)
 
         # we can claim again with new phone number
@@ -177,7 +182,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(android1.org, self.org)
         self.assertEqual(android1.address, "+250788123124")
         self.assertEqual(android1.config["FCM_ID"], "FCM222")
-        self.assertEqual(android1.uuid, "uuid")
+        self.assertEqual(str(android1.uuid), "34c00a4c-e5b2-437e-9df5-9d20e3d80877")
         self.assertEqual(android1.is_active, True)
 
         # release and then register with same details and claim again
@@ -199,7 +204,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         # and we have a new Android channel with our UUID
         android2 = Channel.objects.filter(is_active=True, channel_type="A").first()
         self.assertNotEqual(android2, android1)
-        self.assertEqual(android2.uuid, "uuid")
+        self.assertEqual(str(android2.uuid), "34c00a4c-e5b2-437e-9df5-9d20e3d80877")
 
         # try to claim a bogus channel
         response = self.client.post(reverse("channels.types.android.claim"), dict(claim_code="Your Mom"))
@@ -213,7 +218,10 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
 
         # re-register device with country as US
         reg_data = dict(
-            cmds=[dict(cmd="fcm", fcm_id="FCM222", uuid="uuid"), dict(cmd="status", cc="US", dev="Nexus 5X")]
+            cmds=[
+                dict(cmd="fcm", fcm_id="FCM222", uuid="34c00a4c-e5b2-437e-9df5-9d20e3d80877"),
+                dict(cmd="status", cc="US", dev="Nexus 5X"),
+            ]
         )
         response = self.client.post(reverse("register"), json.dumps(reg_data), content_type="application/json")
         self.assertEqual(response.status_code, 200)
@@ -224,7 +232,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(android2.device, "Nexus 5X")
         self.assertEqual(android2.org, self.org)
         self.assertEqual(android2.config["FCM_ID"], "FCM222")
-        self.assertEqual(android2.uuid, "uuid")
+        self.assertEqual(str(android2.uuid), "34c00a4c-e5b2-437e-9df5-9d20e3d80877")
         self.assertTrue(android2.is_active)
 
         # set back to RW...
@@ -238,7 +246,10 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
 
         # register another device with country as US
         reg_data = dict(
-            cmds=[dict(cmd="fcm", fcm_id="FCM444", uuid="uuid4"), dict(cmd="status", cc="US", dev="Nexus 6P")]
+            cmds=[
+                dict(cmd="fcm", fcm_id="FCM444", uuid="1f2b1d2a-9a41-4ee5-b09d-2f2b6a1d6d21"),
+                dict(cmd="status", cc="US", dev="Nexus 6P"),
+            ]
         )
         response = self.client.post(reverse("register"), json.dumps(reg_data), content_type="application/json")
 
@@ -272,7 +283,10 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
 
         # yet another registration in rwanda
         reg_data = dict(
-            cmds=[dict(cmd="fcm", fcm_id="FCM555", uuid="uuid5"), dict(cmd="status", cc="RW", dev="Nexus 5")]
+            cmds=[
+                dict(cmd="fcm", fcm_id="FCM555", uuid="6b6f77b6-53f5-46a9-bb92-fb1d5c623d63"),
+                dict(cmd="status", cc="RW", dev="Nexus 5"),
+            ]
         )
         response = self.client.post(reverse("register"), json.dumps(reg_data), content_type="application/json")
         claim_code = response.json()["cmds"][0]["relayer_claim_code"]

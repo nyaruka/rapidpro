@@ -202,7 +202,7 @@
           <temba-dialog id="shared-dialog">
           </temba-dialog>
           {% block error-dialog %}
-            <temba-dialog id="error-dialog" header="Uh oh!">
+            <temba-dialog id="error-dialog" header="{% trans "Uh oh!" %}">
               <div class="p-6">
                 {% blocktrans trimmed %}
                   We tried our best, but there was an error processing your request. If this keeps happening, please refresh your browser.
