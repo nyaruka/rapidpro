@@ -1,3 +1,7 @@
+v26.3.27 (2026-08-03)
+-------------------------
+ * Convert Flow, ContactGroup and Channel uuid fields to real UUID fields
+
 v26.3.26 (2026-07-31)
 -------------------------
  * Convert archive primary keys to bigint and add LegacyIDMixin for models still using int primary keys
