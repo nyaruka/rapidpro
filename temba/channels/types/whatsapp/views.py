@@ -22,7 +22,7 @@ from ...views import ClaimViewMixin
 logger = logging.getLogger(__name__)
 
 # base URL for all WhatsApp Cloud Graph API calls (also imported by type.py) - bump the version here in one place
-WHATSAPP_GRAPH_API_BASE = "https://graph.facebook.com/v22.0"
+WHATSAPP_GRAPH_API_BASE = "https://graph.facebook.com/v25.0"
 
 # WhatsApp Cloud only requires the business_management OAuth scope at the top level; the
 # whatsapp_business_management and whatsapp_business_messaging permissions are granted as
