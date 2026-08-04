@@ -4999,10 +4999,8 @@ msgstr "Apruebe los permisos; son necesarios para que podamos acceder a la API e
 msgid "Add Facebook Business"
 msgstr "Añadir Facebook Business"
 
-#, fuzzy
-#| msgid "An error happened, please try again."
 msgid "Login was cancelled or failed, please try again."
-msgstr "Se produjo un error, vuelva a intentarlo."
+msgstr "El inicio de sesión se canceló o falló, vuelva a intentarlo."
 
 msgid "Before clicking the button below, make sure you have access to the phone where you can read the verification code send by SMS message"
 msgstr "Antes de hacer clic en el botón de abajo, asegúrese de tener acceso al teléfono en el que pueda leer el código de verificación enviado por SMS"
