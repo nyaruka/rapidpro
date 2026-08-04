@@ -152,9 +152,8 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
             update_url, [self.editor, self.admin], form_fields=("title", "language", "body")
         )
 
-        # the editor is pointed at this article for uploads and at the shared renderer for previews
+        # the editor is pointed at this article for uploads
         self.assertContains(response, reverse("knowledge.article_upload", args=[article.uuid]))
-        self.assertContains(response, reverse("knowledge.article_preview"))
 
         self.assertUpdateSubmit(
             update_url, self.admin, {"title": "All About Flows", "language": "kin", "body": "# Flows"}
@@ -287,29 +286,6 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
 
         flows.refresh_from_db()
         self.assertEqual(Article.MAX_ARTICLES, flows.sort_order)
-
-    def test_preview(self):
-        preview_url = reverse("knowledge.article_preview")
-
-        # nobody can access if agents feature not enabled
-        response = self.requestView(preview_url, self.admin, post_data={})
-        self.assertRedirect(response, reverse("orgs.org_workspace"))
-
-        self.enable_agents(self.org)
-
-        self.assertRequestDisallowed(preview_url, [None, self.agent])
-
-        self.login(self.admin)
-
-        # GET isn't allowed
-        self.assertEqual(405, self.client.get(preview_url).status_code)
-
-        # renders with the same sanitizing renderer as the read page
-        response = self.client.post(preview_url, {"body": "# Hi\n\n<script>alert(1)</script>"})
-        self.assertEqual({"html": "<h1>Hi</h1>\n"}, response.json())
-
-        response = self.client.post(preview_url, {})
-        self.assertEqual({"html": ""}, response.json())
 
     @cleanup(s3=True)
     def test_upload(self):

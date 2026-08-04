@@ -21,7 +21,7 @@ from temba.utils import json
 from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 
 from .forms import ArticleCreateForm, ArticleForm, KnowledgeForm, KnowledgeUpdateForm
-from .models import Article, ArticleImage, Knowledge, KnowledgeItem, render_markdown
+from .models import Article, ArticleImage, Knowledge, KnowledgeItem
 
 
 class KnowledgeCRUDL(SmartCRUDL):
@@ -286,7 +286,7 @@ class HelpdeskMixin(RequireFeatureMixin):
 
 class ArticleCRUDL(SmartCRUDL):
     model = Article
-    actions = ("list", "read", "create", "update", "delete", "sort", "publish", "unpublish", "preview", "upload")
+    actions = ("list", "read", "create", "update", "delete", "sort", "publish", "unpublish", "upload")
 
     class BasePage(HelpdeskMixin, SpaMixin):
         """
@@ -428,11 +428,10 @@ class ArticleCRUDL(SmartCRUDL):
         def get_form(self):
             form = super().get_form()
 
-            # the editor uploads screenshots and renders its preview against this article
+            # the editor uploads screenshots against this article
             form.fields["body"].widget.attrs.update(
                 {
                     "endpoint": reverse("knowledge.article_upload", args=[self.get_object().uuid]),
-                    "preview_endpoint": reverse("knowledge.article_preview"),
                     "accept": ",".join(ArticleImage.ALLOWED_CONTENT_TYPES),
                 }
             )
@@ -514,15 +513,6 @@ class ArticleCRUDL(SmartCRUDL):
                 return JsonResponse({"error": str(e)}, status=400)
 
             return JsonResponse({"status": "ok"})
-
-    class Preview(HelpdeskMixin, PostOnlyMixin, OrgPermsMixin, SmartTemplateView):
-        """
-        Renders markdown for the editor's preview pane. It goes through the server so that it uses the same sanitizing
-        renderer as the read page - authors see exactly what will be published, and never their own raw HTML.
-        """
-
-        def post(self, request, *args, **kwargs):
-            return JsonResponse({"html": render_markdown(request.POST.get("body", "")[: Article.MAX_BODY_LEN])})
 
     class Upload(BaseObject, PostOnlyMixin, OrgObjPermsMixin, SmartReadView):
         """

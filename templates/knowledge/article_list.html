@@ -19,7 +19,8 @@
                       -temba-selection="handleContentMenuSelected(event)"
                       -temba-article-delete="showDeleteArticleModal(event.detail.item.uuid)"
                       {% if org_perms.knowledge.article_update %}editable{% endif %}
-                      {% if org_perms.knowledge.article_delete %}deletable{% endif %}>
+                      {% if org_perms.knowledge.article_delete %}deletable{% endif %}
+                      empty-message="{% trans "No articles" %}">
     <div slot="subtitle">
       {% blocktrans trimmed %}
         Help articles written by your workspace. Published articles are searchable by AI agents.

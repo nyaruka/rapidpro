@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 19:27+0000\n"
+"POT-Creation-Date: 2026-08-04 20:24+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -5566,6 +5566,9 @@ msgstr "Ha alcanzado el límite de %(limit)s artículos. Debe eliminar los exist
 #, python-format
 msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. Any articles beneath it will move up to take its place. There is no way to undo this. Are you sure?"
 msgstr "Está a punto de eliminar el artículo <b>%(object)s</b> y sus capturas de pantalla. Los artículos que están debajo subirán para ocupar su lugar. No hay forma de deshacer esto. ¿Está seguro?"
+
+msgid "No articles"
+msgstr "Sin artículos"
 
 msgid "Help articles written by your workspace. Published articles are searchable by AI agents."
 msgstr "Artículos de ayuda escritos por su workspace. Los agentes de IA pueden buscar en los artículos publicados."

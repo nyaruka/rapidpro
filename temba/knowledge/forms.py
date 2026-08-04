@@ -10,8 +10,8 @@ from .models import Article, Knowledge
 
 class MarkdownEditorWidget(forms.Widget):
     """
-    The article body editor - markdown source with a formatting toolbar, screenshot uploads and a preview rendered by
-    the server, so what the author sees is exactly what the read page will show.
+    The article body editor - a rich editor over the article's markdown, with a formatting toolbar and screenshot
+    uploads. It renders client side, escaping raw HTML the same way the read page does.
     """
 
     template_name = "knowledge/forms/markdown_editor.html"

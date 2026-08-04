@@ -6,6 +6,7 @@ from pathlib import Path
 
 import markdown
 import nh3
+from markdown.extensions import Extension
 from pgvector.django import HnswIndex, VectorField
 
 from django.conf import settings
@@ -23,18 +24,31 @@ from temba.utils.models import TembaModel, delete_in_batches
 from temba.utils.s3 import public_file_storage
 from temba.utils.uuid import uuid4
 
-# markdown extensions we render article bodies with. Deliberately conservative - no extension that would make raw HTML
-# more expressive, since everything is sanitized afterwards anyway.
+
+class EscapeRawHTML(Extension):
+    """
+    Renders raw HTML in the source as visible text instead of markup. The library has no option for this, so the
+    documented way to get it is to unregister the two things that recognize HTML in the first place.
+    """
+
+    def extendMarkdown(self, md):
+        md.preprocessors.deregister("html_block")
+        md.inlinePatterns.deregister("html")
+
+
+# markdown extensions we render article bodies with. Deliberately conservative - no extension that would make markdown
+# itself more expressive than what the editor can round-trip.
 MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
 
 
 def render_markdown(body: str) -> str:
     """
-    Renders authored markdown for display. Bodies are user authored and markdown passes raw HTML straight through, so
-    the result is always sanitized - which also deals with the javascript: URLs markdown will happily make a link out
-    of. A free function rather than a model method because the editor's preview renders a body that isn't saved yet.
+    Renders authored markdown for display. Raw HTML is escaped rather than passed through, so that a reader sees what
+    the author saw - the editor renders client side and escapes it too, and text that merely looks like a tag (the
+    `<url>` of our own quick reply syntax, say) survives instead of being quietly swallowed. Sanitizing stays as
+    defense in depth, and still deals with the javascript: URLs markdown will happily make a link out of.
     """
-    return nh3.clean(markdown.markdown(body, extensions=list(MARKDOWN_EXTENSIONS)))
+    return nh3.clean(markdown.markdown(body, extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML()]))
 
 
 class Knowledge(TembaModel):

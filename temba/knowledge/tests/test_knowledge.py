@@ -449,9 +449,22 @@ class ArticleTest(TembaTest):
         article.body = "| a | b |\n| - | - |\n| 1 | 2 |"
         self.assertIn("<table>", article.as_html())
 
-        # raw HTML in the source is sanitized, as are the javascript: URLs markdown will make a link out of
+        # raw HTML in the source is escaped rather than rendered, the way the editor shows it to the author, and the
+        # javascript: URLs markdown will make a link out of are still sanitized away
         article.body = "<script>alert(1)</script><p onclick='x'>hi</p>\n\n[bad](javascript:alert(1))"
-        self.assertEqual('\n<p>hi</p>\n\n<p><a rel="noopener noreferrer">bad</a></p>', article.as_html())
+        self.assertEqual(
+            "<p>&lt;script&gt;alert(1)&lt;/script&gt;&lt;p onclick='x'&gt;hi&lt;/p&gt;</p>\n"
+            '<p><a rel="noopener noreferrer">bad</a></p>',
+            article.as_html(),
+        )
+
+        # so text that only looks like a tag survives instead of being quietly swallowed as an unknown one
+        article.body = "Quick replies use `<url>Visit<extra>https://example.com`, and a bare <url> survives too"
+        self.assertEqual(
+            "<p>Quick replies use <code>&lt;url&gt;Visit&lt;extra&gt;https://example.com</code>, "
+            "and a bare &lt;url&gt; survives too</p>",
+            article.as_html(),
+        )
 
         # images survive, since screenshots are the point of them
         article.body = "![shot](https://example.com/shot.png)"
