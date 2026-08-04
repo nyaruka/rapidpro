@@ -375,6 +375,7 @@ class ArticleTest(TembaTest):
         # depth first, siblings by sort order then title, and released articles omitted
         self.assertEqual([flows, edges, nodes, contacts], tree)
         self.assertEqual([0, 1, 1, 0], [a.depth for a in tree])
+        self.assertEqual([None, flows.uuid, flows.uuid, None], [a.parent_uuid for a in tree])
 
         # an article orphaned by its parent going inactive is shown as a root rather than dropped - otherwise it would
         # be invisible here, and so unmovable, while still being indexed if it were published
@@ -384,6 +385,9 @@ class ArticleTest(TembaTest):
 
         self.assertEqual([edges, contacts, nodes], tree)
         self.assertEqual([0, 0, 0], [a.depth for a in tree])
+
+        # and shown as a root means shown with no parent, rather than naming one that isn't in the tree
+        self.assertEqual([None, None, None], [a.parent_uuid for a in tree])
 
     def test_apply_sort(self):
         flows = self.create_article(self.helpdesk, "Flows")

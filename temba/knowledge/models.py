@@ -315,7 +315,10 @@ class Article(models.Model):
     def get_tree(cls, knowledge) -> list:
         """
         Returns the helpdesk's active articles in display order - depth first, siblings by (sort_order, title) - with
-        each one's depth attached for rendering.
+        each one's depth and the uuid of the article it's shown under attached.
+
+        parent_uuid is the parent as rendered rather than as stored, so it's null for an article whose parent has been
+        deleted - which is shown as a root here and would otherwise name an article the client can't see.
         """
         active = list(knowledge.articles.filter(is_active=True).order_by("sort_order", "title"))
         active_ids = {a.id for a in active}
@@ -328,11 +331,12 @@ class Article(models.Model):
 
         ordered = []
 
-        def visit(parent_id, depth):
-            for article in by_parent[parent_id]:
+        def visit(parent, depth):
+            for article in by_parent[parent.id if parent else None]:
                 article.depth = depth
+                article.parent_uuid = parent.uuid if parent else None
                 ordered.append(article)
-                visit(article.id, depth + 1)
+                visit(article, depth + 1)
 
         visit(None, 0)
         return ordered

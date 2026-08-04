@@ -13,9 +13,10 @@ from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import Contact, ContactExport, ContactField, ContactGroup, ContactURN
 from temba.flows.models import Flow, FlowLabel
 from temba.globals.models import Global
+from temba.knowledge.models import Article, Knowledge
 from temba.msgs.models import Broadcast, Msg, OptIn
 from temba.notifications.types import ExportFinishedNotificationType
-from temba.orgs.models import OrgRole
+from temba.orgs.models import Org, OrgRole
 from temba.schedules.models import Schedule
 from temba.templates.models import Template, TemplateTranslation
 from temba.tests import TembaTest, matchers, mock_mailroom
@@ -863,6 +864,67 @@ class EndpointsTest(APITestMixin, TembaTest):
             results=[{"id": self.org.id, "name": "Nyaruka"}],
             num_queries=NUM_BASE_QUERIES + 1,
         )
+
+    def test_articles(self):
+        endpoint_url = reverse("api.internal.articles") + ".json"
+
+        self.assertGetNotPermitted(endpoint_url, [None, self.agent])
+        self.assertPostNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        helpdesk = self.org.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK)
+        flows = Article.create(helpdesk, self.admin, "Flows")
+        nodes = Article.create(helpdesk, self.admin, "Nodes", parent=flows)
+        contacts = Article.create(helpdesk, self.admin, "Contacts")
+        released = Article.create(helpdesk, self.admin, "Old", parent=flows)
+        released.release(self.admin)
+        flows.publish(self.admin)
+
+        Article.create(self.org2.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK), self.admin2, "Other")
+
+        # the helpdesk is part of the agents feature, so without it there's nothing to serve
+        self.assertGet(endpoint_url, [self.admin], results=[])
+
+        self.org.features = [Org.FEATURE_AGENTS]
+        self.org.save(update_fields=("features",))
+
+        # depth first, with the parent each article is shown under, and released ones omitted
+        self.assertGet(
+            endpoint_url,
+            [self.editor, self.admin],
+            results=[
+                {
+                    "uuid": str(flows.uuid),
+                    "title": "Flows",
+                    "status": "published",
+                    "parent": None,
+                    "depth": 0,
+                    "modified_on": matchers.ISODatetime(),
+                },
+                {
+                    "uuid": str(nodes.uuid),
+                    "title": "Nodes",
+                    "status": "draft",
+                    "parent": str(flows.uuid),
+                    "depth": 1,
+                    "modified_on": matchers.ISODatetime(),
+                },
+                {
+                    "uuid": str(contacts.uuid),
+                    "title": "Contacts",
+                    "status": "draft",
+                    "parent": None,
+                    "depth": 0,
+                    "modified_on": matchers.ISODatetime(),
+                },
+            ],
+            num_queries=NUM_BASE_QUERIES + 2,
+        )
+
+        # an org whose helpdesk has somehow gone is served an empty tree rather than an error
+        self.org.knowledge.filter(knowledge_type=Knowledge.TYPE_HELPDESK).update(is_active=False)
+
+        self.assertGet(endpoint_url, [self.admin], results=[])
 
     def test_shortcuts(self):
         endpoint_url = reverse("api.internal.shortcuts") + ".json"
