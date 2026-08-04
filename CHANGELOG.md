@@ -1,3 +1,16 @@
+v26.3.32 (2026-08-04)
+-------------------------
+ * Add cross-ticket message search to the tickets page
+ * Remove the legacy UI escape hatch
+ * Gate ticket access on topic only, removing the assignee escape hatch
+ * Add knowledge base sources for AI and human agents
+ * Move the knowledge models into their own app and rename the top level section from Library to Knowledge
+ * Add the pgvector dependency and switch CI postgres to the pgvector image
+ * Render the shortcuts list like other component list pages
+ * Update @nyaruka/temba-components to 0.173.0
+ * Add es, fr and pt_BR translations for WhatsApp connect and LLM form strings
+ * Update dependencies
+
 v26.3.31 (2026-08-03)
 -------------------------
  * Update @nyaruka/temba-components to 0.172.0
