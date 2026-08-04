@@ -13,16 +13,13 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-03 17:20+0000\n"
+"POT-Creation-Date: 2026-08-04 16:53+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
-
-msgid "API Key"
-msgstr "Clé API"
 
 msgid "You can find your API key at https://console.anthropic.com/settings/keys"
 msgstr "Vous trouverez votre clé d'API sur https://console.anthropic.com/settings/keys"
@@ -39,6 +36,19 @@ msgstr "Vous trouverez votre clé d'API sur https://platform.openai.com/account/
 msgid "API keys are provided by the UNICEF ICTD team."
 msgstr "Les clés d'API sont fournies par l'équipe ICTD de l'UNICEF."
 
+msgid "Provider"
+msgstr "Fournisseur"
+
+msgid "Choose the provider for this model."
+msgstr "Choisissez le fournisseur pour ce modèle."
+
+msgid "API Key"
+msgstr "Clé API"
+
+#, python-format
+msgid "Leave blank to use the existing API key for this provider. %(help)s"
+msgstr "Laissez vide pour utiliser la clé d'API existante de ce fournisseur. %(help)s"
+
 msgid "Model"
 msgstr "Modèle"
 
@@ -48,14 +58,26 @@ msgstr "Choisissez le modèle que vous souhaitez utiliser."
 msgid "Name"
 msgstr "Nom"
 
-msgid "Give your model a memorable name."
-msgstr "Donnez à votre modèle un nom facile à retenir."
+msgid "e.g. Translation Assistant"
+msgstr "par ex. Assistant de traduction"
+
+msgid "Name this model for how you plan to use it, so the name stays useful if you change providers or models later."
+msgstr "Nommez ce modèle selon l'usage que vous comptez en faire, afin que le nom reste utile si vous changez de fournisseur ou de modèle par la suite."
 
 msgid "Must be unique."
 msgstr "Doit être unique."
 
 msgid "Artificial Intelligence"
 msgstr "Intelligence artificielle"
+
+msgid "New Model"
+msgstr "Nouveau modèle"
+
+msgid "Create"
+msgstr "Créer"
+
+msgid "Save"
+msgstr "sauver"
 
 msgid "Your LLM model has been deleted."
 msgstr "Votre modèle LLM a été supprimé."
@@ -1372,9 +1394,6 @@ msgstr "Votre jeton d'authentification Plivo"
 msgid "Your Plivo auth ID and auth token seem invalid. Please check them again and retry."
 msgstr "Votre identifiant et votre jeton d'authentification Plivo semblent invalides. Veuillez les vérifier à nouveau et réessayer."
 
-msgid "Save"
-msgstr "sauver"
-
 msgid "Plivo credentials verified. You can now add a Plivo channel."
 msgstr "Identifiants Plivo vérifiés. Vous pouvez maintenant ajouter un canal Plivo."
 
@@ -2293,9 +2312,6 @@ msgstr "Tout supprimer"
 msgid "Usages"
 msgstr "Utilisations"
 
-msgid "Create"
-msgstr "Créer"
-
 msgid "Not a valid phone number."
 msgstr "Numéro de téléphone non valide."
 
@@ -2728,9 +2744,6 @@ msgstr "Erroné"
 
 msgid "Failed"
 msgstr "manqué"
-
-msgid "Provider"
-msgstr "Fournisseur"
 
 msgid "Busy"
 msgstr "Occupé"
