@@ -325,11 +325,10 @@ class EndpointsTest(APITestMixin, TembaTest):
         # a ticket in the agent's team topic is allowed
         assertAllowed(f"history:{contact.uuid}:{sales_ticket.uuid}")
 
-        # a ticket assigned to the agent is allowed even though its topic is outside their team
-        assertAllowed(f"history:{contact.uuid}:{assigned_ticket.uuid}")
-
-        # a ticket in a topic outside the agent's team and not assigned to them is forbidden
+        # a ticket in a topic outside the agent's team is forbidden - including one assigned to them, because access
+        # is decided purely by topic
         assertForbidden(f"history:{contact.uuid}:{support_ticket.uuid}")
+        assertForbidden(f"history:{contact.uuid}:{assigned_ticket.uuid}")
 
         # sub_refresh applies the same topic scoping: a foreign-topic ticket the agent can't view expires rather than
         # being re-armed, so losing access (or never having had it) tears the subscription down on the next refresh
