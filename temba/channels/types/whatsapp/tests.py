@@ -96,6 +96,8 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
 
             response = self.client.get(connect_whatsapp_cloud_url)
             self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "https://www.facebook.com/v25.0/dialog/oauth")
+            self.assertNotContains(response, "sdk.js")
 
             # 400 status
             response = self.client.post(connect_whatsapp_cloud_url, dict(user_access_token="X" * 36), follow=True)
