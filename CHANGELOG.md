@@ -1,3 +1,9 @@
+v26.3.33 (2026-08-04)
+-------------------------
+ * Remove opt-in and opt-out trigger types
+ * Allow whatsapp URNs to hold either a phone number or a business-scoped user id
+ * Make contact chat search always cover the contact's full history
+
 v26.3.32 (2026-08-04)
 -------------------------
  * Add cross-ticket message search to the tickets page
