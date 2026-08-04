@@ -1,7 +1,7 @@
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from temba.orgs.models import Org, OrgRole
+from temba.orgs.models import Org, OrgMembership, OrgRole
 from temba.tests import CRUDLTestMixin, TembaTest
 from temba.tickets.models import Team
 
@@ -244,10 +244,13 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         # no access if anonymous
         self.assertRequestDisallowed(edit_url, [None])
 
+        # form includes a checkbox for email notifications from each workspace the user belongs to
+        notifications_field = f"email_notifications_{self.org.id}"
+
         self.assertUpdateFetch(
             edit_url,
             [self.admin],
-            form_fields=["first_name", "last_name", "avatar", "language"],
+            form_fields=["first_name", "last_name", "avatar", "language", notifications_field],
         )
 
         # language is only shown if there are multiple options
@@ -255,7 +258,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertUpdateFetch(
                 edit_url,
                 [self.admin],
-                form_fields=["first_name", "last_name", "avatar"],
+                form_fields=["first_name", "last_name", "avatar", notifications_field],
             )
 
         # try to submit without required fields
@@ -271,7 +274,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
             object_unchanged=self.admin,
         )
 
-        # change the name and language
+        # change the name and language, and opt out of email notifications from the workspace
         self.assertUpdateSubmit(
             edit_url,
             self.admin,
@@ -288,6 +291,22 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("Admin User", self.admin.name)
         self.assertIsNotNone(self.admin.avatar)
         self.assertEqual("pt-br", self.admin.language)
+        self.assertFalse(OrgMembership.objects.get(org=self.org, user=self.admin).email_notifications)
+
+        # and opt back in
+        self.assertUpdateSubmit(
+            edit_url,
+            self.admin,
+            {
+                "language": "pt-br",
+                "first_name": "Admin",
+                "last_name": "User",
+                f"email_notifications_{self.org.id}": True,
+            },
+            success_status=302,
+        )
+
+        self.assertTrue(OrgMembership.objects.get(org=self.org, user=self.admin).email_notifications)
 
         self.assertEqual(0, self.admin.notifications.count())
 

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 17:34+0000\n"
+"POT-Creation-Date: 2026-08-04 19:33+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -5970,6 +5970,12 @@ msgstr[1] ""
 
 #, python-format
 msgid "You are about to remove the user <b>%(object)s</b> from your workspace. Are you sure?"
+msgstr ""
+
+msgid "Email Notifications"
+msgstr ""
+
+msgid "Workspaces that can send you email notifications such as incident alerts."
 msgstr ""
 
 msgid "Login Failure"

@@ -114,6 +114,7 @@ class NotificationType:
     slug = None
     email_subject = None
     email_template = None
+    email_optional = False  # whether users can opt out of receiving this type by email (see OrgMembership)
 
     @abstractmethod
     def get_target_url(self, notification) -> str:  # pragma: no cover
@@ -198,11 +199,27 @@ class Notification(models.Model):
         medium: str = MEDIUM_UI,
         **kwargs,
     ):
+        from .types import TYPES  # noqa
+
+        typ = TYPES.get(notification_type)
+        email_optional = typ.email_optional if typ else False
+
         created = []
         for user in users:
+            user_medium = medium
+
+            # for optional email types, drop the email medium for users who have opted out in this workspace
+            if cls.MEDIUM_EMAIL in user_medium and email_optional:
+                membership = org.get_membership(user)
+                if membership and not membership.email_notifications:
+                    user_medium = user_medium.replace(cls.MEDIUM_EMAIL, "")
+
+            if not user_medium:  # email was the only medium so nothing to create
+                continue
+
             # send email if notification type supports it and user's email is verified
             email_status = cls.EMAIL_STATUS_NONE
-            if cls.MEDIUM_EMAIL in medium:
+            if cls.MEDIUM_EMAIL in user_medium:
                 email_status = cls.EMAIL_STATUS_PENDING if user.is_verified() else cls.EMAIL_STATUS_UNVERIFIED
 
             notification, is_new = cls.objects.get_or_create(
@@ -210,15 +227,15 @@ class Notification(models.Model):
                 notification_type=notification_type,
                 scope=scope,
                 user=user,
-                is_seen=cls.MEDIUM_UI not in medium,
-                medium=medium,
+                is_seen=cls.MEDIUM_UI not in user_medium,
+                medium=user_medium,
                 email_status=email_status,
                 defaults=kwargs,
             )
 
             # UI notifications are delivered live over the user's realtime socket; collect the newly created ones so
             # they can be published once the surrounding transaction commits
-            if is_new and cls.MEDIUM_UI in medium:
+            if is_new and cls.MEDIUM_UI in user_medium:
                 created.append(notification)
 
         if created:
