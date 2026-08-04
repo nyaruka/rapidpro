@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 21:48+0000\n"
+"POT-Creation-Date: 2026-08-04 22:44+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -2815,12 +2815,10 @@ msgid "Monthly"
 msgstr "Mensalmente,"
 
 msgid "Draft"
-msgstr ""
+msgstr "Rascunho"
 
-#, fuzzy
-#| msgid "Public Key"
 msgid "Published"
-msgstr "Chave pública"
+msgstr "Publicado"
 
 #, fuzzy
 #| msgid "New Shortcut"
@@ -2864,6 +2862,9 @@ msgstr "O limite para envio de arquivos é de %s MB"
 
 msgid "New Article"
 msgstr "Novo artigo"
+
+msgid "No such article."
+msgstr "Esse artigo não existe."
 
 msgid "Invalid ordering."
 msgstr "Ordenação inválida."
@@ -5562,9 +5563,6 @@ msgstr "Você atingiu o limite de %(limit)s artigos. Você precisa deletar os ex
 msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. Any articles beneath it will move up to take its place. There is no way to undo this. Are you sure?"
 msgstr "Você está prestes a deletar o artigo <b>%(object)s</b> e suas capturas de tela. Os artigos abaixo dele subirão para ocupar seu lugar. Não é possível reverter isso. Você tem certeza?"
 
-msgid "Update Article"
-msgstr "Atualizar artigo"
-
 msgid "Delete Article"
 msgstr "Deletar artigo"
 
@@ -5579,12 +5577,6 @@ msgstr "Este artigo está publicado e os agentes podem encontrá-lo."
 
 msgid "This article is a draft. It isn't searchable by agents until it's published."
 msgstr "Este artigo é um rascunho. Os agentes não podem encontrá-lo até que seja publicado."
-
-msgid "Unpublish"
-msgstr "Despublicar"
-
-msgid "Publish"
-msgstr "Publicar"
 
 #, fuzzy, python-format
 #| msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"

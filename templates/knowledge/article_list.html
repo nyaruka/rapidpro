@@ -7,9 +7,9 @@
   <div id="title-text" class="hide">{{ title }}</div>
 {% endblock page-header %}
 {% block content %}
-  {# wider than any of the dialog's named sizes, since an article is read at the width it was written at #}
-  <temba-modax header="{{ _("Update Article") |escapejs }}"
-               id="update-article"
+  {# Wider than any of the dialog's named sizes, since an article is read at the width it was written at. No header
+     either - the article's own title stands as one, and a title bar would only cost the editor height. #}
+  <temba-modax id="update-article"
                width="min(60rem, 92vw)"
                -temba-submitted="refreshArticles()">
   </temba-modax>
@@ -23,6 +23,7 @@
                       content-menu-endpoint="{{ request.path }}"
                       max-depth="{{ max_depth }}"
                       {% if sort_url %}sort-endpoint="{{ sort_url }}"{% endif %}
+                      {% if publish_url %}publish-endpoint="{{ publish_url }}"{% endif %}
                       -temba-selection="handleContentMenuSelected(event)"
                       empty-message="{% trans "No articles" %}">
     <div slot="subtitle">

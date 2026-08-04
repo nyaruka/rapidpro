@@ -42,6 +42,7 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(f"{reverse('api.internal.articles')}.json", response.context["articles_endpoint"])
         self.assertEqual(Article.MAX_DEPTH, response.context["max_depth"])
         self.assertEqual(reverse("knowledge.article_sort"), response.context["sort_url"])
+        self.assertEqual(reverse("knowledge.article_publish"), response.context["publish_url"])
         self.assertContains(response, "temba-article-list")
 
         # rows open the editor dialog rather than a page of their own, so the list offers no row actions of its own
@@ -145,12 +146,16 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
             update_url, [self.editor, self.admin], form_fields=("title", "language", "body")
         )
 
-        # the editor is pointed at this article for uploads
+        # the editor is pointed at this article for uploads, and fills the dialog rather than growing it
         self.assertContains(response, reverse("knowledge.article_upload", args=[article.uuid]))
+        self.assertContains(response, "fill")
 
-        # and carries the publish and delete controls, because it's the only view of an article there is
+        # the dialog has no title bar, so the article's own title and body stand without labels of their own
+        self.assertEqual(2, response.content.decode().count("hide_label"))
+
+        # it says whether what's being written is live, but publishing is done from the row rather than in here
         self.assertContains(response, "This article is a draft")
-        self.assertContains(response, "Publish")
+        self.assertNotContains(response, "temba-toggle")
         self.assertContains(response, reverse("knowledge.article_delete", args=[article.uuid]))
 
         # the languages on offer reach the select itself, not just the field
@@ -184,41 +189,60 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertUpdateFetch(update_url, [self.admin], form_fields=("title", "language", "body"))
         self.assertEqual([("eng", "English"), ("spa", "Spanish")], response.context["form"].fields["language"].choices)
 
-    def test_publishing(self):
+    def test_publish(self):
         article = Article.create(self.helpdesk, self.admin, "Flows")
+        other_org = Article.create(
+            self.org2.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK), self.admin2, "Other"
+        )
 
-        update_url = reverse("knowledge.article_update", args=[article.uuid])
+        publish_url = reverse("knowledge.article_publish")
+
+        # nobody can access if agents feature not enabled
+        response = self.requestView(publish_url, self.admin, post_data={})
+        self.assertRedirect(response, reverse("orgs.org_workspace"))
 
         self.enable_agents(self.org)
 
-        # publishing travels with the save, so that asking for it can never throw away what's in the editor
-        self.assertUpdateSubmit(
-            update_url, self.admin, {"title": "Flows", "language": "eng", "body": "# Flows", "publish": "1"}
-        )
+        self.assertRequestDisallowed(publish_url, [None, self.agent])
+
+        self.login(self.admin)
+
+        # GET isn't allowed
+        self.assertEqual(405, self.client.get(publish_url).status_code)
+
+        def publish(payload):
+            return self.client.post(publish_url, json.dumps(payload), content_type="application/json")
+
+        # publishing happens from the article's row, so it needs nothing but the article and the state wanted
+        response = publish({"uuid": str(article.uuid), "status": "published"})
+        self.assertEqual({"status": "ok"}, response.json())
 
         article.refresh_from_db()
-        self.assertEqual("# Flows", article.body)
         self.assertEqual(Article.STATUS_PUBLISHED, article.status)
         self.assertIsNotNone(article.published_on)
 
-        # a published article offers the reverse
-        response = self.assertUpdateFetch(update_url, [self.admin], form_fields=("title", "language", "body"))
-        self.assertContains(response, "This article is published")
-        self.assertContains(response, "Unpublish")
-
         modified_on = article.modified_on
 
-        self.assertUpdateSubmit(
-            update_url, self.admin, {"title": "Flows", "language": "eng", "body": "# Flows!", "unpublish": "1"}
-        )
+        response = publish({"uuid": str(article.uuid), "status": "draft"})
+        self.assertEqual({"status": "ok"}, response.json())
 
         article.refresh_from_db()
-        self.assertEqual("# Flows!", article.body)
         self.assertEqual(Article.STATUS_DRAFT, article.status)
         self.assertIsNone(article.published_on)
 
         # which has to bump modified_on so that mailroom's sweep drops its chunks
         self.assertGreater(article.modified_on, modified_on)
+
+        # a status we don't have, or a payload that isn't one at all, is refused rather than guessed at
+        for payload in ({"uuid": str(article.uuid), "status": "live"}, {"uuid": str(article.uuid)}, {}, "nope"):
+            self.assertEqual(400, publish(payload).status_code)
+
+        # as is an article that isn't ours, or isn't a uuid at all
+        for uuid in (str(other_org.uuid), "not-a-uuid"):
+            self.assertEqual(404, publish({"uuid": uuid, "status": "published"}).status_code)
+
+        article.refresh_from_db()
+        self.assertEqual(Article.STATUS_DRAFT, article.status)
 
     def test_sort(self):
         flows = Article.create(self.helpdesk, self.admin, "Flows")

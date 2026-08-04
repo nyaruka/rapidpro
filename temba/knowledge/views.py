@@ -286,7 +286,7 @@ class HelpdeskMixin(RequireFeatureMixin):
 
 class ArticleCRUDL(SmartCRUDL):
     model = Article
-    actions = ("list", "create", "update", "delete", "sort", "upload")
+    actions = ("list", "create", "update", "delete", "publish", "sort", "upload")
 
     class BaseObject(HelpdeskMixin):
         """
@@ -338,9 +338,12 @@ class ArticleCRUDL(SmartCRUDL):
             context["articles_endpoint"] = f"{reverse('api.internal.articles')}.json"
             context["max_depth"] = Article.MAX_DEPTH
 
-            # without the permission the component is given nowhere to post to, so it offers no drag at all
+            # without the permission the component is given nowhere to post to, so it offers no drag at all - and
+            # likewise no publish switch, leaving the status as something a row states rather than something it does
             if self.has_org_perm("knowledge.article_sort"):
                 context["sort_url"] = reverse("knowledge.article_sort")
+            if self.has_org_perm("knowledge.article_publish"):
+                context["publish_url"] = reverse("knowledge.article_publish")
 
             article = self.derive_article_to_edit()
             if article:
@@ -394,9 +397,17 @@ class ArticleCRUDL(SmartCRUDL):
         def get_form(self):
             form = super().get_form()
 
-            # the editor uploads screenshots against this article
+            # the dialog carries no title bar of its own, so the article's title stands as one - and neither it nor
+            # the article below it needs a label to say what it is
+            form.fields["title"].widget.attrs.update({"hide_label": True})
+
             form.fields["body"].widget.attrs.update(
                 {
+                    "hide_label": True,
+                    # the editor takes the height the dialog gives it and scrolls the article inside itself, so a long
+                    # one is written in the same window as a short one
+                    "fill": True,
+                    # the editor uploads screenshots against this article
                     "endpoint": reverse("knowledge.article_upload", args=[self.get_object().uuid]),
                     "accept": ",".join(ArticleImage.ALLOWED_CONTENT_TYPES),
                 }
@@ -410,17 +421,38 @@ class ArticleCRUDL(SmartCRUDL):
             obj.slug = Article.get_unique_slug(obj.knowledge, obj.title, ignore=obj)
             return obj
 
-        def post_save(self, obj):
-            obj = super().post_save(obj)
+    class Publish(HelpdeskMixin, PostOnlyMixin, OrgPermsMixin, SmartTemplateView):
+        """
+        Puts one article in or out of the agents' reach, posted as {uuid, status} by the switch on its row in the
+        helpdesk. It's a list action rather than part of the editor: an article is published as a whole, and doing it
+        from the row means never having to open one to say so.
+        """
 
-            # publishing rides along with the save so that it can't discard whatever is in the editor, but only when
-            # the user asked for it - an ordinary save leaves a draft a draft
-            if self.request.POST.get("publish"):
-                obj.publish(self.request.user)
-            elif self.request.POST.get("unpublish"):
-                obj.unpublish(self.request.user)
+        # the status names the tree endpoint serves, which are what the switch has to send back
+        STATUSES = {"published": Article.STATUS_PUBLISHED, "draft": Article.STATUS_DRAFT}
 
-            return obj
+        def post(self, request, *args, **kwargs):
+            try:
+                payload = json.loads(request.body)
+                uuid = str(payload["uuid"])
+                status = self.STATUSES[payload["status"]]
+            except ValueError, TypeError, KeyError:
+                return JsonResponse({"error": _("Invalid request.")}, status=400)
+
+            try:
+                article = self.helpdesk.articles.filter(uuid=uuid, is_active=True).first()
+            except ValidationError:  # not a uuid at all
+                article = None
+
+            if not article:
+                return JsonResponse({"error": _("No such article.")}, status=404)
+
+            if status == Article.STATUS_PUBLISHED:
+                article.publish(request.user)
+            else:
+                article.unpublish(request.user)
+
+            return JsonResponse({"status": "ok"})
 
     class Delete(BaseObject, BaseDeleteModal):
         cancel_url = "@knowledge.article_list"

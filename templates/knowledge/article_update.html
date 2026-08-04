@@ -14,13 +14,6 @@
       <temba-button name="{% trans "Delete" %}" destructive small onclick="deleteArticle()">
       </temba-button>
     {% endif %}
-    {% if object.status == "P" %}
-      <temba-button name="{% trans "Unpublish" %}" secondary small onclick="saveArticle({unpublish: 1})">
-      </temba-button>
-    {% else %}
-      <temba-button name="{% trans "Publish" %}" small onclick="saveArticle({publish: 1})">
-      </temba-button>
-    {% endif %}
   </div>
 {% endblock pre-form %}
 {% block fields %}
@@ -31,12 +24,6 @@
 {% block modal-script %}
   {{ block.super }}
   <script type="text/javascript">
-    // publishing goes through the form rather than an endpoint of its own, so that it saves whatever is in the editor
-    // rather than quietly discarding it
-    function saveArticle(intent) {
-      getModax("#update-article").submit(intent);
-    }
-
     function deleteArticle() {
       // the editor stays open behind the confirmation, so backing out of it doesn't cost the user their edits
       var confirmation = document.querySelector("#delete-article");
@@ -48,6 +35,32 @@
 {% block modal-extra-style %}
   {{ block.super }}
   <style type="text/css">
+    /* The dialog takes most of the window's height and holds it, with the editor taking whatever the controls above
+       it leave over and scrolling the article inside itself. So writing happens in a window that doesn't move, and
+       a long article never pushes the dialog past the bottom of the screen. Every wrapper between the body and the
+       editor has to pass the height along, which is what the run of flex rules is for. */
+    .modax-body {
+      box-sizing: border-box;
+      height: 78vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modax-body > .animate,
+    .modax-body form,
+    .modax-body .control-group.field_body,
+    .modax-body .control-group.field_body .controls {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      min-height: 0;
+    }
+
+    /* the article is the last thing in the form, so there's nothing below it to keep clear of */
+    .modax-body .control-group.field_body {
+      margin-bottom: 0;
+    }
+
     .article-controls {
       display: flex;
       align-items: center;
@@ -59,13 +72,6 @@
       flex-grow: 1;
       font-size: 0.9em;
       opacity: 0.6;
-    }
-
-    /* the dialog is sized by its content, so cap the body and let it scroll rather than letting a long article push
-       the dialog past the bottom of the window */
-    .modax-body {
-      max-height: 70vh;
-      overflow-y: auto;
     }
   </style>
 {% endblock modal-extra-style %}
