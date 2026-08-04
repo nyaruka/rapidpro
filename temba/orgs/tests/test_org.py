@@ -17,6 +17,7 @@ from temba.channels.models import SyncEvent
 from temba.contacts.models import ContactExport, ContactField, ContactFire, ContactImport, ContactImportBatch
 from temba.flows.models import FlowLabel, FlowRun, FlowSession, FlowStart, FlowStartCount, ResultsExport
 from temba.globals.models import Global
+from temba.knowledge.models import Article, ArticleImage, Knowledge, KnowledgeChunk, KnowledgeItem
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import MessageExport, Msg
 from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType
@@ -28,7 +29,7 @@ from temba.schedules.models import Schedule
 from temba.templates.models import TemplateTranslation
 from temba.tests import TembaTest, mock_mailroom
 from temba.tests.base import get_contact_search
-from temba.tickets.models import Team, TicketExport, Topic
+from temba.tickets.models import Shortcut, Team, TicketExport, Topic
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.utils.uuid import uuid4
@@ -45,6 +46,12 @@ class OrgTest(TembaTest):
         self.assertEqual(str(new_org.timezone), "Africa/Kigali")
         self.assertIn(self.admin, self.org.get_admins())
         self.assertEqual(f'<Org: id={new_org.id} name="Cool Stuff">', repr(new_org))
+
+        # initialize gave it both system knowledge sources
+        self.assertEqual(
+            {("Shortcuts", "shortcuts"), ("Helpdesk", "helpdesk")},
+            set(new_org.knowledge.filter(is_system=True).values_list("name", "knowledge_type")),
+        )
 
         # if timezone is US, should get MMDDYYYY dates
         new_org = Org.create(self.admin, "Cool Stuff", ZoneInfo("America/Los_Angeles"))
@@ -681,6 +688,61 @@ class OrgDeleteTest(TembaTest):
         add(self.create_ticket(contacts[0], opened_in=flows[0]))
         team = add(Team.create(org, user, "Spam Only", topics=[topic]))
         Invitation.create(org, user, "newagent@textit.com", OrgRole.AGENT, team=team)
+
+        add(Shortcut.create(org, user, "Interested", "We're interested"))
+
+        # a website source with a crawled page (url set, no stored file)
+        website = add(Knowledge.create_website(org, user, "Nyaruka", "https://nyaruka.com"))
+        page = add(
+            KnowledgeItem.objects.create(
+                knowledge=website, name="Home", url="https://nyaruka.com/", content_type="text/html", size=1024
+            )
+        )
+        add(
+            KnowledgeChunk.objects.create(
+                knowledge=website, item_key=page.uuid, item_name=page.name, text="welcome", embedding=[0.0] * 384
+            )
+        )
+
+        # a document set with an uploaded file (path set, no url) - the path is a key that never existed since
+        # deleting a missing key is a no-op
+        docs = add(Knowledge.create_documents(org, user, "Guides"))
+        doc = add(
+            KnowledgeItem.objects.create(
+                knowledge=docs,
+                name="guide.txt",
+                path=f"orgs/{org.id}/knowledge/{docs.uuid}/guide.txt",
+                content_type="text/plain",
+                size=5,
+                created_by=user,
+            )
+        )
+        add(
+            KnowledgeChunk.objects.create(
+                knowledge=docs, item_key=doc.uuid, item_name=doc.name, text="hello", embedding=[0.0] * 384
+            )
+        )
+
+        # a nested article with an image on the org's system helpdesk source
+        helpdesk = org.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK)
+        article = add(
+            Article.objects.create(knowledge=helpdesk, title="Flows", slug="flows", created_by=user, modified_by=user)
+        )
+        add(
+            Article.objects.create(
+                knowledge=helpdesk, parent=article, title="Nodes", slug="nodes", created_by=user, modified_by=user
+            )
+        )
+        add(
+            ArticleImage.objects.create(
+                article=article,
+                name="shot1.png",
+                path=f"orgs/{org.id}/knowledge/{helpdesk.uuid}/articles/{article.uuid}/shot1.png",
+                content_type="image/png",
+                size=3,
+                created_by=user,
+            )
+        )
 
     def _create_export_content(self, org, user, flows, groups, fields, labels, add):
         results = add(
