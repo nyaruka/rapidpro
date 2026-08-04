@@ -1,0 +1,41 @@
+{% load temba i18n %}
+
+{% for item in items %}
+  <tr>
+    <td style="min-width: 50px">
+      {% if item.url %}
+        {# crawled urls are attacker influenced so don't hand the opened page a window.opener handle #}
+        <a href="{{ item.url }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="linked"
+           onclick="event.stopPropagation()">{{ item.name }}</a>
+      {% else %}
+        {{ item.name }}
+      {% endif %}
+    </td>
+    <td class="text-right whitespace-nowrap">{{ item.size|filesizeformat }}</td>
+    <td>
+      {% if item.status == "F" %}
+        <div class="lbl" title="{{ item.error }}">{{ item.get_status_display }}</div>
+      {% else %}
+        <div class="lbl">{{ item.get_status_display }}</div>
+      {% endif %}
+    </td>
+    <td class="text-right">{{ item.num_chunks }}</td>
+    <td class="text-right whitespace-nowrap">{{ item.created_on|timedate }}</td>
+    {% if deletable %}
+      <td class="w-10">
+        <temba-icon name="delete"
+                    clickable="true"
+                    style="--icon-color:#bbb"
+                    onclick="event.stopPropagation(); showDeleteItemModal('{{ item.uuid }}');">
+        </temba-icon>
+      </td>
+    {% endif %}
+  </tr>
+{% empty %}
+  <tr class="empty_list">
+    <td colspan="99" class="text-center">{{ empty_message }}</td>
+  </tr>
+{% endfor %}

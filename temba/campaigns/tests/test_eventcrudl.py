@@ -73,17 +73,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
-        # in legacy mode the edit modal continues to the event read page
-        self.setLegacyUI()
-        response = self.client.post(update_url, data)
-        self.assertRedirects(
-            response,
-            reverse("campaigns.campaignevent_read", args=[self.campaign1.uuid, event.uuid]),
-            fetch_redirect_response=False,
-        )
-
-        # by default there is no event read page - it returns to the campaign
-        self.setLegacyUI(False)
+        # the edit modal returns to the campaign read page
         response = self.client.post(update_url, data)
         self.assertRedirects(
             response, reverse("campaigns.campaign_read", args=[self.campaign1.uuid]), fetch_redirect_response=False
@@ -100,12 +90,6 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.editor)
 
-        # like the new read page it feeds, the endpoint doesn't exist in legacy mode
-        self.setLegacyUI()
-        response = self.client.get(fires_url)
-        self.assertEqual(404, response.status_code)
-
-        self.setLegacyUI(False)
         response = self.client.get(fires_url)
         self.assertEqual(200, response.status_code)
         self.assertEqual(

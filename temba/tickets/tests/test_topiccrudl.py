@@ -111,4 +111,4 @@ class TopicCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(topic2.is_active)
 
         # we should have been redirected to the default topic
-        self.assertEqual(f"/ticket/{self.org.default_topic.uuid}/open/", response.url)
+        self.assertEqual(f"/ticket/{self.org.default_topic.uuid}/", response.url)

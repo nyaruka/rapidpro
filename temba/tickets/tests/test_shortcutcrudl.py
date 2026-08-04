@@ -1,10 +1,15 @@
 from django.urls import reverse
 
+from temba.orgs.models import Org
 from temba.tests import CRUDLTestMixin, TembaTest
 from temba.tickets.models import Shortcut
 
 
 class ShortcutCRUDLTest(TembaTest, CRUDLTestMixin):
+    def enable_agents(self, org):
+        org.features = [Org.FEATURE_AGENTS]
+        org.save(update_fields=("features",))
+
     def test_create(self):
         create_url = reverse("tickets.shortcut_create")
 
@@ -46,13 +51,26 @@ class ShortcutCRUDLTest(TembaTest, CRUDLTestMixin):
             form_errors={"name": "Ensure this value has at most 64 characters (it has 65)."},
         )
 
-        self.assertCreateSubmit(
+        response = self.assertCreateSubmit(
             create_url,
             self.admin,
             {"name": "Not Interested", "text": "We're not interested"},
             new_obj_query=Shortcut.objects.filter(name="Not Interested", text="We're not interested", is_system=False),
             success_status=302,
         )
+        self.assertEqual(reverse("tickets.shortcut_list"), response.url)
+
+        # for orgs with the agents feature we redirect to the fixed shortcuts page
+        self.enable_agents(self.org)
+
+        response = self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {"name": "Old Reliable", "text": "Works every time"},
+            new_obj_query=Shortcut.objects.filter(name="Old Reliable"),
+            success_status=302,
+        )
+        self.assertEqual(reverse("knowledge.knowledge_shortcuts"), response.url)
 
     def test_update(self):
         shortcut = Shortcut.create(self.org, self.admin, "Planes", "Planes are...")
@@ -73,11 +91,22 @@ class ShortcutCRUDLTest(TembaTest, CRUDLTestMixin):
             object_unchanged=shortcut,
         )
 
-        self.assertUpdateSubmit(update_url, self.admin, {"name": "Cars", "text": "Cars are..."}, success_status=302)
+        response = self.assertUpdateSubmit(
+            update_url, self.admin, {"name": "Cars", "text": "Cars are..."}, success_status=302
+        )
+        self.assertEqual(reverse("tickets.shortcut_list"), response.url)
 
         shortcut.refresh_from_db()
         self.assertEqual(shortcut.name, "Cars")
         self.assertEqual(shortcut.text, "Cars are...")
+
+        # for orgs with the agents feature we redirect to the fixed shortcuts page
+        self.enable_agents(self.org)
+
+        response = self.assertUpdateSubmit(
+            update_url, self.admin, {"name": "Boats", "text": "Boats are..."}, success_status=302
+        )
+        self.assertEqual(reverse("knowledge.knowledge_shortcuts"), response.url)
 
     def test_delete(self):
         shortcut1 = Shortcut.create(self.org, self.admin, "Planes", "Planes are...")
@@ -95,10 +124,22 @@ class ShortcutCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # submit to delete it
         response = self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=shortcut1, success_status=302)
+        self.assertEqual(reverse("tickets.shortcut_list"), response.url)
 
         # other shortcut unaffected
         shortcut2.refresh_from_db()
         self.assertTrue(shortcut2.is_active)
+
+        # for orgs with the agents feature we redirect to the fixed shortcuts page
+        self.enable_agents(self.org)
+
+        response = self.assertDeleteSubmit(
+            reverse("tickets.shortcut_delete", args=[shortcut2.uuid]),
+            self.admin,
+            object_deactivated=shortcut2,
+            success_status=302,
+        )
+        self.assertEqual(reverse("knowledge.knowledge_shortcuts"), response.url)
 
     def test_list(self):
         shortcut1 = Shortcut.create(self.org, self.admin, "Planes", "Planes are...")

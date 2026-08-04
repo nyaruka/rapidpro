@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from temba.contacts.models import ContactField
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 from temba.utils import json
 
 
@@ -98,41 +98,6 @@ class ContactFieldTest(TembaTest):
         self.assertTrue(ContactField.is_valid_name("Age Now 2"))
         self.assertFalse(ContactField.is_valid_name("Age_Now"))  # can't have punctuation
         self.assertFalse(ContactField.is_valid_name("âge"))  # a-z only
-
-    @mock_mailroom
-    def test_contact_field_list_sort_fields(self, mr_mocks):
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
-        url = reverse("contacts.contact_list")
-        self.login(self.admin)
-
-        mr_mocks.contact_search("", contacts=[self.joe])
-        mr_mocks.contact_search("Joe", contacts=[self.joe])
-
-        response = self.client.get("%s?sort_on=%s" % (url, str(self.contactfield_1.key)))
-
-        self.assertEqual(response.context["sort_field"], str(self.contactfield_1.key))
-        self.assertEqual(response.context["sort_direction"], "asc")
-        self.assertNotIn("search", response.context)
-
-        response = self.client.get("%s?sort_on=-%s" % (url, str(self.contactfield_1.key)))
-
-        self.assertEqual(response.context["sort_field"], str(self.contactfield_1.key))
-        self.assertEqual(response.context["sort_direction"], "desc")
-        self.assertNotIn("search", response.context)
-
-        response = self.client.get("%s?sort_on=%s" % (url, "created_on"))
-
-        self.assertEqual(response.context["sort_field"], "created_on")
-        self.assertEqual(response.context["sort_direction"], "asc")
-        self.assertNotIn("search", response.context)
-
-        response = self.client.get("%s?sort_on=-%s&search=Joe" % (url, "created_on"))
-
-        self.assertEqual(response.context["sort_field"], "created_on")
-        self.assertEqual(response.context["sort_direction"], "desc")
-        self.assertIn("search", response.context)
 
     def test_view_updatepriority_valid(self):
         org_fields = ContactField.user_fields.filter(org=self.org, is_active=True)

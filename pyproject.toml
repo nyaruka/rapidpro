@@ -1,6 +1,6 @@
 [project]
 name = "temba"
-version = "26.3.19"
+version = "26.3.31"
 description = "Hosted service for visually building interactive messaging applications"
 authors = [
     {"name" = "Nyaruka", "email" = "code@nyaruka.com"}
@@ -21,7 +21,7 @@ dependencies = [
     "django-valkey>=0.4.1,<0.5.0",
     "djangorestframework ~= 3.16.0",
     "dj-database-url ~= 0.5.0",
-    "smartmin>=6.0.1,<7.0.0",
+    "smartmin>=6.1.0,<7.0.0",
     "celery[redis] ~= 5.5.3",
     "boto3>=1.42.24,<2.0.0",
     "cryptography~=48.0.1",
@@ -51,6 +51,7 @@ dependencies = [
     "slack-sdk ~= 3.17.0",
     "openai>=1.66.3,<2.0.0",
     "anthropic>=0.54.0,<1.0.0",
+    "pgvector>=0.4.2",
     "fido2>=2.0.0,<3.0.0",
     "elasticsearch>=9.0.0,<10.0.0",
     "tzdata>=2025.2"

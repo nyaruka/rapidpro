@@ -20,7 +20,15 @@
       <div class="flex-grow"></div>
       <div class="flex">
         <div class="time whitespace-nowrap text-right flex-grow">
-          {% if log.retries %}<div class="mr-4">({{ log.retries }} retries)</div>{% endif %}
+          {% if log.retries %}
+            <div class="mr-4">
+              {% blocktrans trimmed count counter=log.retries %}
+                ({{ counter }} retry)
+              {% plural %}
+                ({{ counter }} retries)
+              {% endblocktrans %}
+            </div>
+          {% endif %}
         </div>
         <div class="text-right whitespace-nowrap">{{ log.created_on|datetime }}</div>
       </div>

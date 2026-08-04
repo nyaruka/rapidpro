@@ -8,7 +8,7 @@
   </h2>
 {% endblock title %}
 {% block above-bar %}
-  <a href="{% url "airtime.airtimetransfer_list" %}" class="btn btn-primary">Back</a>
+  <a href="{% url "airtime.airtimetransfer_list" %}" class="btn btn-primary">{% trans "Back" %}</a>
 {% endblock above-bar %}
 {% block post-fields %}
   {% if show_logs %}

@@ -98,12 +98,9 @@ LANGUAGE_CODE = "en-us"
 
 LANGUAGES = (
     ("en-us", _("English")),
-    ("cs", _("Czech")),
     ("es", _("Spanish")),
     ("fr", _("French")),
-    ("mn", _("Mongolian")),
     ("pt-br", _("Portuguese")),
-    ("ru", _("Russian")),
 )
 DEFAULT_LANGUAGE = "en-us"
 
@@ -205,7 +202,6 @@ MIDDLEWARE = (
     "temba.middleware.LanguageMiddleware",
     "temba.middleware.TimezoneMiddleware",
     "temba.middleware.ToastMiddleware",
-    "temba.middleware.LegacyMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 )
 
@@ -263,6 +259,7 @@ INSTALLED_APPS = (
     "temba.notifications",
     "temba.flows",
     "temba.tickets",
+    "temba.knowledge",
     "temba.triggers",
     "temba.utils",
     "temba.campaigns",
@@ -375,6 +372,7 @@ PERMISSIONS = {
         "workspace",
     ),
     "request_logs.httplog": ("webhooks",),
+    "knowledge.knowledge": ("menu", "upload"),
     "tickets.ticket": ("assign", "menu", "note", "export", "analytics"),
     "triggers.trigger": ("archived", "type", "menu"),
 }
@@ -472,6 +470,9 @@ GROUP_PERMISSIONS = {
         "request_logs.httplog_read",
         "request_logs.httplog_webhooks",
         "templates.template.*",
+        "knowledge.article.*",
+        "knowledge.knowledge.*",
+        "knowledge.knowledgeitem.*",
         "tickets.shortcut.*",
         "tickets.team.*",
         "tickets.ticket.*",
@@ -558,6 +559,18 @@ GROUP_PERMISSIONS = {
         "request_logs.httplog_webhooks",
         "templates.template_list",
         "templates.template_read",
+        "knowledge.article_create",
+        "knowledge.article_delete",
+        "knowledge.article_list",
+        "knowledge.article_read",
+        "knowledge.article_update",
+        "knowledge.knowledge_create",
+        "knowledge.knowledge_delete",
+        "knowledge.knowledge_menu",
+        "knowledge.knowledge_read",
+        "knowledge.knowledge_update",
+        "knowledge.knowledge_upload",
+        "knowledge.knowledgeitem_delete",
         "tickets.shortcut_create",
         "tickets.shortcut_delete",
         "tickets.shortcut_list",
@@ -873,6 +886,7 @@ ORG_LIMIT_DEFAULTS = {
     "fields": 250,
     "globals": 250,
     "groups": 250,
+    "knowledge": 10,
     "labels": 250,
     "llms": 10,
     "teams": 50,
@@ -955,6 +969,10 @@ MFA_ADAPTER = "temba.users.adapter.TembaMFAAdapter"
 SOCIALACCOUNT_PROVIDERS = {}
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# maps email domains to the SSO provider (an allauth provider or app id) their users should be logging in with,
+# used to warn those still logging in with a password
+SSO_LOGIN_WARNING_DOMAINS = {}
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 ACCOUNT_LOGIN_METHODS = ("email",)

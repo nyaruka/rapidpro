@@ -702,6 +702,10 @@ class TestClient(MailroomClient):
         return {}
 
     @_client_method
+    def org_publish(self, org, event: dict):
+        return {}
+
+    @_client_method
     def ticket_add_note(self, org, user, tickets, note: str, via: str):
         now = timezone.now()
         tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]))

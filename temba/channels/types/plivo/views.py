@@ -284,10 +284,10 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
 
     form_class = PlivoConnectForm
     permission = "channels.channel_claim"
-    submit_button_name = "Save"
+    submit_button_name = _("Save")
     template_name = "channels/types/plivo/connect.html"
     field_config = dict(auth_id=dict(label=""), auth_token=dict(label=""))
-    success_message = "Plivo credentials verified. You can now add a Plivo channel."
+    success_message = _("Plivo credentials verified. You can now add a Plivo channel.")
     menu_path = "/settings/workspace"
 
     def get_success_url(self):

@@ -264,7 +264,7 @@ def migrate_to_version_11_9(json_flow, flow=None):
     invalid_flow_uuids = set()
     if detected_flows:
         valid_flow_uuids = {
-            flow_uuid
+            str(flow_uuid)
             for flow_uuid in Flow.objects.filter(
                 uuid__in=detected_flows, is_active=True, is_archived=False
             ).values_list("uuid", flat=True)

@@ -2,7 +2,9 @@
 {% load i18n channels %}
 
 {% block title-text %}
-  {{ object.name }} Configuration
+  {% blocktrans trimmed with channel=object.name %}
+    {{ channel }} Configuration
+  {% endblocktrans %}
 {% endblock title-text %}
 {% block subtitle %}
   <div class="text-gray-500 text-xl">

@@ -56,12 +56,12 @@ class UpdateContactForm(forms.ModelForm):
 
         self.org = org
 
-        lang_choices = [("", "No Preference")]
+        lang_choices = [("", _("No Preference"))]
 
         # if they had a language that has since been removed, make sure we show it
         if self.instance.language and self.instance.language not in org.flow_languages:
             lang_name = languages.get_name(self.instance.language)
-            lang_choices += [(self.instance.language, _(f"{lang_name} (Missing)"))]
+            lang_choices += [(self.instance.language, _("%(language)s (Missing)") % {"language": lang_name})]
 
         lang_choices += list(languages.choices(codes=org.flow_languages))
 
@@ -94,9 +94,9 @@ class UpdateContactForm(forms.ModelForm):
                 if urn_choice:
                     label = urn_choice[1]
 
-                help_text = _(f"{label} for this contact")
+                help_text = _("%(label)s for this contact") % {"label": label}
                 if first_urn:
-                    help_text = _(f"{label} for this contact") + f" (@urns.{scheme})"
+                    help_text += f" (@urns.{scheme})"
 
                 # get all the urns for this scheme
                 ctrl = forms.CharField(

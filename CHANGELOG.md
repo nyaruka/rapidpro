@@ -1,3 +1,81 @@
+v26.3.31 (2026-08-03)
+-------------------------
+ * Update @nyaruka/temba-components to 0.172.0
+ * Add internal assets endpoint and publish asset name changes to org sockets
+ * Avoid duplicate LLM credential validation
+ * Unify LLM model configuration
+
+v26.3.30 (2026-08-03)
+-------------------------
+ * Remove beta gating of WhatsApp channel type
+
+v26.3.29 (2026-08-03)
+-------------------------
+ * Use full-page OAuth dialog for WhatsApp Cloud embedded signup
+ * Surface OAuth errors on WhatsApp connect and strip credentials from URL
+ * Bump WhatsApp Cloud Graph API calls to v25.0
+
+v26.3.28 (2026-08-03)
+-------------------------
+ * Fix passing UUID objects to mailroom client when creating contacts
+
+v26.3.27 (2026-08-03)
+-------------------------
+ * Convert Flow, ContactGroup and Channel uuid fields to real UUID fields
+
+v26.3.26 (2026-07-31)
+-------------------------
+ * Convert archive primary keys to bigint and add LegacyIDMixin for models still using int primary keys
+ * Update temba-components to 0.170.1
+
+v26.3.25 (2026-07-30)
+-------------------------
+ * Convert schedule and template primary keys to bigint
+
+v26.3.24 (2026-07-30)
+-------------------------
+ * Check PO files are up to date in CI and stop committing compiled MO files
+ * Fix translations that never reached users at runtime and add regression test
+ * Wrap untranslatable user-facing strings and template copy in gettext/i18n tags
+ * Complete French and Brazilian Portuguese translations
+ * Update Spanish translations for reworked message ids and use consistent term for channel
+ * Regenerate PO files, dropping obsolete entries and translator/team headers
+ * Remove translation service sync command and references to it
+ * Drop unused Czech, Mongolian and Russian website localizations
+ * Remove unused legacy simulator and contact fields templates
+ * Publicize uuid filtering on tickets API endpoint and remove ticket alias
+ * Fix flakey ticket folder test by giving tickets deterministic activity timestamps
+
+v26.3.23 (2026-07-29)
+-------------------------
+ * Update @nyaruka/temba-components to 0.170.0
+ * Complete Spanish translations and update PO and MO files
+ * Add login warning for users who should be using SSO, with per-provider domain mapping
+ * Pass featured-field priority endpoint to the contact list
+ * Merge open and closed tickets into a single list
+
+v26.3.22 (2026-07-28)
+-------------------------
+ * Convert primary keys of more tables to bigint
+
+v26.3.21 (2026-07-28)
+-------------------------
+ * Update @nyaruka/temba-components to 0.168.1
+ * Put archive last in list bulk actions
+ * Add subscription authorization for flow channels to websockets API using pattern-based socket routes
+ * Update smartmin to 6.1.0
+ * Bump postcss from 8.5.10 to 8.5.18
+
+v26.3.20 (2026-07-28)
+-------------------------
+ * Update @nyaruka/temba-components to 0.168.0
+ * Support form and url quick reply types in API and raise extra max length to 1000
+ * Stop offering optins as a feature in the flow editor
+ * Navigate plain href items in menu popups and open external links with noopener
+ * Use internal API endpoint for contact editor writes instead of public API
+ * Persist list column widths in user settings
+ * Enable inline contact editing
+
 v26.3.19 (2026-07-27)
 -------------------------
  * Convert primary keys of small tables to bigint

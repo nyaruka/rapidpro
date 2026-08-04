@@ -1,125 +1,149 @@
-{% extends "orgs/base/list.html" %}
-{% load smartmin temba i18n %}
+{% extends "smartmin/list.html" %}
+{% load i18n %}
 
-{% block modaxes %}
-  <temba-modax id="update-trigger">
-  </temba-modax>
+{% comment %}
+  Generic list template used by every trigger list view (Active /
+  Archived / type Folder). Endpoint, subtitle and bulk actions come
+  from the view's context_data so the template stays the same across
+  all of them.
+{% endcomment %}
+{% block page-header %}
+  {# the temba-trigger-list renders its own header (title + content menu); #}
+  {# keep the csrf token and a hidden title for the SPA document.title hook #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    /* The list component fills its container edge to edge and brings
+       its own surface, so drop the SPA content padding (and the grey
+       page background it would otherwise reveal around the list). */
+    .spa-content {
+      padding: 0 !important;
+    }
+  </style>
+{% endblock extra-style %}
+{% block content %}
+  <temba-trigger-list id="trigger-list"
+                      fill-window
+                      history-state-key="triggers"
+                      list-title="{{ title }}"
+                      {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
+                      endpoint="{{ new_list_endpoint }}"
+                      action-endpoint="{{ request.path }}"
+                      content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
+                      empty-message="{% trans "No triggers" %}">
+  </temba-trigger-list>
+  {{ new_list_bulk_actions|json_script:"new-list-bulk-actions" }}
   <temba-dialog header="{{ _("Delete All Triggers") |escapejs }}"
                 primaryButtonName="{{ _("Delete") |escapejs }}"
                 destructive="true"
                 class="hide"
                 id="delete-all-confirmation">
     <div class="p-6">
-      {% blocktrans trimmed with count=paginator.count %}
-        Are you sure you want to delete all {{ count }} archived triggers? This cannot be undone.
+      {% blocktrans trimmed %}
+        Are you sure you want to delete all archived triggers? This cannot be undone.
       {% endblocktrans %}
-      {% if paginator.count > 50 %}
-        <br>
-        <br>
-        {% blocktrans trimmed %}
-          This operation can take a while to complete. Triggers may remain in this view during the process.
-        {% endblocktrans %}
-      {% endif %}
     </div>
   </temba-dialog>
-  <temba-dialog header="{{ _("Delete Selected Triggers") |escapejs }}"
-                primaryButtonName="{{ _("Delete") |escapejs }}"
-                destructive="true"
-                class="hide"
-                id="delete-confirmation">
-    <div class="p-6">{% trans "Are you sure you want to delete the selected triggers? This cannot be undone." %}</div>
-  </temba-dialog>
-{% endblock modaxes %}
-{% block table %}
-  <table class="{% if actions %}selectable{% endif %} list scrolled lined selectable">
-    <tbody>
-      {% for obj in object_list %}
-        <tr data-object-id="{{ obj.id }}"
-            onclick="updateTrigger(event, {{ obj.id }})"
-            class="trigger object-row">
-          {% if org_perms.triggers.trigger_update %}
-            <td onclick="checkInner(event);" class="trigger checkbox object-row-checkbox" width="32px">
-              <temba-checkbox onclick="handleRowSelection(this)">
-              </temba-checkbox>
-            </td>
-          {% endif %}
-          <td>
-            <div>
-              <div style="max-width:80%" class="flex flex-grow items-center">
-                <div class="flex items-center mr-2">
-                  <temba-icon name="trigger_{{ obj.type.slug }}" class="text-gray-600">
-                  </temba-icon>
-                </div>
-                <div class="flex-grow">
-                  {% with "triggers/types/"|add:obj.type.slug|add:"/desc.html" as type_template %}
-                    {% include type_template with trigger=obj %}
-                  {% endwith %}
-                </div>
-              </div>
-              {% if obj.channel or obj.contacts.all or obj.groups.all or obj.exclude_groups.all %}
-                <div class="text-sm mt-2 flex items-center flex-wrap">
-                  {% if obj.channel %}
-                    {# djlint:off #}
-                    <a href="{% url 'channels.channel_read' obj.channel.uuid %}"><temba-label icon="{{ obj.channel.type.icon }}" type="channel" clickable class="mr-1 mb-1">{{ obj.channel }}</temba-label></a>
-                    {# djlint:on #}
-                  {% endif %}
-                  {% include "includes/recipients.html" with contacts=obj.contacts.all groups=obj.groups.all exclude_groups=obj.exclude_groups.all groups_as_filters=True %}
-                </div>
-              {% endif %}
-            </div>
-          </td>
-          <td>
-            <div class="text-right">
-              <a href="{% url 'flows.flow_editor' obj.flow.uuid %}">
-                <temba-label type="flow" primary clickable class="mx-1 my-1">
-                  {{ obj.flow.name }}
-                </temba-label>
-              </a>
-            </div>
-          </td>
-        </tr>
-      {% empty %}
-        <tr class="empty_list">
-          <td colspan="99" class="text-center">{% trans "No triggers" %}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-{% endblock table %}
+{% endblock content %}
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
     onSpload(function() {
-      var menu = document.querySelector("temba-content-menu");
-      if (menu) {
-        menu.addEventListener("temba-selection", function(event) {
-          var item = event.detail.item;
-          if (item.id == "triggers_delete_all") {
-            confirmDeleteAllArchivedTriggers();
+      var list = document.querySelector("#trigger-list");
+      list.bulkActions = JSON.parse(document.getElementById("new-list-bulk-actions").textContent);
+
+      // clicking a row opens the trigger's update modal (triggers have
+      // no read page of their own)
+      {% if org_perms.triggers.trigger_update %}
+      list.addEventListener("temba-row-click", function(event) {
+        var trigger = event.detail.item;
+        if (trigger && trigger.id) {
+          showModax("{{ _("Update Trigger")|escapejs }}", "/trigger/update/" + trigger.id + "/", {
+            onSubmit: "handleTriggerUpdated()"
+          });
+        }
+      });
+      {% endif %}
+
+      // the embedded content menu fires temba-selection - dispatch it the
+      // same way the page chrome's content menu (spa_page_menu.html) does
+      list.addEventListener("temba-selection", function(event) {
+        var item = event.detail.item;
+        var click = event.detail.event;
+        if (item.type === "link") {
+          if (click) {
+            click.preventDefault();
+            click.stopPropagation();
+            if (click.metaKey && item.url) {
+              window.open(item.url, "_blank");
+              return;
+            }
           }
-        });
-      }
+          spaGet(item.url);
+        } else if (item.type === "modax") {
+          showModax(item.title, item.url, {
+            disabled: item.disabled,
+            onSubmit: item.on_submit,
+            onRedirect: item.on_redirect,
+            id: item.modal_id,
+            originX: event.detail.originX,
+            originY: event.detail.originY
+          });
+        } else if (item.type === "url_post") {
+          posterize(item.url);
+        } else if (item.type === "js") {
+          if (window[item.id]) {
+            window[item.id]();
+          }
+        }
+        refreshMenu();
+      });
+
+      // Every action is POSTed to action-endpoint by the component, which
+      // then re-fetches the current page itself — we just refresh the
+      // sidebar menu counts after the round-trip completes.
+      list.addEventListener("temba-bulk-action", function(event) {
+        refreshMenu();
+      });
+
+      // See msgs/msg_list.html for the full rationale: stash the list's
+      // restorable state (page, sort, search, cursor url) on the current
+      // history entry so a navigation away and back lands on the same page.
+      list.addEventListener("temba-history-change", function(event) {
+        var current = history.state || {};
+        var next = Object.assign({}, current);
+        next[event.detail.key] = event.detail.state;
+        if (!next.url) {
+          next.url = location.href;
+        }
+        // state.url stays the bare page URL while the address bar gets
+        // event.detail.url — see msgs/msg_list.html for why the two
+        // must not be normalized to match.
+        if (event.detail.replace) {
+          history.replaceState(next, "", event.detail.url || null);
+        } else {
+          history.pushState(next, "", event.detail.url || null);
+        }
+      });
     });
 
-    function updateTrigger(event, id) {
-      if (event.target.tagName == "TEMBA-CHECKBOX") {
-        return;
+    // After the update modal submits — re-pull the current page (the
+    // trigger's row may have changed or moved) and the sidebar counts.
+    function handleTriggerUpdated() {
+      refreshMenu();
+      var list = document.querySelector("#trigger-list");
+      if (list) {
+        list.refresh();
       }
-
-      if (event.target.closest("a")) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopPropagation();
-      var modal = document.querySelector("#update-trigger");
-      modal.endpoint = '/trigger/update/' + id + '/';
-      modal.header = '{{ _("Update Trigger")|escapejs }}';
-      modal.open = true;
     }
 
-    function confirmDeleteAllArchivedTriggers() {
-      var deleteAllConfirmation = document.querySelector('#delete-all-confirmation');
+    // The Archived view's content menu names this as its Delete All js
+    // handler (dispatched by the temba-selection listener above).
+    function triggers_delete_all() {
+      var deleteAllConfirmation = document.querySelector("#delete-all-confirmation");
 
       deleteAllConfirmation.classList.remove("hide");
       deleteAllConfirmation.open = true;
@@ -129,7 +153,7 @@
     }
 
     function deleteAllArchivedTriggers(event) {
-      var deleteAllConfirmation = document.querySelector('#delete-all-confirmation');
+      var deleteAllConfirmation = document.querySelector("#delete-all-confirmation");
 
       if (event.detail.button.attributes.destructive) {
         var url = "{% url 'triggers.trigger_archived' %}";
@@ -143,19 +167,6 @@
       }
       deleteAllConfirmation.classList.add("hide");
       deleteAllConfirmation.open = false;
-    }
-
-    function onDeleteClicked() {
-      var deleteConfirmation = document.querySelector("#delete-confirmation");
-      deleteConfirmation.classList.remove("hide");
-      deleteConfirmation.open = true;
-
-      deleteConfirmation.addEventListener("temba-button-clicked", function(event) {
-        if (!event.detail.button.secondary) {
-          runActionOnObjectRows("delete", wireTableListeners);
-        }
-        deleteConfirmation.open = false;
-      });
     }
   </script>
 {% endblock extra-script %}

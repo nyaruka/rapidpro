@@ -259,7 +259,7 @@ class FlowCRUDL(SmartCRUDL):
                 return JsonResponse(
                     {
                         "definition": definition,
-                        "info": flow.info,
+                        "info": info,
                         "issues": info["issues"],  # deprecated
                         "metadata": info,  # deprecated
                     }
@@ -584,12 +584,10 @@ class FlowCRUDL(SmartCRUDL):
         default_order = ("-saved_on",)
         search_fields = ("name__icontains",)
 
-        # By default every flow list view renders the temba-flow-list component (flows/flow_list_new.html); the
-        # component fetches/pages flows itself from the internal flows API. Viewers can opt back into the legacy
-        # table via legacy mode (LegacyMiddleware → request.legacy).
-        NEW_LIST_TEMPLATE = "flows/flow_list_new.html"
+        # the temba-flow-list component fetches and pages flows itself from the internal flows API
+        paginate_by = None
 
-        # Optional subtitle rendered under the title on the new-list view.
+        # Optional subtitle rendered under the title.
         subtitle = ""
 
         # Bulk-action key -> config consumed by temba-flow-list (label, icon). `clientOnly` actions (export-results)
@@ -607,22 +605,6 @@ class FlowCRUDL(SmartCRUDL):
             "restore": {"label": _("Restore"), "icon": "restore"},
         }
 
-        def _use_new_list(self) -> bool:
-            # `getattr` defaults to False so a view called via RequestFactory (or if LegacyMiddleware is reordered
-            # out) doesn't AttributeError.
-            return not getattr(self.request, "legacy", False)
-
-        def get_template_names(self):
-            if self._use_new_list():
-                return [self.NEW_LIST_TEMPLATE]
-            return super().get_template_names()
-
-        def get_paginate_by(self, queryset):
-            # The temba-flow-list component fetches and pages flows itself.
-            if self._use_new_list():
-                return None
-            return super().get_paginate_by(queryset)
-
         def derive_subtitle(self):
             return self.subtitle
 
@@ -631,23 +613,21 @@ class FlowCRUDL(SmartCRUDL):
 
         def post(self, request, *args, **kwargs):
             # The component posts flow uuids in `objects`, but BulkActionMixin matches by primary key — translate
-            # them here so the new component and the legacy id-based form post are both accepted. The label dropdown
-            # likewise posts the target label by uuid (action=label, add=true|false), which the form matches by id —
-            # translate it too.
-            if self._use_new_list() and ("objects" in request.POST or "label" in request.POST):
+            # them here. The label dropdown likewise posts the target label by uuid (action=label, add=true|false),
+            # which the form matches by id — translate it too.
+            if "objects" in request.POST or "label" in request.POST:
                 data = request.POST.copy()
-                uuids = data.getlist("objects")
-                if uuids:
-                    # Only keep well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a
-                    # single malformed value (a hostile post, or a stale id-based form post) would otherwise raise
-                    # ValueError (500).
-                    valid = [u for u in uuids if is_uuid(u)]
-                    ids = Flow.objects.filter(org=request.org, is_active=True, uuid__in=valid).values_list(
-                        "id", flat=True
-                    )
-                    data.setlist("objects", [str(i) for i in ids])
+                objects = data.getlist("objects")
+                if any(is_uuid(o) for o in objects):
+                    # Only look up well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value,
+                    # so a single malformed value (a hostile post) would otherwise raise ValueError (500). Anything
+                    # that isn't a uuid is left alone so an id-based post still works.
+                    ids = Flow.objects.filter(
+                        org=request.org, is_active=True, uuid__in=[o for o in objects if is_uuid(o)]
+                    ).values_list("id", flat=True)
+                    data.setlist("objects", [str(i) for i in ids] + [o for o in objects if not is_uuid(o)])
                 label = data.get("label")
-                if label and is_uuid(label):  # a non-uuid value (the legacy form's integer id) is left alone
+                if label and is_uuid(label):
                     obj = request.org.flow_labels.filter(uuid=label).first()
                     data["label"] = str(obj.id) if obj else ""
                 request.POST = data
@@ -655,10 +635,10 @@ class FlowCRUDL(SmartCRUDL):
             return super().post(request, *args, **kwargs)
 
         def get_queryset(self, **kwargs):
-            # On the new list the temba-flow-list component fetches and pages flows from the internal flows API, so
-            # a GET page needs no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin
-            # validates the posted `objects` against it.
-            if self._use_new_list() and self.request.method == "GET":
+            # The temba-flow-list component fetches and pages flows from the internal flows API, so a GET page needs
+            # no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin validates the
+            # posted `objects` against it.
+            if self.request.method == "GET":
                 return Flow.objects.none()
 
             return super().get_queryset(**kwargs)
@@ -666,34 +646,23 @@ class FlowCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            Flow.prefetch_run_counts(context["object_list"])
-
-            # decorate flow objects with their run activity stats
-            for flow in context["object_list"]:
-                counts = flow.get_run_counts()
-                total = sum(counts.values())
-                flow.num_runs_ongoing = counts[FlowRun.STATUS_ACTIVE] + counts[FlowRun.STATUS_WAITING]
-                flow.num_runs_total = total
-                flow.completion_pct = 100 * counts[FlowRun.STATUS_COMPLETED] // total if total else 0
-
-            # New-list view context: the resolved flows-api endpoint (folder= for active/archived, label= for the
-            # filter view), the subtitle, and the bulk-action configs the temba-flow-list expects (resolved +
-            # JSON-encoded here so the template stays inert).
-            if self._use_new_list():
-                context["new_list_endpoint"] = f"{reverse('api.internal.flows')}.json?{self.derive_new_list_query()}"
-                subtitle = self.derive_subtitle()
-                context["new_list_subtitle"] = str(subtitle) if subtitle else ""
-                actions = []
-                for key in self.get_bulk_actions():
-                    cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
-                    cfg["key"] = key
-                    if key == "label":
-                        # the dropdown's "New Label…" row only renders for viewers who can create labels
-                        cfg["allowCreate"] = self.has_org_perm("flows.flowlabel_create")
-                    # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
-                    cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
-                    actions.append(cfg)
-                context["new_list_bulk_actions"] = actions
+            # the resolved flows-api endpoint (folder= for active/archived, label= for the filter view), the subtitle,
+            # and the bulk-action configs the temba-flow-list expects (resolved + JSON-encoded here so the template
+            # stays inert)
+            context["new_list_endpoint"] = f"{reverse('api.internal.flows')}.json?{self.derive_new_list_query()}"
+            subtitle = self.derive_subtitle()
+            context["new_list_subtitle"] = str(subtitle) if subtitle else ""
+            actions = []
+            for key in self.get_bulk_actions():
+                cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
+                cfg["key"] = key
+                if key == "label":
+                    # the dropdown's "New Label…" row only renders for viewers who can create labels
+                    cfg["allowCreate"] = self.has_org_perm("flows.flowlabel_create")
+                # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
+                cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
+                actions.append(cfg)
+            context["new_list_bulk_actions"] = actions
 
             return context
 
@@ -1002,7 +971,7 @@ class FlowCRUDL(SmartCRUDL):
 
             flow_ids = self.request.GET.get("ids")
             if flow_ids:
-                # the legacy list passes ids, the new list component passes uuids
+                # values can be ids or uuids
                 ids, uuids = [], []
                 for val in flow_ids.split(","):
                     if val.isdigit():
@@ -1349,10 +1318,14 @@ class FlowCRUDL(SmartCRUDL):
                     template = flow.org.templates.filter(uuid=ref["uuid"]).first()
                     if not template:
                         warnings.append(
-                            _(f"The message template {ref['name']} does not exist on your account and cannot be sent.")
+                            _("The message template %(name)s does not exist on your account and cannot be sent.")
+                            % {"name": ref["name"]}
                         )
                     elif not template.is_approved():
-                        warnings.append(_(f"Your message template {template.name} is not approved and cannot be sent."))
+                        warnings.append(
+                            _("Your message template %(name)s is not approved and cannot be sent.")
+                            % {"name": template.name}
+                        )
 
             # warn about potential template costs if the flow uses templates and brand has cost warnings enabled
             if "cost_warnings" in features and templates:
@@ -1680,7 +1653,7 @@ class FlowLabelCRUDL(SmartCRUDL):
         def post_save(self, obj, *args, **kwargs):
             obj = super().post_save(obj, *args, **kwargs)
 
-            # the legacy list seeds this field with ids, the new list component with uuids
+            # this field can be seeded with ids or uuids
             if self.form.cleaned_data["flows"]:
                 ids, uuids = [], []
                 for val in self.form.cleaned_data["flows"].split(","):

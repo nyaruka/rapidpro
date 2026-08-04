@@ -16,7 +16,7 @@
     </temba-range-picker>
   </div>
   <div class="p-8 bg-white rounded-lg">
-    <temba-chart header="Message History"
+    <temba-chart header="{% trans "Message History" %}"
                  url="{% url 'dashboard.dashboard_message_history' %}"
                  dataname="Messages"
                  legend
@@ -27,7 +27,7 @@
                  colorIndex="0">
     </temba-chart>
     <temba-chart class="pt-8 block"
-                 header="Workspace Statistics"
+                 header="{% trans "Workspace Statistics" %}"
                  url="{% url 'dashboard.dashboard_workspace_stats' %}"
                  dataname="Workspaces"
                  legend

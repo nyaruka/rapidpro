@@ -380,6 +380,10 @@ class MailroomClient:
         """
         return self._request("notification/publish", {"org_id": org.id, "notifications": notifications})
 
+    def org_publish(self, org, event: dict):
+        """Publishes a workspace-wide realtime event."""
+        return self._request("org/publish", {"org_id": org.id, "event": event})
+
     def org_deindex(self, org):
         return self._request("org/deindex", {"org_id": org.id})
 

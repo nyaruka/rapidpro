@@ -31,7 +31,6 @@ class WhatsAppType(ChannelType):
     code = "WAC"
     name = "WhatsApp"
     category = ChannelType.Category.SOCIAL_MEDIA
-    beta_only = True
 
     unique_addresses = True
 

@@ -19,7 +19,9 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             auth_token = self.data["auth_token"]
             response = requests.post("https://chatapi.viber.com/pa/get_account_info", json={"auth_token": auth_token})
             if response.status_code != 200 or response.json()["status"] != 0:
-                raise ValidationError("Error validating authentication token: %s" % response.json()["status_message"])
+                raise ValidationError(
+                    _("Error validating authentication token: %(error)s") % {"error": response.json()["status_message"]}
+                )
             return auth_token
 
         def clean(self):

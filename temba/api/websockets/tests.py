@@ -29,7 +29,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual(200, response.status_code)
         result = response.json()["result"]
         self.assertExpiry(result.pop("expire_at"))
-        # connect attaches no server-side channels - the browser subscribes to what it wants itself
+        # connect attaches no server-side subscriptions - the browser subscribes to the sockets it wants itself
         self.assertEqual({"user": str(user.uuid), "channels": [], "meta": meta}, result)
 
     def test_connect(self):
@@ -39,8 +39,8 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.login(self.admin)
         self.assertEqual(405, self.client.get(endpoint_url, HTTP_X_WEBSOCKETS_SECRET=SECRET).status_code)
 
-        # an authenticated user gets no server-side channels (the browser subscribes to its own notifications and any
-        # history channels itself), but their identity is attached to the connection meta
+        # an authenticated user gets no server-side subscriptions (the browser subscribes to its own notifications and
+        # any history sockets itself), but their identity is attached to the connection meta
         self.login(self.admin)
         self.assertConnect(
             self.post("api.websockets.connect"),
@@ -131,8 +131,8 @@ class EndpointsTest(APITestMixin, TembaTest):
         other = self.create_contact("Bob", phone="+1235", org=self.org2)
         other_ticket = self.create_ticket(other)
 
-        def subscribe(channel, client="conn-1"):
-            return self.post("api.websockets.subscribe", {"channel": channel, "client": client})
+        def subscribe(socket, client="conn-1"):
+            return self.post("api.websockets.subscribe", {"channel": socket, "client": client})
 
         self.login(self.admin)
 
@@ -146,8 +146,8 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual(200, response.status_code)
         self.assertExpiry(response.json()["result"]["expire_at"])
 
-        def assertForbidden(channel):
-            response = subscribe(channel)
+        def assertForbidden(socket):
+            response = subscribe(socket)
             self.assertEqual(200, response.status_code)
             self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
 
@@ -157,9 +157,11 @@ class EndpointsTest(APITestMixin, TembaTest):
         assertForbidden(f"history:{contact.uuid}:{ticket2.uuid}")  # ticket belongs to a different contact, same org
         assertForbidden(f"history:{contact.uuid}:{other_ticket.uuid}")  # ticket in another workspace
         assertForbidden(f"history:{other.uuid}:{other_ticket.uuid}")  # both in another workspace
-        assertForbidden({"not": "a string"})  # non-string channel is a clean deny, not a 500
+        assertForbidden({"not": "a string"})  # non-string socket is a clean deny, not a 500
         assertForbidden("history:not-a-uuid")  # malformed contact uuid
         assertForbidden(f"history:{contact.uuid}:not-a-uuid")  # malformed ticket uuid
+        assertForbidden(f"history:{contact.uuid}\n")  # trailing newline isn't part of the canonical name
+        assertForbidden(f"history:{str(contact.uuid).upper()}")  # nor is an uppercase uuid encoding
         assertForbidden(f"history:{contact.uuid}:{ticket.uuid}:extra")  # too many segments
         assertForbidden("history")  # too few segments
         assertForbidden(f"presence:{contact.uuid}")  # unknown namespace
@@ -184,22 +186,22 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
 
     def test_subscribe_notifications(self):
-        def subscribe(channel, client="conn-1"):
-            return self.post("api.websockets.subscribe", {"channel": channel, "client": client})
+        def subscribe(socket, client="conn-1"):
+            return self.post("api.websockets.subscribe", {"channel": socket, "client": client})
 
-        def assertAllowed(channel):
-            response = subscribe(channel)
+        def assertAllowed(socket):
+            response = subscribe(socket)
             self.assertEqual(200, response.status_code)
             self.assertExpiry(response.json()["result"]["expire_at"])
 
-        def assertForbidden(channel):
-            response = subscribe(channel)
+        def assertForbidden(socket):
+            response = subscribe(socket)
             self.assertEqual(200, response.status_code)
             self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
 
         self.login(self.admin)
 
-        # a user may watch their own notifications channel for their current workspace
+        # a user may watch their own notifications socket for their current workspace
         assertAllowed(f"notifications:{self.org.uuid}:{self.admin.uuid}")
 
         # but not another user's, even in the same workspace
@@ -218,6 +220,74 @@ class EndpointsTest(APITestMixin, TembaTest):
         session.save()
         assertForbidden(f"notifications:{self.org.uuid}:{self.admin.uuid}")
 
+    def test_subscribe_flow(self):
+        flow = self.create_flow("Test Flow")
+        other_flow = self.create_flow("Other Flow", org=self.org2)
+
+        def subscribe(socket, client="conn-1"):
+            return self.post("api.websockets.subscribe", {"channel": socket, "client": client})
+
+        def assertAllowed(socket):
+            response = subscribe(socket)
+            self.assertEqual(200, response.status_code)
+            self.assertExpiry(response.json()["result"]["expire_at"])
+
+        def assertForbidden(socket):
+            response = subscribe(socket)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
+        self.login(self.editor)
+
+        # a user with the flow editor permission may watch a flow in their current workspace
+        assertAllowed(f"flow:{flow.uuid}")
+
+        assertForbidden(f"flow:{other_flow.uuid}")  # flow in another workspace
+        assertForbidden(f"flow:{uuid4()}")  # flow not found
+        assertForbidden("flow:not-a-uuid")  # malformed flow uuid
+        assertForbidden(f"flow:{flow.uuid}:extra")  # too many segments
+        assertForbidden("flow")  # too few segments
+
+        # an inactive flow is denied
+        flow.is_active = False
+        flow.save(update_fields=("is_active",))
+        assertForbidden(f"flow:{flow.uuid}")
+        flow.is_active = True
+        flow.save(update_fields=("is_active",))
+
+        # sub_refresh applies the same authorization, so revoked access expires on the next refresh
+        response = self.post("api.websockets.sub_refresh", {"channel": f"flow:{flow.uuid}", "client": "conn-1"})
+        self.assertEqual(200, response.status_code)
+        self.assertExpiry(response.json()["result"]["expire_at"])
+
+        response = self.post("api.websockets.sub_refresh", {"channel": f"flow:{other_flow.uuid}", "client": "conn-1"})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {"expired": True}}, response.json())
+
+        # an agent's role lacks the flow editor permission, so they can't watch any flow
+        self.login(self.agent)
+        assertForbidden(f"flow:{flow.uuid}")
+
+    def test_subscribe_org(self):
+        def subscribe(socket):
+            return self.post("api.websockets.subscribe", {"channel": socket, "client": "conn-1"})
+
+        self.login(self.agent)
+
+        response = subscribe(f"org:{self.org.uuid}")
+        self.assertEqual(200, response.status_code)
+        self.assertExpiry(response.json()["result"]["expire_at"])
+
+        for socket in (
+            f"org:{self.org2.uuid}",
+            "org:not-a-uuid",
+            f"org:{self.org.uuid}:extra",
+            "org",
+        ):
+            response = subscribe(socket)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
     def test_subscribe_ticket_topic_access(self):
         # an agent restricted to a team's topics can only watch the history of tickets they're allowed to view - the
         # same scoping the ticketing UI applies, not just "the ticket exists for this contact"
@@ -231,21 +301,21 @@ class EndpointsTest(APITestMixin, TembaTest):
         support_ticket = self.create_ticket(contact, topic=support)
         assigned_ticket = self.create_ticket(contact, topic=support, assignee=self.agent)
 
-        def subscribe(channel, *, client="conn-1"):
-            return self.post("api.websockets.subscribe", {"channel": channel, "client": client})
+        def subscribe(socket, *, client="conn-1"):
+            return self.post("api.websockets.subscribe", {"channel": socket, "client": client})
 
-        def assertAllowed(channel):
-            response = subscribe(channel)
+        def assertAllowed(socket):
+            response = subscribe(socket)
             self.assertEqual(200, response.status_code)
             self.assertExpiry(response.json()["result"]["expire_at"])
 
-        def assertForbidden(channel):
-            response = subscribe(channel)
+        def assertForbidden(socket):
+            response = subscribe(socket)
             self.assertEqual(200, response.status_code)
             self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
 
-        def sub_refresh(channel, *, client="conn-1"):
-            return self.post("api.websockets.sub_refresh", {"channel": channel, "client": client})
+        def sub_refresh(socket, *, client="conn-1"):
+            return self.post("api.websockets.sub_refresh", {"channel": socket, "client": client})
 
         self.login(self.agent)
 
@@ -255,11 +325,10 @@ class EndpointsTest(APITestMixin, TembaTest):
         # a ticket in the agent's team topic is allowed
         assertAllowed(f"history:{contact.uuid}:{sales_ticket.uuid}")
 
-        # a ticket assigned to the agent is allowed even though its topic is outside their team
-        assertAllowed(f"history:{contact.uuid}:{assigned_ticket.uuid}")
-
-        # a ticket in a topic outside the agent's team and not assigned to them is forbidden
+        # a ticket in a topic outside the agent's team is forbidden - including one assigned to them, because access
+        # is decided purely by topic
         assertForbidden(f"history:{contact.uuid}:{support_ticket.uuid}")
+        assertForbidden(f"history:{contact.uuid}:{assigned_ticket.uuid}")
 
         # sub_refresh applies the same topic scoping: a foreign-topic ticket the agent can't view expires rather than
         # being re-armed, so losing access (or never having had it) tears the subscription down on the next refresh
@@ -280,9 +349,9 @@ class EndpointsTest(APITestMixin, TembaTest):
 
     def test_sub_refresh(self):
         contact = self.create_contact("Ann", phone="+1234", org=self.org)
-        channel = f"history:{contact.uuid}"
+        socket = f"history:{contact.uuid}"
 
-        def sub_refresh(ch=channel, client="conn-1"):
+        def sub_refresh(ch=socket, client="conn-1"):
             return self.post("api.websockets.sub_refresh", {"channel": ch, "client": client})
 
         # still authorized -> the subscription is extended
@@ -291,7 +360,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual(200, response.status_code)
         self.assertExpiry(response.json()["result"]["expire_at"])
 
-        # a channel the user may no longer access -> let the subscription expire
+        # a socket the user may no longer access -> let the subscription expire
         response = sub_refresh(f"history:{uuid4()}")
         self.assertEqual(200, response.status_code)
         self.assertEqual({"result": {"expired": True}}, response.json())
@@ -321,8 +390,8 @@ class EndpointsTest(APITestMixin, TembaTest):
 
     def test_subscription_index(self):
         contact = self.create_contact("Ann", phone="+1234", org=self.org)
-        channel = f"history:{contact.uuid}"
-        key = f"socket-subs:{channel}"
+        socket = f"history:{contact.uuid}"
+        key = f"socket-subs:{socket}"
 
         r = get_valkey_connection()
         r.delete(key)
@@ -338,8 +407,8 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
         self.assertEqual(0, r.exists(denied_key))
 
-        # subscribe sets a per-channel presence flag with a TTL backstop
-        response = self.post("api.websockets.subscribe", {"channel": channel, "client": "conn-1"})
+        # subscribe sets a per-socket presence flag with a TTL backstop
+        response = self.post("api.websockets.subscribe", {"channel": socket, "client": "conn-1"})
         self.assertEqual(200, response.status_code)
         self.assertEqual(b"1", r.get(key))
         self.assertGreater(r.ttl(key), 0)
@@ -348,7 +417,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         # sub_refresh re-arms the key's TTL - after it has aged, a refresh sets it back toward the full TTL
         r.expire(key, 5)
         self.assertLessEqual(r.ttl(key), 5)
-        response = self.post("api.websockets.sub_refresh", {"channel": channel, "client": "conn-1"})
+        response = self.post("api.websockets.sub_refresh", {"channel": socket, "client": "conn-1"})
         self.assertEqual(200, response.status_code)
         self.assertGreater(r.ttl(key), 5)
 

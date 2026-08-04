@@ -676,6 +676,18 @@ class OrgCRUDL(SmartCRUDL):
                 ),
             ]
 
+            if org and Org.FEATURE_AGENTS in org.features:
+                menu.append(
+                    self.create_menu_item(
+                        menu_id="knowledge",
+                        name=_("Knowledge"),
+                        icon="knowledge",
+                        endpoint="knowledge.knowledge_menu",
+                        href="knowledge.knowledge_shortcuts",
+                        perm="knowledge.knowledge_read",
+                    )
+                )
+
             if org:
                 unseen_bubble = None
                 if self.request.user.notifications.filter(org=org, is_seen=False).exists():
@@ -1278,7 +1290,7 @@ class OrgCRUDL(SmartCRUDL):
 
         title = _("Create Workspace Account")
         form_class = Form
-        success_message = "Workspace successfully created."
+        success_message = _("Workspace successfully created.")
         submit_button_name = _("Create")
         success_url = "@orgs.org_grant"
         menu_path = "/settings"
@@ -1357,7 +1369,7 @@ class OrgCRUDL(SmartCRUDL):
             new_slug = forms.SlugField(
                 required=False,
                 label=_("New Event"),
-                help_text="Enter a name for your event. ex: new-registration",
+                help_text=_("Enter a name for your event. ex: new-registration"),
                 widget=InputWidget(),
                 max_length=Resthook._meta.get_field("slug").max_length,
             )
@@ -1381,7 +1393,7 @@ class OrgCRUDL(SmartCRUDL):
 
                 if new_slug:
                     if self.instance.resthooks.filter(is_active=True, slug__iexact=new_slug):
-                        raise ValidationError("This event name has already been used.")
+                        raise ValidationError(_("This event name has already been used."))
 
                 return new_slug
 
@@ -1489,7 +1501,7 @@ class OrgCRUDL(SmartCRUDL):
                 Org.get_possible_countries(),
                 required=False,
                 label=_("The country used for location values. (optional)"),
-                help_text="State and district names will be searched against this country.",
+                help_text=_("State and district names will be searched against this country."),
                 widget=SelectWidget(),
             )
 

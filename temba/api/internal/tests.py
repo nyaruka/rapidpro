@@ -10,14 +10,16 @@ from temba.ai.types.anthropic.type import AnthropicType
 from temba.ai.types.openai.type import OpenAIType
 from temba.api.tests.mixins import APITestMixin
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.contacts.models import Contact, ContactExport, ContactField, ContactGroup
+from temba.contacts.models import Contact, ContactExport, ContactField, ContactGroup, ContactURN
 from temba.flows.models import Flow, FlowLabel
-from temba.msgs.models import Broadcast, Msg
+from temba.globals.models import Global
+from temba.msgs.models import Broadcast, Msg, OptIn
 from temba.notifications.types import ExportFinishedNotificationType
+from temba.orgs.models import OrgRole
 from temba.schedules.models import Schedule
-from temba.templates.models import TemplateTranslation
+from temba.templates.models import Template, TemplateTranslation
 from temba.tests import TembaTest, matchers, mock_mailroom
-from temba.tickets.models import Shortcut, TicketExport
+from temba.tickets.models import Shortcut, TicketExport, Topic
 from temba.triggers.models import Trigger
 from temba.utils.uuid import uuid4
 
@@ -709,6 +711,150 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual(2, self.admin.notifications.filter(is_seen=True).count())
         self.assertEqual(1, self.editor.notifications.filter(is_seen=False).count())
 
+    def test_assets(self):
+        endpoint_url = reverse("api.internal.assets") + ".json"
+
+        self.assertPostNotPermitted(endpoint_url, [None, self.agent])
+        self.assertGetNotAllowed(endpoint_url)
+        self.assertDeleteNotAllowed(endpoint_url)
+
+        flow = self.create_flow("Welcome")
+        group = self.create_group("Customers")
+        contact = self.create_contact("Alice", phone="+1234567001")
+        field = self.create_field("favorite_color", "Favorite Color")
+        global_ = Global.get_or_create(self.org, self.admin, "company_name", "Company Name", "Acme")
+        label = FlowLabel.create(self.org, self.admin, "Important")
+        llm = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
+        optin = OptIn.create(self.org, self.admin, "Product Updates")
+        template = Template.get_or_create(self.org, "welcome_message")
+        topic = Topic.create(self.org, self.admin, "Support")
+        other_flow = self.create_flow("Other Org", org=self.org2)
+
+        payload = {
+            "channel": [str(self.channel.uuid)],
+            "flow": [str(flow.uuid), str(other_flow.uuid)],
+            "group": [str(group.uuid)],
+            "label": [str(label.uuid)],
+            "llm": [str(llm.uuid)],
+            "optin": [str(optin.uuid)],
+            "template": [str(template.uuid)],
+            "topic": [str(topic.uuid)],
+            "contact": [str(contact.uuid)],
+            "user": [str(self.admin.uuid)],
+            "field": [field.key],
+            "global": [global_.key],
+        }
+        expected = [
+            {"type": "channel", "uuid": str(self.channel.uuid), "name": self.channel.name},
+            {"type": "flow", "uuid": str(flow.uuid), "name": "Welcome"},
+            {"type": "group", "uuid": str(group.uuid), "name": "Customers"},
+            {"type": "label", "uuid": str(label.uuid), "name": "Important"},
+            {"type": "llm", "uuid": str(llm.uuid), "name": "GPT-4"},
+            {"type": "optin", "uuid": str(optin.uuid), "name": "Product Updates"},
+            {"type": "template", "uuid": str(template.uuid), "name": "welcome_message"},
+            {"type": "topic", "uuid": str(topic.uuid), "name": "Support"},
+            {"type": "contact", "uuid": str(contact.uuid), "name": "Alice"},
+            {"type": "user", "uuid": str(self.admin.uuid), "name": self.admin.name},
+            {"type": "field", "key": "favorite_color", "name": "Favorite Color"},
+            {"type": "global", "key": "company_name", "name": "Company Name"},
+        ]
+        for user in [self.editor, self.admin]:
+            with self.mockReadOnly():
+                response = self._postJSON(endpoint_url, user, payload)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual(expected, response.json()["results"])
+
+        # a payload of a single type only queries for that type, and duplicate references are only resolved once
+        with self.mockReadOnly(assert_models={Flow}):
+            response = self._postJSON(endpoint_url, self.editor, {"flow": [str(flow.uuid), str(flow.uuid)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([{"type": "flow", "uuid": str(flow.uuid), "name": "Welcome"}], response.json()["results"])
+
+        # db maintained system groups aren't resolvable as flows never reference them
+        active = self.org.groups.get(group_type=ContactGroup.TYPE_DB_ACTIVE)
+
+        with self.mockReadOnly(assert_models={ContactGroup}):
+            response = self._postJSON(endpoint_url, self.editor, {"group": [str(active.uuid)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([], response.json()["results"])
+
+        # users without a name fall back to their email like they do everywhere else
+        nameless = self.create_user("nameless@textit.com")
+        self.org.add_user(nameless, OrgRole.EDITOR)
+
+        with self.mockReadOnly():
+            response = self._postJSON(endpoint_url, self.editor, {"user": [str(nameless.uuid)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [{"type": "user", "uuid": str(nameless.uuid), "name": "nameless@textit.com"}], response.json()["results"]
+        )
+
+        # a contact without a name resolves to their formatted URN
+        nameless_contact = self.create_contact(phone="+12065551212")
+
+        with self.mockReadOnly(assert_models={Contact, ContactURN}):
+            response = self._postJSON(endpoint_url, self.editor, {"contact": [str(nameless_contact.uuid)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [{"type": "contact", "uuid": str(nameless_contact.uuid), "name": "(206) 555-1212"}],
+            response.json()["results"],
+        )
+
+        # in an anon workspace a named contact still resolves to their name but a nameless one to their obfuscated ref
+        self.org.is_anon = True
+        self.org.save(update_fields=("is_anon",))
+
+        with self.mockReadOnly():
+            response = self._postJSON(
+                endpoint_url, self.editor, {"contact": [str(contact.uuid), str(nameless_contact.uuid)]}
+            )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [
+                {"type": "contact", "uuid": str(contact.uuid), "name": "Alice"},
+                {"type": "contact", "uuid": str(nameless_contact.uuid), "name": nameless_contact.ref},
+            ],
+            response.json()["results"],
+        )
+
+        self.org.is_anon = False
+        self.org.save(update_fields=("is_anon",))
+
+        # exactly the maximum number of references is allowed
+        with self.mockReadOnly(assert_models={ContactField}):
+            response = self._postJSON(endpoint_url, self.editor, {"field": [f"field_{i}" for i in range(100)]})
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([], response.json()["results"])
+
+        response = self._postJSON(endpoint_url, self.editor, {"flow": ["not-a-uuid"]})
+        self.assertEqual(400, response.status_code)
+        self.assertIn("badly formed hexadecimal UUID string", response.json()["detail"])
+
+        response = self._postJSON(endpoint_url, self.editor, {"field": [f"field_{i}" for i in range(101)]})
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("A maximum of 100 assets can be resolved at once.", response.json()["detail"])
+
+        response = self._postJSON(endpoint_url, self.editor, {"unknown": ["value"]})
+        self.assertEqual(400, response.status_code)
+        self.assertEqual("Unsupported asset type: unknown.", response.json()["detail"])
+
+        response = self._postJSON(endpoint_url, self.editor, [str(flow.uuid)])
+        self.assertEqual(400, response.status_code)
+        self.assertEqual(
+            "Payload must be an object mapping asset types to lists of identifiers.", response.json()["detail"]
+        )
+
+        for bad_values in (str(flow.uuid), [1]):
+            response = self._postJSON(endpoint_url, self.editor, {"flow": bad_values})
+            self.assertEqual(400, response.status_code)
+            self.assertEqual("Asset type 'flow' must be a list of identifiers.", response.json()["detail"])
+
     def test_orgs(self):
         endpoint_url = reverse("api.internal.orgs") + ".json"
         self.assertGet(
@@ -750,6 +896,21 @@ class EndpointsTest(APITestMixin, TembaTest):
             ],
             num_queries=NUM_BASE_QUERIES + 1,
         )
+
+        self.assertGet(
+            f"{endpoint_url}?search=trains",
+            [self.admin],
+            results=[
+                {
+                    "uuid": str(shortcut2.uuid),
+                    "name": "Trains",
+                    "text": "Trains are...",
+                    "modified_on": matchers.ISODatetime(),
+                }
+            ],
+            num_queries=NUM_BASE_QUERIES + 2,
+        )
+        self.assertEqual(413, self.client.get(f"{endpoint_url}?search={'x' * 1_001}").status_code)
 
     def test_templates(self):
         endpoint_url = reverse("api.internal.templates") + ".json"

@@ -4,7 +4,7 @@ from smartmin.views import SmartCreateView, SmartCRUDL
 
 from django import forms
 from django.db.models.functions import Lower
-from django.http import Http404, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.functional import Promise, cached_property
@@ -112,18 +112,11 @@ class CampaignCRUDL(SmartCRUDL):
     class Read(SpaMixin, ContextMenuMixin, BaseReadView):
         menu_path = "/campaign/active"
 
-        # By default the read view renders the temba-campaign-events component (campaigns/campaign_read_new.html);
-        # the component fetches the event schedule itself from the campaign events endpoint. Viewers can opt back
-        # into the legacy table via legacy mode (LegacyMiddleware → request.legacy).
-        NEW_READ_TEMPLATE = "campaigns/campaign_read_new.html"
+        # the temba-campaign-events component fetches the event schedule itself from the campaign events endpoint
+        template_name = "campaigns/campaign_read.html"
 
         def derive_title(self):
             return self.object.name
-
-        def get_template_names(self):
-            if not getattr(self.request, "legacy", False):
-                return [self.NEW_READ_TEMPLATE]
-            return super().get_template_names()
 
         def build_context_menu(self, menu):
             obj = self.get_object()
@@ -165,27 +158,12 @@ class CampaignCRUDL(SmartCRUDL):
                 if self.has_org_perm("campaigns.campaign_archive"):
                     menu.add_url_post(_("Archive"), reverse("campaigns.campaign_archive", args=[obj.uuid]))
 
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-
-            # outside legacy mode the component fetches the events itself from the events endpoint
-            if getattr(self.request, "legacy", False):
-                context["events"] = self.object.get_sorted_events()
-            return context
-
     class Events(BaseReadView):
         """
-        The event schedule of a campaign as JSON, consumed by the temba-campaign-events component on the new
-        read page — so like that page it doesn't exist in legacy mode.
+        The event schedule of a campaign as JSON, consumed by the temba-campaign-events component on the read page.
         """
 
         permission = "campaigns.campaign_read"
-
-        def get(self, request, *args, **kwargs):
-            # permission checks have already run in dispatch; hide the endpoint itself in legacy mode
-            if getattr(request, "legacy", False):
-                raise Http404()
-            return super().get(request, *args, **kwargs)
 
         def render_to_response(self, context, **response_kwargs):
             return JsonResponse(
@@ -195,7 +173,7 @@ class CampaignCRUDL(SmartCRUDL):
                     "events": [e.as_json() for e in self.object.get_sorted_events()],
                     # there is no per-event edit flag: the component combines this campaign-level can_edit with
                     # each event's status (scheduling-state events stay locked until mailroom finishes).
-                    # deletion stays available on archived campaigns, matching the legacy event read page.
+                    # deletion stays available on archived campaigns, matching the event read page.
                     "can_edit": self.has_org_perm("campaigns.campaignevent_update") and not self.object.is_archived,
                     "can_delete": self.has_org_perm("campaigns.campaignevent_delete"),
                 }
@@ -222,13 +200,10 @@ class CampaignCRUDL(SmartCRUDL):
         default_template = "campaigns/campaign_list.html"
         default_order = ("-modified_on",)
 
-        # By default every campaign list view renders the temba-campaign-list component
-        # (campaigns/campaign_list_new.html); the component fetches/pages campaigns itself from the internal
-        # campaigns API. Viewers can opt back into the legacy table via legacy mode (LegacyMiddleware →
-        # request.legacy).
-        NEW_LIST_TEMPLATE = "campaigns/campaign_list_new.html"
+        # the temba-campaign-list component fetches and pages campaigns itself from the internal campaigns API
+        paginate_by = None
 
-        # Optional subtitle rendered under the title on the new-list view.
+        # Optional subtitle rendered under the title.
         subtitle = ""
 
         # Bulk-action key -> config consumed by temba-campaign-list (label, icon).
@@ -236,22 +211,6 @@ class CampaignCRUDL(SmartCRUDL):
             "archive": {"label": _("Archive"), "icon": "archive"},
             "restore": {"label": _("Restore"), "icon": "restore"},
         }
-
-        def _use_new_list(self) -> bool:
-            # `getattr` defaults to False so a view called via RequestFactory (or if LegacyMiddleware is reordered
-            # out) doesn't AttributeError.
-            return not getattr(self.request, "legacy", False)
-
-        def get_template_names(self):
-            if self._use_new_list():
-                return [self.NEW_LIST_TEMPLATE]
-            return super().get_template_names()
-
-        def get_paginate_by(self, queryset):
-            # The temba-campaign-list component fetches and pages campaigns itself.
-            if self._use_new_list():
-                return None
-            return super().get_paginate_by(queryset)
 
         def derive_subtitle(self):
             return self.subtitle
@@ -261,33 +220,32 @@ class CampaignCRUDL(SmartCRUDL):
 
         def post(self, request, *args, **kwargs):
             # The component posts campaign uuids in `objects`, but BulkActionMixin matches by primary key —
-            # translate them here so the new component and the legacy id-based form post are both accepted.
-            if self._use_new_list() and "objects" in request.POST:
+            # translate them here.
+            if "objects" in request.POST:
                 data = request.POST.copy()
-                uuids = data.getlist("objects")
-                if uuids:
-                    # Only keep well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a
-                    # single malformed value (a hostile post, or a stale id-based form post) would otherwise raise
-                    # ValueError (500).
-                    valid = []
-                    for u in uuids:
-                        try:
-                            valid.append(UUID(u))
-                        except ValueError:
-                            pass
+                objects = data.getlist("objects")
+                valid, passthrough = [], []
+                for o in objects:
+                    try:
+                        valid.append(UUID(o))
+                    except ValueError:
+                        # not a uuid — leave it alone so an id-based post still works. `uuid__in` runs each value
+                        # through UUIDField.get_prep_value, so passing one through would raise ValueError (500).
+                        passthrough.append(o)
+                if valid:
                     ids = Campaign.objects.filter(org=request.org, is_active=True, uuid__in=valid).values_list(
                         "id", flat=True
                     )
-                    data.setlist("objects", [str(i) for i in ids])
+                    data.setlist("objects", [str(i) for i in ids] + passthrough)
                 request.POST = data
 
             return super().post(request, *args, **kwargs)
 
         def get_queryset(self, *args, **kwargs):
-            # On the new list the temba-campaign-list component fetches and pages campaigns from the internal
-            # campaigns API, so a GET page needs no object list. A POST (bulk action) still needs the real queryset, since
-            # BulkActionMixin validates the posted `objects` against it.
-            if self._use_new_list() and self.request.method == "GET":
+            # The temba-campaign-list component fetches and pages campaigns from the internal campaigns API, so a GET
+            # page needs no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin
+            # validates the posted `objects` against it.
+            if self.request.method == "GET":
                 return Campaign.objects.none()
 
             return super().get_queryset(*args, **kwargs)
@@ -295,22 +253,19 @@ class CampaignCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            # New-list view context: the resolved campaigns-api endpoint, the subtitle, and the bulk-action configs
-            # the temba-campaign-list expects (resolved + JSON-encoded here so the template stays inert).
-            if self._use_new_list():
-                context["new_list_endpoint"] = (
-                    f"{reverse('api.internal.campaigns')}.json?{self.derive_new_list_query()}"
-                )
-                subtitle = self.derive_subtitle()
-                context["new_list_subtitle"] = str(subtitle) if subtitle else ""
-                actions = []
-                for key in self.get_bulk_actions():
-                    cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
-                    cfg["key"] = key
-                    # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
-                    cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
-                    actions.append(cfg)
-                context["new_list_bulk_actions"] = actions
+            # the resolved campaigns-api endpoint, the subtitle, and the bulk-action configs the temba-campaign-list
+            # expects (resolved + JSON-encoded here so the template stays inert)
+            context["new_list_endpoint"] = f"{reverse('api.internal.campaigns')}.json?{self.derive_new_list_query()}"
+            subtitle = self.derive_subtitle()
+            context["new_list_subtitle"] = str(subtitle) if subtitle else ""
+            actions = []
+            for key in self.get_bulk_actions():
+                cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
+                cfg["key"] = key
+                # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
+                cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
+                actions.append(cfg)
+            context["new_list_bulk_actions"] = actions
 
             return context
 
@@ -491,9 +446,20 @@ class CampaignEventForm(forms.ModelForm):
                     text = values.get("text", "")
                     attachments = values.get("attachments", [])
                     if text and len(text) > Msg.MAX_TEXT_LEN:
-                        self.add_error("compose", _(f"Maximum allowed text is {Msg.MAX_TEXT_LEN} characters."))
+                        self.add_error(
+                            "compose",
+                            forms.ValidationError(
+                                _("Maximum allowed text is %(limit)d characters."), params={"limit": Msg.MAX_TEXT_LEN}
+                            ),
+                        )
                     if attachments and len(attachments) > Msg.MAX_ATTACHMENTS:
-                        self.add_error("compose", _(f"Maximum allowed attachments is {Msg.MAX_ATTACHMENTS} files."))
+                        self.add_error(
+                            "compose",
+                            forms.ValidationError(
+                                _("Maximum allowed attachments is %(limit)d files."),
+                                params={"limit": Msg.MAX_ATTACHMENTS},
+                            ),
+                        )
 
             primary_values = compose.get(primary_language) or compose.get(base_language, {})
             template = primary_values.get("template", None)
@@ -734,8 +700,8 @@ class CampaignEventCRUDL(SmartCRUDL):
 
     class Fires(BaseReadView):
         """
-        The most recent contacts an event fired for, consumed by the recent-contacts popup on the new campaign
-        read page — so like that page it doesn't exist in legacy mode.
+        The most recent contacts an event fired for, consumed by the recent-contacts popup on the campaign read
+        page.
         """
 
         permission = "campaigns.campaignevent_read"
@@ -743,12 +709,6 @@ class CampaignEventCRUDL(SmartCRUDL):
 
         def get_object_org(self):
             return self.get_object().campaign.org
-
-        def get(self, request, *args, **kwargs):
-            # permission checks have already run in dispatch; hide the endpoint itself in legacy mode
-            if getattr(request, "legacy", False):
-                raise Http404()
-            return super().get(request, *args, **kwargs)
 
         def render_to_response(self, context, **response_kwargs):
             org = self.object.campaign.org
@@ -852,10 +812,8 @@ class CampaignEventCRUDL(SmartCRUDL):
             return obj
 
         def get_success_url(self):
-            # the new read page has no event read page - the edit modal returns to the campaign
-            if not getattr(self.request, "legacy", False):
-                return reverse("campaigns.campaign_read", args=[self.object.campaign.uuid])
-            return reverse("campaigns.campaignevent_read", args=[self.object.campaign.uuid, self.object.uuid])
+            # the campaign read page has no event read page - the edit modal returns to the campaign
+            return reverse("campaigns.campaign_read", args=[self.object.campaign.uuid])
 
     class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
         fields = (

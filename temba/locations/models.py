@@ -5,6 +5,7 @@ from smartmin.models import SmartModel
 from django.db import models
 from django.db.models import F, Value
 from django.db.models.functions import Concat, Upper
+from django.utils.translation import gettext_lazy as _
 
 
 class AdminBoundary(MPTTModel, models.Model):
@@ -24,7 +25,6 @@ class AdminBoundary(MPTTModel, models.Model):
     PATH_SEPARATOR = ">"
     PADDED_PATH_SEPARATOR = " > "
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     osm_id = models.CharField(max_length=15, unique=True)
     name = models.CharField(max_length=MAX_NAME_LEN)
     level = models.IntegerField()
@@ -154,10 +154,9 @@ class BoundaryAlias(SmartModel):
     An org specific alias for a boundary name
     """
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     org = models.ForeignKey("orgs.Org", on_delete=models.PROTECT)
     boundary = models.ForeignKey(AdminBoundary, on_delete=models.PROTECT, related_name="aliases")
-    name = models.CharField(max_length=AdminBoundary.MAX_NAME_LEN, help_text="The name for our alias")
+    name = models.CharField(max_length=AdminBoundary.MAX_NAME_LEN, help_text=_("The name for our alias"))
 
     @classmethod
     def create(cls, org, user, boundary, name):

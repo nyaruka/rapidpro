@@ -3,7 +3,8 @@ from urllib.parse import quote_plus
 
 from django import forms
 from django.contrib import messages
-from django.http import HttpResponseForbidden, HttpResponseRedirect
+from django.core.exceptions import ValidationError
+from django.http import Http404, HttpResponseForbidden, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -77,7 +78,10 @@ class OrgObjPermsMixin(OrgPermsMixin):
     """
 
     def get_object_org(self):
-        return self.get_object().org
+        try:
+            return self.get_object().org
+        except ValidationError:  # e.g. object URLs with invalid UUIDs
+            raise Http404()
 
     def has_permission(self, request, *args, **kwargs) -> bool:
         has_perm = super().has_permission(request, *args, **kwargs)
@@ -178,7 +182,7 @@ class BulkActionMixin:
             action = cleaned_data.get("action")
             label = cleaned_data.get("label")
             if action in ("label", "unlabel") and not label:
-                raise forms.ValidationError("Must specify a label")
+                raise forms.ValidationError(_("Must specify a label"))
 
             # TODO update frontend to send back unlabel actions
             if action == "label" and self.data.get("add", "").lower() == "false":

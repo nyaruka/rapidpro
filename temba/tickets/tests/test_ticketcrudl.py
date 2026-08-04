@@ -4,7 +4,7 @@ from unittest.mock import call, patch
 from django.urls import reverse
 from django.utils import timezone
 
-from temba.orgs.models import Export, OrgRole
+from temba.orgs.models import Export, Org, OrgRole
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
 from temba.tickets.models import Team, Ticket, TicketExport, Topic
 from temba.utils.dates import datetime_to_timestamp
@@ -28,23 +28,12 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.support_only = Team.create(self.org, self.admin, "Support", topics=[self.support])
         self.org.add_user(self.agent3, OrgRole.AGENT, team=self.support_only)
 
-    def test_new_list(self):
+    def test_list_component(self):
         list_url = reverse("tickets.ticket_list")
 
         self.login(self.admin)
 
-        # legacy mode renders the tabbed layout
-        self.setLegacyUI()
-
-        response = self.client.get(list_url)
-        self.assertContains(response, "temba-tabs")
-        self.assertNotContains(response, "temba-card-layout")
-        self.assertContains(response, "temba-contact-details")
-        self.assertRegex(response.content.decode(), r"<temba-contact-details\b[^>]*\beditable(?:\s|>)")
-
-        # by default we get the chat + card layout, sharing the contact card settings
-        self.setLegacyUI(False)
-
+        # the ticket page uses the chat + card layout, sharing the contact card settings
         self.admin.settings = {"contact_cards": {"order": ["card-notepad", "card-fields"], "collapsed": []}}
         self.admin.save(update_fields=("settings",))
 
@@ -77,19 +66,14 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # just a placeholder view for frontend components
         self.assertRequestDisallowed(list_url, [None])
-        self.assertListFetch(
-            list_url, [self.editor, self.admin, self.agent, self.agent2, self.agent3], context_objects=[]
-        )
+        self.assertListFetch(list_url, [self.editor, self.admin, self.agent, self.agent2, self.agent3])
 
         # link to our ticket within the All folder
-        deep_link = f"{list_url}all/open/{ticket.uuid}/"
+        deep_link = f"{list_url}all/{ticket.uuid}/"
 
-        response = self.assertListFetch(
-            deep_link, [self.editor, self.admin, self.agent, self.agent3], context_objects=[]
-        )
+        response = self.assertListFetch(deep_link, [self.editor, self.admin, self.agent, self.agent3])
         self.assertEqual("All", response.context["title"])
         self.assertEqual("all", response.context["folder"])
-        self.assertEqual("open", response.context["status"])
 
         # our ticket exists on the first page, so it'll get flagged to be focused
         self.assertEqual(str(ticket.uuid), response.context["nextUUID"])
@@ -101,81 +85,74 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             self.client.get(deep_link)
 
         # try same request but for agent that can't see this ticket
-        response = self.assertListFetch(deep_link, [self.agent2], context_objects=[])
+        response = self.assertListFetch(deep_link, [self.agent2])
         self.assertEqual("All", response.context["title"])
         self.assertEqual("all", response.context["folder"])
-        self.assertEqual("open", response.context["status"])
         self.assertNotIn("nextUUID", response.context)
 
         # can also link to our ticket within the Support topic
-        deep_link = f"{list_url}{self.support.uuid}/open/{ticket.uuid}/"
+        deep_link = f"{list_url}{self.support.uuid}/{ticket.uuid}/"
 
         self.assertRequestDisallowed(deep_link, [self.agent2])  # doesn't have access to that topic
 
-        response = self.assertListFetch(
-            deep_link, [self.editor, self.admin, self.agent, self.agent3], context_objects=[]
-        )
+        response = self.assertListFetch(deep_link, [self.editor, self.admin, self.agent, self.agent3])
         self.assertEqual("Support", response.context["title"])
         self.assertEqual(str(self.support.uuid), response.context["folder"])
-        self.assertEqual("open", response.context["status"])
 
-        # try to link to our ticket but with mismatched topic
-        deep_link = f"{list_url}{self.sales.uuid}/closed/{str(ticket.uuid)}/"
+        # try to link to our ticket but with mismatched topic - redirected to All
+        deep_link = f"{list_url}{self.sales.uuid}/{str(ticket.uuid)}/"
 
-        # redirected to All
-        response = self.assertListFetch(deep_link, [self.agent], context_objects=[])
+        response = self.assertListFetch(deep_link, [self.agent])
         self.assertEqual("all", response.context["folder"])
-        self.assertEqual("open", response.context["status"])
-        self.assertEqual(str(ticket.uuid), response.context["uuid"])
-
-        # try to link to our ticket but with mismatched status
-        deep_link = f"{list_url}all/closed/{ticket.uuid}/"
-
-        # now our ticket is listed as the uuid and we were redirected to All folder with Open status
-        response = self.assertListFetch(deep_link, [self.agent], context_objects=[])
-        self.assertEqual("all", response.context["folder"])
-        self.assertEqual("open", response.context["status"])
         self.assertEqual(str(ticket.uuid), response.context["uuid"])
 
         # and again we have a specific ticket so we should show context menu for it
         self.assertContentMenu(deep_link, self.admin, ["Add Note", "Start Flow"])
 
         # deep link with assignee filter on all folder passes assignee_uuid to context
-        assignee_link = f"{list_url}all/open/?assignee={self.admin.uuid}"
-        response = self.assertListFetch(assignee_link, [self.agent], context_objects=[])
+        assignee_link = f"{list_url}all/?assignee={self.admin.uuid}"
+        response = self.assertListFetch(assignee_link, [self.agent])
         self.assertEqual("all", response.context["folder"])
         self.assertEqual(str(self.admin.uuid), response.context["assignee_uuid"])
 
         # assignee filter is not passed on non-all folders
-        response = self.assertListFetch(
-            f"{list_url}mine/open/?assignee={self.admin.uuid}", [self.admin], context_objects=[]
-        )
+        response = self.assertListFetch(f"{list_url}mine/?assignee={self.admin.uuid}", [self.admin])
         self.assertNotIn("assignee_uuid", response.context)
 
+        # a malformed assignee is ignored, same as on the folder endpoint
+        response = self.assertListFetch(f"{list_url}all/?assignee=notauuid", [self.admin])
+        self.assertNotIn("assignee_uuid", response.context)
+
+        # a deep link to a valid but unknown uuid stays in the requested folder
+        response = self.assertListFetch(f"{list_url}unassigned/{uuid4()}/", [self.admin])
+        self.assertEqual("Unassigned", response.context["title"])
+        self.assertEqual("unassigned", response.context["folder"])
+        self.assertNotIn("uuid", response.context)
+        self.assertNotIn("nextUUID", response.context)
+
         # non-existent topic should give a 404
-        bad_topic_link = f"{list_url}{uuid4()}/open/{ticket.uuid}/"
+        bad_topic_link = f"{list_url}{uuid4()}/{ticket.uuid}/"
         response = self.requestView(bad_topic_link, self.agent)
         self.assertEqual(404, response.status_code)
 
         response = self.client.get(
             list_url,
             content_type="application/json",
-            HTTP_X_TEMBA_REFERER_PATH=f"/tickets/mine/open/{ticket.uuid}",
+            HTTP_X_TEMBA_REFERER_PATH=f"/tickets/mine/{ticket.uuid}",
         )
-        self.assertEqual(("tickets", "mine", "open", str(ticket.uuid)), response.context["temba_referer"])
+        self.assertEqual(("tickets", "mine", str(ticket.uuid)), response.context["temba_referer"])
 
         # contacts in a flow still get a start flow option - the start modal handles confirming
         # the interruption
         flow = self.create_flow("Test")
         self.contact.current_flow = flow
         self.contact.save()
-        deep_link = f"{list_url}all/open/{str(ticket.uuid)}/"
+        deep_link = f"{list_url}all/{str(ticket.uuid)}/"
         self.assertContentMenu(deep_link, self.admin, ["Add Note", "Start Flow"])
 
-        # closed our tickets don't get extra menu options
+        # closed tickets don't get extra menu options
         ticket.status = Ticket.STATUS_CLOSED
         ticket.save(update_fields=("status",))
-        deep_link = f"{list_url}all/closed/{str(ticket.uuid)}/"
         self.assertContentMenu(deep_link, self.admin, [])
 
     def test_update(self):
@@ -217,6 +194,9 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.create_ticket(self.contact, assignee=None)
         self.create_ticket(self.contact, closed_on=timezone.now())
 
+        # agent3 is assigned a ticket in a topic their team doesn't have access to
+        self.create_ticket(self.contact, assignee=self.agent3, topic=self.sales)
+
         self.assertRequestDisallowed(menu_url, [None])
         self.assertPageMenu(
             menu_url,
@@ -224,23 +204,43 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             [
                 "My Tickets (2)",
                 "Unassigned (1)",
-                "All (3)",
+                "All (4)",
                 "Shortcuts (0)",
                 "Analytics",
                 "Export",
                 "New Topic",
-                "General (2)",
-                "Sales (1)",
-                "Support (0)",
+                ("Topics", ["General (2)", "Sales (2)", "Support (0)"]),
+            ],
+        )
+        # orgs with the agents feature access shortcuts and knowledge from the Knowledge section instead
+        self.org.features.append(Org.FEATURE_AGENTS)
+        self.org.save(update_fields=("features",))
+        self.assertPageMenu(
+            menu_url,
+            self.admin,
+            [
+                "My Tickets (2)",
+                "Unassigned (1)",
+                "All (4)",
+                ("Topics", ["General (2)", "Sales (2)", "Support (0)"]),
+                "Analytics",
+                "Export",
+                "New Topic",
             ],
         )
         self.assertPageMenu(
             menu_url,
             self.agent,
-            ["My Tickets (0)", "Unassigned (1)", "All (3)", "General (2)", "Sales (1)", "Support (0)"],
+            ["My Tickets (0)", "Unassigned (1)", "All (4)", ("Topics", ["General (2)", "Sales (2)", "Support (0)"])],
         )
-        self.assertPageMenu(menu_url, self.agent2, ["My Tickets (0)", "Unassigned (0)", "All (1)", "Sales (1)"])
-        self.assertPageMenu(menu_url, self.agent3, ["My Tickets (0)", "Unassigned (0)", "All (0)", "Support (0)"])
+        self.assertPageMenu(
+            menu_url, self.agent2, ["My Tickets (0)", "Unassigned (0)", "All (2)", ("Topics", ["Sales (2)"])]
+        )
+
+        # agent3's assigned ticket isn't counted because it's not in a topic they can access
+        self.assertPageMenu(
+            menu_url, self.agent3, ["My Tickets (0)", "Unassigned (0)", "All (0)", ("Topics", ["Support (0)"])]
+        )
 
     @mock_mailroom
     def test_folder(self, mr_mocks):
@@ -252,16 +252,13 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.create_contact("Mary No tickets", phone="126", last_seen_on=timezone.now())
         self.create_contact("Mr Other Org", phone="126", last_seen_on=timezone.now(), org=self.org2)
 
-        all_open_url = reverse("tickets.ticket_folder", kwargs={"folder": "all", "status": "open"})
-        all_closed_url = reverse("tickets.ticket_folder", kwargs={"folder": "all", "status": "closed"})
-        mine_open_url = reverse("tickets.ticket_folder", kwargs={"folder": "mine", "status": "open"})
-        unassigned_open_url = reverse("tickets.ticket_folder", kwargs={"folder": "unassigned", "status": "open"})
-        general_open_url = reverse(
-            "tickets.ticket_folder", kwargs={"folder": self.org.default_topic.uuid, "status": "open"}
-        )
-        sales_open_url = reverse("tickets.ticket_folder", kwargs={"folder": self.sales.uuid, "status": "open"})
-        sales_closed_url = reverse("tickets.ticket_folder", kwargs={"folder": self.sales.uuid, "status": "closed"})
-        bad_topic_url = reverse("tickets.ticket_folder", kwargs={"folder": uuid4(), "status": "open"})
+        # the uuid part of the pattern is optional so URLs can only be reversed by folder
+        all_url = reverse("tickets.ticket_folder", kwargs={"folder": "all"})
+        mine_url = reverse("tickets.ticket_folder", kwargs={"folder": "mine"})
+        unassigned_url = "/ticket/folder/unassigned/"
+        general_url = f"/ticket/folder/{self.org.default_topic.uuid}/"
+        sales_url = f"/ticket/folder/{self.sales.uuid}/"
+        bad_topic_url = f"/ticket/folder/{uuid4()}/"
 
         def assert_tickets(url: str, user, *, expected: list | int, choose_org=None):
             response = self.requestView(url, user, choose_org=choose_org)
@@ -275,18 +272,18 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             return response
 
         # system topic has no menu options
-        self.assertContentMenu(general_open_url, self.admin, [])
+        self.assertContentMenu(general_url, self.admin, [])
 
         # user topic gets edit too
-        self.assertContentMenu(sales_open_url, self.admin, ["Edit", "Delete"])
+        self.assertContentMenu(sales_url, self.admin, ["Edit", "Delete"])
 
         # no tickets yet so no contacts returned
-        assert_tickets(all_open_url, self.admin, expected=[])
-        assert_tickets(all_open_url, self.editor, expected=[])
-        assert_tickets(all_open_url, self.agent, expected=[])
-        assert_tickets(all_open_url, self.agent2, expected=[])
-        assert_tickets(all_open_url, self.agent3, expected=[])
-        assert_tickets(all_open_url, self.customer_support, expected=[], choose_org=self.org)
+        assert_tickets(all_url, self.admin, expected=[])
+        assert_tickets(all_url, self.editor, expected=[])
+        assert_tickets(all_url, self.agent, expected=[])
+        assert_tickets(all_url, self.agent2, expected=[])
+        assert_tickets(all_url, self.agent3, expected=[])
+        assert_tickets(all_url, self.customer_support, expected=[], choose_org=self.org)
 
         # contact 1 has two open tickets and some messages
         c1_t1 = self.create_ticket(contact1, topic=self.org.default_topic, assignee=self.admin)
@@ -308,177 +305,109 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.create_outgoing_msg(contact3, "Yes", created_by=self.agent)
 
-        # fetching open folder returns all open tickets
+        # tickets created back to back can land in the same millisecond, and the timestamp cursors below only have
+        # millisecond resolution, so space out activity to keep paging deterministic
+        base = timezone.now().replace(microsecond=0) - timedelta(minutes=1)
+        for i, ticket in enumerate([c1_t1, c1_t2, c2_t1, c2_t2, c3_t1, c3_t2]):
+            Ticket.objects.filter(id=ticket.id).update(last_activity_on=base + timedelta(seconds=i))
+            ticket.last_activity_on = base + timedelta(seconds=i)
+
+        # a folder returns open tickets followed by closed tickets
         self.login(self.admin)
         with self.assertNumQueries(11):
-            response = self.client.get(all_open_url)
+            response = self.client.get(all_url)
 
-        assert_tickets(all_open_url, self.admin, expected=[c2_t1, c1_t2, c1_t1])
-        assert_tickets(all_open_url, self.editor, expected=[c2_t1, c1_t2, c1_t1])
-        assert_tickets(all_open_url, self.agent, expected=[c2_t1, c1_t2, c1_t1])
-        assert_tickets(all_open_url, self.agent2, expected=[c1_t2])  # only sales topic
-        assert_tickets(all_open_url, self.agent3, expected=[])
-        assert_tickets(all_open_url, self.customer_support, expected=[c2_t1, c1_t2, c1_t1], choose_org=self.org)
-
-        self.assertEqual(
-            {
-                "results": [
-                    {
-                        "uuid": str(contact2.uuid),
-                        "name": "Frank",
-                        "last_seen_on": matchers.ISODatetime(),
-                        "last_msg": {
-                            "text": "Hello?",
-                            "direction": "I",
-                            "type": "T",
-                            "created_on": matchers.ISODatetime(),
-                            "sender": None,
-                            "attachments": [],
-                        },
-                        "ticket": {
-                            "uuid": str(c2_t1.uuid),
-                            "assignee": None,
-                            "topic": {"uuid": matchers.UUIDString(version=4), "name": "General"},
-                            "last_activity_on": matchers.ISODatetime(),
-                            "closed_on": None,
-                        },
-                    },
-                    {
-                        "uuid": str(contact1.uuid),
-                        "name": "Joe",
-                        "last_seen_on": matchers.ISODatetime(),
-                        "last_msg": {
-                            "text": "We can help",
-                            "direction": "O",
-                            "type": "T",
-                            "created_on": matchers.ISODatetime(),
-                            "sender": {"id": self.admin.id, "email": "admin@textit.com"},
-                            "attachments": [],
-                        },
-                        "ticket": {
-                            "uuid": str(c1_t2.uuid),
-                            "assignee": {
-                                "id": self.agent3.id,
-                                "first_name": "",
-                                "last_name": "",
-                                "email": "agent3@textit.com",
-                                "uuid": str(self.agent3.uuid),
-                            },
-                            "topic": {"uuid": matchers.UUIDString(version=4), "name": "Sales"},
-                            "last_activity_on": matchers.ISODatetime(),
-                            "closed_on": None,
-                        },
-                    },
-                    {
-                        "uuid": str(contact1.uuid),
-                        "name": "Joe",
-                        "last_seen_on": matchers.ISODatetime(),
-                        "last_msg": {
-                            "text": "We can help",
-                            "direction": "O",
-                            "type": "T",
-                            "created_on": matchers.ISODatetime(),
-                            "sender": {"id": self.admin.id, "email": "admin@textit.com"},
-                            "attachments": [],
-                        },
-                        "ticket": {
-                            "uuid": str(c1_t1.uuid),
-                            "assignee": {
-                                "id": self.admin.id,
-                                "first_name": "Andy",
-                                "last_name": "",
-                                "email": "admin@textit.com",
-                                "uuid": str(self.admin.uuid),
-                            },
-                            "topic": {"uuid": matchers.UUIDString(version=4), "name": "General"},
-                            "last_activity_on": matchers.ISODatetime(),
-                            "closed_on": None,
-                        },
-                    },
-                ]
-            },
-            response.json(),
+        assert_tickets(all_url, self.admin, expected=[c2_t1, c1_t2, c1_t1, c3_t2, c3_t1, c2_t2])
+        assert_tickets(all_url, self.editor, expected=[c2_t1, c1_t2, c1_t1, c3_t2, c3_t1, c2_t2])
+        assert_tickets(all_url, self.agent, expected=[c2_t1, c1_t2, c1_t1, c3_t2, c3_t1, c2_t2])
+        assert_tickets(all_url, self.agent2, expected=[c1_t2, c3_t1])  # only sales topic
+        assert_tickets(all_url, self.agent3, expected=[])
+        assert_tickets(
+            all_url,
+            self.customer_support,
+            expected=[c2_t1, c1_t2, c1_t1, c3_t2, c3_t1, c2_t2],
+            choose_org=self.org,
         )
 
-        # test before and after windowing
-        response = self.client.get(f"{all_open_url}?before={datetime_to_timestamp(c2_t1.last_activity_on)}")
-        self.assertEqual(2, len(response.json()["results"]))
+        self.assertEqual(
+            [
+                {
+                    "uuid": str(contact2.uuid),
+                    "name": "Frank",
+                    "last_seen_on": matchers.ISODatetime(),
+                    "last_msg": {
+                        "text": "Hello?",
+                        "direction": "I",
+                        "type": "T",
+                        "created_on": matchers.ISODatetime(),
+                        "sender": None,
+                        "attachments": [],
+                    },
+                    "ticket": {
+                        "uuid": str(c2_t1.uuid),
+                        "assignee": None,
+                        "topic": {"uuid": matchers.UUIDString(version=4), "name": "General"},
+                        "last_activity_on": matchers.ISODatetime(),
+                        "closed_on": None,
+                    },
+                },
+                {
+                    "uuid": str(contact1.uuid),
+                    "name": "Joe",
+                    "last_seen_on": matchers.ISODatetime(),
+                    "last_msg": {
+                        "text": "We can help",
+                        "direction": "O",
+                        "type": "T",
+                        "created_on": matchers.ISODatetime(),
+                        "sender": {"id": self.admin.id, "email": "admin@textit.com"},
+                        "attachments": [],
+                    },
+                    "ticket": {
+                        "uuid": str(c1_t2.uuid),
+                        "assignee": {
+                            "id": self.agent3.id,
+                            "first_name": "",
+                            "last_name": "",
+                            "email": "agent3@textit.com",
+                            "uuid": str(self.agent3.uuid),
+                        },
+                        "topic": {"uuid": matchers.UUIDString(version=4), "name": "Sales"},
+                        "last_activity_on": matchers.ISODatetime(),
+                        "closed_on": None,
+                    },
+                },
+                {
+                    "uuid": str(contact1.uuid),
+                    "name": "Joe",
+                    "last_seen_on": matchers.ISODatetime(),
+                    "last_msg": {
+                        "text": "We can help",
+                        "direction": "O",
+                        "type": "T",
+                        "created_on": matchers.ISODatetime(),
+                        "sender": {"id": self.admin.id, "email": "admin@textit.com"},
+                        "attachments": [],
+                    },
+                    "ticket": {
+                        "uuid": str(c1_t1.uuid),
+                        "assignee": {
+                            "id": self.admin.id,
+                            "first_name": "Andy",
+                            "last_name": "",
+                            "email": "admin@textit.com",
+                            "uuid": str(self.admin.uuid),
+                        },
+                        "topic": {"uuid": matchers.UUIDString(version=4), "name": "General"},
+                        "last_activity_on": matchers.ISODatetime(),
+                        "closed_on": None,
+                    },
+                },
+            ],
+            response.json()["results"][:3],
+        )
 
-        response = self.client.get(f"{all_open_url}?after={datetime_to_timestamp(c1_t2.last_activity_on)}")
-        self.assertEqual(1, len(response.json()["results"]))
-
-        # test filtering by assignee on the all folder
-        assert_tickets(f"{all_open_url}?assignee={self.admin.uuid}", self.admin, expected=[c1_t1])
-        assert_tickets(f"{all_open_url}?assignee={self.agent3.uuid}", self.admin, expected=[c1_t2])
-        assert_tickets(f"{all_open_url}?assignee={self.agent.uuid}", self.admin, expected=[])
-
-        # assignee filter is ignored on non-all folders
-        assert_tickets(f"{mine_open_url}?assignee={self.agent3.uuid}", self.admin, expected=[c1_t1])
-        assert_tickets(f"{unassigned_open_url}?assignee={self.admin.uuid}", self.admin, expected=[c2_t1])
-
-        # assignee filter still respects topic access restrictions
-        # agent2 only has access to sales topic, so filtering by admin (who has a General ticket) returns nothing
-        assert_tickets(f"{all_open_url}?assignee={self.admin.uuid}", self.agent2, expected=[])
-        # but filtering by agent3 (who has a Sales ticket) returns that ticket
-        assert_tickets(f"{all_open_url}?assignee={self.agent3.uuid}", self.agent2, expected=[c1_t2])
-
-        # invalid assignee UUID returns all tickets
-        assert_tickets(f"{all_open_url}?assignee={uuid4()}", self.admin, expected=[c2_t1, c1_t2, c1_t1])
-
-        # test assignee filter with pagination (paginate_by=25, so we need 25+ tickets)
-        bulk_tickets = []
-        for i in range(24):
-            bulk_tickets.append(self.create_ticket(contact3, assignee=self.admin))
-        # now we have 25 admin-assigned tickets total (c1_t1 + 24 new ones), which triggers pagination re-query
-        response = self.requestView(f"{all_open_url}?assignee={self.admin.uuid}", self.admin)
-        actual = [t["ticket"]["uuid"] for t in response.json()["results"]]
-        self.assertEqual(25, len(actual))
-        for bt in bulk_tickets:
-            bt.delete()
-
-        # unassigned tickets
-        assert_tickets(unassigned_open_url, self.admin, expected=[c2_t1])
-        assert_tickets(unassigned_open_url, self.editor, expected=[c2_t1])
-        assert_tickets(unassigned_open_url, self.agent, expected=[c2_t1])
-        assert_tickets(unassigned_open_url, self.agent2, expected=[])
-        assert_tickets(unassigned_open_url, self.agent3, expected=[])
-        assert_tickets(unassigned_open_url, self.customer_support, expected=[c2_t1], choose_org=self.org)
-
-        # assigned tickets
-        assert_tickets(mine_open_url, self.admin, expected=[c1_t1])
-        assert_tickets(mine_open_url, self.editor, expected=[])
-        assert_tickets(mine_open_url, self.agent, expected=[])
-        assert_tickets(mine_open_url, self.agent2, expected=[])
-        assert_tickets(mine_open_url, self.agent3, expected=[c1_t2])  # because they're assigned to it
-        assert_tickets(mine_open_url, self.customer_support, expected=[], choose_org=self.org)  # always empty for CS
-
-        # try topic specific folders
-        assert_tickets(general_open_url, self.admin, expected=[c2_t1, c1_t1])
-        assert_tickets(general_open_url, self.editor, expected=[c2_t1, c1_t1])
-        assert_tickets(general_open_url, self.agent, expected=[c2_t1, c1_t1])
-        assert_tickets(general_open_url, self.agent2, expected=404)
-        assert_tickets(general_open_url, self.agent3, expected=404)
-
-        assert_tickets(sales_open_url, self.admin, expected=[c1_t2])
-        assert_tickets(sales_open_url, self.editor, expected=[c1_t2])
-        assert_tickets(sales_open_url, self.agent, expected=[c1_t2])
-        assert_tickets(sales_open_url, self.agent2, expected=[c1_t2])
-        assert_tickets(sales_open_url, self.agent3, expected=404)  # no access to sales topic
-
-        assert_tickets(sales_closed_url, self.admin, expected=[c3_t1])
-        assert_tickets(sales_closed_url, self.editor, expected=[c3_t1])
-        assert_tickets(sales_closed_url, self.agent, expected=[c3_t1])
-        assert_tickets(sales_closed_url, self.agent2, expected=[c3_t1])
-        assert_tickets(sales_closed_url, self.agent3, expected=404)
-
-        # bad topic should be a 404
-        assert_tickets(bad_topic_url, self.admin, expected=404)
-        assert_tickets(bad_topic_url, self.agent, expected=404)
-        assert_tickets(bad_topic_url, self.agent2, expected=404)
-        assert_tickets(bad_topic_url, self.agent3, expected=404)
-
-        # fetching closed folder returns all closed tickets
-        response = assert_tickets(all_closed_url, self.admin, expected=[c3_t2, c3_t1, c2_t2])
+        # the newest closed ticket carries its closed_on
         self.assertEqual(
             {
                 "uuid": str(contact3.uuid),
@@ -500,29 +429,256 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                     "closed_on": matchers.ISODatetime(),
                 },
             },
-            response.json()["results"][0],
+            response.json()["results"][3],
         )
 
-        # deep linking to a single ticket returns just that ticket
-        assert_tickets(f"{all_open_url}{str(c1_t1.uuid)}", self.admin, expected=[c1_t1])
-        assert_tickets(f"{all_open_url}{str(c1_t1.uuid)}", self.editor, expected=[c1_t1])
-        assert_tickets(f"{all_open_url}{str(c1_t1.uuid)}", self.agent, expected=[c1_t1])
-        assert_tickets(f"{all_open_url}{str(c1_t1.uuid)}", self.agent2, expected=[])
-        assert_tickets(f"{all_open_url}{str(c1_t1.uuid)}", self.agent3, expected=[])
+        # fetching new activity returns both open and closed tickets (oldest first)
+        response = self.client.get(f"{all_url}?after={datetime_to_timestamp(c2_t2.last_activity_on)}")
+        self.assertEqual([str(c3_t1.uuid), str(c3_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]])
 
-        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.admin, expected=[c1_t2])
-        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.editor, expected=[c1_t2])
-        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent, expected=[c1_t2])
-        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent2, expected=[c1_t2])
-        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[])  # can't access via All
-
-        assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.admin, expected=[])
-        assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[c1_t2])  # can access via Mine
-
-        # make sure when paging we get a next url
+        # refreshes are never paged, so even a full page of new activity doesn't get a next link
         with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 1):
-            response = self.requestView(all_open_url + "?_format=json", self.admin)
-            self.assertIsNotNone(response.json()["next"])
+            response = self.client.get(f"{all_url}?after={datetime_to_timestamp(c2_t2.last_activity_on)}")
+            self.assertEqual([str(c3_t1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]])
+            self.assertNotIn("next", response.json())
+
+        # test filtering by assignee on the all folder
+        assert_tickets(f"{all_url}?assignee={self.admin.uuid}", self.admin, expected=[c1_t1])
+        assert_tickets(f"{all_url}?assignee={self.agent3.uuid}", self.admin, expected=[c1_t2])
+        assert_tickets(f"{all_url}?assignee={self.agent.uuid}", self.admin, expected=[])
+
+        # assignee filter is ignored on non-all folders
+        assert_tickets(f"{mine_url}?assignee={self.agent3.uuid}", self.admin, expected=[c1_t1])
+
+        # assignee filter still respects topic access restrictions
+        # agent2 only has access to sales topic, so filtering by admin (who has a General ticket) returns nothing
+        assert_tickets(f"{all_url}?assignee={self.admin.uuid}", self.agent2, expected=[])
+        # but filtering by agent3 (who has a Sales ticket) returns that ticket
+        assert_tickets(f"{all_url}?assignee={self.agent3.uuid}", self.agent2, expected=[c1_t2])
+
+        # invalid assignee UUID returns all tickets
+        assert_tickets(f"{all_url}?assignee={uuid4()}", self.admin, expected=[c2_t1, c1_t2, c1_t1, c3_t2, c3_t1, c2_t2])
+
+        # test assignee filter with pagination (paginate_by=25, so we need 25+ tickets)
+        bulk_tickets = []
+        for i in range(24):
+            bulk_tickets.append(self.create_ticket(contact3, assignee=self.admin))
+        # now we have 25 admin-assigned tickets total (c1_t1 + 24 new ones) which fills a page, so we get a next
+        # link and it has to carry the assignee filter
+        response = self.requestView(f"{all_url}?assignee={self.admin.uuid}", self.admin)
+        actual = [t["ticket"]["uuid"] for t in response.json()["results"]]
+        self.assertEqual(25, len(actual))
+        self.assertIn(f"assignee={self.admin.uuid}", response.json()["next"])
+        for bt in bulk_tickets:
+            bt.delete()
+
+        # unassigned tickets
+        assert_tickets(unassigned_url, self.admin, expected=[c2_t1, c3_t2, c3_t1, c2_t2])
+        assert_tickets(unassigned_url, self.agent2, expected=[c3_t1])
+        assert_tickets(unassigned_url, self.agent3, expected=[])
+
+        # assigned tickets
+        assert_tickets(mine_url, self.admin, expected=[c1_t1])
+        assert_tickets(mine_url, self.editor, expected=[])
+        assert_tickets(mine_url, self.agent, expected=[])
+        assert_tickets(mine_url, self.agent2, expected=[])
+        assert_tickets(mine_url, self.agent3, expected=[])  # assigned to them but no access to sales topic
+        assert_tickets(mine_url, self.customer_support, expected=[], choose_org=self.org)  # always empty for CS
+
+        # try topic specific folders
+        assert_tickets(general_url, self.admin, expected=[c2_t1, c1_t1, c3_t2, c2_t2])
+        assert_tickets(general_url, self.agent2, expected=404)
+        assert_tickets(general_url, self.agent3, expected=404)
+
+        assert_tickets(sales_url, self.admin, expected=[c1_t2, c3_t1])
+        assert_tickets(sales_url, self.agent2, expected=[c1_t2, c3_t1])
+        assert_tickets(sales_url, self.agent3, expected=404)  # no access to sales topic
+
+        # bad topic should be a 404
+        assert_tickets(bad_topic_url, self.admin, expected=404)
+        assert_tickets(bad_topic_url, self.agent, expected=404)
+        assert_tickets(bad_topic_url, self.agent2, expected=404)
+        assert_tickets(bad_topic_url, self.agent3, expected=404)
+
+        # deep linking to a single ticket returns just that ticket
+        assert_tickets(f"{all_url}{str(c1_t1.uuid)}", self.admin, expected=[c1_t1])
+        assert_tickets(f"{all_url}{str(c1_t1.uuid)}", self.editor, expected=[c1_t1])
+        assert_tickets(f"{all_url}{str(c1_t1.uuid)}", self.agent, expected=[c1_t1])
+        assert_tickets(f"{all_url}{str(c1_t1.uuid)}", self.agent2, expected=[])
+        assert_tickets(f"{all_url}{str(c1_t1.uuid)}", self.agent3, expected=[])
+
+        assert_tickets(f"{all_url}{str(c1_t2.uuid)}", self.admin, expected=[c1_t2])
+        assert_tickets(f"{all_url}{str(c1_t2.uuid)}", self.agent2, expected=[c1_t2])
+        assert_tickets(f"{all_url}{str(c1_t2.uuid)}", self.agent3, expected=[])  # no access to sales topic
+
+        assert_tickets(f"{mine_url}{str(c1_t2.uuid)}", self.admin, expected=[])
+        assert_tickets(f"{mine_url}{str(c1_t2.uuid)}", self.agent3, expected=[])  # nor via Mine tho assigned
+
+        # deep links work for closed tickets too
+        assert_tickets(f"{all_url}{str(c2_t2.uuid)}", self.admin, expected=[c2_t2])
+
+        # paging serves open pages first, crossing into closed tickets when open runs short
+        with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 2):
+            response = self.requestView(all_url, self.admin)
+            self.assertEqual(
+                [str(c2_t1.uuid), str(c1_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+            self.assertEqual(
+                f"{all_url}?before={datetime_to_timestamp(c1_t2.last_activity_on)}&before_id={c1_t2.id}"
+                f"&before_status=O",
+                response.json()["next"],
+            )
+
+            # second page is the last open ticket plus the newest closed ticket
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual(
+                [str(c1_t1.uuid), str(c3_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+            self.assertEqual(
+                f"{all_url}?before={datetime_to_timestamp(c3_t2.last_activity_on)}&before_id={c3_t2.id}"
+                f"&before_status=C",
+                response.json()["next"],
+            )
+
+            # subsequent pages continue within the closed tickets
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual(
+                [str(c3_t1.uuid), str(c2_t2.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual([], response.json()["results"])
+            self.assertNotIn("next", response.json())
+
+    @mock_mailroom
+    def test_folder_refresh_bounding(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        base = timezone.now().replace(microsecond=0)
+
+        # 8 tickets in distinct milliseconds
+        spread = [self.create_ticket(contact) for _ in range(8)]
+        for i, ticket in enumerate(spread):
+            Ticket.objects.filter(id=ticket.id).update(last_activity_on=base + timedelta(milliseconds=i))
+
+        after = datetime_to_timestamp(base - timedelta(seconds=1))
+
+        with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 5):
+            # a full refresh page is capped, extended to a whole millisecond
+            response = self.requestView(f"/ticket/folder/all/?after={after}", self.admin)
+            self.assertEqual(
+                [str(t.uuid) for t in spread[:5]], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+
+            # a bulk update can put more than a page of tickets inside a single millisecond - the cap must
+            # yield so the client's millisecond resolution cursor can still advance
+            tied = [self.create_ticket(contact) for _ in range(8)]
+            for i, ticket in enumerate(tied):
+                Ticket.objects.filter(id=ticket.id).update(
+                    last_activity_on=base + timedelta(seconds=1, microseconds=i + 1)
+                )
+
+            after = datetime_to_timestamp(base + timedelta(seconds=1))
+            response = self.requestView(f"/ticket/folder/all/?after={after}", self.admin)
+            self.assertEqual([str(t.uuid) for t in tied], [t["ticket"]["uuid"] for t in response.json()["results"]])
+
+    @mock_mailroom
+    def test_folder_merged_page_ties(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        open1 = self.create_ticket(contact)
+        closed1 = self.create_ticket(contact, closed_on=timezone.now())
+        closed2 = self.create_ticket(contact, closed_on=timezone.now())
+        closed3 = self.create_ticket(contact, closed_on=timezone.now())
+
+        # two newest closed tickets share the same last activity timestamp
+        tied = timezone.now()
+        Ticket.objects.filter(id__in=[closed2.id, closed3.id]).update(last_activity_on=tied)
+
+        with patch("temba.tickets.views.TicketCRUDL.Folder.paginate_by", 2):
+            # the cursor includes the ticket id so tickets sharing the timestamp we page from aren't lost
+            response = self.requestView("/ticket/folder/all/", self.admin)
+            self.assertEqual(
+                [str(open1.uuid), str(closed3.uuid)],
+                [t["ticket"]["uuid"] for t in response.json()["results"]],
+            )
+
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual(
+                [str(closed2.uuid), str(closed1.uuid)],
+                [t["ticket"]["uuid"] for t in response.json()["results"]],
+            )
+
+            response = self.requestView(response.json()["next"], self.admin)
+            self.assertEqual([], response.json()["results"])
+            self.assertNotIn("next", response.json())
+
+    @mock_mailroom
+    def test_folder_cursor_without_status(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        open1 = self.create_ticket(contact)
+        open2 = self.create_ticket(contact)
+        closed1 = self.create_ticket(contact, closed_on=timezone.now())
+
+        base = timezone.now().replace(microsecond=0) - timedelta(minutes=1)
+        for i, ticket in enumerate([open1, open2, closed1]):
+            Ticket.objects.filter(id=ticket.id).update(last_activity_on=base + timedelta(seconds=i))
+            ticket.last_activity_on = base + timedelta(seconds=i)
+
+        all_url = reverse("tickets.ticket_folder", kwargs={"folder": "all"})
+        cursor = f"before={datetime_to_timestamp(open2.last_activity_on)}&before_id={open2.id}"
+
+        # a link from before cursors carried the status - or one with a junk status - is assumed to be in the open
+        # tickets, which is where paging always starts
+        for params in (cursor, f"{cursor}&before_status=X"):
+            response = self.requestView(f"{all_url}?{params}", self.admin)
+            self.assertEqual(
+                [str(open1.uuid), str(closed1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+
+    @mock_mailroom
+    def test_folder_invalid_params(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        ticket1 = self.create_ticket(contact)
+        ticket2 = self.create_ticket(contact, assignee=self.admin)
+
+        all_url = reverse("tickets.ticket_folder", kwargs={"folder": "all"})
+
+        # a malformed ticket uuid in the path is treated as not found rather than blowing up
+        response = self.requestView(f"{all_url}notauuid", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([], response.json()["results"])
+
+        # a malformed assignee is ignored, same as an unknown one
+        response = self.requestView(f"{all_url}?assignee=notauuid", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        # non-numeric cursor params are ignored so we just get the first page
+        response = self.requestView(f"{all_url}?after=NaN&before=x&before_id=y", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        # as are numeric cursor params too big (or small) to be a timestamp
+        response = self.requestView(f"{all_url}?after=100000000000000000000", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        response = self.requestView(f"{all_url}?before=-100000000000000000000&before_id={ticket1.id}", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            [str(ticket2.uuid), str(ticket1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+        )
+
+        # and a malformed ticket uuid in a list view deep link doesn't blow up either
+        response = self.requestView(f"{reverse('tickets.ticket_list')}all/notauuid/", self.admin)
+        self.assertEqual(200, response.status_code)
+        self.assertNotIn("uuid", response.context)
+        self.assertNotIn("nextUUID", response.context)
 
     @mock_mailroom
     def test_search(self, mr_mocks):

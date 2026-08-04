@@ -18,7 +18,7 @@ jobs:
         ports:
           - 6379:6379
       postgres:
-        image: postgres:15-alpine
+        image: pgvector/pgvector:0.8.3-pg15
         env:
           POSTGRES_DB: temba
           POSTGRES_USER: temba
@@ -40,7 +40,7 @@ jobs:
       - name: Install Linux packages
         run: |
           apt update
-          apt install -y --no-install-recommends libgdal-dev ffmpeg
+          apt install -y --no-install-recommends libgdal-dev ffmpeg gettext
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -61,6 +61,7 @@ jobs:
           uv sync --frozen
           bun install --frozen-lockfile
           npm install -g less@4
+          uv run python manage.py compilemessages --ignore='.venv' --ignore='node_modules'
           uv run python manage.py migrate
           uv run python manage.py migrate_dynamo --testing
           uv run python manage.py create_buckets --testing

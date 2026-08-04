@@ -5,7 +5,6 @@ import io
 import re
 import tempfile
 from datetime import date, datetime
-from gettext import gettext as _
 
 from dateutil.relativedelta import relativedelta
 
@@ -13,6 +12,7 @@ from django.core.files.storage import storages
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from temba.utils import json, s3
 from temba.utils.s3 import EventStreamReader
@@ -31,7 +31,6 @@ class Archive(models.Model):
     PERIOD_MONTHLY = "M"
     PERIOD_CHOICES = ((PERIOD_DAILY, "Day"), (PERIOD_MONTHLY, "Month"))
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True)
     org = models.ForeignKey("orgs.Org", related_name="archives", on_delete=models.PROTECT)
     archive_type = models.CharField(choices=TYPE_CHOICES, max_length=16)

@@ -14,19 +14,25 @@
       {{ object.offset_display }} <b>{{ object.relative_to.name }}</b>
     </div>
     <div class="flex-1 p-4 bg-gray-200 rounded-lg">
-      <b>{{ object.get_fire_count|intcomma }}</b> scheduled contacts
+      {% blocktrans trimmed with count=object.get_fire_count|intcomma %}
+        <b>{{ count }}</b> scheduled contacts
+      {% endblocktrans %}
     </div>
   </div>
   <div class="event-details p-4 bg-white rounded-lg mb-4">
     {% if object.event_type == 'M' %}
       <div class="cap-label">{% trans "Send Message" %}</div>
       <div class="text-gray-600 py-3">
-        <temba-expression-highlight>{{ object.get_message.text }}</temba-expression-highlight>
+        <temba-expression-highlight>
+          {{ object.get_message.text }}
+        </temba-expression-highlight>
       </div>
       {% with attachments=object.get_message.attachments %}
         {% if attachments %}
           <div class="attachments flex flex-row flex-wrap mt-2" style="gap: 0.5em">
-            {% for attachment in attachments %}{% attachment_button attachment True %}{% endfor %}
+            {% for attachment in attachments %}
+              {% attachment_button attachment True %}
+            {% endfor %}
           </div>
         {% endif %}
       {% endwith %}
@@ -42,9 +48,7 @@
                            font-size: 11px;
                            white-space: nowrap;
                            overflow: hidden;
-                           text-overflow: ellipsis">
-                {{ qr.text }}
-              </span>
+                           text-overflow: ellipsis">{{ qr.text }}</span>
             {% endfor %}
           </div>
         {% endif %}
@@ -56,7 +60,8 @@
                       background: #f0faf7;
                       color: #128C7E;
                       font-size: 0.85em">
-            <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E"></temba-icon>
+            <temba-icon class="mr-1" name="channel_wa" style="--icon-color: #128C7E">
+            </temba-icon>
             <div>{{ object.template.name }}</div>
           </div>
         </div>

@@ -945,6 +945,23 @@ class MailroomClientTest(TembaTest):
         )
 
     @patch("requests.post")
+    def test_org_publish(self, mock_post):
+        mock_post.return_value = MockJsonResponse(200, {})
+        event = {
+            "type": "asset_changed",
+            "asset": {"type": "flow", "uuid": "flow-1", "name": "Registration"},
+        }
+
+        response = self.client.org_publish(self.org, event)
+
+        self.assertEqual({}, response)
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mi/org/publish",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "event": event},
+        )
+
+    @patch("requests.post")
     def test_org_deindex(self, mock_post):
         mock_post.return_value = MockJsonResponse(200, {})
         response = self.client.org_deindex(self.org)

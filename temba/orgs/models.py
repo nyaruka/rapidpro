@@ -38,7 +38,7 @@ from temba.users.models import User
 from temba.utils import json, languages, on_transaction_commit
 from temba.utils.dates import datetime_to_str
 from temba.utils.email import EmailSender
-from temba.utils.models import TembaUUIDMixin, delete_in_batches
+from temba.utils.models import LegacyIDMixin, TembaUUIDMixin, delete_in_batches
 from temba.utils.models.counts import BaseDailyCount, BaseScopedCount
 from temba.utils.text import generate_secret
 from temba.utils.timezones import timezone_to_country_code
@@ -192,7 +192,7 @@ class OrgRole(Enum):
         return self.has_perm(permission) or permission in self.api_permissions
 
 
-class Org(SmartModel):
+class Org(LegacyIDMixin, SmartModel):
     """
     An Org can have several users and is the main component that holds all Flows, Messages, Contacts, etc.
 
@@ -243,6 +243,7 @@ class Org(SmartModel):
     FEATURE_TEAMS = "teams"  # can create teams to organize agent users
     FEATURE_PROMETHEUS = "prometheus"  # can create a prometheus token to access metrics
     FEATURE_SHARED_CHANNELS = "shared_channels"  # can share channels between orgs
+    FEATURE_AGENTS = "agents"  # can create AI agents to handle contact conversations
     FEATURES_CHOICES = (
         (FEATURE_USERS, _("Users")),
         (FEATURE_NEW_ORGS, _("New Orgs")),
@@ -250,12 +251,14 @@ class Org(SmartModel):
         (FEATURE_TEAMS, _("Teams")),
         (FEATURE_PROMETHEUS, _("Prometheus")),
         (FEATURE_SHARED_CHANNELS, _("Shared Channels")),
+        (FEATURE_AGENTS, _("Agents")),
     )
 
     LIMIT_CHANNELS = "channels"
     LIMIT_FIELDS = "fields"
     LIMIT_GLOBALS = "globals"
     LIMIT_GROUPS = "groups"
+    LIMIT_KNOWLEDGE = "knowledge"
     LIMIT_LABELS = "labels"
     LIMIT_LLMS = "llms"
     LIMIT_TOPICS = "topics"
@@ -273,7 +276,6 @@ class Org(SmartModel):
         "contact support."
     )
 
-    id = models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")
     uuid = models.UUIDField(unique=True, default=uuid4)
     name = models.CharField(verbose_name=_("Name"), max_length=128)
     parent = models.ForeignKey("orgs.Org", on_delete=models.PROTECT, null=True, related_name="children")
@@ -1037,12 +1039,14 @@ class Org(SmartModel):
         Initializes an organization, creating all the dependent objects we need for it to work properly.
         """
         from temba.contacts.models import ContactField, ContactGroup
+        from temba.knowledge.models import Knowledge
         from temba.tickets.models import Team, Topic
 
         ContactGroup.create_system_groups(self)
         ContactField.create_system_fields(self)
         Team.create_system(self)
         Topic.create_system(self)
+        Knowledge.create_system(self)  # both system sources; MUST be last so seeded UUIDs stay stable in test dumps
 
         # we should be called within a transaction, create the sample flows when its committed
         if sample_flows:
@@ -1132,6 +1136,9 @@ class Org(SmartModel):
 
         # delete contact-related data
         delete_in_batches(self.http_logs.all())
+        for kb in self.knowledge.all():
+            kb.delete()  # batched purge of chunks, items, articles, images + their storage objects
+        delete_in_batches(self.shortcuts.all())
         delete_in_batches(self.tickets.all())
         delete_in_batches(self.topics.all())
         delete_in_batches(self.teams.all())

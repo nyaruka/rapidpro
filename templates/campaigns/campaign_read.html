@@ -1,89 +1,125 @@
 {% extends "smartmin/read.html" %}
-{% load smartmin sms temba humanize i18n %}
+{% load i18n %}
 
-{% block subtitle %}
-  <div class="flex flex-col mb-4">
-    <div class="summary">
-      <div class="inline-block">
-        {# in the past we let users delete groups used by campaigns #}
-        {% if object.group.is_active %}
-          {% include "includes/recipients_group.html" with group=object.group %}
-        {% else %}
-          <div class="flex items-center">
-            <temba-icon name="issue" class="mr-2">
-            </temba-icon>
-            <div>{% trans "Group required" %}</div>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-{% endblock subtitle %}
-{% block post-title %}
-  {% if object.is_archived %}
-    <div class="labels mt-2">
-      <a href="{% url 'campaigns.campaign_archived' %}" class="lbl linked">{% trans "Archived" %}</a>
-    </div>
-  {% endif %}
-{% endblock post-title %}
+{% comment %}
+  Campaign read page. The temba-campaign-events component renders the
+  same page header as the list views (title + content menu), a badges row
+  (group, archived), then the campaign's event schedule — one subway
+  line per anchor field, each in its own card; the component fetches
+  the schedule itself from the campaign events endpoint. There is no
+  event read page here — events are edited / deleted through modals
+  and recent contacts show in a popup.
+{% endcomment %}
+{% block page-header %}
+  {# the component renders its own header (title + content menu); #}
+  {# keep the csrf token and a hidden title for the SPA document.title hook #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    /* The component renders the same flush header bar as the new list
+       pages, so drop the SPA content padding the same way they do. */
+    .spa-content {
+      padding: 0 !important;
+    }
+
+    /* the group pill rides the header as a subtitle, so shrink it down
+       and give it some breathing room under the title */
+    .subtitle-group {
+      font-size: 10.5px;
+      margin-top: 5px;
+      display: inline-block;
+    }
+
+    .subtitle-group a {
+      text-decoration: none;
+    }
+  </style>
+{% endblock extra-style %}
 {% block content %}
-  <table class="list lined">
-    <thead>
-      <tr>
-        <th>{% trans "When" %}</th>
-        <th>{% trans "Field" %}</th>
-        <th></th>
-        <th>{% trans "Contacts" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for event in events %}
-        <tr onclick="handleRowClicked(event)"
-            href="{% url 'campaigns.campaignevent_read' event.campaign.uuid event.uuid %}"
-            class="hover-linked">
-          <td class="whitespace-nowrap">{{ event.offset_display }}</td>
-          <td class="whitespace-nowrap">
-            <a href="{% url 'contacts.contactfield_list' %}">
-              <temba-label type="field" clickable>{{ event.relative_to.name }}</temba-label>
-            </a>
-          </td>
-          <td class="w-full">
-            {% if event.event_type == 'M' %}
-              <div class="message">
-                <div class="text">{{ event.get_message.text }}</div>
-              </div>
-            {% else %}
-              <a href="{% url 'flows.flow_editor' event.flow.uuid %}">
-                <temba-label type="flow" primary clickable>
-                  {{ event.flow.name }}
-                </temba-label>
-              </a>
-            {% endif %}
-          </td>
-          <td class="whitespace-nowrap text-right">
-            {% if event.status == 'S' %}
-              <span class="text-gray-400">{% trans "Scheduling" %}</span>
-            {% else %}
-              {{ event.get_fire_count|intcomma }}
-            {% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr class="empty_list">
-          <td colspan="99" class="text-center">{% trans "No events" %}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <temba-campaign-events id="campaign-events"
+                         campaign="{{ object.uuid }}"
+                         header-title="{{ object.name }}"
+                         content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}">
+    <div slot="subtitle" class="subtitle-group">
+      {# in the past we let users delete groups used by campaigns #}
+      {% if object.group.is_active %}
+        <a href="{% url 'contacts.contact_group' object.group.uuid %}"><temba-label icon="group" type="group" clickable>{{ object.group.name }}</temba-label></a>
+      {% else %}
+        <temba-label icon="issue">{% trans "Group required" %}</temba-label>
+      {% endif %}
+    </div>
+    {% if object.is_archived %}
+      <div slot="badges">
+        <a href="{% url 'campaigns.campaign_archived' %}"><temba-label icon="campaign_archived" clickable>{% trans "Archived" %}</temba-label></a>
+      </div>
+    {% endif %}
+  </temba-campaign-events>
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
-    function handleRowClicked(event) {
-      if (event.target.closest("a")) {
-        return;
-      }
-      goto(event, event.target.closest("tr"));
-    }
+    onSpload(function() {
+      var events = document.querySelector("#campaign-events");
+
+      events.addEventListener("temba-selection", function(event) {
+        var detail = event.detail;
+
+        // the embedded page header fires temba-selection with a content-menu
+        // item - dispatch it the same way the page chrome's content menu
+        // (spa_page_menu.html) does
+        if (detail.item && detail.item.type) {
+          var item = detail.item;
+          var click = detail.event;
+          if (item.type === "link") {
+            if (click) {
+              click.preventDefault();
+              click.stopPropagation();
+              if (click.metaKey && item.url) {
+                window.open(item.url, "_blank");
+                return;
+              }
+            }
+            spaGet(item.url);
+          } else if (item.type === "modax") {
+            showModax(item.title, item.url, {
+              disabled: item.disabled,
+              onSubmit: item.on_submit,
+              onRedirect: item.on_redirect,
+              id: item.modal_id,
+              originX: detail.originX,
+              originY: detail.originY
+            });
+          } else if (item.type === "url_post") {
+            posterize(item.url);
+          } else if (item.type === "js") {
+            if (window[item.id]) {
+              window[item.id]();
+            }
+          }
+          refreshMenu();
+          return;
+        }
+
+        // event rows open the edit / delete modals - both redirect back to
+        // this page on completion which re-fetches the schedule
+        if (detail.action === "edit_event") {
+          showModax("{% trans "Edit Event" %}", detail.event.edit_url, { id: "event-update" });
+          return;
+        }
+        if (detail.action === "delete_event") {
+          showModax("{% trans "Delete Event" %}", detail.event.delete_url, { id: "event-delete" });
+          return;
+        }
+
+        // a flow pill carries the flow's editor url; a contact in the recent
+        // contacts popup carries its read page url
+        if (detail.url) {
+          spaGet(detail.url);
+        }
+      });
+    });
   </script>
 {% endblock extra-script %}

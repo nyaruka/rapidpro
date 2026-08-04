@@ -54,9 +54,13 @@ class ComposeForm(Form):
                 text = values.get("text", "")
                 attachments = values.get("attachments", [])
                 if text and len(text) > Msg.MAX_TEXT_LEN:
-                    raise forms.ValidationError(_(f"Maximum allowed text is {Msg.MAX_TEXT_LEN} characters."))
+                    raise forms.ValidationError(
+                        _("Maximum allowed text is %(limit)d characters."), params={"limit": Msg.MAX_TEXT_LEN}
+                    )
                 if attachments and len(attachments) > Msg.MAX_ATTACHMENTS:
-                    raise forms.ValidationError(_(f"Maximum allowed attachments is {Msg.MAX_ATTACHMENTS} files."))
+                    raise forms.ValidationError(
+                        _("Maximum allowed attachments is %(limit)d files."), params={"limit": Msg.MAX_ATTACHMENTS}
+                    )
 
         primaryValues = compose.get(primary_language or base_language, {})
         template = primaryValues.get("template", None)

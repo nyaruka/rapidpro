@@ -1,4 +1,6 @@
 {% extends "smartmin/read.html" %}
+{% load i18n %}
+
 {% block extra-style %}
   {{ block.super }}
   <style>
@@ -68,7 +70,7 @@
     <temba-range-picker min="{{ request.org.created_on|date:"Y-m-d" }}">
     </temba-range-picker>
   </div>
-  <temba-chart header="Tickets Opened"
+  <temba-chart header="{% trans "Tickets Opened" %}"
                url="{% url 'tickets.ticket_chart' 'opened' %}"
                dataname="Topics"
                xtype="time"
@@ -77,7 +79,7 @@
                legend>
   </temba-chart>
   <temba-chart class="mt-6"
-               header="Response Time"
+               header="{% trans "Response Time" %}"
                url="{% url 'tickets.ticket_chart' 'resptime' %}"
                dataname="Average Response"
                colorIndex="2"
@@ -87,7 +89,7 @@
                requireWindow>
   </temba-chart>
   <temba-chart class="mt-6"
-               header="Response Count"
+               header="{% trans "Response Count" %}"
                url="{% url 'tickets.ticket_chart' 'replies' %}"
                dataname="Teams"
                colorIndex="1"
@@ -97,17 +99,17 @@
                legend>
   </temba-chart>
   <div class="leaderboard mt-6" id="leaderboard">
-    <h3 style="margin: 0 0 1em 0; font-size: 1.1em; font-weight: 600;">Top Responders</h3>
+    <h3 style="margin: 0 0 1em 0; font-size: 1.1em; font-weight: 600;">{% trans "Top Responders" %}</h3>
     <table>
       <thead>
         <tr>
-          <th>User</th>
-          <th>Replies</th>
+          <th>{% trans "User" %}</th>
+          <th>{% trans "Replies" %}</th>
         </tr>
       </thead>
       <tbody id="leaderboard-body">
         <tr>
-          <td colspan="2" class="empty">Loading...</td>
+          <td colspan="2" class="empty">{% trans "Loading..." %}</td>
         </tr>
       </tbody>
     </table>
@@ -136,16 +138,16 @@
         })
         .then(function(data) {
           if (!data.results.length) {
-            tbody.innerHTML = '<tr><td colspan="2" class="empty">No replies in this period</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="2" class="empty">{% trans "No replies in this period" as no_replies %}{{ no_replies|escapejs }}</td></tr>';
             return;
           }
           tbody.innerHTML = data.results.map(function(user) {
-            return '<tr><td><a href="/ticket/all/open/?assignee=' + user.uuid + '">' +
+            return '<tr><td><a href="/ticket/all/?assignee=' + user.uuid + '">' +
               escapeHtml(user.name) + '</a></td><td>' + user.replies.toLocaleString() + '</td></tr>';
           }).join("");
         })
         .catch(function() {
-          tbody.innerHTML = '<tr><td colspan="2" class="empty">Failed to load</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="2" class="empty">{% trans "Failed to load" as failed_load %}{{ failed_load|escapejs }}</td></tr>';
         });
     }
 

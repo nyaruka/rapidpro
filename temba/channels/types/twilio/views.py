@@ -422,12 +422,12 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
 
     form_class = TwilioConnectForm
     permission = "channels.channel_claim"
-    submit_button_name = "Save"
+    submit_button_name = _("Save")
     field_config = dict(account_sid=dict(label=""), account_token=dict(label=""))
-    success_message = "Twilio Account successfully connected."
+    success_message = _("Twilio Account successfully connected.")
     template_name = "channels/types/twilio/connect.html"
     menu_path = "/settings/channels/new-channel"
-    title = "Connect Twilio"
+    title = _("Connect Twilio")
 
     def pre_process(self, request, *args, **kwargs):
         reset_creds = self.request.GET.get("reset_creds", "")

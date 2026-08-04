@@ -10,6 +10,7 @@
       {{ claim_error }}
     </temba-alert>
   {% endif %}
+  <temba-alert level="error" class="my-4 hidden" id="connect-error"></temba-alert>
 {% endblock pre-form %}
 {% block form %}
   <div class="mt-4 card">
@@ -44,6 +45,18 @@
       const urlParams = new URLSearchParams(window.location.search)
 
       var accessToken = urlParams.get("code") || result.long_lived_token || result.access_token;
+
+      var oauthError = urlParams.get("error") || result.error;
+      var errorDescription = urlParams.get("error_description");
+      if (!errorDescription && result.error_description) {
+        errorDescription = decodeURIComponent(result.error_description.replace(/\+/g, " "));
+      }
+
+      // don't leave the code/token or error details in the address bar and browser history
+      if (accessToken || oauthError) {
+        history.replaceState(null, "", window.location.pathname);
+      }
+
       if (accessToken) {
         var userAccessToken = document.getElementById("user-access-token");
         var claimForm = document.getElementById("claim-form");
@@ -54,82 +67,21 @@
         if (claimForm) {
           claimForm.submit();
         }
+      } else if (oauthError) {
+        var errorAlert = document.getElementById("connect-error");
+        errorAlert.textContent = errorDescription || "{% trans 'Login was cancelled or failed, please try again.' %}";
+        errorAlert.classList.remove("hidden");
       }
     });
 
-    window.fbAsyncInit = function() {
-      // JavaScript SDK configuration and setup
-      FB.init({
-        appId: '{{ facebook_app_id }}', // Meta App ID
-        cookie: true, // enable cookies
-        xfbml: true, // parse social plugins on this page
-        version: 'v22.0' //Graph API version
-      });
-    };
-    // Load the JavaScript SDK asynchronously
-    (function(d, s, id) {
-      var js, fjs = d.getElementsByTagName(s)[0];
-      if (d.getElementById(id)) return;
-      js = d.createElement(s);
-      js.id = id;
-      js.src = "https://connect.facebook.net/en_US/sdk.js";
-      fjs.parentNode.insertBefore(js, fjs);
-    }(document, 'script', 'facebook-jssdk'));
-
-    function submitClaimForm(accessToken) {
-      if (accessToken) {
-        var userAccessToken = document.getElementById("user-access-token");
-        var claimForm = document.getElementById("claim-form");
-
-        if (userAccessToken) {
-          userAccessToken.value = accessToken;
-        }
-        if (claimForm) {
-          claimForm.submit();
-        }
-      }
-    }
-
-    // Facebook Login with JavaScript SDK
+    // Launch the embedded signup via the full-page OAuth dialog which redirects back
+    // here with the code/token that the handler above picks up and submits.
     function launchWhatsAppSignup() {
-      // Launch Facebook login
-
-      // The only per-config differences are the fallback OAuth URL, the FB.login
-      // options, and which authResponse field carries the token/code.
       {% if facebook_login_whatsapp_config_id %}
-      var fallbackUrl = "https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&config_id={{ facebook_login_whatsapp_config_id }}&response_type=code&override_default_response_type=true";
-      var loginOptions = {
-        config_id: '{{ facebook_login_whatsapp_config_id }}',
-        response_type: 'code',
-        override_default_response_type: true
-      };
-      var getToken = function(authResponse) { return authResponse.code; };
+      location.replace("https://www.facebook.com/v25.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&config_id={{ facebook_login_whatsapp_config_id }}&response_type=code&override_default_response_type=true");
       {% else %}
-      var fallbackUrl = "https://www.facebook.com/v22.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&scope=business_management,whatsapp_business_management,whatsapp_business_messaging&response_type=token";
-      var loginOptions = {
-        scope: 'business_management,whatsapp_business_management,whatsapp_business_messaging',
-        extras: {
-          feature: 'whatsapp_embedded_signup',
-          setup: {}
-        }
-      };
-      var getToken = function(authResponse) { return authResponse.accessToken; };
+      location.replace("https://www.facebook.com/v25.0/dialog/oauth?client_id={{ facebook_app_id }}&redirect_uri=" + window.location.origin + "{{connect_url}}" + "&scope=business_management,whatsapp_business_management,whatsapp_business_messaging&response_type=token");
       {% endif %}
-
-      // Fall back to the full-page OAuth dialog only when the JS SDK popup is unavailable,
-      // so the embedded signup is never launched a second time after the popup has run.
-      if (typeof FB === 'undefined' || !FB.login) {
-        location.replace(fallbackUrl);
-        return;
-      }
-      FB.login(function(response) {
-        if (response.authResponse) {
-          submitClaimForm(getToken(response.authResponse));
-        } else {
-          // User cancelled or did not fully authorize; leave the button so they can retry.
-          console.log('User cancelled login or did not fully authorize');
-        }
-      }, loginOptions);
     }
   </script>
 {% endblock extra-script %}

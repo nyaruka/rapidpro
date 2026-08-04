@@ -22,7 +22,7 @@ from ...views import ClaimViewMixin
 logger = logging.getLogger(__name__)
 
 # base URL for all WhatsApp Cloud Graph API calls (also imported by type.py) - bump the version here in one place
-WHATSAPP_GRAPH_API_BASE = "https://graph.facebook.com/v22.0"
+WHATSAPP_GRAPH_API_BASE = "https://graph.facebook.com/v25.0"
 
 # WhatsApp Cloud only requires the business_management OAuth scope at the top level; the
 # whatsapp_business_management and whatsapp_business_messaging permissions are granted as
@@ -448,14 +448,11 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
     form_class = WhatsappCloudConnectForm
     success_url = "@channels.types.whatsapp.select_waba"
     field_config = dict(api_key=dict(label=""), api_secret=dict(label=""))
-    submit_button_name = "Save"
-    success_message = "WhatsApp Account successfully connected."
+    submit_button_name = _("Save")
+    success_message = _("WhatsApp Account successfully connected.")
     template_name = "channels/types/whatsapp/connect.html"
     menu_path = "/settings/workspace"
-    title = "Connect WhatsApp"
-
-    def has_permission(self, request, *args, **kwargs) -> bool:
-        return super().has_permission(request, *args, **kwargs) and self.request.user.is_beta
+    title = _("Connect WhatsApp")
 
     def pre_process(self, request, *args, **kwargs):
         session_token = self.request.session.get(self.channel_type.SESSION_USER_TOKEN, None)
