@@ -3,10 +3,12 @@ import os
 import re
 from collections import defaultdict
 from pathlib import Path
+from urllib.parse import parse_qs
 
 import markdown
 import nh3
 from markdown.extensions import Extension
+from markdown.treeprocessors import Treeprocessor
 from pgvector.django import HnswIndex, VectorField
 
 from django.conf import settings
@@ -36,9 +38,59 @@ class EscapeRawHTML(Extension):
         md.inlinePatterns.deregister("html")
 
 
+# the size and layout an image can be given, carried in the fragment of its URL as #size=small&layout=inline - in the
+# markdown itself, so it survives any renderer. Each size is a single pixel cap (small=200, medium=400, large=640)
+# that renderers apply as both max-width and max-height, bounding the long axis of any aspect ratio; no fragment means
+# full size as a block, which is how markdown renders an image anyway.
+IMAGE_SIZES = ("small", "medium", "large")
+IMAGE_LAYOUTS = ("block", "inline")
+IMAGE_CLASSES = {f"size-{s}" for s in IMAGE_SIZES} | {f"layout-{layout}" for layout in IMAGE_LAYOUTS}
+
+
+class AnnotateImages(Extension):
+    """
+    Surfaces the size/layout fragment of each image's URL as classes on its <img> - size-small, layout-inline etc -
+    for CSS to act on. The src is left intact, fragment and all; a fragment on an <img> is harmless, and stripping it
+    would make the served HTML lie about the markdown it came from.
+    """
+
+    def extendMarkdown(self, md):
+        md.treeprocessors.register(AnnotateImagesProcessor(md), "annotate_images", 5)
+
+
+class AnnotateImagesProcessor(Treeprocessor):
+    def run(self, root):
+        for img in root.iter("img"):
+            params = parse_qs(img.get("src", "").partition("#")[2])
+
+            classes = []
+            for key, allowed in (("size", IMAGE_SIZES), ("layout", IMAGE_LAYOUTS)):
+                value = params.get(key, [""])[0]
+                if value in allowed:
+                    classes.append(f"{key}-{value}")
+
+            if classes:
+                img.set("class", " ".join(classes))
+
+
 # markdown extensions we render article bodies with. Deliberately conservative - no extension that would make markdown
 # itself more expressive than what the editor can round-trip.
 MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
+
+# nh3's default attribute allowances plus class - on images only, which is where AnnotateImages puts one
+SANITIZE_ATTRIBUTES = {**nh3.ALLOWED_ATTRIBUTES, "img": nh3.ALLOWED_ATTRIBUTES["img"] | {"class"}}
+
+
+def _sanitize_attribute(element: str, attribute: str, value: str) -> str | None:
+    """
+    Tightens what SANITIZE_ATTRIBUTES lets through: an image's class attribute may only carry the size/layout classes
+    AnnotateImages emits. Nothing else in the pipeline can put a class there, so like the sanitizing itself this is
+    defense in depth.
+    """
+    if element == "img" and attribute == "class":
+        kept = [c for c in value.split() if c in IMAGE_CLASSES]
+        return " ".join(kept) if kept else None
+    return value
 
 
 def render_markdown(body: str) -> str:
@@ -48,7 +100,11 @@ def render_markdown(body: str) -> str:
     `<url>` of our own quick reply syntax, say) survives instead of being quietly swallowed. Sanitizing stays as
     defense in depth, and still deals with the javascript: URLs markdown will happily make a link out of.
     """
-    return nh3.clean(markdown.markdown(body, extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML()]))
+    return nh3.clean(
+        markdown.markdown(body, extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML(), AnnotateImages()]),
+        attributes=SANITIZE_ATTRIBUTES,
+        attribute_filter=_sanitize_attribute,
+    )
 
 
 class Knowledge(TembaModel):

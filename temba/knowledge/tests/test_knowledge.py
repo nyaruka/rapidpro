@@ -9,6 +9,7 @@ from temba.knowledge.models import (
     Knowledge,
     KnowledgeChunk,
     KnowledgeItem,
+    _sanitize_attribute,
     get_article_image_path,
 )
 from temba.tests import TembaTest, cleanup
@@ -481,6 +482,40 @@ class ArticleTest(TembaTest):
         # images survive, since screenshots are the point of them
         article.body = "![shot](https://example.com/shot.png)"
         self.assertEqual('<p><img alt="shot" src="https://example.com/shot.png"></p>', article.as_html())
+
+        # the size and layout an image was given ride the fragment of its URL and come out as classes on the <img>,
+        # with the src untouched - fragment and all
+        for fragment, classes in (
+            ("#size=small", "size-small"),
+            ("#size=medium", "size-medium"),
+            ("#size=large", "size-large"),
+            ("#layout=block", "layout-block"),
+            ("#layout=inline", "layout-inline"),
+            ("#size=small&layout=inline", "size-small layout-inline"),
+            ("#size=large&layout=block", "size-large layout-block"),
+        ):
+            article.body = f"![shot](https://example.com/shot.png{fragment})"
+            src = f"https://example.com/shot.png{fragment}".replace("&", "&amp;")
+            self.assertEqual(
+                f'<p><img alt="shot" class="{classes}" src="{src}"></p>', article.as_html(), f"for fragment {fragment}"
+            )
+
+        # a size or layout we don't have is ignored rather than guessed at, as is a fragment that isn't ours at all
+        for fragment in ("#size=huge", "#layout=diagonal", "#section-2", "#size=small=small"):
+            article.body = f"![shot](https://example.com/shot.png{fragment})"
+            self.assertEqual(
+                f'<p><img alt="shot" src="https://example.com/shot.png{fragment}"></p>',
+                article.as_html(),
+                f"for fragment {fragment}",
+            )
+
+    def test_sanitize_attribute(self):
+        # the sanitizer only lets the size/layout classes through on an image, and nothing above it in the rendering
+        # can put any other class there - so exercised directly, as the defense in depth it is
+        self.assertEqual("size-small layout-inline", _sanitize_attribute("img", "class", "size-small layout-inline"))
+        self.assertEqual("size-small", _sanitize_attribute("img", "class", "size-small sneaky"))
+        self.assertIsNone(_sanitize_attribute("img", "class", "sneaky"))
+        self.assertEqual("https://x.com", _sanitize_attribute("a", "href", "https://x.com"))
 
     def test_publishing(self):
         article = self.create_article(self.helpdesk, "Getting Started")
