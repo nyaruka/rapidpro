@@ -1,7 +1,10 @@
 import os
 import re
+from collections import defaultdict
 from pathlib import Path
 
+import markdown
+import nh3
 from pgvector.django import HnswIndex, VectorField
 
 from django.conf import settings
@@ -220,7 +223,12 @@ class Article(models.Model):
 
     MAX_TITLE_LEN = 255
     MAX_SLUG_LEN = 255
-    MAX_DEPTH = 3  # root + two levels of nesting; enforced by the (phase 4) reorder view
+    MAX_DEPTH = 3  # root + two levels of nesting; enforced by the reorder view
+    MAX_ARTICLES = 1000  # per helpdesk
+
+    # markdown extensions we render bodies with. Deliberately conservative - no extension that would make raw HTML
+    # more expressive, since everything is sanitized afterwards anyway.
+    MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
 
     uuid = models.UUIDField(unique=True, default=uuid4)
     knowledge = models.ForeignKey(Knowledge, on_delete=models.PROTECT, related_name="articles")
@@ -234,6 +242,11 @@ class Article(models.Model):
     slug = models.SlugField(max_length=MAX_SLUG_LEN)
     body = models.TextField(default="")  # markdown source
 
+    # ISO-639-3, so a helpdesk can hold articles in several languages. Translations aren't linked to each other yet -
+    # retrieval doesn't need them, as multilingual-e5 embeds cross-lingually, and linking is a question for the
+    # eventual public site rather than for search.
+    language = models.CharField(max_length=3, default="eng")
+
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_DRAFT)
     published_on = models.DateTimeField(null=True)
 
@@ -244,6 +257,26 @@ class Article(models.Model):
     # auto_now is load-bearing: mailroom's staleness sweep is MAX(modified_on) > knowledge.last_indexed_on, so an
     # unpublish or a soft-delete has to bump it for the removal to be noticed
     modified_on = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def create(cls, knowledge, user, title: str, *, body: str = "", parent=None, language: str = None):
+        assert knowledge.knowledge_type == Knowledge.TYPE_HELPDESK, "articles can only belong to a helpdesk"
+        assert parent is None or parent.knowledge_id == knowledge.id, "parent must be in the same helpdesk"
+
+        # new articles go to the end of their level so creating one never reshuffles the tree
+        last = cls.objects.filter(knowledge=knowledge, parent=parent, is_active=True).order_by("-sort_order").first()
+
+        return cls.objects.create(
+            knowledge=knowledge,
+            parent=parent,
+            sort_order=(last.sort_order + 1) if last else 0,
+            title=title,
+            slug=cls.get_unique_slug(knowledge, title),
+            body=body,
+            language=language or knowledge.org.flow_languages[0],
+            created_by=user,
+            modified_by=user,
+        )
 
     @classmethod
     def get_unique_slug(cls, knowledge, title: str, ignore=None) -> str:
@@ -260,20 +293,118 @@ class Article(models.Model):
 
         return slug
 
+    @classmethod
+    def get_tree(cls, knowledge) -> list:
+        """
+        Returns the helpdesk's active articles in display order - depth first, siblings by (sort_order, title) - with
+        each one's depth attached for rendering.
+        """
+        by_parent = defaultdict(list)
+        for article in knowledge.articles.filter(is_active=True).order_by("sort_order", "title"):
+            by_parent[article.parent_id].append(article)
+
+        ordered = []
+
+        def visit(parent_id, depth):
+            for article in by_parent[parent_id]:
+                article.depth = depth
+                ordered.append(article)
+                visit(article.id, depth + 1)
+
+        visit(None, 0)
+        return ordered
+
+    @classmethod
+    def apply_sort(cls, knowledge, order: list):
+        """
+        Applies a new tree ordering given as (uuid, parent uuid or None, sort order) tuples, which need only describe
+        what moved. The client's tree is never trusted - the resulting forest is re-derived here and rejected if it
+        names an article that isn't in this helpdesk, introduces a cycle, or nests deeper than MAX_DEPTH.
+        """
+        articles = {str(a.uuid): a for a in knowledge.articles.filter(is_active=True)}
+        uuids_by_id = {a.id: uuid for uuid, a in articles.items()}
+
+        # start from the tree as it stands so unmentioned articles keep their place
+        parents = {uuid: uuids_by_id.get(a.parent_id) for uuid, a in articles.items()}
+        changed = []
+
+        for uuid, parent_uuid, sort_order in order:
+            article = articles.get(uuid)
+            if not article:
+                raise ValueError(f"no such article: {uuid}")
+            if parent_uuid is not None and parent_uuid not in articles:
+                raise ValueError(f"no such article: {parent_uuid}")
+
+            parents[uuid] = parent_uuid
+            article.parent_id = articles[parent_uuid].id if parent_uuid else None
+            article.sort_order = sort_order
+            changed.append(article)
+
+        for uuid in parents:
+            seen, depth, ancestor = {uuid}, 1, parents[uuid]
+            while ancestor is not None:
+                if ancestor in seen:
+                    raise ValueError("articles can't be their own ancestor")
+                seen.add(ancestor)
+                depth += 1
+                if depth > cls.MAX_DEPTH:
+                    raise ValueError(f"articles can't be nested more than {cls.MAX_DEPTH} deep")
+                ancestor = parents[ancestor]
+
+        # deliberately doesn't touch modified_on: ordering isn't part of what mailroom indexes, so a reorder shouldn't
+        # make the helpdesk look stale and re-embed every article in it
+        cls.objects.bulk_update(changed, ("parent", "sort_order"))
+
     @property
     def org(self):
         return self.knowledge.org
 
+    def as_html(self) -> str:
+        """
+        Renders our markdown body for display. Bodies are user authored and markdown passes raw HTML straight through,
+        so the result is always sanitized - which also deals with the javascript: URLs markdown will happily make a
+        link out of.
+        """
+        return nh3.clean(markdown.markdown(self.body, extensions=list(self.MARKDOWN_EXTENSIONS)))
+
+    def publish(self, user):
+        self.status = self.STATUS_PUBLISHED
+        self.published_on = timezone.now()
+        self.modified_by = user
+        self.save(update_fields=("status", "published_on", "modified_by", "modified_on"))
+
+    def unpublish(self, user):
+        """
+        Reverts to a draft. modified_on bumps, so mailroom's sweep sees the helpdesk as stale and drops our chunks.
+        """
+        self.status = self.STATUS_DRAFT
+        self.published_on = None
+        self.modified_by = user
+        self.save(update_fields=("status", "published_on", "modified_by", "modified_on"))
+
     def release(self, user):
         """
-        Soft delete. Children are reparented to our parent so the tree stays connected.
+        Soft delete - a tombstone, so mailroom's delta sweep notices and drops our chunks. Children are reparented to
+        our parent so the tree stays connected, and our images go for good since nothing will render this body again.
         """
-        self.children.update(parent=self.parent)
+        image_paths = list(self.images.values_list("path", flat=True))
 
-        self.is_active = False
-        self.status = self.STATUS_DRAFT
-        self.modified_by = user
-        self.save(update_fields=("is_active", "status", "modified_by", "modified_on"))
+        with transaction.atomic():
+            self.children.update(parent=self.parent)
+            self.images.all().delete()
+
+            self.is_active = False
+            self.status = self.STATUS_DRAFT
+            self.published_on = None
+            self.modified_by = user
+            self.save(update_fields=("is_active", "status", "published_on", "modified_by", "modified_on"))
+
+        # only remove the storage objects once their rows are gone
+        for path in image_paths:
+            public_file_storage.delete(path)
+
+    def __str__(self):
+        return self.title
 
     class Meta:
         constraints = [
@@ -300,6 +431,10 @@ class ArticleImage(models.Model):
     eventual standalone help site serves these directly.
     """
 
+    ALLOWED_CONTENT_TYPES = ("image/gif", "image/jpeg", "image/png", "image/webp")
+    MAX_UPLOAD_SIZE = 1024 * 1024 * 10  # 10MB
+    MAX_IMAGES = 50  # per article
+
     uuid = models.UUIDField(unique=True, default=uuid4)
     article = models.ForeignKey(Article, on_delete=models.PROTECT, related_name="images")
     name = models.CharField(max_length=255)
@@ -309,6 +444,32 @@ class ArticleImage(models.Model):
 
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_on = models.DateTimeField(default=timezone.now)
+
+    @classmethod
+    def is_allowed_type(cls, content_type: str) -> bool:
+        return content_type in cls.ALLOWED_CONTENT_TYPES
+
+    @classmethod
+    def from_upload(cls, article, user, file):
+        # borrows Media's filename cleaning but not the model itself - its alternates and ffmpeg processing are
+        # message attachment concerns that a screenshot has no use for
+        from temba.msgs.models import Media
+
+        assert cls.is_allowed_type(file.content_type), "unsupported content type"
+
+        uuid = uuid4()
+        name = Media.clean_name(file.name, file.content_type)
+        path = public_file_storage.save(get_article_image_path(article, uuid, name), file)
+
+        return cls.objects.create(
+            uuid=uuid,
+            article=article,
+            name=name,
+            path=path,
+            content_type=file.content_type,
+            size=public_file_storage.size(path),
+            created_by=user,
+        )
 
     @property
     def url(self) -> str:

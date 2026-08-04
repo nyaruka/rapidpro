@@ -1,0 +1,19 @@
+{% extends "orgs/base/create.html" %}
+{% load smartmin i18n %}
+
+{% block pre-form %}
+  {% if blocker == "limit_reached" %}
+    <temba-alert level="warning">
+      {% blocktrans trimmed with limit=max_articles %}
+        You have reached the limit of {{ limit }} articles. You must delete existing ones before you can create new
+        ones.
+      {% endblocktrans %}
+    </temba-alert>
+  {% endif %}
+{% endblock pre-form %}
+{% block fields %}
+  {% if not blocker %}
+    {% render_field 'title' %}
+    {% if form.language %}{% render_field 'language' %}{% endif %}
+  {% endif %}
+{% endblock fields %}

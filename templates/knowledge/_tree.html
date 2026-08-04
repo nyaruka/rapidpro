@@ -1,0 +1,20 @@
+{% load i18n %}
+{% comment %}
+  The article hierarchy, shown beside whatever the page is doing with the selected article. Rows are rendered flat
+  with a depth, which is also how reordering works: a drop yields an index and a depth, and the parent is the nearest
+  preceding row one level shallower. The server re-derives and validates the resulting tree regardless.
+{% endcomment %}
+<div class="article-tree" {% if can_sort %}data-sort-url="{{ sort_url }}"{% endif %}>
+  {% for article in tree %}
+    <div class="article-row {% if selected == article.uuid|stringformat:'s' %}selected{% endif %}"
+         data-uuid="{{ article.uuid }}"
+         data-depth="{{ article.depth }}"
+         style="padding-left: {{ article.depth }}rem"
+         {% if can_sort %}draggable="true"{% endif %}>
+      <a href="{% url 'knowledge.article_read' article.uuid %}" class="title">{{ article.title }}</a>
+      {% if article.status == "D" %}<div class="lbl">{% trans "Draft" %}</div>{% endif %}
+    </div>
+  {% empty %}
+    <div class="empty">{% trans "No articles" %}</div>
+  {% endfor %}
+</div>

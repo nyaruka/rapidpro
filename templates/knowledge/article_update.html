@@ -1,0 +1,20 @@
+{% extends "smartmin/update.html" %}
+{% load i18n %}
+
+{% block title-text %}
+  {{ object.title }}
+{% endblock title-text %}
+{% block content %}
+  <div class="article-layout">
+    {% include "knowledge/_tree.html" %}
+    <div class="article-body">{{ block.super }}</div>
+  </div>
+{% endblock content %}
+{% block extra-style %}
+  {{ block.super }}
+  {% include "knowledge/_tree_style.html" %}
+{% endblock extra-style %}
+{% block extra-script %}
+  {{ block.super }}
+  {% include "knowledge/_tree_script.html" %}
+{% endblock extra-script %}

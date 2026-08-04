@@ -2,9 +2,20 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.views.mixins import UniqueNameMixin
+from temba.utils import languages
 from temba.utils.fields import InputWidget, SelectWidget
 
-from .models import Knowledge
+from .models import Article, Knowledge
+
+
+class MarkdownEditorWidget(forms.Widget):
+    """
+    The article body editor - markdown source with a formatting toolbar, screenshot uploads and a preview rendered by
+    the server, so what the author sees is exactly what the read page will show.
+    """
+
+    template_name = "knowledge/forms/markdown_editor.html"
+    is_annotated = True
 
 
 class KnowledgeForm(UniqueNameMixin, forms.ModelForm):
@@ -81,3 +92,40 @@ class KnowledgeUpdateForm(UniqueNameMixin, forms.ModelForm):
         model = Knowledge
         fields = ("name",)
         widgets = {"name": InputWidget()}
+
+
+class ArticleForm(forms.ModelForm):
+    """
+    Create and update form for a helpdesk article. Publishing isn't here - it's an explicit action of its own, so that
+    saving an edit can never silently make a draft public.
+    """
+
+    def __init__(self, org, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.org = org
+
+        # only worth asking which language an article is in when the workspace actually has more than one
+        if len(org.flow_languages) > 1:
+            self.fields["language"].choices = [(c, languages.get_name(c)) for c in org.flow_languages]
+        else:
+            del self.fields["language"]
+
+    class Meta:
+        model = Article
+        fields = ("title", "language", "body")
+        widgets = {
+            "title": InputWidget(attrs={"widget_only": False}),
+            "language": SelectWidget(attrs={"widget_only": False}),
+            "body": MarkdownEditorWidget(),
+        }
+        labels = {"title": _("Title"), "language": _("Language"), "body": _("Body")}
+
+
+class ArticleCreateForm(ArticleForm):
+    """
+    New articles are created with just a title - the body is written on the editor page they land on.
+    """
+
+    class Meta(ArticleForm.Meta):
+        fields = ("title", "language")

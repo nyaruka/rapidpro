@@ -1,0 +1,26 @@
+{% extends "smartmin/read.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="article-layout">
+    {% include "knowledge/_tree.html" %}
+    <div class="article-body">
+      <div class="mb-4">
+        {% blocktrans trimmed %}
+          Help articles written by your workspace. Published articles are searchable by AI agents.
+        {% endblocktrans %}
+      </div>
+      {% if tree %}
+        <div class="text-gray-500">{% trans "Select an article to read or edit it." %}</div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock content %}
+{% block extra-style %}
+  {{ block.super }}
+  {% include "knowledge/_tree_style.html" %}
+{% endblock extra-style %}
+{% block extra-script %}
+  {{ block.super }}
+  {% include "knowledge/_tree_script.html" %}
+{% endblock extra-script %}

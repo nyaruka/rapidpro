@@ -1,0 +1,82 @@
+{% extends "smartmin/read.html" %}
+{% load i18n %}
+
+{% block title-text %}
+  {{ object.title }}
+{% endblock title-text %}
+{% block content %}
+  <div class="article-layout">
+    {% include "knowledge/_tree.html" %}
+    <div class="article-body">
+      {% if object.status == "D" %}
+        <temba-alert level="warning" class="mb-4">
+          {% trans "This article is a draft. It isn't searchable by agents until it's published." %}
+        </temba-alert>
+      {% endif %}
+      {# already sanitized by Article.as_html #}
+      <div class="markdown">{{ rendered|safe }}</div>
+    </div>
+  </div>
+  <temba-modax header="{{ _("Delete Article") |escapejs }}" id="delete-article">
+  </temba-modax>
+{% endblock content %}
+{% block extra-style %}
+  {{ block.super }}
+  {% include "knowledge/_tree_style.html" %}
+  <style type="text/css">
+    .markdown h1,
+    .markdown h2,
+    .markdown h3 {
+      font-weight: 500;
+      margin: 1rem 0 0.5rem 0;
+    }
+
+    .markdown h1 {
+      font-size: 1.5rem;
+    }
+
+    .markdown h2 {
+      font-size: 1.25rem;
+    }
+
+    .markdown h3 {
+      font-size: 1.1rem;
+    }
+
+    .markdown p {
+      margin-bottom: 0.75rem;
+    }
+
+    .markdown ul,
+    .markdown ol {
+      margin: 0 0 0.75rem 1.5rem;
+      list-style: revert;
+    }
+
+    .markdown img {
+      max-width: 100%;
+      border-radius: var(--curvature);
+    }
+
+    .markdown pre {
+      background: var(--color-secondary-light);
+      border-radius: var(--curvature);
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+
+    .markdown table {
+      margin-bottom: 0.75rem;
+    }
+
+    .markdown th,
+    .markdown td {
+      padding: 0.25rem 0.75rem 0.25rem 0;
+      text-align: left;
+    }
+  </style>
+{% endblock extra-style %}
+{% block extra-script %}
+  {{ block.super }}
+  {% include "knowledge/_tree_script.html" %}
+{% endblock extra-script %}

@@ -337,11 +337,147 @@ class ArticleTest(TembaTest):
                 modified_by=self.admin,
             )
 
+    def test_create(self):
+        article1 = Article.create(self.helpdesk, self.admin, "Getting Started")
+
+        self.assertEqual(self.helpdesk, article1.knowledge)
+        self.assertIsNone(article1.parent)
+        self.assertEqual(0, article1.sort_order)
+        self.assertEqual("getting-started", article1.slug)
+        self.assertEqual("", article1.body)
+        self.assertEqual(Article.STATUS_DRAFT, article1.status)  # new articles are always drafts
+        self.assertIsNone(article1.published_on)
+        self.assertEqual("eng", article1.language)  # defaults to the workspace's primary flow language
+
+        # new articles go to the end of their level so creating one never reshuffles the tree
+        article2 = Article.create(self.helpdesk, self.admin, "Flows", body="# Flows", language="spa")
+        self.assertEqual(1, article2.sort_order)
+        self.assertEqual("# Flows", article2.body)
+        self.assertEqual("spa", article2.language)
+
+        child = Article.create(self.helpdesk, self.admin, "Nodes", parent=article2)
+        self.assertEqual(article2, child.parent)
+        self.assertEqual(0, child.sort_order)
+
+    def test_get_tree(self):
+        flows = self.create_article(self.helpdesk, "Flows")
+        contacts = self.create_article(self.helpdesk, "Contacts")
+        nodes = self.create_article(self.helpdesk, "Nodes", parent=flows)
+        edges = self.create_article(self.helpdesk, "Edges", parent=flows)
+        deleted = self.create_article(self.helpdesk, "Old", parent=flows)
+
+        Article.objects.filter(id=contacts.id).update(sort_order=1)
+        Article.objects.filter(id=nodes.id).update(sort_order=1)
+        deleted.release(self.admin)
+
+        tree = Article.get_tree(self.helpdesk)
+
+        # depth first, siblings by sort order then title, and released articles omitted
+        self.assertEqual([flows, edges, nodes, contacts], tree)
+        self.assertEqual([0, 1, 1, 0], [a.depth for a in tree])
+
+    def test_apply_sort(self):
+        flows = self.create_article(self.helpdesk, "Flows")
+        contacts = self.create_article(self.helpdesk, "Contacts")
+        nodes = self.create_article(self.helpdesk, "Nodes")
+        other = self.create_article(self.org2.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK), "Other")
+        modified_on = flows.modified_on
+
+        Article.apply_sort(
+            self.helpdesk,
+            [(str(contacts.uuid), None, 0), (str(flows.uuid), None, 1), (str(nodes.uuid), str(flows.uuid), 0)],
+        )
+
+        self.assertEqual([contacts, flows, nodes], Article.get_tree(self.helpdesk))
+        self.assertEqual([0, 0, 1], [a.depth for a in Article.get_tree(self.helpdesk)])
+
+        # reordering isn't something mailroom indexes, so it doesn't make articles look stale
+        flows.refresh_from_db()
+        self.assertEqual(modified_on, flows.modified_on)
+
+        # an article we don't own can't be moved into our tree, or be made a parent in it
+        with self.assertRaises(ValueError):
+            Article.apply_sort(self.helpdesk, [(str(other.uuid), None, 0)])
+        with self.assertRaises(ValueError):
+            Article.apply_sort(self.helpdesk, [(str(flows.uuid), str(other.uuid), 0)])
+
+        # nor can an article be its own ancestor
+        with self.assertRaises(ValueError):
+            Article.apply_sort(self.helpdesk, [(str(flows.uuid), str(flows.uuid), 0)])
+        with self.assertRaises(ValueError):
+            Article.apply_sort(
+                self.helpdesk, [(str(flows.uuid), str(contacts.uuid), 0), (str(contacts.uuid), str(flows.uuid), 0)]
+            )
+
+        # nesting is allowed up to the cap...
+        deep = self.create_article(self.helpdesk, "Deep")
+        deeper = self.create_article(self.helpdesk, "Deeper")
+        Article.apply_sort(self.helpdesk, [(str(deep.uuid), str(nodes.uuid), 0)])
+
+        # ...but no further, counting the parts of the tree the client didn't mention
+        with self.assertRaises(ValueError):
+            Article.apply_sort(self.helpdesk, [(str(deeper.uuid), str(deep.uuid), 0)])
+
+        # none of the rejected moves changed anything
+        self.assertEqual([contacts, deeper, flows, nodes, deep], Article.get_tree(self.helpdesk))
+        self.assertEqual([0, 0, 0, 1, 2], [a.depth for a in Article.get_tree(self.helpdesk)])
+
+    def test_as_html(self):
+        article = self.create_article(self.helpdesk, "Getting Started")
+
+        article.body = "# Heading\n\nSome **bold** text with a [link](https://nyaruka.com).\n\n* one\n* two"
+        self.assertEqual(
+            '<h1>Heading</h1>\n<p>Some <strong>bold</strong> text with a <a href="https://nyaruka.com" '
+            'rel="noopener noreferrer">link</a>.</p>\n<ul>\n<li>one</li>\n<li>two</li>\n</ul>',
+            article.as_html(),
+        )
+
+        # tables and fenced code blocks are rendered
+        article.body = "| a | b |\n| - | - |\n| 1 | 2 |"
+        self.assertIn("<table>", article.as_html())
+
+        # raw HTML in the source is sanitized, as are the javascript: URLs markdown will make a link out of
+        article.body = "<script>alert(1)</script><p onclick='x'>hi</p>\n\n[bad](javascript:alert(1))"
+        self.assertEqual('\n<p>hi</p>\n\n<p><a rel="noopener noreferrer">bad</a></p>', article.as_html())
+
+        # images survive, since screenshots are the point of them
+        article.body = "![shot](https://example.com/shot.png)"
+        self.assertEqual('<p><img alt="shot" src="https://example.com/shot.png"></p>', article.as_html())
+
+    def test_publishing(self):
+        article = self.create_article(self.helpdesk, "Getting Started")
+        modified_on = article.modified_on
+
+        article.publish(self.editor)
+
+        article.refresh_from_db()
+        self.assertEqual(Article.STATUS_PUBLISHED, article.status)
+        self.assertIsNotNone(article.published_on)
+        self.assertEqual(self.editor, article.modified_by)
+        self.assertGreater(article.modified_on, modified_on)
+
+        modified_on = article.modified_on
+        article.unpublish(self.admin)
+
+        # modified_on bumps so mailroom's sweep sees the source as stale and drops the chunks
+        article.refresh_from_db()
+        self.assertEqual(Article.STATUS_DRAFT, article.status)
+        self.assertIsNone(article.published_on)
+        self.assertGreater(article.modified_on, modified_on)
+
+    @cleanup(s3=True)
     def test_release(self):
         parent = self.create_article(self.helpdesk, "Flows", status=Article.STATUS_PUBLISHED)
         child1 = self.create_article(self.helpdesk, "Nodes", parent=parent)
         child2 = self.create_article(self.helpdesk, "Edges", parent=parent)
         modified_on = parent.modified_on
+
+        path = public_file_storage.save(
+            get_article_image_path(parent, uuid4(), "shot.png"), SimpleUploadedFile("shot.png", b"png")
+        )
+        ArticleImage.objects.create(
+            article=parent, name="shot.png", path=path, content_type="image/png", size=3, created_by=self.admin
+        )
 
         parent.release(self.admin)
 
@@ -349,6 +485,7 @@ class ArticleTest(TembaTest):
         parent.refresh_from_db()
         self.assertFalse(parent.is_active)
         self.assertEqual(Article.STATUS_DRAFT, parent.status)
+        self.assertIsNone(parent.published_on)
         self.assertGreater(parent.modified_on, modified_on)
 
         # children reparented to our parent (the root) so the tree stays connected
@@ -357,8 +494,30 @@ class ArticleTest(TembaTest):
         self.assertIsNone(child1.parent)
         self.assertIsNone(child2.parent)
 
+        # and our images are gone for good - rows first, then the storage objects
+        self.assertEqual(0, ArticleImage.objects.count())
+        self.assertFalse(public_file_storage.exists(path))
+
 
 class ArticleImageTest(TembaTest):
+    @cleanup(s3=True)
+    def test_from_upload(self):
+        helpdesk = self.org.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK)
+        article = Article.create(helpdesk, self.admin, "Getting Started")
+
+        image = ArticleImage.from_upload(
+            article, self.admin, SimpleUploadedFile("Screen Shot!.PNG", b"png", content_type="image/png")
+        )
+
+        self.assertEqual(article, image.article)
+        self.assertEqual("Screen Shot.PNG", image.name)  # cleaned
+        self.assertEqual(
+            f"orgs/{self.org.id}/knowledge/{helpdesk.uuid}/articles/{article.uuid}/{image.uuid}.png", image.path
+        )
+        self.assertEqual("image/png", image.content_type)
+        self.assertEqual(3, image.size)
+        self.assertTrue(public_file_storage.exists(image.path))
+
     @cleanup(s3=True)
     def test_delete(self):
         helpdesk = self.org.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK)
