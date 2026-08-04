@@ -751,9 +751,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
     @mock_mailroom
     def test_chat_search(self, mr_mocks):
         contact = self.create_contact("Joe Blow", urns=["tel:+250781111111"])
-        other_contact = self.create_contact("Frank", urns=["tel:+250782222222"])
         ticket = self.create_ticket(contact)
-        other_ticket = self.create_ticket(contact)
 
         chat_search_url = reverse("contacts.contact_chat_search", args=[contact.uuid])
 
@@ -781,7 +779,6 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             "uuid": "019a9935-022e-7bb3-9d6f-03d773be624e",
             "type": "msg_created",
             "created_on": "2025-11-17T16:01:00+00:00",
-            "ticket_uuid": str(other_ticket.uuid),
         }
 
         # with results from mailroom
@@ -790,34 +787,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(chat_search_url + "?text=hello")
         self.assertEqual(200, response.status_code)
         self.assertEqual({"results": [event1, event2]}, response.json())
-        self.assertEqual([call(self.org, "hello", contact=contact, in_ticket=False)], mr_mocks.calls["msg_search"])
-
-        # a ticket scopes the search to that ticket's messages
-        mr_mocks.msg_search([(contact, event1), (contact, event2)])
-
-        response = self.client.get(chat_search_url + f"?text=hello&ticket={ticket.uuid}")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"results": [event1]}, response.json())
-        self.assertEqual(call(self.org, "hello", contact=contact, in_ticket=True), mr_mocks.calls["msg_search"][1])
-
-        # a ticket belonging to another contact is not a ticket we can search
-        other_contacts_ticket = self.create_ticket(other_contact)
-
-        response = self.client.get(chat_search_url + f"?text=hello&ticket={other_contacts_ticket.uuid}")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"results": []}, response.json())
-
-        # nor is one that doesn't exist or isn't a UUID
-        response = self.client.get(chat_search_url + f"?text=hello&ticket={uuid7()}")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"results": []}, response.json())
-
-        response = self.client.get(chat_search_url + "?text=hello&ticket=xyz")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"results": []}, response.json())
-
-        # none of which reached mailroom
-        self.assertEqual(2, len(mr_mocks.calls["msg_search"]))
+        self.assertEqual([call(self.org, "hello", contact=contact)], mr_mocks.calls["msg_search"])
 
     @mock_mailroom
     def test_update(self, mr_mocks):
