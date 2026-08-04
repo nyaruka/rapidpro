@@ -7,8 +7,10 @@
   <div id="title-text" class="hide">{{ title }}</div>
 {% endblock page-header %}
 {% block content %}
+  {# wider than any of the dialog's named sizes, since an article is read at the width it was written at #}
   <temba-modax header="{{ _("Update Article") |escapejs }}"
                id="update-article"
+               width="min(60rem, 92vw)"
                -temba-submitted="refreshArticles()">
   </temba-modax>
   {# after the editor, so its confirmation sits on top of it rather than behind #}
@@ -38,15 +40,6 @@
       var modax = document.querySelector('#update-article');
       modax.endpoint = endpoint;
       modax.open = true;
-
-      // temba-modax doesn't pass a size through to the dialog it renders, and its default is far too narrow for
-      // writing an article in, so widen that dialog once the modax has rendered it
-      modax.updateComplete.then(function() {
-        var dialog = modax.shadowRoot.querySelector('temba-dialog');
-        if (dialog) {
-          dialog.width = 'min(60rem, 92vw)';
-        }
-      });
     }
 
     function refreshArticles() {
