@@ -59,6 +59,15 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, 'role="T"')
         self.assertNotRegex(response.content.decode(), r"<temba-contact-details\b[^>]*\beditable(?:\s|>)")
 
+        # the cross-ticket search modal is only mounted for users who can access all topics
+        self.assertTrue(response.context["can_search"])
+        self.assertContains(response, "<temba-ticket-search")
+
+        self.login(self.agent2, choose_org=self.org)
+        response = self.client.get(list_url)
+        self.assertFalse(response.context["can_search"])
+        self.assertNotContains(response, "<temba-ticket-search")
+
     def test_list(self):
         list_url = reverse("tickets.ticket_list")
 
@@ -690,7 +699,8 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         search_url = reverse("tickets.ticket_search")
 
-        self.assertRequestDisallowed(search_url, [None])
+        # search isn't available to agents in topic-restricted teams
+        self.assertRequestDisallowed(search_url, [None, self.agent2])
 
         self.login(self.admin)
 
@@ -743,35 +753,12 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                         "event": event2,
                     },
                 ],
-                "dropped": 0,
             },
             response.json(),
         )
         self.assertEqual([call(self.org, "help", in_ticket=True)], mr_mocks.calls["msg_search"])
 
-        # an agent in a topic-restricted team only sees results for tickets they can access, and the matches they
-        # can't see are counted so the client can say so
-        mr_mocks.msg_search([(contact1, event1), (contact2, event2)])
-
-        self.login(self.agent2, choose_org=self.org)
-
-        response = self.client.get(search_url + "?text=help")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(
-            {
-                "results": [
-                    {
-                        "contact": {"uuid": str(contact2.uuid), "name": "Frank"},
-                        "ticket": {"uuid": str(ticket2.uuid), "status": "closed"},
-                        "event": event2,
-                    },
-                ],
-                "dropped": 1,
-            },
-            response.json(),
-        )
-
-        # tickets in another org, and malformed uuids, are dropped but aren't accessibility drops
+        # tickets in another org, and malformed uuids, are also dropped
         other_org_contact = self.create_contact("Jim", phone="125", org=self.org2)
         other_org_ticket = self.create_ticket(other_org_contact)
 
@@ -792,11 +779,9 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
 
         mr_mocks.msg_search([(contact1, event4), (contact1, event5)])
 
-        self.login(self.admin)
-
         response = self.client.get(search_url + "?text=help")
         self.assertEqual(200, response.status_code)
-        self.assertEqual({"results": [], "dropped": 0}, response.json())
+        self.assertEqual({"results": []}, response.json())
 
     @mock_mailroom
     def test_note(self, mr_mocks):
