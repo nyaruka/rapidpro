@@ -1,3 +1,4 @@
+import mimetypes
 import os
 import re
 from collections import defaultdict
@@ -17,9 +18,23 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import Org
+from temba.utils import on_transaction_commit
 from temba.utils.models import TembaModel, delete_in_batches
 from temba.utils.s3 import public_file_storage
 from temba.utils.uuid import uuid4
+
+# markdown extensions we render article bodies with. Deliberately conservative - no extension that would make raw HTML
+# more expressive, since everything is sanitized afterwards anyway.
+MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
+
+
+def render_markdown(body: str) -> str:
+    """
+    Renders authored markdown for display. Bodies are user authored and markdown passes raw HTML straight through, so
+    the result is always sanitized - which also deals with the javascript: URLs markdown will happily make a link out
+    of. A free function rather than a model method because the editor's preview renders a body that isn't saved yet.
+    """
+    return nh3.clean(markdown.markdown(body, extensions=list(MARKDOWN_EXTENSIONS)))
 
 
 class Knowledge(TembaModel):
@@ -194,6 +209,12 @@ class Knowledge(TembaModel):
         self.articles.exclude(parent=None).update(parent=None)
         delete_in_batches(self.articles.all())
 
+        # ATOMIC_REQUESTS means we're inside the request's transaction, so this has to wait for the commit - otherwise
+        # a later failure rolls the rows back and leaves them pointing at objects we've already destroyed
+        on_transaction_commit(lambda: self._delete_storage(item_paths, image_paths))
+
+    @staticmethod
+    def _delete_storage(item_paths: list, image_paths: list):
         for path in item_paths:
             default_storage.delete(path)
         for path in image_paths:
@@ -223,12 +244,9 @@ class Article(models.Model):
 
     MAX_TITLE_LEN = 255
     MAX_SLUG_LEN = 255
+    MAX_BODY_LEN = 100_000  # bodies are chunked and embedded, so this bounds what one article can cost to index
     MAX_DEPTH = 3  # root + two levels of nesting; enforced by the reorder view
     MAX_ARTICLES = 1000  # per helpdesk
-
-    # markdown extensions we render bodies with. Deliberately conservative - no extension that would make raw HTML
-    # more expressive, since everything is sanitized afterwards anyway.
-    MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
 
     uuid = models.UUIDField(unique=True, default=uuid4)
     knowledge = models.ForeignKey(Knowledge, on_delete=models.PROTECT, related_name="articles")
@@ -299,9 +317,14 @@ class Article(models.Model):
         Returns the helpdesk's active articles in display order - depth first, siblings by (sort_order, title) - with
         each one's depth attached for rendering.
         """
+        active = list(knowledge.articles.filter(is_active=True).order_by("sort_order", "title"))
+        active_ids = {a.id for a in active}
+
         by_parent = defaultdict(list)
-        for article in knowledge.articles.filter(is_active=True).order_by("sort_order", "title"):
-            by_parent[article.parent_id].append(article)
+        for article in active:
+            # an article whose parent isn't in the active set is shown as a root rather than dropped - otherwise it
+            # would be invisible here and so unmovable, while still being indexed if it's published
+            by_parent[article.parent_id if article.parent_id in active_ids else None].append(article)
 
         ordered = []
 
@@ -360,12 +383,7 @@ class Article(models.Model):
         return self.knowledge.org
 
     def as_html(self) -> str:
-        """
-        Renders our markdown body for display. Bodies are user authored and markdown passes raw HTML straight through,
-        so the result is always sanitized - which also deals with the javascript: URLs markdown will happily make a
-        link out of.
-        """
-        return nh3.clean(markdown.markdown(self.body, extensions=list(self.MARKDOWN_EXTENSIONS)))
+        return render_markdown(self.body)
 
     def publish(self, user):
         self.status = self.STATUS_PUBLISHED
@@ -399,9 +417,9 @@ class Article(models.Model):
             self.modified_by = user
             self.save(update_fields=("is_active", "status", "published_on", "modified_by", "modified_on"))
 
-        # only remove the storage objects once their rows are gone
-        for path in image_paths:
-            public_file_storage.delete(path)
+        # ATOMIC_REQUESTS means the atomic block above is only a savepoint, so the storage objects can't go until the
+        # request's transaction commits - otherwise a later failure restores the article without its screenshots
+        on_transaction_commit(lambda: [public_file_storage.delete(p) for p in image_paths])
 
     def __str__(self):
         return self.title
@@ -418,10 +436,16 @@ class Article(models.Model):
         ]
 
 
-def get_article_image_path(article, image_uuid, filename: str) -> str:
+def get_article_image_path(article, image_uuid, content_type: str) -> str:
+    # the extension comes from the sniffed content type rather than from the uploaded filename. These objects live in
+    # a public, unauthenticated bucket, and storage backends serve a key by the type its extension implies - so a file
+    # whose first bytes sniff as an image but which is named ".html" would otherwise be served as HTML from our own
+    # domain.
+    extension = mimetypes.guess_extension(content_type) or ".bin"
+
     return (
         f"orgs/{article.knowledge.org_id}/knowledge/{article.knowledge.uuid}/"
-        f"articles/{article.uuid}/{image_uuid}{Path(filename).suffix.lower()}"
+        f"articles/{article.uuid}/{image_uuid}{extension}"
     )
 
 
@@ -459,7 +483,7 @@ class ArticleImage(models.Model):
 
         uuid = uuid4()
         name = Media.clean_name(file.name, file.content_type)
-        path = public_file_storage.save(get_article_image_path(article, uuid, name), file)
+        path = public_file_storage.save(get_article_image_path(article, uuid, file.content_type), file)
 
         return cls.objects.create(
             uuid=uuid,
@@ -480,8 +504,8 @@ class ArticleImage(models.Model):
 
         super().delete()
 
-        # only remove the storage object once the row is gone
-        public_file_storage.delete(path)
+        # only remove the storage object once the deletion has committed - see Article.release
+        on_transaction_commit(lambda: public_file_storage.delete(path))
 
 
 def get_knowledge_item_path(knowledge, item_uuid, filename: str) -> str:
@@ -587,9 +611,10 @@ class KnowledgeItem(models.Model):
             super().delete()
             self.knowledge.mark_pending()
 
-        # only remove the storage object once the deletion has committed
+        # only remove the storage object once the deletion has committed - with ATOMIC_REQUESTS the atomic block above
+        # is just a savepoint, so this has to wait for the request's transaction
         if path:
-            default_storage.delete(path)
+            on_transaction_commit(lambda: default_storage.delete(path))
 
     class Meta:
         constraints = [

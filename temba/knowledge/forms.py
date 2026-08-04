@@ -103,11 +103,18 @@ class ArticleForm(forms.ModelForm):
     def __init__(self, org, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.org = org
+        if "body" in self.fields:  # the create form asks only for a title
+            self.fields["body"].max_length = Article.MAX_BODY_LEN
 
-        # only worth asking which language an article is in when the workspace actually has more than one
-        if len(org.flow_languages) > 1:
-            self.fields["language"].choices = [(c, languages.get_name(c)) for c in org.flow_languages]
+        # an article keeps the language it was written in even if the workspace later drops it, so that language stays
+        # a choice here - otherwise the article could never be saved again
+        codes = list(org.flow_languages)
+        if self.instance.language and self.instance.language not in codes:
+            codes.append(self.instance.language)
+
+        # only worth asking which language an article is in when there's actually more than one to choose from
+        if len(codes) > 1:
+            self.fields["language"].choices = [(c, languages.get_name(c)) for c in codes]
         else:
             del self.fields["language"]
 

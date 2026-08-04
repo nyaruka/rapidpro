@@ -167,6 +167,14 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertContentMenu(update_url, self.admin, ["View"])
 
+        # an article keeps the language it was written in as a choice even if the workspace later drops it, so that
+        # dropping a language can't make its articles permanently unsaveable
+        self.org.set_flow_languages(self.admin, ["eng"])
+        Article.objects.filter(id=article.id).update(language="spa")
+
+        response = self.assertUpdateFetch(update_url, [self.admin], form_fields=("title", "language", "body"))
+        self.assertEqual([("eng", "English"), ("spa", "Spanish")], response.context["form"].fields["language"].choices)
+
     def test_publishing(self):
         article = Article.create(self.helpdesk, self.admin, "Flows")
 
@@ -236,9 +244,25 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         flows.refresh_from_db()
         self.assertEqual(nodes, flows.parent)
 
-        # a malformed payload is rejected without touching anything
-        for payload in ('{"nope": 1}', "[{}]", '[{"uuid": "x", "parent": null, "sort_order": "y"}]', "not json"):
+        # a malformed payload is rejected without touching anything, as is one whose sort orders aren't finite or
+        # which names more articles than a helpdesk can hold
+        for payload in (
+            '{"nope": 1}',
+            "[{}]",
+            '[{"uuid": "x", "parent": null, "sort_order": "y"}]',
+            "not json",
+            '[{"uuid": "x", "parent": null, "sort_order": Infinity}]',
+        ):
             response = self.client.post(sort_url, payload, content_type="application/json")
+            self.assertEqual(400, response.status_code)
+            self.assertEqual({"error": "Invalid ordering."}, response.json())
+
+        with patch("temba.knowledge.models.Article.MAX_ARTICLES", 1):
+            response = self.client.post(
+                sort_url,
+                json.dumps([{"uuid": str(u), "parent": None, "sort_order": 0} for u in (flows.uuid, nodes.uuid)]),
+                content_type="application/json",
+            )
             self.assertEqual(400, response.status_code)
             self.assertEqual({"error": "Invalid ordering."}, response.json())
 
@@ -250,6 +274,17 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(400, response.status_code)
         self.assertEqual({"error": "articles can't be their own ancestor"}, response.json())
+
+        # a sort order too big for the column is clamped rather than handed to the database
+        response = self.client.post(
+            sort_url,
+            json.dumps([{"uuid": str(flows.uuid), "parent": None, "sort_order": 2**40}]),
+            content_type="application/json",
+        )
+        self.assertEqual({"status": "ok"}, response.json())
+
+        flows.refresh_from_db()
+        self.assertEqual(Article.MAX_ARTICLES, flows.sort_order)
 
     def test_preview(self):
         preview_url = reverse("knowledge.article_preview")

@@ -21,7 +21,7 @@ from temba.utils import json
 from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 
 from .forms import ArticleCreateForm, ArticleForm, KnowledgeForm, KnowledgeUpdateForm
-from .models import Article, ArticleImage, Knowledge, KnowledgeItem
+from .models import Article, ArticleImage, Knowledge, KnowledgeItem, render_markdown
 
 
 class KnowledgeCRUDL(SmartCRUDL):
@@ -491,8 +491,20 @@ class ArticleCRUDL(SmartCRUDL):
         def post(self, request, *args, **kwargs):
             try:
                 payload = json.loads(request.body)
-                order = [(str(i["uuid"]), i["parent"] and str(i["parent"]), int(i["sort_order"])) for i in payload]
-            except ValueError, TypeError, KeyError:
+                if len(payload) > Article.MAX_ARTICLES:
+                    raise ValueError("too many entries")
+
+                # sort orders are clamped rather than trusted - JSON numbers are unbounded, so an enormous one is
+                # either an OverflowError here or an integer out of range at the database
+                order = [
+                    (
+                        str(i["uuid"]),
+                        i["parent"] and str(i["parent"]),
+                        max(0, min(int(i["sort_order"]), Article.MAX_ARTICLES)),
+                    )
+                    for i in payload
+                ]
+            except ValueError, TypeError, KeyError, OverflowError:
                 return JsonResponse({"error": _("Invalid ordering.")}, status=400)
 
             try:
@@ -509,7 +521,7 @@ class ArticleCRUDL(SmartCRUDL):
         """
 
         def post(self, request, *args, **kwargs):
-            return JsonResponse({"html": Article(body=request.POST.get("body", "")).as_html()})
+            return JsonResponse({"html": render_markdown(request.POST.get("body", "")[: Article.MAX_BODY_LEN])})
 
     class Upload(BaseObject, PostOnlyMixin, OrgObjPermsMixin, SmartReadView):
         """

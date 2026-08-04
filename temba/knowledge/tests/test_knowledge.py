@@ -161,7 +161,7 @@ class KnowledgeTest(TembaTest):
         self.create_chunk(helpdesk, parent.uuid, "flows are...")
 
         image_path = public_file_storage.save(
-            get_article_image_path(parent, uuid4(), "shot1.png"), SimpleUploadedFile("shot1.png", b"png")
+            get_article_image_path(parent, uuid4(), "image/png"), SimpleUploadedFile("shot1.png", b"png")
         )
         ArticleImage.objects.create(
             article=parent,
@@ -376,6 +376,15 @@ class ArticleTest(TembaTest):
         self.assertEqual([flows, edges, nodes, contacts], tree)
         self.assertEqual([0, 1, 1, 0], [a.depth for a in tree])
 
+        # an article orphaned by its parent going inactive is shown as a root rather than dropped - otherwise it would
+        # be invisible here, and so unmovable, while still being indexed if it were published
+        Article.objects.filter(id=flows.id).update(is_active=False)
+
+        tree = Article.get_tree(self.helpdesk)
+
+        self.assertEqual([edges, contacts, nodes], tree)
+        self.assertEqual([0, 0, 0], [a.depth for a in tree])
+
     def test_apply_sort(self):
         flows = self.create_article(self.helpdesk, "Flows")
         contacts = self.create_article(self.helpdesk, "Contacts")
@@ -473,7 +482,7 @@ class ArticleTest(TembaTest):
         modified_on = parent.modified_on
 
         path = public_file_storage.save(
-            get_article_image_path(parent, uuid4(), "shot.png"), SimpleUploadedFile("shot.png", b"png")
+            get_article_image_path(parent, uuid4(), "image/png"), SimpleUploadedFile("shot.png", b"png")
         )
         ArticleImage.objects.create(
             article=parent, name="shot.png", path=path, content_type="image/png", size=3, created_by=self.admin
@@ -518,6 +527,15 @@ class ArticleImageTest(TembaTest):
         self.assertEqual(3, image.size)
         self.assertTrue(public_file_storage.exists(image.path))
 
+        # the stored key's extension comes from the sniffed type, never the uploaded name - these live in a public
+        # bucket which serves an object as whatever its extension implies, so a .html name would be served as HTML
+        image = ArticleImage.from_upload(
+            article, self.admin, SimpleUploadedFile("evil.html", b"png", content_type="image/png")
+        )
+
+        self.assertEqual("evil.html", image.name)
+        self.assertTrue(image.path.endswith(f"{image.uuid}.png"))
+
     @cleanup(s3=True)
     def test_delete(self):
         helpdesk = self.org.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK)
@@ -531,7 +549,7 @@ class ArticleImageTest(TembaTest):
 
         image_uuid = uuid4()
         path = public_file_storage.save(
-            get_article_image_path(article, image_uuid, "Screen Shot.PNG"), SimpleUploadedFile("shot1.png", b"png")
+            get_article_image_path(article, image_uuid, "image/png"), SimpleUploadedFile("shot1.png", b"png")
         )
         self.assertEqual(f"orgs/{self.org.id}/knowledge/{helpdesk.uuid}/articles/{article.uuid}/{image_uuid}.png", path)
         image = ArticleImage.objects.create(

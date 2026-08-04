@@ -19,6 +19,17 @@
 
     const rows = () => Array.from(tree.querySelectorAll(".article-row"));
 
+    // the rows that travel with a drag: the dragged row and the rows below it that are deeper, i.e. its subtree
+    const subtree = function(all, row) {
+      const from = all.indexOf(row);
+      const depth = parseInt(row.dataset.depth);
+      const moving = [row];
+      for (let i = from + 1; i < all.length && parseInt(all[i].dataset.depth) > depth; i++) {
+        moving.push(all[i]);
+      }
+      return moving;
+    };
+
     tree.addEventListener("dragstart", function(evt) {
       dragged = evt.target.closest(".article-row");
       if (!dragged) {
@@ -44,11 +55,26 @@
         }
       }
 
-      // the row we'd land under bounds how deep we can be - at most one level below it
-      const above = all[dropIndex - 1];
-      const maxDepth = above && above !== dragged ? parseInt(above.dataset.depth) + 1 : 0;
+      // the row we'd land under bounds how deep we can be - at most one level below it. Rows that are moving with us
+      // are skipped, since they won't be there once we land, and taking a depth from one of them would let us claim a
+      // parent that ends up nowhere near us.
+      const moving = subtree(all, dragged);
+      let above = null;
+      for (let i = dropIndex - 1; i >= 0; i--) {
+        if (moving.indexOf(all[i]) < 0) {
+          above = all[i];
+          break;
+        }
+      }
+
+      // our own subtree has to fit under the cap too, not just our row - the descendants move by the same delta we do
+      const height = moving.reduce(function(max, row) {
+        return Math.max(max, parseInt(row.dataset.depth));
+      }, 0) - parseInt(dragged.dataset.depth);
+
+      const maxDepth = above ? parseInt(above.dataset.depth) + 1 : 0;
       const wanted = Math.floor((evt.clientX - tree.getBoundingClientRect().left) / INDENT);
-      dropDepth = Math.max(0, Math.min(wanted, maxDepth, MAX_DEPTH - 1));
+      dropDepth = Math.max(0, Math.min(wanted, maxDepth, MAX_DEPTH - 1 - height));
 
       if (!marker) {
         marker = document.createElement("div");
@@ -76,14 +102,10 @@
       }
 
       const all = rows();
-      const from = all.indexOf(dragged);
       const depthDelta = dropDepth - parseInt(dragged.dataset.depth);
 
-      // a subtree moves with its root, so take the rows below it that are deeper
-      const moving = [dragged];
-      for (let i = from + 1; i < all.length && parseInt(all[i].dataset.depth) > parseInt(dragged.dataset.depth); i++) {
-        moving.push(all[i]);
-      }
+      // a subtree moves with its root
+      const moving = subtree(all, dragged);
       if (moving.indexOf(all[dropIndex]) >= 0) {
         return; // can't drop a subtree inside itself
       }
@@ -95,11 +117,18 @@
         tree.insertBefore(row, before);
       });
 
+      // the parent of a row is the nearest one above it a level shallower. Depths are clamped to one more than the
+      // row before so a gap can never leave us naming an ancestor that isn't there - JSON.stringify drops undefined
+      // keys, and the server would reject the whole ordering for a missing parent.
       const order = [];
       const ancestors = [];
+      let previous = -1;
       rows().forEach(function(row, index) {
-        const depth = parseInt(row.dataset.depth);
+        const depth = Math.min(parseInt(row.dataset.depth), previous + 1);
+        row.dataset.depth = depth;
+        row.style.paddingLeft = depth + "rem";
         ancestors[depth] = row.dataset.uuid;
+        previous = depth;
         order.push({
           uuid: row.dataset.uuid,
           parent: depth > 0 ? ancestors[depth - 1] : null,
