@@ -35,7 +35,13 @@ from temba.utils.db.functions import SplitPart
 from temba.utils.export import response_from_workbook
 from temba.utils.fields import InputWidget
 from temba.utils.uuid import UUID_REGEX, is_uuid
-from temba.utils.views.mixins import ChartViewMixin, ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
+from temba.utils.views.mixins import (
+    ChartViewMixin,
+    ComponentFormMixin,
+    ContextMenuMixin,
+    ModalFormMixin,
+    SpaMixin,
+)
 
 from .forms import ShortcutForm, TeamForm, TopicForm
 from .models import (
@@ -53,24 +59,40 @@ from .models import (
 )
 
 
+def shortcuts_url(org) -> str:
+    """
+    Where shortcut CRUD lands: the fixed shortcuts page for agent orgs, the plain list otherwise.
+    """
+    if Org.FEATURE_AGENTS in org.features:
+        return reverse("knowledge.knowledge_shortcuts")
+
+    return reverse("tickets.shortcut_list")
+
+
 class ShortcutCRUDL(SmartCRUDL):
     model = Shortcut
     actions = ("create", "update", "delete", "list")
 
     class Create(BaseCreateModal):
         form_class = ShortcutForm
-        success_url = "@tickets.shortcut_list"
 
         def save(self, obj):
             return Shortcut.create(self.request.org, self.request.user, obj.name, obj.text)
 
+        def get_success_url(self):
+            return shortcuts_url(self.request.org)
+
     class Update(BaseUpdateModal):
         form_class = ShortcutForm
-        success_url = "@tickets.shortcut_list"
+
+        def get_success_url(self):
+            return shortcuts_url(self.request.org)
 
     class Delete(BaseDeleteModal):
         cancel_url = "@tickets.shortcut_list"
-        redirect_url = "@tickets.shortcut_list"
+
+        def get_redirect_url(self, **kwargs):
+            return shortcuts_url(self.request.org)
 
     class List(SpaMixin, ContextMenuMixin, BaseListView):
         menu_path = "/ticket/shortcuts"
@@ -204,17 +226,38 @@ class TicketCRUDL(SmartCRUDL):
                 )
 
             menu.append(self.create_divider())
-            menu.append(
-                self.create_menu_item(
-                    menu_id="shortcuts",
-                    name=_("Shortcuts"),
-                    icon="shortcut",
-                    count=org.shortcuts.filter(is_active=True).count(),
-                    href="tickets.shortcut_list",
+
+            counts = Ticket.get_topic_counts(org, topics, Ticket.STATUS_OPEN)
+            topic_items = [
+                {
+                    "id": topic.uuid,
+                    "name": topic.name,
+                    "icon": "topic",
+                    "count": counts[topic],
+                    "href": f"/ticket/{topic.uuid}/",
+                }
+                for topic in topics
+            ]
+            topics_group = self.create_menu_item(menu_id="topics", name=_("Topics"), items=topic_items, inline=True)
+
+            has_agents = Org.FEATURE_AGENTS in org.features
+            if has_agents:
+                # shortcuts and the knowledge sources live in the Knowledge section for these orgs
+                menu.append(topics_group)
+            else:
+                menu.append(
+                    self.create_menu_item(
+                        menu_id="shortcuts",
+                        name=_("Shortcuts"),
+                        icon="shortcut",
+                        count=org.shortcuts.filter(is_active=True).count(),
+                        href="tickets.shortcut_list",
+                    )
                 )
-            )
 
             if self.has_org_perm("tickets.ticket_analytics"):
+                if has_agents:
+                    menu.append(self.create_divider())
                 menu.append(
                     self.create_menu_item(
                         menu_id="analytics",
@@ -233,19 +276,9 @@ class TicketCRUDL(SmartCRUDL):
                     )
                 )
 
-            menu.append(self.create_divider())
-
-            counts = Ticket.get_topic_counts(org, topics, Ticket.STATUS_OPEN)
-            for topic in topics:
-                menu.append(
-                    {
-                        "id": topic.uuid,
-                        "name": topic.name,
-                        "icon": "topic",
-                        "count": counts[topic],
-                        "href": f"/ticket/{topic.uuid}/",
-                    }
-                )
+            if not has_agents:
+                menu.append(self.create_divider())
+                menu.append(topics_group)
 
             return menu
 
@@ -293,6 +326,10 @@ class TicketCRUDL(SmartCRUDL):
 
         def derive_menu_path(self):
             folder, status, ticket, in_page = self.tickets_path
+
+            # topics are nested inside their own menu group, the system folders aren't
+            if isinstance(folder, TopicFolder):
+                return f"/ticket/topics/{folder.slug}/"
 
             return f"/ticket/{folder.slug}/"
 

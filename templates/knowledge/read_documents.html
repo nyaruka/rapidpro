@@ -1,0 +1,28 @@
+{% load temba i18n %}
+
+<temba-modax header="{{ _("Delete Document") |escapejs }}" id="delete-knowledge-item">
+</temba-modax>
+<div class="mb-4">
+  {% blocktrans trimmed %}
+    Uploaded documents that AI agents can search when handling conversations.
+  {% endblocktrans %}
+</div>
+<temba-alert level="error" id="upload-error" class="mb-4 hide">
+</temba-alert>
+{% if items_limit_reached %}
+  <temba-alert level="warning" class="mb-4">
+    {% blocktrans trimmed %}
+      You have reached the limit of documents for this source and must delete existing ones before you can upload more.
+    {% endblocktrans %}
+  </temba-alert>
+{% endif %}
+<input type="file"
+       id="knowledge-item-input"
+       class="hide"
+       accept=".pdf,.docx,.txt,.md,.csv"
+       onchange="submitKnowledgeItem(this)">
+<table class="list lined scrolled">
+  <tbody>
+    {% include "knowledge/_item_rows.html" with items=items deletable=org_perms.knowledge.knowledgeitem_delete empty_message=_("No documents yet") %}
+  </tbody>
+</table>

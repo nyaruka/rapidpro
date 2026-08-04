@@ -897,6 +897,21 @@ class EndpointsTest(APITestMixin, TembaTest):
             num_queries=NUM_BASE_QUERIES + 1,
         )
 
+        self.assertGet(
+            f"{endpoint_url}?search=trains",
+            [self.admin],
+            results=[
+                {
+                    "uuid": str(shortcut2.uuid),
+                    "name": "Trains",
+                    "text": "Trains are...",
+                    "modified_on": matchers.ISODatetime(),
+                }
+            ],
+            num_queries=NUM_BASE_QUERIES + 2,
+        )
+        self.assertEqual(413, self.client.get(f"{endpoint_url}?search={'x' * 1_001}").status_code)
+
     def test_templates(self):
         endpoint_url = reverse("api.internal.templates") + ".json"
 

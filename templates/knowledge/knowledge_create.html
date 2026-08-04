@@ -1,0 +1,29 @@
+{% extends "orgs/base/create.html" %}
+{% load smartmin i18n %}
+
+{% block fields %}
+  {% render_field 'name' %}
+  {% render_field 'knowledge_type' %}
+  <div class="website-fields">
+    {% render_field 'url' %}
+    {% render_field 'max_pages' %}
+    {% render_field 'refresh' %}
+  </div>
+{% endblock fields %}
+{% block modal-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    var modalBody = getModax("#new-knowledge").shadowRoot;
+    var typeSelect = modalBody.querySelector("temba-select[name='knowledge_type']");
+    var websiteFields = modalBody.querySelector(".website-fields");
+
+    typeSelect.addEventListener("change", function(evt) {
+      var selected = evt.target.values[0];
+      if (selected.value === "website") {
+        websiteFields.classList.remove("hidden");
+      } else {
+        websiteFields.classList.add("hidden");
+      }
+    });
+  </script>
+{% endblock modal-script %}

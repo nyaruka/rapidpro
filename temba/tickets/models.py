@@ -49,6 +49,10 @@ class Shortcut(TembaModel):
 
     class Meta:
         constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_shortcut_names")]
+        indexes = [
+            # mailroom's staleness + delta sweep for the shortcuts knowledge source
+            models.Index(name="shortcut_by_modified", fields=("org", "modified_on")),
+        ]
 
 
 class Topic(TembaModel, DependencyMixin):
