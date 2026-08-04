@@ -1,18 +1,67 @@
 {% extends "smartmin/read.html" %}
 {% load i18n humanize smartmin sms contacts temba %}
 
-{% block title %}
-  <div class="hidden" id="title-text">{{ title|default:"Contact Details" }}</div>
-  <temba-contact-name contact="{{ object.uuid }}" -temba-refreshed="handleContactRefreshed">
-  </temba-contact-name>
-{% endblock title %}
+{% comment %}
+  Contact read page. Chat is the main view with the other panels as
+  collapsible, drag-sortable cards in a right column. Card order and
+  collapsed state persist per user in User.settings under "contact_cards".
+{% endcomment %}
+{% block page-header %}
+  {# the page renders its own header (title + content menu); keep the csrf #}
+  {# token and a hidden title for the SPA document.title hook #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    /* preview pages render without the frame footer */
+    .spa-footer {
+      display: none;
+    }
+
+    .spa-content {
+      padding: 0 !important;
+    }
+
+    /* Same header treatment as the preview list pages — inset 12px with a
+       full-bleed rule under it — but on the pane's own background so the
+       chat and cards pop as surfaces. */
+    .read-page {
+      flex-grow: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* only the page's left gutter — longhand on purpose: the layout owns
+       every other inset (including the tab-mode right padding), and the
+       padding shorthand would clobber them from document scope */
+    temba-card-layout {
+      flex-grow: 1;
+      min-height: 0;
+      padding-left: 8px;
+    }
+  </style>
+{% endblock extra-style %}
 {% block content %}
-  <temba-tabs -temba-context-changed="handleTabChanged"
-              index="{{ request.GET.tab }}"
-              collapses="true"
-              class="flex-grow -mt-2">
-    <temba-tab icon="message" name="{{ _("Chat") |escapejs }}">
-      <temba-contact-chat contact="{{ object.uuid }}"
+  <div class="read-page">
+    <temba-header-bar>
+      <temba-page-header content-menu-endpoint="{{ request.path }}" -temba-selection="handleContentMenuSelected(event)">
+        <temba-contact-name slot="title"
+                            contact="{{ object.uuid }}"
+                            icon-size="16"
+                            -temba-refreshed="handleContactRefreshed">
+        </temba-contact-name>
+      </temba-page-header>
+    </temba-header-bar>
+    <temba-card-layout id="card-layout"
+                       main-name="{{ _("Chat") |escapejs }}"
+                       main-icon="message"
+                       settings-endpoint="{% url 'users.user_settings' %}"
+                       settings="{{ card_settings }}">
+      <temba-contact-chat slot="main"
+                          contact="{{ object.uuid }}"
                           user="{{ request.user.uuid }}"
                           monitor="true"
                           avatar="{{ branding.logos.avatar }}"
@@ -21,58 +70,45 @@
                           {% if org_perms.channels.channel_logs or request.user.is_staff %}showMessageLogsAfter="{{ msg_logs_after }}"{% endif %}
                           -temba-interrupt="handleInterruptContact">
       </temba-contact-chat>
-    </temba-tab>
-    <temba-tab icon="info" name="{{ _("Details") |escapejs }}">
-      <temba-contact-details contact="{{ object.uuid }}"
-                             class="py-4 px-1 overflow-y-auto"
-                             -temba-button-clicked="handleFieldSearch"
-                             {% if org_perms.contacts.contact_update %}editable{% endif %}
-                             {% if object.org.is_anon %}anon{% endif %}>
-      </temba-contact-details>
-      {{ contact_urn_schemes|json_script:"contact-urn-schemes" }}
-    </temba-tab>
-    <temba-tab icon="fields" name="{{ _("Fields") |escapejs }}">
-      <div style="border-top-right-radius: var(--curvature)"
-           class="flex flex-grow flex-col py-4 px-1 overflow-y-auto">
+      <temba-card id="card-details" label="{{ _("Details") |escapejs }}" icon="info">
+        <temba-contact-details contact="{{ object.uuid }}"
+                               -temba-button-clicked="handleFieldSearch"
+                               {% if org_perms.contacts.contact_update %}editable{% endif %}
+                               {% if object.org.is_anon %}anon{% endif %}>
+        </temba-contact-details>
+        {{ contact_urn_schemes|json_script:"contact-urn-schemes" }}
+      </temba-card>
+      <temba-card id="card-fields" label="{{ _("Fields") |escapejs }}" icon="fields">
         <temba-contact-fields timezone="{{ object.org.timezone }}"
                               contact="{{ object.uuid }}"
                               -temba-button-clicked="handleFieldSearch">
-          <div slot="empty" class="no-fields p-16 text-center">
+          <div slot="empty" class="no-fields p-4 text-center">
             <div class="text-xl mb-4">{% trans "No Fields" %}</div>
             {% blocktrans trimmed %}
               Nothing to see here yet. Create a new field to save data to your contacts.
             {% endblocktrans %}
           </div>
         </temba-contact-fields>
-      </div>
-    </temba-tab>
-    <temba-tab icon="schedule" name="{{ _("Next Up") |escapejs }}">
-      <div style="border-top-right-radius: var(--curvature); background: #fff"
-           class="flex flex-grow flex-col py-8 px-4 overflow-y-auto">
+      </temba-card>
+      <temba-card id="card-nextup" label="{{ _("Next Up") |escapejs }}" icon="schedule">
         <temba-contact-timeline contact="{{ object.uuid }}" -temba-selection="handleTimelineClicked">
         </temba-contact-timeline>
-      </div>
-    </temba-tab>
-    <temba-tab icon="notes" name="{{ _("Notepad") }}" activity>
-      <temba-contact-notepad contact="{{ object.uuid }}">
-      </temba-contact-notepad>
-    </temba-tab>
-  </temba-tabs>
+      </temba-card>
+      <temba-card id="card-notepad"
+                  variant="note"
+                  label="{{ _("Notepad") |escapejs }}"
+                  icon="notes"
+                  activity
+                  bleed>
+        <temba-contact-notepad contact="{{ object.uuid }}" autogrow>
+        </temba-contact-notepad>
+      </temba-card>
+    </temba-card-layout>
+  </div>
 {% endblock content %}
-{% block extra-style %}
-  {{ block.super }}
-  <style type="text/css">
-    .urn-link {
-      display: inline-block;
-    }
-
-    .page-content {
-      align-self: auto;
-      max-width: 1024px;
-    }
-  </style>
-{% endblock extra-style %}
 {% block extra-script %}
+  {{ block.super }}
+  {% include "includes/page_header_menu.html" %}
   <script type="text/javascript">
     onSpload(function() {
       const details = document.querySelector("temba-contact-details");
@@ -89,8 +125,8 @@
     function contactUpdated(evt) {
       const details = document.querySelector("temba-contact-details");
       details.refresh();
-      const contentMenu = document.querySelector("temba-content-menu");
-      contentMenu.refresh();
+      const header = document.querySelector("temba-page-header");
+      header.refresh();
     }
 
     function handleContactRefreshed(evt) {
@@ -106,17 +142,6 @@
       if (menu) {
         menu.refresh();
       }
-    }
-
-    function handleTabChanged() {
-      var tab = document.querySelector("temba-tabs").index;
-      // keep the tab in the fetched url (not just the displayed one) so that navigating
-      // away and back re-fetches this page with ?tab= set and restores the active tab
-      // rather than defaulting to the first (Chat) tab
-      window.history.replaceState({
-        url: "{% url 'contacts.contact_read' object.uuid %}?tab=" + tab,
-        show: window.location.pathname + "?tab=" + tab
-      }, "", "?tab=" + tab);
     }
 
     function handleFieldSearch(evt) {

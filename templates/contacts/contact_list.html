@@ -1,249 +1,173 @@
-{% extends "orgs/base/list.html" %}
-{% load contacts temba i18n humanize %}
+{% extends "smartmin/list.html" %}
+{% load i18n %}
 
-{% block modaxes %}
-  <temba-modax header="{% trans "Create Group" %}"
-               endpoint="{% url 'contacts.contactgroup_create' %}"
-               -temba-loaded="handleCreateGroupModalLoaded"
-               id="create-group-modal">
-  </temba-modax>
-  <temba-dialog header="{{ _("Delete Selected Contacts") |escapejs }}"
-                primaryButtonName="{{ _("Delete") |escapejs }}"
-                destructive="true"
-                class="hide"
-                id="delete-confirmation">
-    <div class="p-6">{% trans "Are you sure you want to delete the selected contacts? This cannot be undone." %}</div>
-  </temba-dialog>
-  <temba-dialog header="{{ _("Delete All Contacts") |escapejs }}"
-                primaryButtonName="{{ _("Delete") |escapejs }}"
-                destructive="true"
-                class="hide"
-                id="delete-all-confirmation">
-    <div class="p-6">
-      {% blocktrans trimmed with count=paginator.count %}
-        Are you sure you want to delete all {{ count }} archived contacts? This cannot be undone.
-      {% endblocktrans %}
-      {% if paginator.count > 50 %}
-        <br>
-        <br>
-        {% blocktrans trimmed %}
-          This operation can take a while to complete. Contacts may remain in this view during the process.
-        {% endblocktrans %}
-      {% endif %}
-    </div>
-  </temba-dialog>
-{% endblock modaxes %}
-{% block table %}
-  <table class="list object-list lined selectable scrolled">
-    <thead>
-      <tr>
-        {% if org_perms.contacts.contact_update %}<th></th>{% endif %}
-        <th></th>
-        <th></th>
-        {% for field in contact_fields %}
-          <th class="sortable">
-            {% if sort_field == field.key %}
-              {% if sort_direction == 'desc' %}
-                <a href="{{ request.path }}?sort_on={{ field.key }}{% if search %}&search={{ search|escape }}{% endif %}">
-                  <div>
-                    {{ field.name }}
-                    <temba-icon name="sort_down" class="sorting show">
-                    </temba-icon>
-                  </div>
-                </a>
-              {% else %}
-                <a href="{{ request.path }}?sort_on=-{{ field.key }}{% if search %}&search={{ search|escape }}{% endif %}">
-                  <div>
-                    {{ field.name }}
-                    <temba-icon name="sort_up" class="sorting show">
-                    </temba-icon>
-                  </div>
-                </a>
-              {% endif %}
-            {% else %}
-              <a href="{{ request.path }}?sort_on=-{{ field.key }}{% if search %}&search={{ search|escape }}{% endif %}">
-                <div>
-                  {{ field.name }}
-                  <temba-icon name="sort" class="sorting">
-                  </temba-icon>
-                </div>
-              </a>
-            {% endif %}
-          </th>
-        {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for object in object_list %}
-        <tr onclick="handleRowClicked(event)"
-            data-uuid="{{ object.uuid }}"
-            data-object-id="{{ object.id }}"
-            href="{% url 'contacts.contact_read' object.uuid %}"
-            class="contact select-row object-row">
-          {% if org_perms.contacts.contact_update or org_perms.msgs.broadcast_create %}
-            <td onclick="checkInner(event);" class="contact checkbox object-row-checkbox w-10">
-              <temba-checkbox onclick="handleRowSelection(this)">
-              </temba-checkbox>
-            </td>
-          {% endif %}
-          <td>
-            <div class="whitespace-nowrap">{{ object.name|default:"--" }}</div>
-          </td>
-          <td class="w-full">
-            <div class="whitespace-nowrap">{{ object|urn_or_anon:user_org }}</div>
-          </td>
-          {% for field in contact_fields %}
-            <td style="max-width:240px" class="field truncate">{% contact_field object field %}</td>
-          {% endfor %}
-          <!-- This is needed for action buttons -->
-          <td class="hide">
-            <div class="value-labels">
-              <nobr>
-                {% for group in object.all_groups.all %}
-                  {% if group.group_type == 'U' %}
-                    <span data-id="{{ group.id }}" class="label label-info lbl">
-                      <a href="{% url 'contacts.contact_group' group.uuid %}">{{ group.name }}</a>
-                    </span>
-                  {% endif %}
-                {% endfor %}
-              </nobr>
-            </div>
-          </td>
-        </tr>
-      {% empty %}
-        <tr class="empty_list">
-          <td colspan="99" class="text-center">{% trans "No contacts" %}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-{% endblock table %}
+{% comment %}
+  Generic list template used by every contact list view (Active /
+  Blocked / Stopped / Archived / Group). Endpoint, subtitle and bulk
+  actions come from the view's context_data so the template stays the
+  same across all of them.
+{% endcomment %}
+{% block page-header %}
+  {# the temba-contact-list renders its own header (title + content menu); #}
+  {# keep the csrf token and a hidden title for the SPA document.title hook #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    /* The list component fills its container edge to edge and brings
+       its own surface, so drop the SPA content padding (and the grey
+       page background it would otherwise reveal around the list). */
+    .spa-content {
+      padding: 0 !important;
+    }
+  </style>
+{% endblock extra-style %}
+{% block content %}
+  <temba-contact-list id="contact-list"
+                      fill-window
+                      history-state-key="contacts"
+                      column-width-settings="{{ list_column_settings }}"
+                      settings-endpoint="{% url 'users.user_settings' %}"
+                      list-title="{{ title }}"
+                      {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
+                      {% if user_org.is_anon %}anon{% endif %}
+                      {% if org_perms.contacts.contactfield_update_priority %}priority-endpoint="{% url 'contacts.contactfield_update_priority' %}"{% endif %}
+                      endpoint="{{ new_list_endpoint }}"
+                      action-endpoint="{{ request.path }}"
+                      content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
+                      empty-message="{% trans "No contacts" %}">
+  </temba-contact-list>
+  {{ new_list_bulk_actions|json_script:"new-list-bulk-actions" }}
+  {% if org_perms.contacts.contact_delete %}
+    <temba-dialog header="{{ _("Delete All Contacts") |escapejs }}"
+                  primaryButtonName="{{ _("Delete") |escapejs }}"
+                  destructive="true"
+                  class="hide"
+                  id="delete-all-confirmation">
+      <div class="p-6">{% trans "Are you sure you want to delete all archived contacts? This cannot be undone." %}</div>
+    </temba-dialog>
+  {% endif %}
+{% endblock content %}
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
     onSpload(function() {
-      var menu = document.querySelector("temba-content-menu");
-      // not all contact views have a menu
-      if (menu) {
-        menu.addEventListener("temba-selection", function(event) {
-          var item = event.detail.item;
-          if (item.id === "contacts_delete_all") {
-            confirmDeleteAllArchivedContacts();
+      var list = document.querySelector("#contact-list");
+      list.bulkActions = JSON.parse(document.getElementById("new-list-bulk-actions").textContent);
+
+      // clicking a row opens the contact
+      list.addEventListener("temba-row-click", function(event) {
+        var contact = event.detail.item;
+        if (contact && contact.uuid) {
+          spaGet("/contact/read/" + contact.uuid + "/");
+        }
+      });
+
+      // the embedded content menu fires temba-selection - dispatch it the
+      // same way the page chrome's content menu (spa_page_menu.html) does
+      list.addEventListener("temba-selection", function(event) {
+        var item = event.detail.item;
+        var click = event.detail.event;
+        if (item.type === "link") {
+          if (click) {
+            click.preventDefault();
+            click.stopPropagation();
+            if (click.metaKey && item.url) {
+              window.open(item.url, "_blank");
+              return;
+            }
           }
-        });
-      }
+          spaGet(item.url);
+        } else if (item.type === "modax") {
+          showModax(item.title, item.url, {
+            disabled: item.disabled,
+            onSubmit: item.on_submit,
+            onRedirect: item.on_redirect,
+            id: item.modal_id,
+            originX: event.detail.originX,
+            originY: event.detail.originY
+          });
+        } else if (item.type === "url_post") {
+          posterize(item.url);
+        } else if (item.type === "js") {
+          if (window[item.id]) {
+            window[item.id]();
+          }
+        }
+        refreshMenu();
+      });
+
+      // Send / Start flow are clientOnly actions: the component fires the
+      // event with the selected contact uuids without POSTing, and we open
+      // the broadcast / flow-start modal seeded with them. Every other
+      // action is POSTed to action-endpoint by the component, which then
+      // re-fetches the current page itself — we just refresh the sidebar
+      // menu counts after the round-trip completes.
+      list.addEventListener("temba-bulk-action", function(event) {
+        var action = event.detail.action;
+        var ids = event.detail.ids || [];
+        if (action === "send") {
+          openSeededModax("{% url 'msgs.broadcast_create' %}", '{{ _("New Broadcast") |escapejs }}', ids);
+        } else if (action === "start-flow") {
+          openSeededModax("{% url 'flows.flow_start' %}", '{{ _("Start Flow") |escapejs }}', ids);
+        } else {
+          refreshMenu();
+        }
+      });
+
+      // See msgs/msg_list.html for the full rationale: stash the list's
+      // restorable state (page, sort, search, cursor url) on the current
+      // history entry so a navigation away and back lands on the same page.
+      list.addEventListener("temba-history-change", function(event) {
+        var current = history.state || {};
+        var next = Object.assign({}, current);
+        next[event.detail.key] = event.detail.state;
+        if (!next.url) {
+          next.url = location.href;
+        }
+        // state.url stays the bare page URL while the address bar gets
+        // event.detail.url — see msgs/msg_list.html for why the two
+        // must not be normalized to match.
+        if (event.detail.replace) {
+          history.replaceState(next, "", event.detail.url || null);
+        } else {
+          history.pushState(next, "", event.detail.url || null);
+        }
+      });
     });
 
-    {% if org_perms.contacts.contact_delete %}
-
-    function onDeleteClicked() {
-      var deleteConfirmation = document.querySelector("#delete-confirmation");
-      deleteConfirmation.classList.remove("hide");
-      deleteConfirmation.open = true;
-
-      deleteConfirmation.addEventListener("temba-button-clicked", function(event) {
-        if (!event.detail.button.secondary) {
-          runActionOnObjectRows("delete", wireTableListeners);
-        }
-        deleteConfirmation.open = false;
-      });
+    // Open the shared modax against the given endpoint, including any
+    // selected contact uuids as the `c` param.
+    function openSeededModax(endpoint, header, ids) {
+      var modax = getModax("#shared-modax");
+      modax.header = header;
+      modax.setAttribute("endpoint", ids.length > 0 ? endpoint + "?c=" + ids.join(",") : endpoint);
+      modax.open = true;
     }
-    {% endif %}
-
-    function handleRowClicked(event) {
-      if (event.target.tagName == "TEMBA-CHECKBOX") {
-        return;
-      }
-
-      var row = event.target.closest("tr");
-      var uuid = row.getAttribute("data-uuid");
-
-      goto(event, row);
-    }
-
-    function handleStartFlowClicked(evt) {
-      var startEndpoint = "{% url 'flows.flow_start' %}";
-      var startModal = getModax("#start-modal");
-
-      startModal.header = '{{_("Start Flow")|escapejs}}';
-      var ids = getCheckedUuids();
-      if (ids.length > 0) {
-        startModal.setAttribute("endpoint", startEndpoint + '?c=' + ids);
-      } else {
-        startModal.setAttribute("endpoint", startEndpoint);
-      }
-      startModal.open = true;
-
-      evt.preventDefault();
-      evt.stopPropagation();
-    }
-
-    function handleSendMessageClicked() {
-      // when we click send, include any clicked messages in our modax request
-      var sendEndpoint = "{% url 'msgs.broadcast_create' %}";
-      var sendModal = document.querySelector("#shared-modax");
-      sendModal.header = '{{_("New Broadcast")|escapejs}}';
-      var ids = getCheckedUuids();
-      if (ids.length > 0) {
-        sendModal.setAttribute("endpoint", sendEndpoint + '?c=' + ids);
-      } else {
-        sendModal.setAttribute("endpoint", sendEndpoint);
-      }
-      sendModal.open = true;
-    }
-
 
     {% if org_perms.contacts.contact_delete %}
-
-    function confirmDeleteAllArchivedContacts() {
-      var deleteAllConfirmation = document.querySelector('#delete-all-confirmation');
-
-      deleteAllConfirmation.classList.remove("hide");
-      deleteAllConfirmation.open = true;
-
-      deleteAllConfirmation.removeEventListener("temba-button-clicked", deleteAllArchivedContacts);
-      deleteAllConfirmation.addEventListener("temba-button-clicked", deleteAllArchivedContacts);
+    // Content-menu "Delete All" (Archived view) - fired as a js selection.
+    function contacts_delete_all() {
+      var confirmation = document.querySelector("#delete-all-confirmation");
+      confirmation.classList.remove("hide");
+      confirmation.open = true;
+      confirmation.removeEventListener("temba-button-clicked", deleteAllArchivedContacts);
+      confirmation.addEventListener("temba-button-clicked", deleteAllArchivedContacts);
     }
 
     function deleteAllArchivedContacts(event) {
-      var deleteAllConfirmation = document.querySelector('#delete-all-confirmation');
+      var confirmation = document.querySelector("#delete-all-confirmation");
       if (event.detail.button.attributes.destructive) {
-        var url = "{% url 'contacts.contact_archived' %}";
-        const formData = new FormData();
+        var formData = new FormData();
         formData.append("action", "delete");
         formData.append("all", "true");
-        spaPost(url, {
-          postData: formData
-        });
+        spaPost("{% url 'contacts.contact_archived' %}", { postData: formData });
       }
-      deleteAllConfirmation.classList.add("hide");
-      deleteAllConfirmation.open = false;
+      confirmation.classList.add("hide");
+      confirmation.open = false;
     }
-
     {% endif %}
   </script>
 {% endblock extra-script %}
-{% block extra-style %}
-  {{ block.super }}
-  <style type="text/css">
-    th.sortable a {
-      text-decoration: none;
-      font-weight: 500;
-      color: #717171;
-      font-size: 0.75rem;
-    }
-
-    th.sortable temba-icon.sorting {
-      display: inline-block;
-      opacity: 0;
-    }
-
-    th.sortable:hover temba-icon.sorting {
-      opacity: 1;
-    }
-
-    th.sortable temba-icon.sorting.show {
-      opacity: 1;
-    }
-  </style>
-{% endblock extra-style %}

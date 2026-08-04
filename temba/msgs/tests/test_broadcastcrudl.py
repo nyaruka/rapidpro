@@ -592,25 +592,19 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_list(self):
         list_url = reverse("msgs.broadcast_list")
 
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         self.assertRequestDisallowed(list_url, [None, self.agent])
-        self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[])
+        self.assertListFetch(list_url, [self.editor, self.admin])
         self.assertContentMenu(list_url, self.editor, ["New Broadcast"])
         self.assertContentMenu(list_url, self.admin, ["New Broadcast"])
 
-        broadcast = self.create_broadcast(
+        self.create_broadcast(
             self.admin,
             {"eng": {"text": "Broadcast sent to one contact"}},
             contacts=[self.joe],
         )
 
-        self.assertListFetch(list_url, [self.admin], context_objects=[broadcast])
-
-        # by default we get the temba-broadcast-list component, pointed at the internal broadcasts api
+        # the temba-broadcast-list component is pointed at the internal broadcasts api
         self.login(self.admin)
-        self.setLegacyUI(False)
 
         response = self.client.get(list_url)
         self.assertContains(response, "temba-broadcast-list")
@@ -624,21 +618,18 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_scheduled(self):
         scheduled_url = reverse("msgs.broadcast_scheduled")
 
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         self.assertRequestDisallowed(scheduled_url, [None, self.agent])
-        self.assertListFetch(scheduled_url, [self.editor, self.admin], context_objects=[])
+        self.assertListFetch(scheduled_url, [self.editor, self.admin])
         self.assertContentMenu(scheduled_url, self.editor, ["New Broadcast"])
         self.assertContentMenu(scheduled_url, self.admin, ["New Broadcast"])
 
-        bc1 = self.create_broadcast(
+        self.create_broadcast(
             self.admin,
             {"eng": {"text": "good morning"}},
             contacts=[self.joe],
             schedule=Schedule.create(self.org, timezone.now(), Schedule.REPEAT_DAILY),
         )
-        bc2 = self.create_broadcast(
+        self.create_broadcast(
             self.admin,
             {"eng": {"text": "good evening"}},
             contacts=[self.frank],
@@ -646,23 +637,8 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.create_broadcast(self.admin, {"eng": {"text": "not_scheduled"}}, groups=[self.joe_and_frank])
 
-        bc3 = self.create_broadcast(
-            self.admin,
-            {"eng": {"text": "good afternoon"}},
-            contacts=[self.frank],
-            schedule=Schedule.create(self.org, timezone.now(), Schedule.REPEAT_DAILY),
-        )
-
-        self.assertListFetch(scheduled_url, [self.editor], context_objects=[bc3, bc2, bc1])
-
-        bc3.is_active = False
-        bc3.save(update_fields=("is_active",))
-
-        self.assertListFetch(scheduled_url, [self.editor], context_objects=[bc2, bc1])
-
-        # by default we get the temba-broadcast-list component in scheduled mode
+        # the temba-broadcast-list component runs in scheduled mode
         self.login(self.editor)
-        self.setLegacyUI(False)
 
         response = self.client.get(scheduled_url)
         self.assertContains(response, "temba-broadcast-list")

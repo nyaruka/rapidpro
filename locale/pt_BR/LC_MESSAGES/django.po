@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 16:23+0000\n"
+"POT-Creation-Date: 2026-08-04 17:34+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -4291,27 +4291,11 @@ msgstr "Download Agora"
 msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
 msgstr "Você tem certeza que quer deletar <b>%(name)s</b>? Isso não pode ser desfeito."
 
-#, python-format
-msgid "%(counter)s event"
-msgid_plural "%(counter)s events"
-msgstr[0] "%(counter)s evento"
-msgstr[1] "%(counter)s eventos"
-msgstr[2] "%(counter)s eventos"
-
 msgid "No campaigns"
 msgstr "Nenhuma campanha"
 
 msgid "Group required"
 msgstr "Grupo obrigatório"
-
-msgid "When"
-msgstr "Quando"
-
-msgid "Field"
-msgstr "Campo"
-
-msgid "No events"
-msgstr "Nenhum evento"
 
 msgid "You are about to delete this event. There is no way to undo this. Are you sure?"
 msgstr "Você está prestes a deletar este evento. Não é possível reverter isso. Você tem certeza?"
@@ -5102,9 +5086,6 @@ msgstr "No caso de uma nova instalação do WhatsApp ou substituição de um can
 msgid "Refresh Contacts"
 msgstr "Atualizar contatos"
 
-msgid "All inbound messages from these contacts are ignored. They have also been removed from all groups."
-msgstr "Todas as mensagens recebidas destes contatos são ignoradas. Eles também foram removidos de todos os grupos."
-
 #, python-format
 msgid "You are about to delete <span class=\"font-normal\">%(object)s.</span> There is no way to undo this. Are you sure?"
 msgstr "Você está prestes a deletar <span class=\"font-normal\">%(object)s.</span> Não é possível reverter isto. Você tem certeza?"
@@ -5113,37 +5094,15 @@ msgstr "Você está prestes a deletar <span class=\"font-normal\">%(object)s.</s
 msgid "This group or search is too large to export. Consider using <a href=\"%(api_url)s\">the API</a> to export this data instead."
 msgstr "Este grupo ou pesquisa é grande demais para exportar. Considere usar <a href=\"%(api_url)s\">a API</a> para exportar estes dados."
 
-msgid "This group has an invalid query."
-msgstr "Este grupo tem uma consulta inválida."
-
-msgid "This group is in the process of being populated."
-msgstr "Este grupo está em processo de ser populado."
-
 #, python-format
 msgid "You are about to interrupt the current flow for <b>%(object)s.</b> There is no way to undo this. Are you sure?"
 msgstr "Você está prestes a interromper o fluxo atual de <b>%(object)s.</b> Não é possível reverter isto. Você tem certeza?"
 
-msgid "Create Group"
-msgstr "Criar Grupo"
-
-msgid "Delete Selected Contacts"
-msgstr "Deletar Contatos Selecionados"
-
-msgid "Are you sure you want to delete the selected contacts? This cannot be undone."
-msgstr "Você tem certeza que quer deletar estes contatos selecionados? Isso não pode ser desfeito."
+msgid "No contacts"
+msgstr "Nenhum contato"
 
 msgid "Delete All Contacts"
 msgstr "Deletar Todos os Contatos"
-
-#, python-format
-msgid "Are you sure you want to delete all %(count)s archived contacts? This cannot be undone."
-msgstr "Você tem certeza que quer deletar todos os %(count)s contatos arquivados? Isso não pode ser desfeito."
-
-msgid "This operation can take a while to complete. Contacts may remain in this view during the process."
-msgstr "Esta operação pode levar um tempo até que seja concluída. Contatos podem continuar nesta etapa durante o processo."
-
-msgid "No contacts"
-msgstr "Nenhum contato"
 
 msgid "Are you sure you want to delete all archived contacts? This cannot be undone."
 msgstr "Você tem certeza que quer deletar todos os contatos arquivados? Isso não pode ser desfeito."
@@ -5323,15 +5282,6 @@ msgstr "Já existe uma interrupção em andamento para este fluxo. Por favor agu
 msgid "There are no contacts currently in this flow to be interrupted."
 msgstr "Não há contatos neste fluxo no momento para serem interrompidos."
 
-msgid "Runs"
-msgstr "Execuções"
-
-msgid "Completion"
-msgstr "Conclusão"
-
-msgid "Has issues"
-msgstr "Com problemas"
-
 msgid "No flows"
 msgstr "Nenhum fluxo"
 
@@ -5346,6 +5296,9 @@ msgstr "Dia da Semana"
 
 msgid "Time of Day"
 msgstr "Tempo do Dia"
+
+msgid "Runs"
+msgstr "Execuções"
 
 #, python-format
 msgid "<b>%(name)s</b> cannot be deleted since it is a parent to other labels."
@@ -5663,12 +5616,6 @@ msgstr "Digite a mensagem que você gostaria de enviar."
 msgid "Are you sure you want to interrupt this broadcast? Contacts who already have messages in the outbox will still receive it."
 msgstr "Você tem certeza que quer interromper esta transmissão? Os contatos que já têm mensagens na caixa de saída ainda a receberão."
 
-msgid "This is a list of all broadcasts that have already been sent."
-msgstr "Esta é uma lista de todas as transmissões que já foram enviadas."
-
-msgid "Once you've sent your first broadcast, you'll be able to view it here."
-msgstr "Assim que você enviar a sua primeira transmissão, você poderá visualizá-la aqui."
-
 msgid "No broadcasts"
 msgstr "Nenhuma transmissão"
 
@@ -5677,12 +5624,6 @@ msgstr "Editar transmissão"
 
 msgid "Delete Broadcast"
 msgstr "Deletar transmissão"
-
-msgid "Broadcasts can target large groups of contacts and scheduled to be sent whenever you like. Broadcasts can also repeat at an interval of your choice."
-msgstr "As transmissões podem alcançar grandes grupos de contatos e ser agendadas para envio quando você quiser. As transmissões também podem se repetir no intervalo de sua escolha."
-
-msgid "<div class=\"mt-4\">Create your first scheduled broadcast to get started.</div>"
-msgstr "<div class=\"mt-4\">Crie a sua primeira transmissão agendada para começar.</div>"
 
 msgid "You are about to delete this broadcast. There is no way to undo this. Are you sure?"
 msgstr "Você está prestes a deletar esta transmissão. Não é possível reverter isso. Você tem certeza?"
@@ -5693,72 +5634,6 @@ msgid_plural "<b>%(recipients)s</b> recipients currently at this point in the fl
 msgstr[0] "<b>%(recipients)s</b> destinatário atualmente neste ponto do fluxo"
 msgstr[1] "<b>%(recipients)s</b> destinatários atualmente neste ponto do fluxo"
 msgstr[2] "<b>%(recipients)s</b> destinatários atualmente neste ponto do fluxo"
-
-msgid "Your Message Hub"
-msgstr "Seu depósito de mensagens"
-
-#, python-format
-msgid "This message pane lets you keep track of everything coming in and out of %(name)s.  As you send and receive messages, they will be listed here."
-msgstr "Este painel de mensagens permite acompanhar tudo que entra e sai de%(name)s.  À medida que você envia e recebe mensagens, elas serão listadas aqui."
-
-#, python-format
-msgid "Just like your email, %(name)s lets you view, label and archive messages as you receive them.  %(name)s uses labels to classify responses, so you can view and manage those messages here.  You can also create your own labels to keep track of topical messages as you receive them."
-msgstr "O %(name)s possibilita visualizar, classificar e arquivar mensagens recebidas, assim como um e-mail. O %(name)s usa rótulos para classificar mensagens, você pode ver e gerenciar estas mensagens aqui. Você também pode criar seus próprios rótulos para manter o registro das mensagens por tópico."
-
-#, python-format
-msgid "%(name)s also keeps track of calls that are received on your channel so you can return any calls which may have been made to it."
-msgstr "%(name)s também acompanha as chamadas recebidas no seu canal para que você possa retornar todas as chamadas que possam ter sido feitas para ele."
-
-#, python-format
-msgid "Repeats every <b>month</b> on the %(date)s."
-msgstr "Repete todo <b>mês</b> no dia %(date)s."
-
-msgid "Repeats every <b>week</b> on"
-msgstr "Repete toda <b>semana</b> em"
-
-msgid "at around the same time."
-msgstr "em torno da mesma hora"
-
-msgid "Repeats <b>daily</b> at around the same time."
-msgstr "Repete <b>diariamente</b> em torno do mesmo horário."
-
-#, python-format
-msgid ""
-"\n"
-"             %(message_count)s message\n"
-"          "
-msgid_plural ""
-"\n"
-"             %(message_count)s messages\n"
-"          "
-msgstr[0] ""
-"\n"
-"             %(message_count)s mensagem\n"
-"          "
-msgstr[1] ""
-"\n"
-"             %(message_count)s mensagens\n"
-"          "
-msgstr[2] ""
-"\n"
-"             %(message_count)s mensagens\n"
-"          "
-
-msgid "Interrupt Broadcast"
-msgstr "Interromper transmissão"
-
-msgid "Your channels are taking a while to send messages. Please wait for the outbound queue to clear before sending new messages."
-msgstr "Seus canais estão demorando para enviar mensagens. Por favor aguarde a fila de saída esvaziar antes de enviar novas mensagens."
-
-msgid "Delete Selected Messages"
-msgstr "Deletar mensagens selecionadas"
-
-msgid "Are you sure you want to delete the selected messages? This cannot be undone."
-msgstr "Você tem certeza que quer deletar as mensagens selecionadas? Isso não pode ser desfeito."
-
-#, python-format
-msgid "Opt-in request for %(optin)s"
-msgstr "Solicitação de opt-in para %(optin)s"
 
 msgid "No messages"
 msgstr "Nenhuma mensagem"
@@ -6435,6 +6310,9 @@ msgstr ""
 msgid "Create Contact"
 msgstr "Criar Contatos"
 
+msgid "Create Group"
+msgstr "Criar Grupo"
+
 #, python-format
 msgid ""
 "\n"
@@ -6576,6 +6454,9 @@ msgstr "Ela se repetirá todo <b>mês</b> no dia %(date)s."
 
 msgid "It will repeat every"
 msgstr "Se repetirá a cada"
+
+msgid "at around the same time."
+msgstr "em torno da mesma hora"
 
 msgid "It will repeat <b>daily</b> at around the same time."
 msgstr "Ela se repetirá <b>diariamente</b> em torno do mesmo horário."
@@ -6756,27 +6637,17 @@ msgstr "Desculpe, o tópico <b>%(object)s</b> não pode ser deletado enquanto ai
 msgid "You are about to delete the <b>%(object)s</b> topic. There is no way to undo this. Are you sure?"
 msgstr "Você está prestes a deletar o tópico <b>%(object)s</b>. Não é possível reverter isso. Você tem certeza?"
 
-msgid "Delete All Triggers"
-msgstr "Deletar todos os disparadores"
-
-#, python-format
-msgid "Are you sure you want to delete all %(count)s archived triggers? This cannot be undone."
-msgstr "Você tem certeza que quer deletar todos os %(count)s disparadores arquivados? Isso não pode ser desfeito."
-
-msgid "This operation can take a while to complete. Triggers may remain in this view during the process."
-msgstr "Esta operação pode levar um tempo até ser concluída. Os disparadores podem continuar nesta visualização durante o processo."
-
-msgid "Delete Selected Triggers"
-msgstr "Deletar disparadores selecionados"
-
 msgid "No triggers"
 msgstr "Nenhum disparador"
 
-msgid "Update Trigger"
-msgstr "Atualizar disparador"
+msgid "Delete All Triggers"
+msgstr "Deletar todos os disparadores"
 
 msgid "Are you sure you want to delete all archived triggers? This cannot be undone."
 msgstr "Você tem certeza que quer deletar todos os disparadores arquivados? Isso não pode ser desfeito."
+
+msgid "Update Trigger"
+msgstr "Atualizar disparador"
 
 msgid "Start a flow after receiving a message that doesn't match any keywords."
 msgstr "Comece um fluxo após receber uma mensagem que não corresponde a nenhuma palavra-chave."
