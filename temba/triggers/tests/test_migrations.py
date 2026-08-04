@@ -2,10 +2,10 @@ from temba.tests import MigrationTest
 from temba.triggers.models import Trigger
 
 
-class DeleteOptinTriggersTest(MigrationTest):
+class ReleaseOptinTriggersTest(MigrationTest):
     app = "triggers"
     migrate_from = "0045_alter_trigger_id"
-    migrate_to = "0046_delete_optin_triggers"
+    migrate_to = "0046_release_optin_triggers"
 
     def _create_trigger(self, trigger_type: str, flow, **kwargs):
         return Trigger.objects.create(
@@ -26,6 +26,10 @@ class DeleteOptinTriggersTest(MigrationTest):
         self.optout_trigger = self._create_trigger("O", flow, is_archived=True)
 
     def test_migration(self):
-        self.assertTrue(Trigger.objects.filter(id=self.keyword_trigger.id).exists())
-        self.assertFalse(Trigger.objects.filter(id=self.optin_trigger.id).exists())
-        self.assertFalse(Trigger.objects.filter(id=self.optout_trigger.id).exists())
+        self.keyword_trigger.refresh_from_db()
+        self.optin_trigger.refresh_from_db()
+        self.optout_trigger.refresh_from_db()
+
+        self.assertTrue(self.keyword_trigger.is_active)
+        self.assertFalse(self.optin_trigger.is_active)
+        self.assertFalse(self.optout_trigger.is_active)
