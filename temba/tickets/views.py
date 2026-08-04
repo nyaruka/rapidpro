@@ -171,7 +171,7 @@ class KnowledgeCRUDL(SmartCRUDL):
         require_feature = Org.FEATURE_AGENTS
 
         def derive_menu_path(self):
-            return f"/library/{self.object.uuid}"
+            return f"/knowledge/{self.object.uuid}"
 
         def derive_queryset(self, **kwargs):
             # the system shortcuts and helpdesk sources have their own fixed URL pages
@@ -226,7 +226,7 @@ class KnowledgeCRUDL(SmartCRUDL):
         require_feature = Org.FEATURE_AGENTS
         permission = "tickets.knowledge_read"
         title = _("Shortcuts")
-        menu_path = "/library/shortcuts"
+        menu_path = "/knowledge/shortcuts"
 
         def build_context_menu(self, menu):
             if self.has_org_perm("tickets.shortcut_create"):
@@ -259,7 +259,7 @@ class KnowledgeCRUDL(SmartCRUDL):
         require_feature = Org.FEATURE_AGENTS
         permission = "tickets.knowledge_read"
         title = _("Helpdesk")
-        menu_path = "/library/helpdesk"
+        menu_path = "/knowledge/helpdesk"
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -513,7 +513,7 @@ class TicketCRUDL(SmartCRUDL):
 
             has_agents = Org.FEATURE_AGENTS in org.features
             if has_agents:
-                # shortcuts and the knowledge sources live in the Library section for these orgs
+                # shortcuts and the knowledge sources live in the Knowledge section for these orgs
                 menu.append(topics_group)
             else:
                 menu.append(

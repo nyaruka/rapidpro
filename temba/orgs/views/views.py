@@ -679,8 +679,8 @@ class OrgCRUDL(SmartCRUDL):
             if org and Org.FEATURE_AGENTS in org.features:
                 menu.append(
                     self.create_menu_item(
-                        menu_id="library",
-                        name=_("Library"),
+                        menu_id="knowledge",
+                        name=_("Knowledge"),
                         icon="docs",
                         endpoint="tickets.knowledge_menu",
                         href="tickets.knowledge_shortcuts",

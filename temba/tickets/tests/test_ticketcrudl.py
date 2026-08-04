@@ -248,7 +248,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                 ("Topics", ["General (2)", "Sales (1)", "Support (0)"]),
             ],
         )
-        # orgs with the agents feature access shortcuts and knowledge from the Library section instead
+        # orgs with the agents feature access shortcuts and knowledge from the Knowledge section instead
         self.org.features.append(Org.FEATURE_AGENTS)
         self.org.save(update_fields=("features",))
         self.assertPageMenu(

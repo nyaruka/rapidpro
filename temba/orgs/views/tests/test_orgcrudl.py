@@ -81,7 +81,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertPageMenu(f"{menu_url}staff/", self.customer_support, ["Workspaces", "Users"])
 
-        # orgs with the agents feature get a top level Library section
+        # orgs with the agents feature get a top level Knowledge section
         self.org.features = [Org.FEATURE_AGENTS]
         self.org.save(update_fields=("features",))
 
@@ -96,7 +96,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "Triggers",
                 "Campaigns",
                 "Tickets",
-                "Library",
+                "Knowledge",
                 ("Notifications", []),
                 "Settings",
             ],
