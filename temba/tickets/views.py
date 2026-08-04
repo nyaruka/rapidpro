@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from temba import mailroom
 from temba.contacts.models import URN
 from temba.msgs.models import Msg
 from temba.orgs.models import Org, OrgRole
@@ -193,6 +194,7 @@ class TicketCRUDL(SmartCRUDL):
         "menu",
         "list",
         "folder",
+        "search",
         "update",
         "note",
         "chart",
@@ -385,6 +387,9 @@ class TicketCRUDL(SmartCRUDL):
             context["user_role"] = membership.role_code if membership else OrgRole.ADMINISTRATOR.code
             context["can_assign"] = membership.can_assign if membership else True
             context["can_reply_non_own"] = membership.can_reply_non_own if membership else True
+
+            # cross-ticket search is only available to users who can access all topics (see TicketCRUDL.Search)
+            context["can_search"] = Topic.get_restriction(self.request.org, self.request.user) is None
 
             return context
 
@@ -615,6 +620,52 @@ class TicketCRUDL(SmartCRUDL):
                 results["next"] = next_url
 
             return JsonResponse(results)
+
+    class Search(OrgPermsMixin, SmartTemplateView):
+        """
+        Searches message text across the tickets in this org. Only available to users who can access all of the org's
+        topics - the search backend can't yet scope matches by topic, so rather than post-filter its capped results
+        (which could silently return nothing for a restricted user), topic-restricted agents don't get search at all.
+        """
+
+        permission = "tickets.ticket_list"
+
+        def has_permission(self, request, *args, **kwargs):
+            return super().has_permission(request, *args, **kwargs) and (
+                Topic.get_restriction(request.org, request.user) is None
+            )
+
+        def get(self, request, *args, **kwargs):
+            org = request.org
+            text = request.GET.get("text", "").strip()
+            if not text:
+                return JsonResponse({"results": []})
+
+            matches = mailroom.get_client().msg_search(org, text, in_ticket=True)
+
+            # resolve the tickets the matched events belong to - anything unresolvable (a ticket in another org, one
+            # that no longer exists, or a malformed uuid) is dropped
+            ticket_uuids = {e.get("ticket_uuid") for _, e in matches if is_uuid(e.get("ticket_uuid"))}
+            tickets_by_uuid = {str(t.uuid): t for t in org.tickets.filter(uuid__in=ticket_uuids)}
+
+            results = []
+            for contact, event in matches:
+                ticket = tickets_by_uuid.get(event.get("ticket_uuid"))
+                if not ticket:
+                    continue
+
+                results.append(
+                    {
+                        "contact": {"uuid": str(contact.uuid), "name": contact.get_display(org=org)},
+                        "ticket": {
+                            "uuid": str(ticket.uuid),
+                            "status": "open" if ticket.status == Ticket.STATUS_OPEN else "closed",
+                        },
+                        "event": event,
+                    }
+                )
+
+            return JsonResponse({"results": results})
 
     class Update(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.ModelForm):

@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -58,6 +58,15 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "temba-contact-details")
         self.assertContains(response, 'role="T"')
         self.assertNotRegex(response.content.decode(), r"<temba-contact-details\b[^>]*\beditable(?:\s|>)")
+
+        # the cross-ticket search modal is only mounted for users who can access all topics
+        self.assertTrue(response.context["can_search"])
+        self.assertContains(response, "<temba-ticket-search")
+
+        self.login(self.agent2, choose_org=self.org)
+        response = self.client.get(list_url)
+        self.assertFalse(response.context["can_search"])
+        self.assertNotContains(response, "<temba-ticket-search")
 
     def test_list(self):
         list_url = reverse("tickets.ticket_list")
@@ -679,6 +688,100 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(200, response.status_code)
         self.assertNotIn("uuid", response.context)
         self.assertNotIn("nextUUID", response.context)
+
+    @mock_mailroom
+    def test_search(self, mr_mocks):
+        contact1 = self.create_contact("Joe", phone="123")
+        contact2 = self.create_contact("Frank", phone="124")
+
+        ticket1 = self.create_ticket(contact1)
+        ticket2 = self.create_ticket(contact2, topic=self.sales, closed_on=timezone.now())
+
+        search_url = reverse("tickets.ticket_search")
+
+        # search isn't available to agents in topic-restricted teams
+        self.assertRequestDisallowed(search_url, [None, self.agent2])
+
+        self.login(self.admin)
+
+        # empty or missing text returns empty results without hitting mailroom
+        response = self.client.get(search_url + "?text=")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"results": []}, response.json())
+
+        response = self.client.get(search_url)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"results": []}, response.json())
+
+        event1 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be623e",
+            "type": "msg_received",
+            "msg": {"text": "I need help"},
+            "created_on": "2025-11-17T16:00:00+00:00",
+            "ticket_uuid": str(ticket1.uuid),
+        }
+        event2 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be624e",
+            "type": "msg_created",
+            "msg": {"text": "Happy to help"},
+            "created_on": "2025-11-17T16:01:00+00:00",
+            "ticket_uuid": str(ticket2.uuid),
+        }
+        event3 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be625e",
+            "type": "msg_received",
+            "msg": {"text": "help but no ticket"},
+            "created_on": "2025-11-17T16:02:00+00:00",
+        }
+
+        # results without a resolvable ticket are dropped
+        mr_mocks.msg_search([(contact1, event1), (contact2, event2), (contact1, event3)])
+
+        response = self.client.get(search_url + "?text=help")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(
+            {
+                "results": [
+                    {
+                        "contact": {"uuid": str(contact1.uuid), "name": "Joe"},
+                        "ticket": {"uuid": str(ticket1.uuid), "status": "open"},
+                        "event": event1,
+                    },
+                    {
+                        "contact": {"uuid": str(contact2.uuid), "name": "Frank"},
+                        "ticket": {"uuid": str(ticket2.uuid), "status": "closed"},
+                        "event": event2,
+                    },
+                ],
+            },
+            response.json(),
+        )
+        self.assertEqual([call(self.org, "help", in_ticket=True)], mr_mocks.calls["msg_search"])
+
+        # tickets in another org, and malformed uuids, are also dropped
+        other_org_contact = self.create_contact("Jim", phone="125", org=self.org2)
+        other_org_ticket = self.create_ticket(other_org_contact)
+
+        event4 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be626e",
+            "type": "msg_received",
+            "msg": {"text": "help in another org"},
+            "created_on": "2025-11-17T16:03:00+00:00",
+            "ticket_uuid": str(other_org_ticket.uuid),
+        }
+        event5 = {
+            "uuid": "019a9935-022e-7bb3-9d6f-03d773be627e",
+            "type": "msg_received",
+            "msg": {"text": "help with a junk ticket uuid"},
+            "created_on": "2025-11-17T16:04:00+00:00",
+            "ticket_uuid": "not-a-uuid",
+        }
+
+        mr_mocks.msg_search([(contact1, event4), (contact1, event5)])
+
+        response = self.client.get(search_url + "?text=help")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"results": []}, response.json())
 
     @mock_mailroom
     def test_note(self, mr_mocks):

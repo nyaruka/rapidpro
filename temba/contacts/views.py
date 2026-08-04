@@ -35,7 +35,7 @@ from temba.orgs.views.base import (
     BaseUsagesModal,
 )
 from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
-from temba.tickets.models import Topic
+from temba.tickets.models import Ticket, Topic
 from temba.users.models import User
 from temba.utils import json, on_transaction_commit
 from temba.utils.fields import CheckboxWidget, InputWidget, SelectWidget, TembaChoiceField
@@ -459,9 +459,30 @@ class ContactCRUDL(SmartCRUDL):
                 return JsonResponse({"results": []})
 
             contact = self.get_object()
-            results = mailroom.get_client().msg_search(request.org, text, contact=contact)
 
-            return JsonResponse({"results": [event for _, event in results]})
+            # an optional ticket scopes the search to that ticket's messages
+            ticket = None
+            if ticket_uuid := request.GET.get("ticket"):
+                if is_uuid(ticket_uuid):
+                    ticket = (
+                        Ticket.get_accessible(request.org, request.user)
+                        .filter(uuid=ticket_uuid, contact=contact)
+                        .first()
+                    )
+
+                # a ticket we can't resolve has no messages to match
+                if not ticket:
+                    return JsonResponse({"results": []})
+
+            results = mailroom.get_client().msg_search(request.org, text, contact=contact, in_ticket=ticket is not None)
+            events = [event for _, event in results]
+
+            if ticket:
+                # relies on mailroom setting ticket_uuid on every msg event it both indexes as in_ticket and returns
+                # here - an event missing it would be silently dropped from ticket scoped searches
+                events = [e for e in events if e.get("ticket_uuid") == str(ticket.uuid)]
+
+            return JsonResponse({"results": events})
 
     class Search(ContactListView):
         def get(self, request, *args, **kwargs):
