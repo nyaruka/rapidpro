@@ -1039,7 +1039,8 @@ class Org(LegacyIDMixin, SmartModel):
         Initializes an organization, creating all the dependent objects we need for it to work properly.
         """
         from temba.contacts.models import ContactField, ContactGroup
-        from temba.tickets.models import Knowledge, Team, Topic
+        from temba.knowledge.models import Knowledge
+        from temba.tickets.models import Team, Topic
 
         ContactGroup.create_system_groups(self)
         ContactField.create_system_fields(self)

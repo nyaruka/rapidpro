@@ -23,6 +23,6 @@
        onchange="submitKnowledgeItem(this)">
 <table class="list lined scrolled">
   <tbody>
-    {% include "tickets/knowledge/_item_rows.html" with items=items deletable=org_perms.tickets.knowledgeitem_delete empty_message=_("No documents yet") %}
+    {% include "knowledge/_item_rows.html" with items=items deletable=org_perms.knowledge.knowledgeitem_delete empty_message=_("No documents yet") %}
   </tbody>
 </table>

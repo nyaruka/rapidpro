@@ -3,8 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.test.utils import override_settings
 
-from temba.tests import TembaTest, cleanup
-from temba.tickets.models import (
+from temba.knowledge.models import (
     Article,
     ArticleImage,
     Knowledge,
@@ -12,6 +11,7 @@ from temba.tickets.models import (
     KnowledgeItem,
     get_article_image_path,
 )
+from temba.tests import TembaTest, cleanup
 from temba.utils.s3 import public_file_storage
 from temba.utils.uuid import uuid4
 

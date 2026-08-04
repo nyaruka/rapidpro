@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 00:05+0000\n"
+"POT-Creation-Date: 2026-08-04 16:23+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -2767,6 +2767,91 @@ msgstr "Nunca"
 msgid "Calls"
 msgstr "Llamadas"
 
+#, fuzzy
+#| msgid "Website Language"
+msgid "Website"
+msgstr "Idioma del sitio web"
+
+#, fuzzy
+#| msgid "Documentation"
+msgid "Documents"
+msgstr "Documentación"
+
+msgid "The address to crawl, e.g. https://help.example.com"
+msgstr ""
+
+msgid "Max Pages"
+msgstr ""
+
+msgid "Refresh"
+msgstr "Actualizar"
+
+msgid "Shortcuts"
+msgstr "Atajos"
+
+msgid "Helpdesk"
+msgstr ""
+
+msgid "Indexing"
+msgstr ""
+
+msgid "Daily"
+msgstr "Diariamente"
+
+msgid "Weekly"
+msgstr "Semanal"
+
+msgid "Monthly"
+msgstr "Mensualmente"
+
+msgid "Draft"
+msgstr ""
+
+#, fuzzy
+#| msgid "Public Key"
+msgid "Published"
+msgstr "Llave pública"
+
+#, fuzzy
+#| msgid "New Shortcut"
+msgid "New Source"
+msgstr "Nuevo atajo"
+
+msgid "Upload"
+msgstr ""
+
+#, fuzzy
+#| msgid "Update Shortcut"
+msgid "Update Source"
+msgstr "Actualizar atajo"
+
+#, fuzzy
+#| msgid "Delete Shortcut"
+msgid "Delete Source"
+msgstr "Eliminar atajo"
+
+msgid "New Shortcut"
+msgstr "Nuevo atajo"
+
+#, fuzzy
+#| msgid "Your label has been deleted."
+msgid "Your knowledge source has been deleted."
+msgstr "Su etiqueta ha sido eliminada."
+
+msgid "Files can only be added to document sets."
+msgstr ""
+
+#, python-format
+msgid "Limit of %d documents reached."
+msgstr ""
+
+msgid "Unsupported file type"
+msgstr "Tipo de archivo no admitido"
+
+#, python-format
+msgid "Limit for file uploads is %s MB"
+msgstr "El límite para la subida de archivos es de %s MB"
+
 msgid "The name for our alias"
 msgstr "El nombre de nuestro alias"
 
@@ -2965,13 +3050,6 @@ msgstr "Actualizar etiqueta"
 
 msgid "Your label has been deleted."
 msgstr "Su etiqueta ha sido eliminada."
-
-msgid "Unsupported file type"
-msgstr "Tipo de archivo no admitido"
-
-#, python-format
-msgid "Limit for file uploads is %s MB"
-msgstr "El límite para la subida de archivos es de %s MB"
 
 msgid "Channel Disconnected"
 msgstr "Canal desconectado"
@@ -3444,15 +3522,6 @@ msgstr "Errores"
 msgid "Template Fetch Logs"
 msgstr "Registros de obtención de plantillas"
 
-msgid "Daily"
-msgstr "Diariamente"
-
-msgid "Weekly"
-msgstr "Semanal"
-
-msgid "Monthly"
-msgstr "Mensualmente"
-
 msgid "Yearly"
 msgstr "Anual"
 
@@ -3615,51 +3684,15 @@ msgstr "Deshabilitado"
 msgid "In Appeal"
 msgstr "En apelación"
 
-msgid "Refresh"
-msgstr "Actualizar"
-
 msgid "Your templates have been fetched and refreshed."
 msgstr "Sus plantillas se han obtenido y actualizado."
 
 msgid "Unable to refresh all templates. See the log for details."
 msgstr "No se pudieron actualizar todas las plantillas. Consulte el registro para obtener más detalles."
 
-#, fuzzy
-#| msgid "Website Language"
-msgid "Website"
-msgstr "Idioma del sitio web"
-
-#, fuzzy
-#| msgid "Documentation"
-msgid "Documents"
-msgstr "Documentación"
-
-msgid "The address to crawl, e.g. https://help.example.com"
-msgstr ""
-
-msgid "Max Pages"
-msgstr ""
-
 #, python-format
 msgid "Teams can have at most %(limit)d topics."
 msgstr "Los equipos pueden tener como máximo %(limit)d temas."
-
-msgid "Shortcuts"
-msgstr "Atajos"
-
-msgid "Helpdesk"
-msgstr ""
-
-msgid "Indexing"
-msgstr ""
-
-msgid "Draft"
-msgstr ""
-
-#, fuzzy
-#| msgid "Public Key"
-msgid "Published"
-msgstr "Llave pública"
 
 msgid "Closed"
 msgstr "Cerrado"
@@ -3672,39 +3705,6 @@ msgstr "Tickets sin asignar"
 
 msgid "All Tickets"
 msgstr "Todos los tickets"
-
-msgid "New Shortcut"
-msgstr "Nuevo atajo"
-
-#, fuzzy
-#| msgid "New Shortcut"
-msgid "New Source"
-msgstr "Nuevo atajo"
-
-msgid "Upload"
-msgstr ""
-
-#, fuzzy
-#| msgid "Update Shortcut"
-msgid "Update Source"
-msgstr "Actualizar atajo"
-
-#, fuzzy
-#| msgid "Delete Shortcut"
-msgid "Delete Source"
-msgstr "Eliminar atajo"
-
-#, fuzzy
-#| msgid "Your label has been deleted."
-msgid "Your knowledge source has been deleted."
-msgstr "Su etiqueta ha sido eliminada."
-
-msgid "Files can only be added to document sets."
-msgstr ""
-
-#, python-format
-msgid "Limit of %d documents reached."
-msgstr ""
 
 msgid "New Team"
 msgstr "Nuevo equipo"
@@ -5534,6 +5534,71 @@ msgstr "Fin"
 msgid "No calls"
 msgstr "Sin llamadas"
 
+#, fuzzy, python-format
+#| msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
+msgid "You are about to delete the knowledge source <b>%(object)s</b> and everything indexed from it. There is no way to undo this. Are you sure?"
+msgstr "Está a punto de eliminar el equipo <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
+
+msgid "Help articles written by your workspace. Published articles are searchable by AI agents."
+msgstr ""
+
+#, fuzzy
+#| msgid "No archives"
+msgid "No articles"
+msgstr "Sin archivos"
+
+msgid "Update Shortcut"
+msgstr "Actualizar atajo"
+
+msgid "Delete Shortcut"
+msgstr "Eliminar atajo"
+
+msgid "No shortcuts"
+msgstr "Sin atajos"
+
+#, fuzzy
+#| msgid "These are canned responses that agents can use to quickly reply to tickets."
+msgid "Canned responses that agents can use to quickly reply to tickets."
+msgstr "Estas son respuestas predefinidas que los agentes pueden utilizar para responder rápidamente a los tickets."
+
+#, fuzzy, python-format
+#| msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
+msgid "You are about to delete the document <b>%(object.name)s</b> and everything indexed from it. There is no way to undo this. Are you sure?"
+msgstr "Está a punto de eliminar el equipo <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
+
+#, fuzzy
+#| msgid "Delete Event"
+msgid "Delete Document"
+msgstr "Eliminar Evento"
+
+msgid "Uploaded documents that AI agents can search when handling conversations."
+msgstr ""
+
+#, fuzzy
+#| msgid "You have reached the per-workspace limit and must delete existing ones before you can create new ones."
+msgid "You have reached the limit of documents for this source and must delete existing ones before you can upload more."
+msgstr "Ha alcanzado el límite por workspace y debe eliminar los existentes antes de poder crear nuevos."
+
+#, fuzzy
+#| msgid "No sync events yet"
+msgid "No documents yet"
+msgstr "Aún no hay eventos de sincronización"
+
+#, fuzzy
+#| msgid "Last synced"
+msgid "Last Indexed"
+msgstr "Última sincronización"
+
+#, fuzzy
+#| msgid "Usages"
+msgid "Pages"
+msgstr "Usos"
+
+#, fuzzy
+#| msgid "No models yet"
+msgid "No pages yet"
+msgstr "Aún no hay modelos"
+
 #, python-format
 msgid "Aliases for %(name)s"
 msgstr "Alias para %(name)s"
@@ -6620,71 +6685,6 @@ msgstr "Plantilla"
 
 msgid "Other Languages"
 msgstr "Otros idiomas"
-
-#, fuzzy
-#| msgid "Delete Event"
-msgid "Delete Document"
-msgstr "Eliminar Evento"
-
-msgid "Uploaded documents that AI agents can search when handling conversations."
-msgstr ""
-
-#, fuzzy
-#| msgid "You have reached the per-workspace limit and must delete existing ones before you can create new ones."
-msgid "You have reached the limit of documents for this source and must delete existing ones before you can upload more."
-msgstr "Ha alcanzado el límite por workspace y debe eliminar los existentes antes de poder crear nuevos."
-
-#, fuzzy
-#| msgid "No sync events yet"
-msgid "No documents yet"
-msgstr "Aún no hay eventos de sincronización"
-
-#, fuzzy
-#| msgid "Last synced"
-msgid "Last Indexed"
-msgstr "Última sincronización"
-
-#, fuzzy
-#| msgid "Usages"
-msgid "Pages"
-msgstr "Usos"
-
-#, fuzzy
-#| msgid "No models yet"
-msgid "No pages yet"
-msgstr "Aún no hay modelos"
-
-#, fuzzy, python-format
-#| msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
-msgid "You are about to delete the knowledge source <b>%(object)s</b> and everything indexed from it. There is no way to undo this. Are you sure?"
-msgstr "Está a punto de eliminar el equipo <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
-
-msgid "Help articles written by your workspace. Published articles are searchable by AI agents."
-msgstr ""
-
-#, fuzzy
-#| msgid "No archives"
-msgid "No articles"
-msgstr "Sin archivos"
-
-msgid "Update Shortcut"
-msgstr "Actualizar atajo"
-
-msgid "Delete Shortcut"
-msgstr "Eliminar atajo"
-
-msgid "No shortcuts"
-msgstr "Sin atajos"
-
-#, fuzzy
-#| msgid "These are canned responses that agents can use to quickly reply to tickets."
-msgid "Canned responses that agents can use to quickly reply to tickets."
-msgstr "Estas son respuestas predefinidas que los agentes pueden utilizar para responder rápidamente a los tickets."
-
-#, fuzzy, python-format
-#| msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
-msgid "You are about to delete the document <b>%(object.name)s</b> and everything indexed from it. There is no way to undo this. Are you sure?"
-msgstr "Está a punto de eliminar el equipo <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
 
 #, python-format
 msgid "You are about to delete the shortcut <b>%(object)s</b>. There is no way to undo this. Are you sure?"

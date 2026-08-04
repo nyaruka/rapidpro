@@ -682,9 +682,9 @@ class OrgCRUDL(SmartCRUDL):
                         menu_id="knowledge",
                         name=_("Knowledge"),
                         icon="knowledge",
-                        endpoint="tickets.knowledge_menu",
-                        href="tickets.knowledge_shortcuts",
-                        perm="tickets.knowledge_read",
+                        endpoint="knowledge.knowledge_menu",
+                        href="knowledge.knowledge_shortcuts",
+                        perm="knowledge.knowledge_read",
                     )
                 )
 

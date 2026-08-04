@@ -17,6 +17,7 @@ from temba.channels.models import SyncEvent
 from temba.contacts.models import ContactExport, ContactField, ContactFire, ContactImport, ContactImportBatch
 from temba.flows.models import FlowLabel, FlowRun, FlowSession, FlowStart, FlowStartCount, ResultsExport
 from temba.globals.models import Global
+from temba.knowledge.models import Article, ArticleImage, Knowledge, KnowledgeChunk, KnowledgeItem
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import MessageExport, Msg
 from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType
@@ -28,17 +29,7 @@ from temba.schedules.models import Schedule
 from temba.templates.models import TemplateTranslation
 from temba.tests import TembaTest, mock_mailroom
 from temba.tests.base import get_contact_search
-from temba.tickets.models import (
-    Article,
-    ArticleImage,
-    Knowledge,
-    KnowledgeChunk,
-    KnowledgeItem,
-    Shortcut,
-    Team,
-    TicketExport,
-    Topic,
-)
+from temba.tickets.models import Shortcut, Team, TicketExport, Topic
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.utils.uuid import uuid4

@@ -8,7 +8,7 @@ SYSTEM_NAMES = {"shortcuts": "Shortcuts", "helpdesk": "Helpdesk"}
 
 def backfill_system_knowledge(apps, schema_editor):  # pragma: no cover
     Org = apps.get_model("orgs", "Org")
-    Knowledge = apps.get_model("tickets", "Knowledge")
+    Knowledge = apps.get_model("knowledge", "Knowledge")
 
     # per type rather than per org so that an org caught halfway through a rolling deploy - one of its two system
     # rows already created by the new Org.initialize() - gets only the row it's missing
@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("tickets", "0093_article_articleimage_knowledge_knowledgechunk_and_more"),
+        ("knowledge", "0001_initial"),
     ]
 
     operations = [

@@ -1,19 +1,19 @@
 from importlib import import_module
 from zoneinfo import ZoneInfo
 
+from temba.knowledge.models import Knowledge
 from temba.orgs.models import Org
 from temba.tests import MigrationTest
-from temba.tickets.models import Knowledge
 from temba.utils.uuid import uuid4
 
 
 class BackfillSystemKnowledgeTest(MigrationTest):
-    app = "tickets"
-    migrate_from = "0093_article_articleimage_knowledge_knowledgechunk_and_more"
-    migrate_to = "0094_backfill_system_knowledge"
+    app = "knowledge"
+    migrate_from = "0001_initial"
+    migrate_to = "0002_backfill_system_knowledge"
 
     def setUpBeforeMigration(self, apps):
-        OldKnowledge = apps.get_model("tickets", "Knowledge")
+        OldKnowledge = apps.get_model("knowledge", "Knowledge")
 
         # TembaTest.setUp already ran Org.initialize() which created both rows - remove them so the backfill has
         # work to do
@@ -67,6 +67,6 @@ class BackfillSystemKnowledgeTest(MigrationTest):
 
         # re-running the backfill is a no-op
         num_rows = Knowledge.objects.count()
-        backfill = import_module("temba.tickets.migrations.0094_backfill_system_knowledge").backfill_system_knowledge
+        backfill = import_module("temba.knowledge.migrations.0002_backfill_system_knowledge").backfill_system_knowledge
         backfill(self.apps, None)
         self.assertEqual(num_rows, Knowledge.objects.count())
