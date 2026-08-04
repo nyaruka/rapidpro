@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 17:34+0000\n"
+"POT-Creation-Date: 2026-08-04 21:52+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -3788,15 +3788,6 @@ msgstr ""
 msgid "Closed Ticket"
 msgstr ""
 
-msgid "Opt-In"
-msgstr ""
-
-msgid "Opt-Out"
-msgstr ""
-
-msgid "Opt-Ins"
-msgstr ""
-
 msgid "Which flow will be started."
 msgstr ""
 
@@ -6502,18 +6493,6 @@ msgid "Start a flow when a conversation is started by a contact."
 msgstr ""
 
 msgid "A new conversation"
-msgstr ""
-
-msgid "Start a flow when a contact accepts an opt-in request."
-msgstr ""
-
-msgid "A contact opting in"
-msgstr ""
-
-msgid "Start a flow when a contact opts out of a topic they previously opted in to."
-msgstr ""
-
-msgid "A contact opting out"
 msgstr ""
 
 msgid "Start a flow when Facebook refers a contact."

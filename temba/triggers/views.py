@@ -35,7 +35,6 @@ class Folder(Enum):
     )
     REFERRAL = (_("Referral"), (Trigger.TYPE_REFERRAL,), ("-priority",))
     TICKETS = (_("Tickets"), (Trigger.TYPE_CLOSED_TICKET,), ("-priority",))
-    OPTINS = (_("Opt-Ins"), (Trigger.TYPE_OPT_IN, Trigger.TYPE_OPT_OUT), ("-priority",))
 
     def __init__(self, title, types, ordering):
         self.title = title
@@ -187,8 +186,6 @@ class TriggerCRUDL(SmartCRUDL):
         "create_new_conversation",
         "create_referral",
         "create_closed_ticket",
-        "create_opt_in",
-        "create_opt_out",
         "update",
         "list",
         "menu",
@@ -360,12 +357,6 @@ class TriggerCRUDL(SmartCRUDL):
 
     class CreateClosedTicket(BaseCreate):
         trigger_type = Trigger.TYPE_CLOSED_TICKET
-
-    class CreateOptIn(BaseCreate):
-        trigger_type = Trigger.TYPE_OPT_IN
-
-    class CreateOptOut(BaseCreate):
-        trigger_type = Trigger.TYPE_OPT_OUT
 
     class Update(ModalFormMixin, ComponentFormMixin, OrgObjPermsMixin, SmartUpdateView):
         def get_form_class(self):
