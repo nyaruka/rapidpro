@@ -377,6 +377,18 @@ class ArticleTest(TembaTest):
         self.assertEqual([0, 1, 1, 0], [a.depth for a in tree])
         self.assertEqual([None, flows.uuid, flows.uuid, None], [a.parent_uuid for a in tree])
 
+        # an article stored deeper than the cap allows - data can predate it - renders flattened rather than hidden:
+        # as a sibling following its parent, under the deepest ancestor the cap does allow
+        grand = self.create_article(self.helpdesk, "Grand", parent=edges)
+
+        tree = Article.get_tree(self.helpdesk)
+
+        self.assertEqual([flows, edges, grand, nodes, contacts], tree)
+        self.assertEqual([0, 1, 1, 1, 0], [a.depth for a in tree])
+        self.assertEqual([None, flows.uuid, flows.uuid, flows.uuid, None], [a.parent_uuid for a in tree])
+
+        grand.release(self.admin)
+
         # an article orphaned by its parent going inactive is shown as a root rather than dropped - otherwise it would
         # be invisible here, and so unmovable, while still being indexed if it were published
         Article.objects.filter(id=flows.id).update(is_active=False)
@@ -425,15 +437,15 @@ class ArticleTest(TembaTest):
         # nesting is allowed up to the cap...
         deep = self.create_article(self.helpdesk, "Deep")
         deeper = self.create_article(self.helpdesk, "Deeper")
-        Article.apply_sort(self.helpdesk, [(str(deep.uuid), str(nodes.uuid), 0)])
+        Article.apply_sort(self.helpdesk, [(str(deep.uuid), str(flows.uuid), 1)])
 
-        # ...but no further, counting the parts of the tree the client didn't mention
+        # ...but no further - deep's parent comes from the part of the tree the client didn't mention
         with self.assertRaises(ValueError):
             Article.apply_sort(self.helpdesk, [(str(deeper.uuid), str(deep.uuid), 0)])
 
         # none of the rejected moves changed anything
         self.assertEqual([contacts, deeper, flows, nodes, deep], Article.get_tree(self.helpdesk))
-        self.assertEqual([0, 0, 0, 1, 2], [a.depth for a in Article.get_tree(self.helpdesk)])
+        self.assertEqual([0, 0, 0, 1, 1], [a.depth for a in Article.get_tree(self.helpdesk)])
 
     def test_as_html(self):
         article = self.create_article(self.helpdesk, "Getting Started")

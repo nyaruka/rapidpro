@@ -309,6 +309,19 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(400, response.status_code)
         self.assertEqual({"error": "articles can't be their own ancestor"}, response.json())
 
+        # or one that would nest an article below the two level cap - flows already sits under nodes
+        child = Article.create(self.helpdesk, self.admin, "Child")
+        response = self.client.post(
+            sort_url,
+            json.dumps([{"uuid": str(child.uuid), "parent": str(flows.uuid), "sort_order": 0}]),
+            content_type="application/json",
+        )
+        self.assertEqual(400, response.status_code)
+        self.assertEqual({"error": "articles can't be nested more than 2 deep"}, response.json())
+
+        child.refresh_from_db()
+        self.assertIsNone(child.parent)
+
         # a sort order too big for the column is clamped rather than handed to the database
         response = self.client.post(
             sort_url,

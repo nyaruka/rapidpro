@@ -259,7 +259,7 @@ class Article(models.Model):
     MAX_TITLE_LEN = 255
     MAX_SLUG_LEN = 255
     MAX_BODY_LEN = 100_000  # bodies are chunked and embedded, so this bounds what one article can cost to index
-    MAX_DEPTH = 3  # root + two levels of nesting; enforced by the reorder view
+    MAX_DEPTH = 2  # total levels - a root and its children, no grandchildren; enforced by the reorder view
     MAX_ARTICLES = 1000  # per helpdesk
 
     uuid = models.UUIDField(unique=True, default=uuid4)
@@ -332,7 +332,9 @@ class Article(models.Model):
         each one's depth and the uuid of the article it's shown under attached.
 
         parent_uuid is the parent as rendered rather than as stored, so it's null for an article whose parent has been
-        deleted - which is shown as a root here and would otherwise name an article the client can't see.
+        deleted - which is shown as a root here and would otherwise name an article the client can't see. Articles
+        stored deeper than MAX_DEPTH allows - data can predate the cap - render flattened rather than hidden: as
+        siblings following their parent, under the deepest ancestor the cap does allow.
         """
         active = list(knowledge.articles.filter(is_active=True).order_by("sort_order", "title"))
         active_ids = {a.id for a in active}
@@ -345,14 +347,19 @@ class Article(models.Model):
 
         ordered = []
 
-        def visit(parent, depth):
-            for article in by_parent[parent.id if parent else None]:
-                article.depth = depth
-                article.parent_uuid = parent.uuid if parent else None
-                ordered.append(article)
-                visit(article, depth + 1)
+        def visit(article, parent, depth):
+            for child in by_parent[article.id if article else None]:
+                child.depth = depth
+                child.parent_uuid = parent.uuid if parent else None
+                ordered.append(child)
+                if depth + 1 < cls.MAX_DEPTH:
+                    visit(child, child, depth + 1)
+                else:
+                    # a row at the cap can't be shown with children, so any it has render at its own depth and
+                    # parent - flattened into the siblings that follow it rather than dropped
+                    visit(child, parent, depth)
 
-        visit(None, 0)
+        visit(None, None, 0)
         return ordered
 
     @classmethod
