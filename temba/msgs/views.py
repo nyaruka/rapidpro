@@ -1,6 +1,5 @@
 import mimetypes
 import os
-from datetime import timedelta
 from functools import cached_property
 from urllib.parse import quote_plus
 
@@ -12,13 +11,11 @@ from django.conf import settings
 from django.db.models.functions.text import Lower
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import RedirectView
 
 from temba import mailroom
-from temba.archives.models import Archive
 from temba.mailroom.client.types import Exclusions
 from temba.orgs.models import Org
 from temba.orgs.views.base import (
@@ -34,7 +31,6 @@ from temba.templates.models import Template
 from temba.utils import json
 from temba.utils.compose import compose_deserialize, compose_serialize
 from temba.utils.fields import CompletionTextarea, ContactSearchWidget, InputWidget, SelectWidget
-from temba.utils.models import patch_queryset_count
 from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import (
     ContextMenuMixin,
@@ -63,14 +59,11 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     bulk_action_permissions = {"resend": "msgs.msg_create", "delete": "msgs.msg_update"}
     template_name = "msgs/msg_list.html"
     folder = None
-    paginate_by = 100
 
-    # By default every MsgListView subclass with a folder/label renders msgs/msg_list_new.html. Viewers can opt
-    # back into the legacy template via legacy mode (LegacyMiddleware → request.legacy).
-    NEW_LIST_TEMPLATE = "msgs/msg_list_new.html"
+    # the temba-msg-list component fetches and pages messages itself
+    paginate_by = None
 
-    # Optional subtitle rendered under the title on the new-list view;
-    # subclasses may override to describe what the folder contains.
+    # Optional subtitle rendered under the title; subclasses may override to describe what the folder contains.
     subtitle = ""
 
     # Bulk-action key -> config consumed by temba-content-list (label,
@@ -91,31 +84,10 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         "resend": {"label": _("Resend"), "icon": "send"},
     }
 
-    def _use_new_list(self) -> bool:
-        # The folder for a message list is either one of the built-in MsgFolder enum values (Inbox / Handled / …) or
-        # a user-defined Label (the filter view binds it in derive_folder); both render through the same new-list
-        # template unless the viewer is in legacy mode. `getattr` defaults to False so a view called via
-        # RequestFactory (or if LegacyMiddleware is ever reordered out) doesn't AttributeError.
-        return not getattr(self.request, "legacy", False) and isinstance(self.derive_folder(), (MsgFolder, Label))
-
-    def get_template_names(self):
-        if self._use_new_list():
-            return [self.NEW_LIST_TEMPLATE]
-        return super().get_template_names()
-
-    def get_paginate_by(self, queryset):
-        # The temba-msg-list component fetches and pages messages itself.
-        if self._use_new_list():
-            return None
-        return super().get_paginate_by(queryset)
-
     def post(self, request, *args, **kwargs):
-        # The temba-msg-list label dropdown posts the label by uuid, but
-        # BulkActionMixin matches by id — translate the uuid here so both
-        # the new component and the legacy form post are accepted. A non-
-        # uuid value (the legacy form's integer id) is left alone. Only
-        # touch the label field on label/unlabel actions so an unrelated
-        # POST that happens to carry a `label` key isn't rewritten.
+        # The temba-msg-list label dropdown posts the label by uuid, but BulkActionMixin matches by id — translate
+        # the uuid here. Only touch the label field on label/unlabel actions so an unrelated POST that happens to
+        # carry a `label` key isn't rewritten.
         if request.POST.get("action") in ("label", "unlabel"):
             label = request.POST.get("label")
             if label and is_uuid(label):
@@ -144,74 +116,39 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         return "%s?l=%s&redirect=%s" % (reverse("msgs.msg_export"), label_id, redirect)
 
     def get_queryset(self, **kwargs):
-        # On the new list the temba-msg-list component fetches and pages messages from the internal messages API, so
-        # a GET page needs no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin
-        # validates the posted `objects` against it.
-        if self._use_new_list() and self.request.method == "GET":
+        # The temba-msg-list component fetches and pages messages from the internal messages API, so a GET page needs
+        # no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin validates the
+        # posted `objects` against it.
+        if self.request.method == "GET":
             return Msg.objects.none()
 
-        qs = super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
-
-        # if we are searching, limit to last 90, and enforce distinct since we'll be joining on multiple tables
-        if self.search_fields and "search" in self.request.GET:
-            last_90 = timezone.now() - timedelta(days=90)
-
-            # we need to find get the field names we're ordering on without direction
-            distinct_on = (f.lstrip("-") for f in self.derive_ordering())
-
-            qs = qs.filter(created_on__gte=last_90).distinct(*distinct_on)
-
-        return qs
+        return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
 
     def get_context_data(self, **kwargs):
-        org = self.request.org
+        context = super().get_context_data(**kwargs)
         folder = self.derive_folder()
 
-        # folder counts drive pagination and the has_messages empty state, both only used by the legacy list — the
-        # new list component fetches its own counts from the API
-        legacy = not self._use_new_list()
-        if legacy:
-            counts = MsgFolder.get_counts(org)
-
-            # if there isn't a search filtering the queryset, we can replace the count function with a pre-calculated
-            # value
-            if not self.search_fields or "search" not in self.request.GET:
-                if isinstance(folder, Label):
-                    patch_queryset_count(self.object_list, folder.get_visible_count)
-                elif isinstance(folder, MsgFolder):
-                    patch_queryset_count(self.object_list, lambda: counts[folder])
-
-        context = super().get_context_data(**kwargs)
-
-        if legacy:
-            context["has_messages"] = (
-                any(counts.values()) or Archive.objects.filter(org=org, archive_type=Archive.TYPE_MSG).exists()
-            )
-
-        # New-list view context: the resolved messages-api endpoint
-        # (folder= for the built-in folders, label= for a user label),
-        # the subtitle, and the bulk-action configs the temba-msg-list
-        # expects (resolved + JSON-encoded here so the template stays
-        # inert).
-        if self._use_new_list():
-            if isinstance(folder, Label):
-                query = f"label={folder.uuid}"
-            else:
-                query = f"folder={folder.name.lower()}"
-            context["new_list_endpoint"] = f"{reverse('api.internal.messages')}.json?{query}"
-            subtitle = self.derive_subtitle()
-            context["new_list_subtitle"] = str(subtitle) if subtitle else ""
-            actions = []
-            for key in self.get_bulk_actions():
-                cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
-                cfg["key"] = key
-                if key == "label":
-                    # the dropdown's "New Label…" row only renders for viewers who can create labels
-                    cfg["allowCreate"] = self.has_org_perm("msgs.label_create")
-                # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
-                cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
-                actions.append(cfg)
-            context["new_list_bulk_actions"] = actions
+        # the resolved messages-api endpoint (folder= for the built-in folders, label= for a user label), the
+        # subtitle, and the bulk-action configs the temba-msg-list expects (resolved + JSON-encoded here so the
+        # template stays inert)
+        if isinstance(folder, Label):
+            query = f"label={folder.uuid}"
+        else:
+            query = f"folder={folder.name.lower()}"
+        context["new_list_endpoint"] = f"{reverse('api.internal.messages')}.json?{query}"
+        subtitle = self.derive_subtitle()
+        context["new_list_subtitle"] = str(subtitle) if subtitle else ""
+        actions = []
+        for key in self.get_bulk_actions():
+            cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
+            cfg["key"] = key
+            if key == "label":
+                # the dropdown's "New Label…" row only renders for viewers who can create labels
+                cfg["allowCreate"] = self.has_org_perm("msgs.label_create")
+            # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
+            cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
+            actions.append(cfg)
+        context["new_list_bulk_actions"] = actions
 
         return context
 
@@ -254,54 +191,26 @@ class BroadcastCRUDL(SmartCRUDL):
         Base class for the broadcast list views (sent and scheduled)
         """
 
-        paginate_by = 25
-
-        # By default both broadcast list views render the temba-broadcast-list component
-        # (msgs/broadcast_list_new.html); the component fetches/pages broadcasts itself from the internal broadcasts
-        # API. Viewers can opt back into the legacy card grids via legacy mode (LegacyMiddleware → request.legacy).
-        NEW_LIST_TEMPLATE = "msgs/broadcast_list_new.html"
+        # both broadcast list views render the temba-broadcast-list component, which fetches and pages broadcasts
+        # itself from the internal broadcasts API
+        template_name = "msgs/broadcast_list.html"
+        paginate_by = None
 
         # The internal-API folder (and the component's `mode`) this view lists — `sent` or `scheduled`.
         new_list_folder = "sent"
 
-        def _use_new_list(self) -> bool:
-            # `getattr` defaults to False so a view called via RequestFactory (or if LegacyMiddleware is reordered
-            # out) doesn't AttributeError.
-            return not getattr(self.request, "legacy", False)
-
-        def get_template_names(self):
-            if self._use_new_list():
-                return [self.NEW_LIST_TEMPLATE]
-            return super().get_template_names()
-
-        def get_paginate_by(self, queryset):
-            # The temba-broadcast-list component fetches and pages broadcasts itself.
-            if self._use_new_list():
-                return None
-            return super().get_paginate_by(queryset)
-
         def get_queryset(self, **kwargs):
-            # On the new list the temba-broadcast-list component fetches and pages broadcasts from the internal
-            # broadcasts API, so a GET page needs no object list.
-            if self._use_new_list() and self.request.method == "GET":
-                return Broadcast.objects.none()
-
-            return (
-                super()
-                .get_queryset(**kwargs)
-                .filter(is_active=True, org=self.request.org)
-                .select_related("org", "schedule")
-                .prefetch_related("groups", "contacts")
-            )
+            # the component fetches and pages broadcasts itself, and these views have no bulk actions, so the page
+            # never needs an object list
+            return Broadcast.objects.none()
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            # New-list view context: the resolved broadcasts-api endpoint and the component's mode.
-            if self._use_new_list():
-                endpoint = reverse("api.internal.broadcasts")
-                context["new_list_endpoint"] = f"{endpoint}.json?folder={self.new_list_folder}"
-                context["new_list_mode"] = self.new_list_folder
+            # the resolved broadcasts-api endpoint and the component's mode
+            endpoint = reverse("api.internal.broadcasts")
+            context["new_list_endpoint"] = f"{endpoint}.json?folder={self.new_list_folder}"
+            context["new_list_mode"] = self.new_list_folder
 
             return context
 
@@ -880,17 +789,9 @@ class MsgCRUDL(SmartCRUDL):
         bulk_actions = ()
         allow_export = True
 
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            # only the legacy list renders the outbox warning
-            if not self._use_new_list():
-                context["outbox_warning"] = MsgFolder.OUTBOX.get_count(self.request.org) >= Org.OUTBOX_WARNING_THRESHOLD
-            return context
-
     class Sent(MsgListView):
         title = _("Sent")
         subtitle = _("Outgoing messages that have been sent.")
-        template_name = "msgs/msg_sent.html"
         folder = MsgFolder.SENT
         bulk_actions = ()
         allow_export = True

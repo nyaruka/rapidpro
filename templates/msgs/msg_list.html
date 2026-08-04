@@ -1,182 +1,180 @@
-{% extends "orgs/base/list.html" %}
-{% load smartmin sms temba contacts i18n humanize channels %}
+{% extends "smartmin/list.html" %}
+{% load i18n %}
 
-{% block pre-table %}
-  {% if outbox_warning %}
-    <temba-alert level="warning" class="mb-4">
-      {% blocktrans trimmed %}
-        Your channels are taking a while to send messages. Please wait for the outbound queue to clear before sending new messages.
-      {% endblocktrans %}
-    </temba-alert>
+{% comment %}
+  Generic list template used by every MsgListView subclass. Endpoint,
+  subtitle and bulk actions come from the view's context_data so the
+  template stays the same across Inbox / Flow / Archived / Outbox /
+  Sent / Failed and the per-label Filter view.
+{% endcomment %}
+{% block page-header %}
+  {# the temba-msg-list renders its own header (title + content menu); #}
+  {# keep the csrf token and a hidden title for the SPA document.title hook #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    /* The list component fills its container edge to edge and brings
+       its own surface, so drop the SPA content padding (and the grey
+       page background it would otherwise reveal around the list). */
+    .spa-content {
+      padding: 0 !important;
+    }
+  </style>
+{% endblock extra-style %}
+{% block content %}
+  <temba-msg-list id="msg-list"
+                  fill-window
+                  history-state-key="msgs"
+                  column-width-settings="{{ list_column_settings }}"
+                  settings-endpoint="{% url 'users.user_settings' %}"
+                  list-title="{{ title }}"
+                  {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
+                  endpoint="{{ new_list_endpoint }}"
+                  action-endpoint="{{ request.path }}"
+                  content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
+                  empty-message="{% trans "No messages" %}">
+  </temba-msg-list>
+  {{ new_list_bulk_actions|json_script:"new-list-bulk-actions" }}
+  {% if org_perms.msgs.label_create %}
+    <temba-modax header="{% trans "New Label" %}"
+                 endpoint="{% url 'msgs.label_create' %}"
+                 -temba-loaded="handleCreateLabelModalLoaded"
+                 -temba-submitted="handleCreateLabelModalSubmitted"
+                 id="create-label-modal">
+    </temba-modax>
   {% endif %}
-{% endblock pre-table %}
-{% block modaxes %}
-  <temba-modax header="{% trans "New Label" %}"
-               endpoint="{% url 'msgs.label_create' %}"
-               -temba-loaded="handleCreateLabelModalLoaded"
-               -temba-submitted="handleCreateLabelModalSubmitted"
-               id="create-label-modal">
-  </temba-modax>
-  <temba-dialog header="{{ _("Delete Selected Messages") |escapejs }}"
-                primaryButtonName="{{ _("Delete") |escapejs }}"
-                destructive="true"
-                class="hide"
-                id="delete-confirmation">
-    <div class="p-6">{% trans "Are you sure you want to delete the selected messages? This cannot be undone." %}</div>
-  </temba-dialog>
-{% endblock modaxes %}
-{% block table %}
-  {% if has_messages %}
-    <table class="{% if org_perms.msgs.msg_update or org_perms.msgs.broadcast_create %}selectable{% endif %} list object-list lined scrolled">
-      <tbody>
-        {% for object in object_list %}
-          <tr data-object-id="{{ object.id }}"
-              data-sender-id="{{ object.contact.id }}"
-              data-sender-uuid="{{ object.contact.uuid }}"
-              onclick="handleRowClicked(event)"
-              href="{% url 'contacts.contact_read' object.contact.uuid %}"
-              class="sms object-row"
-              id="id-row-{{ object.id }}">
-            {% if actions %}
-              {% if org_perms.msgs.msg_update or org_perms.msgs.broadcast_create %}
-                <td onclick="checkInner(event);" class="checkbox sms object-row-check">
-                  <temba-checkbox onclick="handleRowSelection(this)">
-                  </temba-checkbox>
-                </td>
-              {% endif %}
-            {% endif %}
-            <td class="whitespace-nowrap">{{ object.contact|name_or_urn:user_org|truncatechars:20 }}</td>
-            <td class="w-full">
-              <div class="flex flex-row flex-end items-center justify-end">
-                {% if object.msg_type == "O" %}
-                  <div class="flex-grow optin flex">
-                    <temba-icon name="optin_requested" class="mr-2">
-                    </temba-icon>
-                    <div class="flex-grow">
-                      {% blocktrans trimmed with optin=object.optin.name %}
-                        Opt-in request for {{ optin }}
-                      {% endblocktrans %}
-                    </div>
-                  </div>
-                {% else %}
-                  <div style="display: -webkit-box;
-                              -webkit-line-clamp: 1;
-                              -webkit-box-orient: vertical;
-                              overflow: hidden;
-                              word-break: break-all"
-                       class="flex-grow">{{ object.text }}</div>
-                {% endif %}
-                <div class="flex items-center flex-row">
-                  {% if 'label' in actions %}
-                    {% for label in object.labels.all %}
-                      <a href="{% url 'msgs.msg_filter' label.uuid %}">
-                        <temba-label data-id="{{ label.id }}" type="label" clickable class="mx-1">
-                          {{ label.name }}
-                        </temba-label>
-                      </a>
-                    {% endfor %}
-                  {% endif %}
-                  {% if object.flow and object.flow.is_active %}
-                    <a href="{% url 'flows.flow_editor' object.flow.uuid %}">
-                      <temba-label type="flow" primary clickable class="mx-1">
-                        {{ object.flow.name }}
-                      </temba-label>
-                    </a>
-                  {% endif %}
-                </div>
-              </div>
-              {% if object.attachments %}
-                <div style="margin-top: 5px" class="value-attachments">
-                  {% for attachment in object.attachments %}
-                    {% attachment_button attachment %}
-                  {% endfor %}
-                </div>
-              {% endif %}
-            </td>
-            <td>
-              <div class="flex w-full items-center justify-end pr-4">
-                <div class="time whitespace-nowrap">
-                  {% block message_time %}
-                    {{ object.created_on|timedate }}
-                  {% endblock message_time %}
-                </div>
-                {% channel_log_link object %}
-              </div>
-            </td>
-          </tr>
-        {% empty %}
-          <tr class="empty_list">
-            <td colspan="99" class="text-center">{% trans "No messages" %}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    {% include "msgs/empty_include.html" %}
-  {% endif %}
-{% endblock table %}
+{% endblock content %}
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
-    function handleRowClicked(event) {
-      if (event.target.tagName == "TEMBA-CHECKBOX") {
-        return;
-      }
+    onSpload(function() {
+      var list = document.querySelector("#msg-list");
+      list.bulkActions = JSON.parse(document.getElementById("new-list-bulk-actions").textContent);
 
-      if (event.target.closest("a")) {
-        return;
-      }
-
-      var row = event.target.closest("tr");
-      goto(event, row);
-    }
-
-    {% if org_perms.msgs.msg_update %}
-
-    function onDeleteClicked() {
-      var deleteConfirmation = document.querySelector("#delete-confirmation");
-      deleteConfirmation.classList.remove("hide");
-      deleteConfirmation.open = true;
-
-      deleteConfirmation.addEventListener("temba-button-clicked", function(event) {
-        if (!event.detail.button.secondary) {
-          runActionOnObjectRows("delete", wireTableListeners);
+      // clicking a row opens the contact
+      list.addEventListener("temba-row-click", function(event) {
+        var contact = event.detail.item && event.detail.item.contact;
+        if (contact && contact.uuid) {
+          spaGet("/contact/read/" + contact.uuid + "/");
         }
-        deleteConfirmation.open = false;
       });
-    }
 
-    function handleCreateLabelModalLoaded(event) {
-      window.lastChecked = getCheckedIds();
-      var body = event.detail.body;
-      body.querySelector("#id_messages").value = window.lastChecked.join();
-    }
-
-    function handleCreateLabelModalSubmitted(event) {
-      refresh(function() {
-        recheckIds();
-      }, true);
-      if (refreshMenu) {
+      // the embedded content menu fires temba-selection - dispatch it the
+      // same way the page chrome's content menu (spa_page_menu.html) does
+      list.addEventListener("temba-selection", function(event) {
+        var item = event.detail.item;
+        var click = event.detail.event;
+        if (item.type === "link") {
+          if (click) {
+            click.preventDefault();
+            click.stopPropagation();
+            if (click.metaKey && item.url) {
+              window.open(item.url, "_blank");
+              return;
+            }
+          }
+          spaGet(item.url);
+        } else if (item.type === "modax") {
+          showModax(item.title, item.url, {
+            disabled: item.disabled,
+            onSubmit: item.on_submit,
+            onRedirect: item.on_redirect,
+            id: item.modal_id,
+            originX: event.detail.originX,
+            originY: event.detail.originY
+          });
+        } else if (item.type === "url_post") {
+          posterize(item.url);
+        } else if (item.type === "js") {
+          if (window[item.id]) {
+            window[item.id]();
+          }
+        }
         refreshMenu();
+      });
+
+      // The component POSTs the bulk action to action-endpoint and
+      // re-fetches the current page itself — we just refresh the
+      // sidebar menu counts after the round-trip completes.
+      list.addEventListener("temba-bulk-action", function() {
+        refreshMenu();
+      });
+
+      // The label dropdown's "New Label..." row — open the create modal
+      // seeded with the current selection (the modal's hidden messages
+      // field is filled in handleCreateLabelModalLoaded).
+      list.addEventListener("temba-label-create", function(event) {
+        window.pendingLabelIds = event.detail.ids || [];
+        var modal = document.getElementById("create-label-modal");
+        if (modal) {
+          modal.open = true;
+        }
+      });
+
+      // The list bubbles up its restorable state (page, sort, search,
+      // and a cursor URL when applicable) as it changes — stash it
+      // on the current history entry so a navigation away and back
+      // lands on the same page. event.detail.replace tells us
+      // whether to pushState (paging, sort, committed search — each
+      // becomes its own back-history entry) or replaceState (typing
+      // in the search box, cursor-page snap-back — no new entry).
+      // The saved state rides along when the user later does
+      // navigate away and is read back by loadFromState (which
+      // spaRequests state.url) when the SPA returns, at which point
+      // the remounted list reads its slot. Preserves state.url so
+      // loadFromState still knows where to re-render the page on
+      // browser back — an entry that arrived via a non-spa load
+      // (typed URL, hard refresh) starts with no url in state, and
+      // we'd otherwise leave it that way.
+      list.addEventListener("temba-history-change", function(event) {
+        var current = history.state || {};
+        var next = Object.assign({}, current);
+        next[event.detail.key] = event.detail.state;
+        if (!next.url) {
+          // Match the convention used by addToHistory / the initial
+          // DOMContentLoaded replaceState (full URL including origin)
+          // so loadFromState's same-URL guard recognizes that an
+          // in-list push didn't change the page.
+          next.url = location.href;
+        }
+        // event.detail.url is the address-bar URL for the new list
+        // state (search/sort/page folded into the query string), so a
+        // committed — or cleared — search stays shareable in the URL.
+        // Deliberately NOT mirrored into state.url: keeping that
+        // stable is what tells loadFromState's same-URL guard that an
+        // in-list back/forward is the component's to handle rather
+        // than a cross-page navigation to re-render.
+        if (event.detail.replace) {
+          history.replaceState(next, "", event.detail.url || null);
+        } else {
+          history.pushState(next, "", event.detail.url || null);
+        }
+      });
+    });
+
+    // Seed the create-label modal's hidden messages field with the selection
+    // stashed by the temba-label-create handler, so creating the label also
+    // applies it to the selected messages.
+    function handleCreateLabelModalLoaded(event) {
+      var field = event.detail.body.querySelector("#id_messages");
+      if (field) {
+        field.value = (window.pendingLabelIds || []).join();
       }
     }
 
-    function handleSendMessageClicked() {
-      var sendEndpoint = "{% url 'msgs.broadcast_create' %}";
-      var sendModal = document.querySelector("#shared_modax");
-      var msgIds = getCheckedIds();
-      if (msgIds.length > 0) {
-        sendModal.setAttribute("endpoint", sendEndpoint + '?m=' + msgIds);
-      } else {
-        sendModal.setAttribute("endpoint", sendEndpoint);
+    // Shared by the dropdown's create modal and the content-menu "New Label"
+    // modax — refresh the sidebar menu (new label appears) and the list
+    // (labels on rows + cached dropdown lists).
+    function handleCreateLabelModalSubmitted() {
+      window.pendingLabelIds = [];
+      refreshMenu();
+      var list = document.querySelector("#msg-list");
+      if (list) {
+        list.refresh();
       }
-
-      sendModal.open = true;
-    }
-    {% endif %}
-
-    function handleAddLabelClicked() {
-      document.getElementById("create-label-modal").open = true;
     }
   </script>
 {% endblock extra-script %}

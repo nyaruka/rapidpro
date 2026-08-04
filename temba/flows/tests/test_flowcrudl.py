@@ -189,9 +189,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual([["test"]], list(flow2.triggers.order_by("id").values_list("keywords", flat=True)))
 
     def test_views(self):
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         list_url = reverse("flows.flow_list")
         create_url = reverse("flows.flow_create")
 
@@ -214,15 +211,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContentMenu(list_url, self.editor, ["New Flow", "New Label", "Import", "Export"])
         self.assertContentMenu(list_url, self.admin, ["New Flow", "New Label", "Import", "Export"])
 
-        # list, should have only one flow (the one created in setUp)
-        response = self.client.get(list_url)
-        self.assertEqual(1, len(response.context["object_list"]))
-
-        # inactive list shouldn't have any flows
-        response = self.client.get(reverse("flows.flow_archived"))
-        self.assertEqual(0, len(response.context["object_list"]))
-
-        # also shouldn't be able to view other flow
+        # shouldn't be able to view another org's flow
         response = self.client.get(reverse("flows.flow_editor", args=[other_flow.uuid]))
         self.assertEqual(404, response.status_code)
 
@@ -323,10 +312,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # can see results for a flow
         response = self.client.get(reverse("flows.flow_results", args=[flow.uuid]))
         self.assertEqual(200, response.status_code)
-
-        # check flow listing
-        response = self.client.get(list_url)
-        self.assertEqual(list(response.context["object_list"]), [flow3, voice_flow, flow1, flow])  # by saved_on
 
         # test update view
         response = self.client.post(reverse("flows.flow_update", args=[flow.uuid]))
@@ -569,9 +554,6 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @mock_mailroom
     def test_list_views(self, mr_mocks):
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
 
@@ -591,7 +573,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         list_url = reverse("flows.flow_list")
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
-        self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[flow3, flow1])
+        self.assertListFetch(list_url, [self.editor, self.admin])
 
         # try to archive flow used by campaign
         response = self.client.post(list_url, {"action": "archive", "objects": flow3.id})
@@ -625,34 +607,21 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(list_url, {"action": "archive", "objects": flow1.id})
         self.assertEqual(200, response.status_code)
 
-        # should no longer appear in list
+        flow1.refresh_from_db()
+        self.assertTrue(flow1.is_archived)
+
         response = self.client.get(reverse("flows.flow_list"))
-        self.assertNotContains(response, flow1.name)
-        self.assertContains(response, flow3.name)
-
         self.assertEqual(("label", "export-results", "archive"), response.context["actions"])
-
-        # but does appear in archived list
-        response = self.client.get(reverse("flows.flow_archived"))
-        self.assertContains(response, flow1.name)
-
-        # flow2 should appear before flow since it was created later
-        self.assertTrue(flow2, response.context["object_list"][0])
-        self.assertTrue(flow1, response.context["object_list"][1])
 
         # unarchive it
         response = self.client.post(reverse("flows.flow_archived"), {"action": "restore", "objects": flow1.id})
         self.assertEqual(200, response.status_code)
 
-        # flow should no longer appear in archived list
-        response = self.client.get(reverse("flows.flow_archived"))
-        self.assertNotContains(response, flow1.name)
-        self.assertEqual(("restore",), response.context["actions"])
+        flow1.refresh_from_db()
+        self.assertFalse(flow1.is_archived)
 
-        # but does appear in normal list
-        response = self.client.get(reverse("flows.flow_list"))
-        self.assertContains(response, flow1.name)
-        self.assertContains(response, flow3.name)
+        response = self.client.get(reverse("flows.flow_archived"))
+        self.assertEqual(("restore",), response.context["actions"])
 
         # can label flows
         label1 = FlowLabel.create(self.org, self.admin, "Important")
@@ -675,16 +644,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow1.refresh_from_db()
         self.assertEqual(set(), set(flow1.labels.all()))
 
-        # voice flows should be included in the count
-        Flow.objects.filter(id=flow1.id).update(flow_type=Flow.TYPE_VOICE)
-
-        response = self.client.get(reverse("flows.flow_list"))
-        self.assertContains(response, flow1.name)
-
     def test_filter(self):
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
 
@@ -697,17 +657,13 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
 
         response = self.client.get(reverse("flows.flow_filter", args=[label1.uuid]))
-        self.assertEqual([flow2, flow1], list(response.context["object_list"]))
         self.assertEqual(("label", "export-results"), response.context["actions"])
-
-        response = self.client.get(reverse("flows.flow_filter", args=[label2.uuid]))
-        self.assertEqual([flow2], list(response.context["object_list"]))
 
         response = self.client.get(reverse("flows.flow_filter", args=[label2.uuid]))
         self.assertEqual(f"/flow/labels/{label2.uuid}", response.headers.get(TEMBA_MENU_SELECTION))
 
     @mock_mailroom
-    def test_new_list(self, mr_mocks):
+    def test_list_component(self, mr_mocks):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
         label = FlowLabel.create(self.org, self.admin, "Important")
@@ -717,14 +673,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
-        # legacy mode renders the legacy table
-        self.setLegacyUI()
-        response = self.client.get(list_url)
-        self.assertNotContains(response, "temba-flow-list")
-
-        # by default we get the temba-flow-list component, pointed at the internal flows api
-        self.setLegacyUI(False)
-
+        # the temba-flow-list component is pointed at the internal flows api
         response = self.client.get(list_url)
         self.assertContains(response, "temba-flow-list")
         self.assertEqual(f"{reverse('api.internal.flows')}.json?folder=active", response.context["new_list_endpoint"])
@@ -765,7 +714,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(set(), set(flow2.labels.all()))
 
-        # a label posted as a numeric id (a legacy form post rather than the component) is passed through untranslated
+        # a label posted as a numeric id is passed through untranslated
         self.client.post(list_url, {"action": "label", "objects": str(flow2.uuid), "label": str(label.id)})
         self.assertEqual({label}, set(flow2.labels.all()))
         label.toggle_label([flow2], add=False)
@@ -781,7 +730,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(200, response.status_code)
         self.assertEqual(set(), set(flow2.labels.all()))
 
-        # the export modal accepts the component's uuids as well as the legacy table's ids
+        # the export modal accepts uuids as well as ids
         export_url = reverse("flows.flow_export_results")
         response = self.client.get(f"{export_url}?ids={flow2.uuid}")
         self.assertEqual([flow2], list(response.context["form"].initial["flows"]))

@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 16:23+0000\n"
+"POT-Creation-Date: 2026-08-04 17:34+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -39,17 +39,15 @@ msgstr "Las claves de API las proporciona el equipo ICTD de UNICEF."
 msgid "Provider"
 msgstr "Proveedor"
 
-#, fuzzy
-#| msgid "Choose the method for your flow"
 msgid "Choose the provider for this model."
-msgstr "Elija el método para su flujo"
+msgstr "Elija el proveedor para este modelo."
 
 msgid "API Key"
 msgstr "Clave API"
 
 #, python-format
 msgid "Leave blank to use the existing API key for this provider. %(help)s"
-msgstr ""
+msgstr "Déjelo en blanco para usar la clave de API existente de este proveedor. %(help)s"
 
 msgid "Model"
 msgstr "Modelo"
@@ -61,10 +59,10 @@ msgid "Name"
 msgstr "Nombre"
 
 msgid "e.g. Translation Assistant"
-msgstr ""
+msgstr "p. ej. Asistente de traducción"
 
 msgid "Name this model for how you plan to use it, so the name stays useful if you change providers or models later."
-msgstr ""
+msgstr "Nombre este modelo según cómo piensa usarlo, para que el nombre siga siendo útil si más adelante cambia de proveedor o de modelo."
 
 msgid "Must be unique."
 msgstr "Debe ser único."
@@ -72,10 +70,8 @@ msgstr "Debe ser único."
 msgid "Artificial Intelligence"
 msgstr "Inteligencia artificial"
 
-#, fuzzy
-#| msgid "Model"
 msgid "New Model"
-msgstr "Modelo"
+msgstr "Nuevo modelo"
 
 msgid "Create"
 msgstr "Crear"
@@ -4287,27 +4283,11 @@ msgstr "Descargar Ahora"
 msgid "Are you sure you want to delete <b>%(name)s</b>? This cannot be undone."
 msgstr "¿Está seguro de que desea eliminar <b> %(name)s </b>? Esto no se puede deshacer."
 
-#, python-format
-msgid "%(counter)s event"
-msgid_plural "%(counter)s events"
-msgstr[0] "%(counter)s evento"
-msgstr[1] "%(counter)s eventos"
-msgstr[2] "%(counter)s eventos"
-
 msgid "No campaigns"
 msgstr "Sin campañas"
 
 msgid "Group required"
 msgstr "Grupo obligatorio"
-
-msgid "When"
-msgstr "Cuándo"
-
-msgid "Field"
-msgstr "Campo"
-
-msgid "No events"
-msgstr "Sin eventos"
 
 msgid "You are about to delete this event. There is no way to undo this. Are you sure?"
 msgstr "Está a punto de eliminar este evento. No hay forma de deshacer esto. ¿Estás seguro?"
@@ -5069,10 +5049,8 @@ msgstr "Apruebe los permisos; son necesarios para que podamos acceder a la API e
 msgid "Add Facebook Business"
 msgstr "Añadir Facebook Business"
 
-#, fuzzy
-#| msgid "An error happened, please try again."
 msgid "Login was cancelled or failed, please try again."
-msgstr "Se produjo un error, vuelva a intentarlo."
+msgstr "El inicio de sesión se canceló o falló, vuelva a intentarlo."
 
 msgid "Before clicking the button below, make sure you have access to the phone where you can read the verification code send by SMS message"
 msgstr "Antes de hacer clic en el botón de abajo, asegúrese de tener acceso al teléfono en el que pueda leer el código de verificación enviado por SMS"
@@ -5098,9 +5076,6 @@ msgstr "En el caso de una nueva instalación de WhatsApp o el reemplazo de un ca
 msgid "Refresh Contacts"
 msgstr "Actualizar contactos"
 
-msgid "All inbound messages from these contacts are ignored. They have also been removed from all groups."
-msgstr "Todos los mensajes entrantes de estos contactos se ignoran. También se han eliminado de todos los grupos."
-
 #, python-format
 msgid "You are about to delete <span class=\"font-normal\">%(object)s.</span> There is no way to undo this. Are you sure?"
 msgstr "Está a punto de eliminar <span class=\"font-normal\">%(object)s.</span> No hay forma de deshacer esto. ¿Está seguro?"
@@ -5109,37 +5084,15 @@ msgstr "Está a punto de eliminar <span class=\"font-normal\">%(object)s.</span>
 msgid "This group or search is too large to export. Consider using <a href=\"%(api_url)s\">the API</a> to export this data instead."
 msgstr "Este grupo o búsqueda es demasiado grande para exportarlo. Considere utilizar <a href=\"%(api_url)s\">la API</a> para exportar estos datos en su lugar."
 
-msgid "This group has an invalid query."
-msgstr "Este grupo tiene una consulta no válida."
-
-msgid "This group is in the process of being populated."
-msgstr "Este grupo está en proceso de ser rellenado."
-
 #, python-format
 msgid "You are about to interrupt the current flow for <b>%(object)s.</b> There is no way to undo this. Are you sure?"
 msgstr "Está a punto de interrumpir el flujo actual de <b>%(object)s.</b> No hay forma de deshacer esto. ¿Está seguro?"
 
-msgid "Create Group"
-msgstr "Crear Grupo"
-
-msgid "Delete Selected Contacts"
-msgstr "Eliminar contactos seleccionados"
-
-msgid "Are you sure you want to delete the selected contacts? This cannot be undone."
-msgstr "¿Está seguro de que desea eliminar los contactos seleccionados? Esto no se puede deshacer."
+msgid "No contacts"
+msgstr "Sin contactos"
 
 msgid "Delete All Contacts"
 msgstr "Eliminar todos los contactos"
-
-#, python-format
-msgid "Are you sure you want to delete all %(count)s archived contacts? This cannot be undone."
-msgstr "¿Está seguro de que desea eliminar todos los contactos archivados %(count)s? Esto no se puede deshacer."
-
-msgid "This operation can take a while to complete. Contacts may remain in this view during the process."
-msgstr "Esta operación puede tardar un poco en completarse. Los contactos pueden permanecer en esta vista durante el proceso."
-
-msgid "No contacts"
-msgstr "Sin contactos"
 
 msgid "Are you sure you want to delete all archived contacts? This cannot be undone."
 msgstr "¿Está seguro de que desea eliminar todos los contactos archivados? Esto no se puede deshacer."
@@ -5319,15 +5272,6 @@ msgstr "Ya hay una interrupción en curso para este flujo. Espere a que se compl
 msgid "There are no contacts currently in this flow to be interrupted."
 msgstr "Actualmente no hay contactos en este flujo que puedan ser interrumpidos."
 
-msgid "Runs"
-msgstr "Ejecuciones"
-
-msgid "Completion"
-msgstr "Terminación"
-
-msgid "Has issues"
-msgstr "Tiene Problemas"
-
 msgid "No flows"
 msgstr "Sin flujos"
 
@@ -5342,6 +5286,9 @@ msgstr "Día de la semana"
 
 msgid "Time of Day"
 msgstr "Hora del día"
+
+msgid "Runs"
+msgstr "Ejecuciones"
 
 #, python-format
 msgid "<b>%(name)s</b> cannot be deleted since it is a parent to other labels."
@@ -5659,12 +5606,6 @@ msgstr "Introduzca el mensaje que desea enviar."
 msgid "Are you sure you want to interrupt this broadcast? Contacts who already have messages in the outbox will still receive it."
 msgstr "¿Está seguro de que desea interrumpir esta difusión? Los contactos que ya tengan mensajes en la bandeja de salida la seguirán recibiendo."
 
-msgid "This is a list of all broadcasts that have already been sent."
-msgstr "Esta es una lista de todas las difusiones que ya se han enviado."
-
-msgid "Once you've sent your first broadcast, you'll be able to view it here."
-msgstr "Una vez que haya enviado su primera difusión, podrá verla aquí."
-
 msgid "No broadcasts"
 msgstr "Sin difusiones"
 
@@ -5673,12 +5614,6 @@ msgstr "Editar difusión"
 
 msgid "Delete Broadcast"
 msgstr "Eliminar difusión"
-
-msgid "Broadcasts can target large groups of contacts and scheduled to be sent whenever you like. Broadcasts can also repeat at an interval of your choice."
-msgstr "Las difusiones pueden dirigirse a grandes grupos de contactos y programarse para enviarse cuando quiera. Las difusiones también pueden repetirse con el intervalo que elija."
-
-msgid "<div class=\"mt-4\">Create your first scheduled broadcast to get started.</div>"
-msgstr "<div class=\"mt-4\">Cree su primera difusión programada para empezar.</div>"
 
 msgid "You are about to delete this broadcast. There is no way to undo this. Are you sure?"
 msgstr "Está a punto de eliminar esta difusión. No hay forma de deshacer esto. ¿Está seguro?"
@@ -5689,72 +5624,6 @@ msgid_plural "<b>%(recipients)s</b> recipients currently at this point in the fl
 msgstr[0] "<b>%(recipients)s</b> destinatario actualmente en este punto del flujo"
 msgstr[1] "<b>%(recipients)s</b> destinatarios actualmente en este punto del flujo"
 msgstr[2] "<b>%(recipients)s</b> destinatarios actualmente en este punto del flujo"
-
-msgid "Your Message Hub"
-msgstr "Su Hub de mensajes"
-
-#, python-format
-msgid "This message pane lets you keep track of everything coming in and out of %(name)s.  As you send and receive messages, they will be listed here."
-msgstr "Este panel de mensajes le permite realizar un seguimiento de todo lo que entra y sale de %(name)s. A medida que envía y recibe mensajes, se enumerarán aquí."
-
-#, python-format
-msgid "Just like your email, %(name)s lets you view, label and archive messages as you receive them.  %(name)s uses labels to classify responses, so you can view and manage those messages here.  You can also create your own labels to keep track of topical messages as you receive them."
-msgstr "Al igual que su correo electrónico, %(name)s le permite ver, etiquetar y archivar mensajes a medida que los recibe. %(name)s usa etiquetas para clasificar las respuestas, por lo que puede ver y administrar esos mensajes aquí. También puede crear sus propias etiquetas para realizar un seguimiento de los mensajes de actualidad a medida que los recibe."
-
-#, python-format
-msgid "%(name)s also keeps track of calls that are received on your channel so you can return any calls which may have been made to it."
-msgstr "%(name)s también realiza un seguimiento de las llamadas que se reciben en su canal para que pueda devolver las llamadas que se le hayan hecho."
-
-#, python-format
-msgid "Repeats every <b>month</b> on the %(date)s."
-msgstr "Se repite cada <b>mes</b> el %(date)s."
-
-msgid "Repeats every <b>week</b> on"
-msgstr "Se repite cada <b>semana</b> el"
-
-msgid "at around the same time."
-msgstr "aproximadamente a la misma hora."
-
-msgid "Repeats <b>daily</b> at around the same time."
-msgstr "Se repite <b>diariamente</b> aproximadamente a la misma hora."
-
-#, python-format
-msgid ""
-"\n"
-"             %(message_count)s message\n"
-"          "
-msgid_plural ""
-"\n"
-"             %(message_count)s messages\n"
-"          "
-msgstr[0] ""
-"\n"
-"             %(message_count)s mensaje\n"
-"          "
-msgstr[1] ""
-"\n"
-"             %(message_count)s mensajes\n"
-"          "
-msgstr[2] ""
-"\n"
-"             %(message_count)s mensajes\n"
-"          "
-
-msgid "Interrupt Broadcast"
-msgstr "Interrumpir difusión"
-
-msgid "Your channels are taking a while to send messages. Please wait for the outbound queue to clear before sending new messages."
-msgstr "Sus canales están tardando en enviar mensajes. Espere a que se vacíe la cola de salida antes de enviar nuevos mensajes."
-
-msgid "Delete Selected Messages"
-msgstr "Eliminar Mensajes Seleccionados"
-
-msgid "Are you sure you want to delete the selected messages? This cannot be undone."
-msgstr "¿Está seguro de que desea eliminar los mensajes seleccionados? Esto no se puede deshacer."
-
-#, python-format
-msgid "Opt-in request for %(optin)s"
-msgstr "Solicitud de suscripción para %(optin)s"
 
 msgid "No messages"
 msgstr "Ningún mensaje"
@@ -6435,6 +6304,9 @@ msgstr ""
 msgid "Create Contact"
 msgstr "Crear Contacto"
 
+msgid "Create Group"
+msgstr "Crear Grupo"
+
 #, python-format
 msgid ""
 "\n"
@@ -6585,6 +6457,9 @@ msgstr "Se repetirá cada <b>mes</b> en %(date)s."
 
 msgid "It will repeat every"
 msgstr "Será repetido cada"
+
+msgid "at around the same time."
+msgstr "aproximadamente a la misma hora."
 
 msgid "It will repeat <b>daily</b> at around the same time."
 msgstr "Se repetirá <b>diariamente</b> aproximadamente a la misma hora."
@@ -6765,27 +6640,17 @@ msgstr "Lo sentimos, el tema <b>%(object)s</b> no se puede eliminar mientras sig
 msgid "You are about to delete the <b>%(object)s</b> topic. There is no way to undo this. Are you sure?"
 msgstr "Está a punto de eliminar el tema <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
 
-msgid "Delete All Triggers"
-msgstr "Eliminar todos los activadores"
-
-#, python-format
-msgid "Are you sure you want to delete all %(count)s archived triggers? This cannot be undone."
-msgstr "¿Está seguro de que desea eliminar los %(count)s activadores archivados? Esto no se puede deshacer."
-
-msgid "This operation can take a while to complete. Triggers may remain in this view during the process."
-msgstr "Esta operación puede tardar un poco en completarse. Los activadores pueden permanecer en esta vista durante el proceso."
-
-msgid "Delete Selected Triggers"
-msgstr "Eliminar los activadores seleccionados"
-
 msgid "No triggers"
 msgstr "Sin activadores"
 
-msgid "Update Trigger"
-msgstr "Actualizar activador"
+msgid "Delete All Triggers"
+msgstr "Eliminar todos los activadores"
 
 msgid "Are you sure you want to delete all archived triggers? This cannot be undone."
 msgstr "¿Está seguro de que desea eliminar todos los activadores archivados? Esto no se puede deshacer."
+
+msgid "Update Trigger"
+msgstr "Actualizar activador"
 
 msgid "Start a flow after receiving a message that doesn't match any keywords."
 msgstr "Inicie un flujo después de recibir un mensaje que no coincide con ninguna palabra clave."

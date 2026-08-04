@@ -54,7 +54,7 @@ class CampaignsEndpoint(ListAPIMixin, BaseEndpoint):
 
         search = self.request.query_params.get("search")
         if search:
-            # match the legacy list's search_fields (campaign name or group name)
+            # match the list view's search_fields (campaign name or group name)
             qs = qs.filter(Q(name__icontains=search) | Q(group__name__icontains=search))
 
         sort = self.request.query_params.get("sort") or ""

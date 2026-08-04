@@ -913,52 +913,19 @@ class AnonOrgTest(TembaTest):
         self.org.save()
 
     def test_contacts(self):
-        # opt into legacy mode as only the legacy lists render contacts server-side
-        self.setLegacyUI()
-
-        # are there real phone numbers on the contact list page?
         contact = self.create_contact(None, phone="+250788123123")
         self.login(self.admin)
 
+        # the contact list renders the temba-contact-list component in anon mode, which masks URNs itself
         response = self.client.get(reverse("contacts.contact_list"))
-
-        # phone not in the list
+        self.assertContains(response, "anon")
         self.assertNotContains(response, "788 123 123")
 
-        # but the ref value is
-        self.assertContains(response, contact.ref)
-
-        # create an outgoing message, check number doesn't appear in outbox
-        msg1 = self.create_outgoing_msg(contact, "hello", status="Q")
-
-        response = self.client.get(reverse("msgs.msg_outbox"))
-
-        self.assertEqual(set(response.context["object_list"]), {msg1})
-        self.assertNotContains(response, "788 123 123")
-        self.assertContains(response, contact.ref)
-
-        # create an incoming message - in legacy mode the inbox renders the legacy template which prints the
-        # contact via name_or_urn, so URN masking still needs coverage on that path. By default the temba-msg-list
-        # component fetches messages from the internal API (separately covered in temba/api/internal/tests.py).
-        msg2 = self.create_incoming_msg(contact, "ok")
-
-        response = self.client.get(reverse("msgs.msg_inbox"))
-
-        self.assertEqual(set(response.context["object_list"]), {msg2})
-        self.assertNotContains(response, "788 123 123")
-        self.assertContains(response, contact.ref)
-
-        # create an incoming flow message, check number doesn't appear in inbox
-        flow = self.create_flow("Test")
-        msg3 = self.create_incoming_msg(contact, "ok", flow=flow)
-
-        response = self.client.get(reverse("msgs.msg_flow"))
-
-        self.assertEqual(set(response.context["object_list"]), {msg3})
-        self.assertNotContains(response, "788 123 123")
-        self.assertContains(response, contact.ref)
-
-        # check contact detail page
+        # the contact read page is server-rendered, so it masks the URN itself
         response = self.client.get(reverse("contacts.contact_read", args=[contact.uuid]))
         self.assertNotContains(response, "788 123 123")
         self.assertContains(response, contact.ref)
+
+        # the message lists fetch from the internal API, whose URN masking is covered in temba/api/internal/tests.py
+        response = self.client.get(reverse("msgs.msg_inbox"))
+        self.assertNotContains(response, "788 123 123")
