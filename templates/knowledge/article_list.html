@@ -12,6 +12,15 @@
   <temba-modax id="update-article"
                width="min(60rem, 92vw)"
                -temba-submitted="refreshArticles()">
+    {% if org_perms.knowledge.article_delete %}
+      {# rides the dialog's gutter so the editor itself is nothing but the article #}
+      <temba-button slot="gutter"
+                    name="{% trans "Delete" %}"
+                    destructive
+                    small
+                    onclick="deleteArticle()">
+      </temba-button>
+    {% endif %}
   </temba-modax>
   {# after the editor, so its confirmation sits on top of it rather than behind #}
   <temba-modax header="{{ _("Delete Article") |escapejs }}" id="delete-article">
@@ -37,10 +46,18 @@
   {{ block.super }}
   {% include "includes/page_header_menu.html" %}
   <script>
-    function showArticleEditor(endpoint) {
+    function showArticleEditor(uuid) {
+      // aim the delete confirmation at the same article, so the button in the editor's gutter is already wired
+      document.querySelector('#delete-article').endpoint = `/article/delete/${uuid}/`;
+
       var modax = document.querySelector('#update-article');
-      modax.endpoint = endpoint;
+      modax.endpoint = `/article/update/${uuid}/`;
       modax.open = true;
+    }
+
+    function deleteArticle() {
+      // the editor stays open behind the confirmation, so backing out of it doesn't cost the user their edits
+      document.querySelector('#delete-article').open = true;
     }
 
     function refreshArticles() {
@@ -58,12 +75,12 @@
 
       {% if org_perms.knowledge.article_update %}
       list.addEventListener('temba-row-click', function(event) {
-        showArticleEditor(`/article/update/${event.detail.item.uuid}/`);
+        showArticleEditor(event.detail.item.uuid);
       });
 
-      {% if edit_url %}
+      {% if edit_article %}
       // we've just come from naming a new article, so open it for writing
-      showArticleEditor('{{ edit_url }}');
+      showArticleEditor('{{ edit_article.uuid }}');
       {% endif %}
       {% endif %}
     });

@@ -49,13 +49,16 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, 'id="update-article"')
         self.assertNotContains(response, "-temba-article-delete")
 
+        # deleting rides the editor dialog's gutter, pointed at whichever article is opened
+        self.assertContains(response, 'slot="gutter"')
+
         self.assertContentMenu(list_url, self.admin, ["New"])
 
         # nothing is opened for editing unless we've been sent here by the create modal
-        self.assertNotIn("edit_url", response.context)
+        self.assertNotIn("edit_article", response.context)
 
         response = self.requestView(f"{list_url}?edit={flows.uuid}", self.admin)
-        self.assertEqual(reverse("knowledge.article_update", args=[flows.uuid]), response.context["edit_url"])
+        self.assertEqual(flows, response.context["edit_article"])
 
         # an article that isn't ours to edit, or isn't a uuid at all, is simply ignored
         other_org = Article.create(
@@ -63,7 +66,7 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         for edit in (other_org.uuid, "not-a-uuid", ""):
             response = self.requestView(f"{list_url}?edit={edit}", self.admin)
-            self.assertNotIn("edit_url", response.context)
+            self.assertNotIn("edit_article", response.context)
 
         # 404 if the system source is somehow absent
         self.org.knowledge.filter(knowledge_type=Knowledge.TYPE_HELPDESK).update(is_active=False)
@@ -150,13 +153,16 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, reverse("knowledge.article_upload", args=[article.uuid]))
         self.assertContains(response, "fill")
 
-        # the dialog has no title bar, so the article's own title and body stand without labels of their own
-        self.assertEqual(2, response.content.decode().count("hide_label"))
-
-        # it says whether what's being written is live, but publishing is done from the row rather than in here
-        self.assertContains(response, "This article is a draft")
+        # the dialog has no title bar, so the article's title leads and stands as one, with its status riding inside
+        # it as a pill that states rather than does - publishing is done from the row, and deleting from the gutter
+        # button the list page owns
+        self.assertContains(response, "status-pill")
+        self.assertContains(response, "Draft")
         self.assertNotContains(response, "temba-toggle")
-        self.assertContains(response, reverse("knowledge.article_delete", args=[article.uuid]))
+        self.assertNotContains(response, reverse("knowledge.article_delete", args=[article.uuid]))
+
+        # the body stands without a label of its own either
+        self.assertEqual(1, response.content.decode().count("hide_label"))
 
         # the languages on offer reach the select itself, not just the field
         self.assertContains(response, 'name="Kinyarwanda"')
@@ -169,6 +175,16 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
             form_errors={"language": "Select a valid choice. fra is not one of the available choices."},
             object_unchanged=article,
         )
+
+        # a missing title is an error the hand-rendered input carries itself
+        response = self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {"title": "", "language": "kin", "body": "# Flows"},
+            form_errors={"title": "This field is required."},
+            object_unchanged=article,
+        )
+        self.assertContains(response, "errors=")
 
         self.assertUpdateSubmit(
             update_url, self.admin, {"title": "All About Flows", "language": "kin", "body": "# Flows"}

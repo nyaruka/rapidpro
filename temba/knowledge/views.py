@@ -347,7 +347,7 @@ class ArticleCRUDL(SmartCRUDL):
 
             article = self.derive_article_to_edit()
             if article:
-                context["edit_url"] = reverse("knowledge.article_update", args=[article.uuid])
+                context["edit_article"] = article
 
             return context
 
@@ -387,7 +387,8 @@ class ArticleCRUDL(SmartCRUDL):
     class Update(BaseObject, BaseUpdateModal):
         """
         The editor, opened as a dialog from the helpdesk. It renders the article rather than its markdown, so it's also
-        how an article is read - there's no separate read page - and it therefore carries the publish control too.
+        how an article is read - there's no separate read page. Publishing is done from the article's row; in here the
+        status is a pill riding the title, stating rather than doing.
         """
 
         form_class = ArticleForm
@@ -397,10 +398,8 @@ class ArticleCRUDL(SmartCRUDL):
         def get_form(self):
             form = super().get_form()
 
-            # the dialog carries no title bar of its own, so the article's title stands as one - and neither it nor
-            # the article below it needs a label to say what it is
-            form.fields["title"].widget.attrs.update({"hide_label": True})
-
+            # the dialog carries no title bar of its own, so the article's title stands as one (the template renders
+            # it by hand, with the status pill riding inside it) and the article below it needs no label either
             form.fields["body"].widget.attrs.update(
                 {
                     "hide_label": True,

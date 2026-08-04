@@ -1,37 +1,24 @@
 {% extends "includes/modax.html" %}
-{% load smartmin i18n %}
+{% load smartmin %}
 
-{% block pre-form %}
-  <div class="article-controls">
-    <div class="article-status">
-      {% if object.status == "P" %}
-        {% trans "This article is published and searchable by agents." %}
-      {% else %}
-        {% trans "This article is a draft. It isn't searchable by agents until it's published." %}
-      {% endif %}
-    </div>
-    {% if org_perms.knowledge.article_delete %}
-      <temba-button name="{% trans "Delete" %}" destructive small onclick="deleteArticle()">
-      </temba-button>
-    {% endif %}
-  </div>
-{% endblock pre-form %}
 {% block fields %}
-  {% render_field 'title' %}
+  {# the title leads and stands as the dialog's header, rendered by hand rather than through the field include so the
+     article's status can ride inside the input as a pill in its suffix slot #}
+  <div class="control-group field_title {% if form.title.errors %}error{% endif %}">
+    <div class="controls">
+      <temba-textinput type="text"
+                       name="title"
+                       maxlength="{{ form.fields.title.max_length }}"
+                       {% if form.title.value != None %}value="{{ form.title.value }}"{% endif %}
+                       {% if form.title.errors %}errors="[{% for error in form.title.errors %}&quot;{{ error|escapejs }}&quot;{% if not forloop.last %},{% endif %}{% endfor %}]"{% endif %}>
+        <div slot="suffix"
+             class="status-pill{% if object.status == 'P' %} published{% endif %}">{{ object.get_status_display }}</div>
+      </temba-textinput>
+    </div>
+  </div>
   {% if form.language %}{% render_field 'language' %}{% endif %}
   {% render_field 'body' %}
 {% endblock fields %}
-{% block modal-script %}
-  {{ block.super }}
-  <script type="text/javascript">
-    function deleteArticle() {
-      // the editor stays open behind the confirmation, so backing out of it doesn't cost the user their edits
-      var confirmation = document.querySelector("#delete-article");
-      confirmation.endpoint = "{% url 'knowledge.article_delete' object.uuid %}";
-      confirmation.open = true;
-    }
-  </script>
-{% endblock modal-script %}
 {% block modal-extra-style %}
   {{ block.super }}
   <style type="text/css">
@@ -61,17 +48,18 @@
       margin-bottom: 0;
     }
 
-    .article-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
+    .status-pill {
+      padding: 2px 10px;
+      border: 1px solid var(--color-borders);
+      border-radius: 999px;
+      font-size: 12.5px;
+      color: var(--text-3);
+      white-space: nowrap;
     }
 
-    .article-status {
-      flex-grow: 1;
-      font-size: 0.9em;
-      opacity: 0.6;
+    .status-pill.published {
+      border-color: var(--color-primary-dark);
+      color: var(--color-primary-dark);
     }
   </style>
 {% endblock modal-extra-style %}
