@@ -2,21 +2,27 @@
 {% load smartmin %}
 
 {% block fields %}
-  {# the title leads and stands as the dialog's header, rendered by hand rather than through the field include so the
-     article's status can ride inside the input as a pill in its suffix slot #}
+  {% comment %}
+    The title leads and stands as the dialog's header, rendered by hand rather than through the
+    field include so the article's status can ride inside the input as a pill in its suffix slot.
+  {% endcomment %}
   <div class="control-group field_title {% if form.title.errors %}error{% endif %}">
     <div class="controls">
       <temba-textinput type="text"
                        name="title"
                        maxlength="{{ form.fields.title.max_length }}"
                        {% if form.title.value != None %}value="{{ form.title.value }}"{% endif %}
-                       {% if form.title.errors %}errors="[{% for error in form.title.errors %}&quot;{{ error|escapejs }}&quot;{% if not forloop.last %},{% endif %}{% endfor %}]"{% endif %}>
-        <div slot="suffix"
-             class="status-pill{% if object.status == 'P' %} published{% endif %}">{{ object.get_status_display }}</div>
+                       {% if form.title.errors %}errors="[{% for error in form.title.errors %}&quot;{{ error|escapejs }}&quot;{% if not forloop.last %},{% endif %}
+                       {% endfor %}
+                       "
+                       {% endif %}>
+        <div slot="suffix" class="status-pill{% if object.status == 'P' %} published{% endif %}">{{ object.get_status_display }}</div>
       </temba-textinput>
     </div>
   </div>
-  {% if form.language %}{% render_field 'language' %}{% endif %}
+  {% if form.language %}
+    {% render_field 'language' %}
+  {% endif %}
   {% render_field 'body' %}
 {% endblock fields %}
 {% block modal-extra-style %}
@@ -35,7 +41,7 @@
       flex-direction: column;
     }
 
-    .modax-body > .animate,
+    .modax-body>.animate,
     .modax-body form,
     .modax-body .control-group.field_body,
     .modax-body .control-group.field_body .controls {

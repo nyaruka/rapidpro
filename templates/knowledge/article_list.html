@@ -7,18 +7,15 @@
   <div id="title-text" class="hide">{{ title }}</div>
 {% endblock page-header %}
 {% block content %}
-  {# Wider than any of the dialog's named sizes, since an article is read at the width it was written at. No header
-     either - the article's own title stands as one, and a title bar would only cost the editor height. #}
-  <temba-modax id="update-article"
-               width="min(60rem, 92vw)"
-               -temba-submitted="refreshArticles()">
+  {% comment %}
+    Wider than any of the dialog's named sizes, since an article is read at the width it was
+    written at. No header either - the article's own title stands as one, and a title bar would
+    only cost the editor height.
+  {% endcomment %}
+  <temba-modax id="update-article" width="min(60rem, 92vw)" -temba-submitted="refreshArticles()">
     {% if org_perms.knowledge.article_delete %}
       {# rides the dialog's gutter so the editor itself is nothing but the article #}
-      <temba-button slot="gutter"
-                    name="{% trans "Delete" %}"
-                    destructive
-                    small
-                    onclick="deleteArticle()">
+      <temba-button slot="gutter" name="{% trans "Delete" %}" destructive small onclick="deleteArticle()">
       </temba-button>
     {% endif %}
   </temba-modax>
