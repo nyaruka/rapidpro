@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 17:34+0000\n"
+"POT-Creation-Date: 2026-08-04 21:52+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -3820,15 +3820,6 @@ msgstr "O id do referente que iniciara"
 msgid "Closed Ticket"
 msgstr "Ticket fechado"
 
-msgid "Opt-In"
-msgstr "Opt-In"
-
-msgid "Opt-Out"
-msgstr "Opt-Out"
-
-msgid "Opt-Ins"
-msgstr "Opt-Ins"
-
 msgid "Which flow will be started."
 msgstr "Qual fluxo será iniciado."
 
@@ -6681,18 +6672,6 @@ msgstr "Comece um fluxo quando uma conversa é iniciada por um contato."
 
 msgid "A new conversation"
 msgstr "Uma nova conversa"
-
-msgid "Start a flow when a contact accepts an opt-in request."
-msgstr "Comece um fluxo quando um contato aceitar uma solicitação de opt-in."
-
-msgid "A contact opting in"
-msgstr "Um contato aceitando o opt-in"
-
-msgid "Start a flow when a contact opts out of a topic they previously opted in to."
-msgstr "Comece um fluxo quando um contato cancelar a inscrição em um tópico no qual havia se inscrito."
-
-msgid "A contact opting out"
-msgstr "Um contato cancelando a inscrição"
 
 msgid "Start a flow when Facebook refers a contact."
 msgstr "Comece um fluxo quando o Facebook enviar um contato."

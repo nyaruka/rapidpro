@@ -292,6 +292,12 @@ class TriggerTest(TembaTest):
 
         self.assertEqual(3, Trigger.objects.count())  # no new triggers imported
 
+        # we also ignore opt-in and opt-out triggers in imports as those types have been removed
+        self._import_trigger({"trigger_type": "I", "flow": {"uuid": str(flow.uuid), "name": "Test"}, "groups": []})
+        self._import_trigger({"trigger_type": "O", "flow": {"uuid": str(flow.uuid), "name": "Test"}, "groups": []})
+
+        self.assertEqual(3, Trigger.objects.count())  # no new triggers imported
+
     def test_import_invalid(self):
         flow = self.create_flow("Test")
         flow_ref = {"uuid": str(flow.uuid), "name": "Test Flow"}

@@ -1,7 +1,6 @@
 from datetime import datetime, timezone as tzone
 from unittest.mock import patch
 
-from django.contrib.auth.models import Group
 from django.urls import reverse
 
 from temba.channels.models import Channel
@@ -60,7 +59,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         create_new_convo_url = reverse("triggers.trigger_create_new_conversation")
         create_inbound_call_url = reverse("triggers.trigger_create_inbound_call")
         create_missed_call_url = reverse("triggers.trigger_create_missed_call")
-        create_opt_in_url = reverse("triggers.trigger_create_opt_in")
 
         self.assertLoginRedirect(self.client.get(create_url))
 
@@ -69,8 +67,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
         response = self.client.get(create_url)
-
-        self.assertNotContains(response, create_opt_in_url)
 
         # call triggers can be made without a call channel
         self.assertContains(response, create_inbound_call_url)
@@ -86,13 +82,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(create_url)
         self.assertContains(response, create_new_convo_url)
         self.assertNotContains(response, create_missed_call_url)
-
-        # opt-in triggers should not appear in the new trigger chooser
-        Group.objects.get(name="Beta").user_set.add(self.editor)
-        self.login(self.editor, choose_org=self.org)
-        response = self.client.get(create_url)
-
-        self.assertNotContains(response, create_opt_in_url)
 
     def test_create_keyword(self):
         create_url = reverse("triggers.trigger_create_keyword")
@@ -674,126 +663,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             self.admin,
             {"flow": flow2.id},
             form_errors={"__all__": "There already exists a trigger of this type with these options."},
-        )
-
-    def test_create_opt_in(self):
-        flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
-        flow2 = self.create_flow("Flow 2", flow_type=Flow.TYPE_BACKGROUND)
-        group1 = self.create_group("Group 1", contacts=[])
-
-        channel1 = self.create_channel("FB", "Facebook 1", "1234567")
-        channel2 = self.create_channel("FB", "Facebook 2", "2345678")
-
-        # flows that shouldn't appear as options
-        self.create_flow("Flow 3", flow_type=Flow.TYPE_VOICE)
-        self.create_flow("Flow 4", is_system=True)
-        self.create_flow("Flow 5", org=self.org2)
-
-        create_url = reverse("triggers.trigger_create_opt_in")
-
-        self.assertRequestDisallowed(create_url, [None, self.agent])
-        response = self.assertCreateFetch(
-            create_url, [self.editor, self.admin], form_fields=["flow", "channel", "groups", "exclude_groups"]
-        )
-
-        # flow options should be messaging and background flows
-        self.assertEqual([flow1, flow2], list(response.context["form"].fields["flow"].queryset))
-
-        # channel options should only be channels that support optins
-        self.assertEqual([channel1, channel2], list(response.context["form"].fields["channel"].queryset))
-
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow1.id},
-            new_obj_query=Trigger.objects.filter(flow=flow1, trigger_type=Trigger.TYPE_OPT_IN),
-            success_status=200,
-        )
-
-        # we can't create another
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id},
-            form_errors={"__all__": "There already exists a trigger of this type with these options."},
-        )
-
-        # works if we specify a group
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id, "groups": group1.id},
-            new_obj_query=Trigger.objects.filter(trigger_type=Trigger.TYPE_OPT_IN, flow=flow2),
-            success_status=200,
-        )
-
-        # or a channel
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id, "channel": channel2.id},
-            new_obj_query=Trigger.objects.filter(trigger_type=Trigger.TYPE_OPT_IN, flow=flow2, channel=channel2),
-            success_status=200,
-        )
-
-    def test_create_opt_out(self):
-        flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
-        flow2 = self.create_flow("Flow 2", flow_type=Flow.TYPE_BACKGROUND)
-        group1 = self.create_group("Group 1", contacts=[])
-
-        channel1 = self.create_channel("FB", "Facebook 1", "1234567")
-        channel2 = self.create_channel("FB", "Facebook 2", "2345678")
-
-        # flows that shouldn't appear as options
-        self.create_flow("Flow 3", flow_type=Flow.TYPE_VOICE)
-        self.create_flow("Flow 4", is_system=True)
-        self.create_flow("Flow 5", org=self.org2)
-
-        create_url = reverse("triggers.trigger_create_opt_out")
-
-        self.assertRequestDisallowed(create_url, [None, self.agent])
-        response = self.assertCreateFetch(
-            create_url, [self.editor, self.admin], form_fields=["flow", "channel", "groups", "exclude_groups"]
-        )
-
-        # flow options should be messaging and background flows
-        self.assertEqual([flow1, flow2], list(response.context["form"].fields["flow"].queryset))
-
-        # channel options should only be channels that support optins
-        self.assertEqual([channel1, channel2], list(response.context["form"].fields["channel"].queryset))
-
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow1.id},
-            new_obj_query=Trigger.objects.filter(flow=flow1, trigger_type=Trigger.TYPE_OPT_OUT),
-            success_status=200,
-        )
-
-        # we can't create another...
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id},
-            form_errors={"__all__": "There already exists a trigger of this type with these options."},
-        )
-
-        # works if we specify a group
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id, "groups": group1.id},
-            new_obj_query=Trigger.objects.filter(trigger_type=Trigger.TYPE_OPT_OUT, flow=flow2),
-            success_status=200,
-        )
-
-        # or a channel
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id, "channel": channel1.id},
-            new_obj_query=Trigger.objects.filter(trigger_type=Trigger.TYPE_OPT_OUT, flow=flow2, channel=channel1),
-            success_status=200,
         )
 
     def test_update_keyword(self):

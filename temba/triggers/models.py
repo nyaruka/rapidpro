@@ -86,8 +86,6 @@ class Trigger(SmartModel):
     TYPE_REFERRAL = "R"
     TYPE_CLOSED_TICKET = "T"
     TYPE_CATCH_ALL = "C"
-    TYPE_OPT_IN = "I"
-    TYPE_OPT_OUT = "O"
 
     KEYWORD_MAX_LEN = 16
 

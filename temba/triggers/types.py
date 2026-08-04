@@ -311,40 +311,6 @@ class ClosedTicketTriggerType(TriggerType):
     form = Form
 
 
-class OptInTriggerType(ChannelTriggerType):
-    """
-    An opt-in trigger type
-    """
-
-    class Form(BaseChannelTriggerForm):
-        def __init__(self, org, user, *args, **kwargs):
-            super().__init__(org, user, Trigger.TYPE_OPT_IN, *args, **kwargs)
-
-    code = Trigger.TYPE_OPT_IN
-    slug = "opt_in"
-    name = _("Opt-In")
-    allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_BACKGROUND)
-    allowed_channel_schemes = ContactURN.SCHEMES_SUPPORTING_OPTINS
-    form = Form
-
-
-class OptOutTriggerType(ChannelTriggerType):
-    """
-    An opt-out trigger type
-    """
-
-    class Form(BaseChannelTriggerForm):
-        def __init__(self, org, user, *args, **kwargs):
-            super().__init__(org, user, Trigger.TYPE_OPT_OUT, *args, **kwargs)
-
-    code = Trigger.TYPE_OPT_OUT
-    slug = "opt_out"
-    name = _("Opt-Out")
-    allowed_flow_types = (Flow.TYPE_MESSAGE, Flow.TYPE_BACKGROUND)
-    allowed_channel_schemes = ContactURN.SCHEMES_SUPPORTING_OPTINS
-    form = Form
-
-
 TYPES_BY_CODE = {}
 TYPES_BY_SLUG = {}
 
