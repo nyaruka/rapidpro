@@ -11,24 +11,23 @@
   </temba-modax>
   <temba-modax header="{{ _("Delete Shortcut") |escapejs }}" id="delete-shortcut">
   </temba-modax>
-  <div class="knowledge-sections">
-    <temba-shortcut-list id="shortcut-list"
-                         list-title="{% trans "Shortcuts" %}"
-                         endpoint="{{ shortcuts_endpoint }}"
-                         content-menu-endpoint="{{ request.path }}"
-                         -temba-selection="handleContentMenuSelected(event)"
-                         -temba-shortcut-edit="showUpdateShortcutModal(event.detail.item.uuid)"
-                         -temba-shortcut-delete="showDeleteShortcutModal(event.detail.item.uuid)"
-                         {% if org_perms.tickets.shortcut_update %}editable{% endif %}
-                         {% if org_perms.tickets.shortcut_delete %}deletable{% endif %}
-                         empty-message="{% trans "No shortcuts" %}">
-      <div slot="subtitle">
-        {% blocktrans trimmed %}
-          Canned responses that agents can use to quickly reply to tickets.
-        {% endblocktrans %}
-      </div>
-    </temba-shortcut-list>
-  </div>
+  <temba-shortcut-list id="shortcut-list"
+                       fill-window
+                       list-title="{% trans "Shortcuts" %}"
+                       endpoint="{{ shortcuts_endpoint }}"
+                       content-menu-endpoint="{{ request.path }}"
+                       -temba-selection="handleContentMenuSelected(event)"
+                       -temba-shortcut-edit="showUpdateShortcutModal(event.detail.item.uuid)"
+                       -temba-shortcut-delete="showDeleteShortcutModal(event.detail.item.uuid)"
+                       {% if org_perms.tickets.shortcut_update %}editable{% endif %}
+                       {% if org_perms.tickets.shortcut_delete %}deletable{% endif %}
+                       empty-message="{% trans "No shortcuts" %}">
+    <div slot="subtitle">
+      {% blocktrans trimmed %}
+        Canned responses that agents can use to quickly reply to tickets.
+      {% endblocktrans %}
+    </div>
+  </temba-shortcut-list>
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
@@ -50,15 +49,11 @@
 {% block extra-style %}
   {{ block.super }}
   <style type="text/css">
+    /* The list component fills its container edge to edge and brings
+       its own surface, so drop the SPA content padding (and the grey
+       page background it would otherwise reveal around the list). */
     .spa-content {
       padding: 0 !important;
-    }
-
-    .knowledge-sections {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 8px;
     }
   </style>
 {% endblock extra-style %}

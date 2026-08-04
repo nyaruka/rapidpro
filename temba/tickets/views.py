@@ -152,7 +152,7 @@ class KnowledgeCRUDL(SmartCRUDL):
                         self.create_menu_item(
                             menu_id=str(source.uuid),
                             name=source.name,
-                            icon="docs",
+                            icon="website" if source.knowledge_type == Knowledge.TYPE_WEBSITE else "documents",
                             href=reverse("tickets.knowledge_read", args=[source.uuid]),
                         )
                     )

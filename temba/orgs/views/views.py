@@ -681,7 +681,7 @@ class OrgCRUDL(SmartCRUDL):
                     self.create_menu_item(
                         menu_id="knowledge",
                         name=_("Knowledge"),
-                        icon="docs",
+                        icon="knowledge",
                         endpoint="tickets.knowledge_menu",
                         href="tickets.knowledge_shortcuts",
                         perm="tickets.knowledge_read",
