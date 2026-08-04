@@ -43,17 +43,15 @@ msgstr "As chaves de API são fornecidas pela equipe ICTD do UNICEF."
 msgid "Provider"
 msgstr "Provedor"
 
-#, fuzzy
-#| msgid "Choose the method for your flow"
 msgid "Choose the provider for this model."
-msgstr "Escolha o método para o seu fluxo"
+msgstr "Escolha o provedor para este modelo."
 
 msgid "API Key"
 msgstr "API Key"
 
 #, python-format
 msgid "Leave blank to use the existing API key for this provider. %(help)s"
-msgstr ""
+msgstr "Deixe em branco para usar a chave de API existente deste provedor. %(help)s"
 
 msgid "Model"
 msgstr "Modelo"
@@ -65,10 +63,10 @@ msgid "Name"
 msgstr "Nome"
 
 msgid "e.g. Translation Assistant"
-msgstr ""
+msgstr "ex. Assistente de tradução"
 
 msgid "Name this model for how you plan to use it, so the name stays useful if you change providers or models later."
-msgstr ""
+msgstr "Nomeie este modelo de acordo com a forma como pretende usá-lo, para que o nome continue útil se você mudar de provedor ou de modelo mais tarde."
 
 msgid "Must be unique."
 msgstr "Deve ser único."
@@ -76,10 +74,8 @@ msgstr "Deve ser único."
 msgid "Artificial Intelligence"
 msgstr "Inteligência artificial"
 
-#, fuzzy
-#| msgid "Model"
 msgid "New Model"
-msgstr "Modelo"
+msgstr "Novo modelo"
 
 msgid "Create"
 msgstr "Criar"
@@ -5057,10 +5053,8 @@ msgstr "Aprove as permissões; elas são necessárias para que possamos acessar 
 msgid "Add Facebook Business"
 msgstr "Adicionar Facebook Business"
 
-#, fuzzy
-#| msgid "An error happened, please try again."
 msgid "Login was cancelled or failed, please try again."
-msgstr "Ocorreu um erro, por favor tente novamente."
+msgstr "O login foi cancelado ou falhou, por favor tente novamente."
 
 msgid "Before clicking the button below, make sure you have access to the phone where you can read the verification code send by SMS message"
 msgstr "Antes de clicar no botão abaixo, certifique-se de ter acesso ao telefone onde você poderá ler o código de verificação enviado por SMS"
