@@ -290,7 +290,7 @@ class ArticleCRUDL(SmartCRUDL):
 
     class BasePage(HelpdeskMixin, SpaMixin):
         """
-        The pages of the authoring surface, all of which render the article tree alongside their own content.
+        The pages of the authoring surface, all of which sit under the helpdesk in the menu.
         """
 
         menu_path = "/knowledge/helpdesk"
@@ -298,10 +298,6 @@ class ArticleCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["helpdesk"] = self.helpdesk
-            context["tree"] = Article.get_tree(self.helpdesk)
-            context["max_depth"] = Article.MAX_DEPTH
-            context["sort_url"] = reverse("knowledge.article_sort")
-            context["can_sort"] = self.has_org_perm("knowledge.article_sort")
             return context
 
     class BaseObject(HelpdeskMixin):
@@ -317,7 +313,7 @@ class ArticleCRUDL(SmartCRUDL):
 
     class List(BasePage, ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
         """
-        The helpdesk itself - the article tree with nothing selected.
+        The helpdesk itself - the article tree, which the list component fetches and reorders for itself.
         """
 
         title = _("Helpdesk")
@@ -335,6 +331,13 @@ class ArticleCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["object"] = self.helpdesk
+            context["articles_endpoint"] = f"{reverse('api.internal.articles')}.json"
+            context["max_depth"] = Article.MAX_DEPTH
+
+            # without the permission the component is given nowhere to post to, so it offers no drag at all
+            if self.has_org_perm("knowledge.article_sort"):
+                context["sort_url"] = reverse("knowledge.article_sort")
+
             return context
 
     class Read(BaseObject, BasePage, ContextMenuMixin, BaseReadView):
@@ -347,6 +350,9 @@ class ArticleCRUDL(SmartCRUDL):
 
         def build_context_menu(self, menu):
             obj = self.get_object()  # self.object isn't set when the content menu is fetched
+
+            # the tree lives on the helpdesk page now, so every article page needs a way back to it
+            menu.add_link(_("Helpdesk"), reverse("knowledge.article_list"))
 
             if self.has_org_perm("knowledge.article_update"):
                 menu.add_link(_("Edit"), reverse("knowledge.article_update", args=[obj.uuid]))
@@ -368,7 +374,6 @@ class ArticleCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["rendered"] = self.object.as_html()
-            context["selected"] = str(self.object.uuid)
             return context
 
     class Create(HelpdeskMixin, BaseCreateModal):
@@ -434,12 +439,8 @@ class ArticleCRUDL(SmartCRUDL):
             return form
 
         def build_context_menu(self, menu):
+            menu.add_link(_("Helpdesk"), reverse("knowledge.article_list"))
             menu.add_link(_("View"), reverse("knowledge.article_read", args=[self.get_object().uuid]))
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["selected"] = str(self.object.uuid)
-            return context
 
         def pre_save(self, obj):
             obj = super().pre_save(obj)

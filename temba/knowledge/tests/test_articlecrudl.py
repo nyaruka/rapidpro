@@ -36,11 +36,13 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.requestView(list_url, self.editor)
 
+        # the tree itself is the component's to fetch and reorder - the page only points it at the endpoints
         self.assertEqual(200, response.status_code)
         self.assertEqual(self.helpdesk, response.context["object"])
-        self.assertEqual(["Flows", "Nodes"], [a.title for a in response.context["tree"]])
-        self.assertEqual([0, 1], [a.depth for a in response.context["tree"]])
-        self.assertContains(response, "Flows")
+        self.assertEqual(f"{reverse('api.internal.articles')}.json", response.context["articles_endpoint"])
+        self.assertEqual(Article.MAX_DEPTH, response.context["max_depth"])
+        self.assertEqual(reverse("knowledge.article_sort"), response.context["sort_url"])
+        self.assertContains(response, "temba-article-list")
 
         self.assertContentMenu(list_url, self.admin, ["New"])
 
@@ -72,10 +74,10 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "This article is a draft")
 
         # a draft offers publishing, a published article offers the reverse
-        self.assertContentMenu(read_url, self.admin, ["Edit", "Publish", "Delete"])
+        self.assertContentMenu(read_url, self.admin, ["Helpdesk", "Edit", "Publish", "Delete"])
 
         article.publish(self.admin)
-        self.assertContentMenu(read_url, self.admin, ["Edit", "Unpublish", "Delete"])
+        self.assertContentMenu(read_url, self.admin, ["Helpdesk", "Edit", "Unpublish", "Delete"])
 
         response = self.requestView(read_url, self.admin)
         self.assertNotContains(response, "This article is a draft")
@@ -165,7 +167,7 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("kin", article.language)
         self.assertEqual(Article.STATUS_DRAFT, article.status)  # saving an edit doesn't publish
 
-        self.assertContentMenu(update_url, self.admin, ["View"])
+        self.assertContentMenu(update_url, self.admin, ["Helpdesk", "View"])
 
         # an article keeps the language it was written in as a choice even if the workspace later drops it, so that
         # dropping a language can't make its articles permanently unsaveable

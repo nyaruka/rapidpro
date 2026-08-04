@@ -5,24 +5,18 @@
   {{ object.title }}
 {% endblock title-text %}
 {% block content %}
-  <div class="article-layout">
-    {% include "knowledge/_tree.html" %}
-    <div class="article-body">
-      {% if object.status == "D" %}
-        <temba-alert level="warning" class="mb-4">
-          {% trans "This article is a draft. It isn't searchable by agents until it's published." %}
-        </temba-alert>
-      {% endif %}
-      {# already sanitized by Article.as_html #}
-      <div class="markdown">{{ rendered|safe }}</div>
-    </div>
-  </div>
+  {% if object.status == "D" %}
+    <temba-alert level="warning" class="mb-4">
+      {% trans "This article is a draft. It isn't searchable by agents until it's published." %}
+    </temba-alert>
+  {% endif %}
+  {# already sanitized by Article.as_html #}
+  <div class="markdown">{{ rendered|safe }}</div>
   <temba-modax header="{{ _("Delete Article") |escapejs }}" id="delete-article">
   </temba-modax>
 {% endblock content %}
 {% block extra-style %}
   {{ block.super }}
-  {% include "knowledge/_tree_style.html" %}
   <style type="text/css">
     .markdown h1,
     .markdown h2,
@@ -76,7 +70,3 @@
     }
   </style>
 {% endblock extra-style %}
-{% block extra-script %}
-  {{ block.super }}
-  {% include "knowledge/_tree_script.html" %}
-{% endblock extra-script %}

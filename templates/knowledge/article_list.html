@@ -1,26 +1,51 @@
 {% extends "smartmin/read.html" %}
-{% load i18n %}
+{% load smartmin temba i18n %}
 
+{% block page-header %}
+  {# the article list component renders its own header with the content menu #}
+  {% csrf_token %}
+  <div id="title-text" class="hide">{{ title }}</div>
+{% endblock page-header %}
 {% block content %}
-  <div class="article-layout">
-    {% include "knowledge/_tree.html" %}
-    <div class="article-body">
-      <div class="mb-4">
-        {% blocktrans trimmed %}
-          Help articles written by your workspace. Published articles are searchable by AI agents.
-        {% endblocktrans %}
-      </div>
-      {% if tree %}
-        <div class="text-gray-500">{% trans "Select an article to read or edit it." %}</div>
-      {% endif %}
+  <temba-modax header="{{ _("Delete Article") |escapejs }}" id="delete-article">
+  </temba-modax>
+  <temba-article-list id="article-list"
+                      fill-window
+                      list-title="{% trans "Helpdesk" %}"
+                      endpoint="{{ articles_endpoint }}"
+                      content-menu-endpoint="{{ request.path }}"
+                      max-depth="{{ max_depth }}"
+                      {% if sort_url %}sort-endpoint="{{ sort_url }}"{% endif %}
+                      -temba-selection="handleContentMenuSelected(event)"
+                      -temba-article-delete="showDeleteArticleModal(event.detail.item.uuid)"
+                      {% if org_perms.knowledge.article_update %}editable{% endif %}
+                      {% if org_perms.knowledge.article_delete %}deletable{% endif %}>
+    <div slot="subtitle">
+      {% blocktrans trimmed %}
+        Help articles written by your workspace. Published articles are searchable by AI agents.
+      {% endblocktrans %}
     </div>
-  </div>
+  </temba-article-list>
 {% endblock content %}
-{% block extra-style %}
-  {{ block.super }}
-  {% include "knowledge/_tree_style.html" %}
-{% endblock extra-style %}
 {% block extra-script %}
   {{ block.super }}
-  {% include "knowledge/_tree_script.html" %}
+  {% include "includes/page_header_menu.html" %}
+  <script>
+    function showDeleteArticleModal(uuid) {
+      var modax = document.querySelector('#delete-article');
+      modax.endpoint = `/article/delete/${uuid}/`;
+      modax.open = true;
+    }
+  </script>
 {% endblock extra-script %}
+{% block extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    /* The list component fills its container edge to edge and brings
+       its own surface, so drop the SPA content padding (and the grey
+       page background it would otherwise reveal around the list). */
+    .spa-content {
+      padding: 0 !important;
+    }
+  </style>
+{% endblock extra-style %}
