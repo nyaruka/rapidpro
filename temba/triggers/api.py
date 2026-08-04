@@ -33,7 +33,7 @@ class TriggersEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         folder_slug = (self.request.query_params.get("folder") or "active").lower()
         folder = Folder.from_slug(folder_slug) if folder_slug != "archived" else None
         if folder:
-            # a type folder — non-archived triggers of those types, in the legacy folder view's ordering
+            # a type folder — non-archived triggers of those types, in the folder view's ordering
             qs = base.filter(is_archived=False, trigger_type__in=folder.types)
             default_order = (Trigger.type_order(), *folder.ordering, "-created_on")
         elif folder_slug == "archived":
@@ -45,7 +45,7 @@ class TriggersEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
 
         search = self.request.query_params.get("search")
         if search:
-            # match the legacy list view's search fields
+            # match the list view's search fields
             qs = qs.filter(
                 Q(keywords__icontains=search) | Q(flow__name__icontains=search) | Q(channel__name__icontains=search)
             )

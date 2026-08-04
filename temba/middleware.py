@@ -131,51 +131,6 @@ class LanguageMiddleware:
         return response
 
 
-class LegacyMiddleware:
-    """
-    Exposes a global `legacy` flag for opting back into the old implementations of sections that have been rebuilt
-    as components. `?legacy=1` opts in (sets a year-long `temba-legacy` cookie); `?legacy=0` opts out (clears it);
-    anything else falls back to the cookie. The current state is set on `request.legacy` so views and templates can
-    gate features off `if request.legacy`.
-
-    The write side (cookie set/clear) is gated on `request.user.is_authenticated` so a cross-origin
-    `<img src=".../?legacy=1">` can't silently plant the cookie on an unauthenticated victim.
-    """
-
-    COOKIE = "temba-legacy"
-
-    def __init__(self, get_response=None):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        toggle = request.GET.get("legacy")
-        # only evaluate request.user when the toggle is actually present to avoid an unnecessary lookup on every
-        # request (OrgMiddleware has already materialized the lazy user by this point)
-        authed = toggle in ("1", "0") and request.user.is_authenticated
-        if toggle == "1" and authed:
-            request.legacy = True
-        elif toggle == "0" and authed:
-            request.legacy = False
-        else:
-            request.legacy = request.COOKIES.get(self.COOKIE) == "1"
-
-        response = self.get_response(request)
-
-        if authed:
-            if toggle == "1":
-                response.set_cookie(
-                    self.COOKIE,
-                    "1",
-                    max_age=365 * 24 * 60 * 60,
-                    secure=request.is_secure(),
-                    httponly=True,
-                    samesite="Lax",
-                )
-            elif self.COOKIE in request.COOKIES:
-                response.delete_cookie(self.COOKIE)
-        return response
-
-
 class ToastMiddleware:
     """
     Converts django messages into a response header for toasts
