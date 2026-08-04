@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.urls import reverse
 from django.utils import timezone
 
-from temba.orgs.models import Export, OrgRole
+from temba.orgs.models import Export, Org, OrgRole
 from temba.tests import CRUDLTestMixin, TembaTest, matchers, mock_mailroom
 from temba.tickets.models import Team, Ticket, TicketExport, Topic
 from temba.utils.dates import datetime_to_timestamp
@@ -248,20 +248,38 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                 "Analytics",
                 "Export",
                 "New Topic",
-                "General (2)",
-                "Sales (2)",
-                "Support (0)",
+                ("Topics", ["General (2)", "Sales (2)", "Support (0)"]),
+            ],
+        )
+        # orgs with the agents feature access shortcuts and knowledge from the Knowledge section instead
+        self.org.features.append(Org.FEATURE_AGENTS)
+        self.org.save(update_fields=("features",))
+        self.assertPageMenu(
+            menu_url,
+            self.admin,
+            [
+                "My Tickets (2)",
+                "Unassigned (1)",
+                "All (4)",
+                ("Topics", ["General (2)", "Sales (2)", "Support (0)"]),
+                "Analytics",
+                "Export",
+                "New Topic",
             ],
         )
         self.assertPageMenu(
             menu_url,
             self.agent,
-            ["My Tickets (0)", "Unassigned (1)", "All (4)", "General (2)", "Sales (2)", "Support (0)"],
+            ["My Tickets (0)", "Unassigned (1)", "All (4)", ("Topics", ["General (2)", "Sales (2)", "Support (0)"])],
         )
-        self.assertPageMenu(menu_url, self.agent2, ["My Tickets (0)", "Unassigned (0)", "All (2)", "Sales (2)"])
+        self.assertPageMenu(
+            menu_url, self.agent2, ["My Tickets (0)", "Unassigned (0)", "All (2)", ("Topics", ["Sales (2)"])]
+        )
 
         # agent3's assigned ticket isn't counted because it's not in a topic they can access
-        self.assertPageMenu(menu_url, self.agent3, ["My Tickets (0)", "Unassigned (0)", "All (0)", "Support (0)"])
+        self.assertPageMenu(
+            menu_url, self.agent3, ["My Tickets (0)", "Unassigned (0)", "All (0)", ("Topics", ["Support (0)"])]
+        )
 
     @mock_mailroom
     def test_folder(self, mr_mocks):
