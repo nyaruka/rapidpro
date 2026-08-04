@@ -200,17 +200,9 @@ class BroadcastCRUDL(SmartCRUDL):
         new_list_folder = "sent"
 
         def get_queryset(self, **kwargs):
-            # the component fetches and pages broadcasts itself, so a GET page needs no object list
-            if self.request.method == "GET":
-                return Broadcast.objects.none()
-
-            return (
-                super()
-                .get_queryset(**kwargs)
-                .filter(is_active=True, org=self.request.org)
-                .select_related("org", "schedule")
-                .prefetch_related("groups", "contacts")
-            )
+            # the component fetches and pages broadcasts itself, and these views have no bulk actions, so the page
+            # never needs an object list
+            return Broadcast.objects.none()
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)

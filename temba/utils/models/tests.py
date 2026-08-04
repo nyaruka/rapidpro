@@ -189,6 +189,14 @@ class SearchSliceQuerySetTest(TembaTest):
         self.assertEqual([], empty.uuids)
         self.assertEqual(0, empty.total)
 
+    def test_all(self):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+
+        # the slice is fixed at construction, so .all() - which generic queryset consumers call to get an
+        # unfiltered clone - can only return the queryset itself
+        contacts = SearchSliceQuerySet(Contact, [str(ann.uuid)], offset=0, total=1)
+        self.assertIs(contacts, contacts.all())
+
     def test_prefetch_related(self):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])
         bob = self.create_contact("Bob", urns=["tel:+12340000002"])

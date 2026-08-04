@@ -607,6 +607,29 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertNotIn("next", response.json())
 
     @mock_mailroom
+    def test_folder_cursor_without_status(self, mr_mocks):
+        contact = self.create_contact("Joe", phone="123")
+        open1 = self.create_ticket(contact)
+        open2 = self.create_ticket(contact)
+        closed1 = self.create_ticket(contact, closed_on=timezone.now())
+
+        base = timezone.now().replace(microsecond=0) - timedelta(minutes=1)
+        for i, ticket in enumerate([open1, open2, closed1]):
+            Ticket.objects.filter(id=ticket.id).update(last_activity_on=base + timedelta(seconds=i))
+            ticket.last_activity_on = base + timedelta(seconds=i)
+
+        all_url = reverse("tickets.ticket_folder", kwargs={"folder": "all"})
+        cursor = f"before={datetime_to_timestamp(open2.last_activity_on)}&before_id={open2.id}"
+
+        # a link from before cursors carried the status - or one with a junk status - is assumed to be in the open
+        # tickets, which is where paging always starts
+        for params in (cursor, f"{cursor}&before_status=X"):
+            response = self.requestView(f"{all_url}?{params}", self.admin)
+            self.assertEqual(
+                [str(open1.uuid), str(closed1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
+            )
+
+    @mock_mailroom
     def test_folder_invalid_params(self, mr_mocks):
         contact = self.create_contact("Joe", phone="123")
         ticket1 = self.create_ticket(contact)
