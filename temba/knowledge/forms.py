@@ -100,6 +100,10 @@ class ArticleForm(forms.ModelForm):
     alongside the save, so that saving an edit can never silently make a draft public.
     """
 
+    # declared rather than taken from the model, whose language field has no choices of its own - which ones are on
+    # offer depends on the workspace, and a ChoiceField is what puts them onto the widget as well as validating them
+    language = forms.ChoiceField(label=_("Language"), widget=SelectWidget(attrs={"widget_only": False}))
+
     def __init__(self, org, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -123,10 +127,9 @@ class ArticleForm(forms.ModelForm):
         fields = ("title", "language", "body")
         widgets = {
             "title": InputWidget(attrs={"widget_only": False}),
-            "language": SelectWidget(attrs={"widget_only": False}),
             "body": MarkdownEditorWidget(),
         }
-        labels = {"title": _("Title"), "language": _("Language"), "body": _("Body")}
+        labels = {"title": _("Title"), "body": _("Body")}
 
 
 class ArticleCreateForm(ArticleForm):

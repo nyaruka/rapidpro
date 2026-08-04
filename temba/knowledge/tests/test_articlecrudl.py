@@ -91,7 +91,8 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # a multi-language workspace is asked which language an article is in
         self.org.set_flow_languages(self.admin, ["eng", "spa"])
-        self.assertCreateFetch(create_url, [self.editor, self.admin], form_fields=("title", "language"))
+        response = self.assertCreateFetch(create_url, [self.editor, self.admin], form_fields=("title", "language"))
+        self.assertContains(response, 'name="Spanish"')
 
         # one with a single language isn't
         self.org.set_flow_languages(self.admin, ["eng"])
@@ -151,6 +152,18 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "This article is a draft")
         self.assertContains(response, "Publish")
         self.assertContains(response, reverse("knowledge.article_delete", args=[article.uuid]))
+
+        # the languages on offer reach the select itself, not just the field
+        self.assertContains(response, 'name="Kinyarwanda"')
+
+        # and are all it will accept
+        self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {"title": "All About Flows", "language": "fra", "body": "# Flows"},
+            form_errors={"language": "Select a valid choice. fra is not one of the available choices."},
+            object_unchanged=article,
+        )
 
         self.assertUpdateSubmit(
             update_url, self.admin, {"title": "All About Flows", "language": "kin", "body": "# Flows"}
