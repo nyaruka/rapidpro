@@ -233,6 +233,9 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.create_ticket(self.contact, assignee=None)
         self.create_ticket(self.contact, closed_on=timezone.now())
 
+        # agent3 is assigned a ticket in a topic their team doesn't have access to
+        self.create_ticket(self.contact, assignee=self.agent3, topic=self.sales)
+
         self.assertRequestDisallowed(menu_url, [None])
         self.assertPageMenu(
             menu_url,
@@ -240,22 +243,24 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             [
                 "My Tickets (2)",
                 "Unassigned (1)",
-                "All (3)",
+                "All (4)",
                 "Shortcuts (0)",
                 "Analytics",
                 "Export",
                 "New Topic",
                 "General (2)",
-                "Sales (1)",
+                "Sales (2)",
                 "Support (0)",
             ],
         )
         self.assertPageMenu(
             menu_url,
             self.agent,
-            ["My Tickets (0)", "Unassigned (1)", "All (3)", "General (2)", "Sales (1)", "Support (0)"],
+            ["My Tickets (0)", "Unassigned (1)", "All (4)", "General (2)", "Sales (2)", "Support (0)"],
         )
-        self.assertPageMenu(menu_url, self.agent2, ["My Tickets (0)", "Unassigned (0)", "All (1)", "Sales (1)"])
+        self.assertPageMenu(menu_url, self.agent2, ["My Tickets (0)", "Unassigned (0)", "All (2)", "Sales (2)"])
+
+        # agent3's assigned ticket isn't counted because it's not in a topic they can access
         self.assertPageMenu(menu_url, self.agent3, ["My Tickets (0)", "Unassigned (0)", "All (0)", "Support (0)"])
 
     @mock_mailroom
@@ -475,7 +480,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         assert_tickets(mine_open_url, self.editor, expected=[])
         assert_tickets(mine_open_url, self.agent, expected=[])
         assert_tickets(mine_open_url, self.agent2, expected=[])
-        assert_tickets(mine_open_url, self.agent3, expected=[c1_t2])  # because they're assigned to it
+        assert_tickets(mine_open_url, self.agent3, expected=[])  # assigned to them but no access to sales topic
         assert_tickets(mine_open_url, self.customer_support, expected=[], choose_org=self.org)  # always empty for CS
 
         # try topic specific folders
@@ -558,10 +563,10 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.editor, expected=[c1_t2])
         assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent, expected=[c1_t2])
         assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent2, expected=[c1_t2])
-        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[])  # can't access via All
+        assert_tickets(f"{all_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[])  # no access to sales topic
 
         assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.admin, expected=[])
-        assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[c1_t2])  # can access via Mine
+        assert_tickets(f"{mine_open_url}{str(c1_t2.uuid)}", self.agent3, expected=[])  # nor via Mine tho assigned
 
         # status-less deep links work for both open and closed tickets
         assert_tickets(f"{all_url}{str(c1_t1.uuid)}", self.admin, expected=[c1_t1])

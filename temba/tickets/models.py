@@ -268,17 +268,19 @@ class Ticket(models.Model):
     @classmethod
     def get_accessible(cls, org, user):
         """
-        Gets the tickets in the org that the given user is allowed to view. This mirrors what the ticketing UI exposes:
-        the union of the Mine and All folders. Staff and users whose team grants all topics can view every ticket;
-        an agent on a topic-restricted team can view tickets in their team's topics plus any assigned to them (they can
-        always see their own tickets even in topics they otherwise lack access to). A user with no membership in the org
-        can view nothing - we fail closed rather than exposing the whole workspace.
+        Gets the tickets in the org that the given user is allowed to view. Access is decided purely by topic: staff and
+        users whose team grants all topics can view every ticket, and an agent on a topic-restricted team can view only
+        tickets in their team's topics - including when a ticket in another topic is assigned to them. A user with no
+        membership in the org can view nothing - we fail closed rather than exposing the whole workspace.
+
+        Keeping this a topic-only rule is deliberate: topics are few and bounded per org, so it's a restriction that
+        other systems (e.g. message search) can enforce in their own queries.
         """
         qs = org.tickets.all()
 
         restricted = Topic.get_restriction(org, user)
         if restricted is not None:
-            qs = qs.filter(Q(assignee=user) | Q(topic__in=restricted))
+            qs = qs.filter(topic__in=restricted)
 
         return qs
 
@@ -350,12 +352,7 @@ class TicketFolder(metaclass=ABCMeta):
         return self.icon
 
     def get_queryset(self, org, user, *, ordered: bool):
-        qs = org.tickets.all()
-
-        if self.restrict_topics:
-            restricted = Topic.get_restriction(org, user)
-            if restricted is not None:
-                qs = qs.filter(topic__in=restricted)
+        qs = Ticket.get_accessible(org, user) if self.restrict_topics else org.tickets.all()
 
         if ordered:
             # the ticket UI's display order: open ('O' > 'C') before closed, then most recent activity - for
@@ -386,7 +383,7 @@ class MineFolder(TicketFolder):
     slug = "mine"
     name = _("My Tickets")
     icon = "tickets_mine"
-    restrict_topics = False  # users can see tickets assigned to them even if they don't have access to the topic
+    restrict_topics = True
 
     def get_icon(self, count) -> str:
         return self.icon if count else "tickets_mine_done"
