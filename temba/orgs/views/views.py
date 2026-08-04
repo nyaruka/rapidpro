@@ -676,6 +676,18 @@ class OrgCRUDL(SmartCRUDL):
                 ),
             ]
 
+            if org and Org.FEATURE_AGENTS in org.features:
+                menu.append(
+                    self.create_menu_item(
+                        menu_id="knowledge",
+                        name=_("Knowledge"),
+                        icon="knowledge",
+                        endpoint="knowledge.knowledge_menu",
+                        href="knowledge.knowledge_shortcuts",
+                        perm="knowledge.knowledge_read",
+                    )
+                )
+
             if org:
                 unseen_bubble = None
                 if self.request.user.notifications.filter(org=org, is_seen=False).exists():

@@ -27,6 +27,8 @@ from ..support import (
     InvalidQueryError,
     ModifiedOnCursorPagination,
     NameCursorPagination,
+    SearchCountMixin,
+    SearchLengthMixin,
 )
 from ..views import BaseAPIView, ListAPIMixin
 from . import serializers
@@ -237,13 +239,20 @@ class OrgsEndpoint(ListAPIMixin, BaseEndpoint):
         return User.get_orgs_for_request(self.request)
 
 
-class ShortcutsEndpoint(ListAPIMixin, BaseEndpoint):
+class ShortcutsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
+    class Pagination(SearchCountMixin, ModifiedOnCursorPagination):
+        page_size = 10
+
     model = Shortcut
     serializer_class = serializers.ShortcutReadSerializer
-    pagination_class = ModifiedOnCursorPagination
+    pagination_class = Pagination
 
     def get_queryset(self):
-        return super().get_queryset().filter(org=self.request.org, is_active=True)
+        queryset = super().get_queryset().filter(org=self.request.org, is_active=True)
+        search = self.request.query_params.get("search")
+        if search:
+            queryset = queryset.filter(Q(name__icontains=search) | Q(text__icontains=search))
+        return queryset
 
 
 class TemplatesEndpoint(ListAPIMixin, BaseEndpoint):

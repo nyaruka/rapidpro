@@ -13,16 +13,13 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-03 17:20+0000\n"
+"POT-Creation-Date: 2026-08-04 16:23+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
-
-msgid "API Key"
-msgstr "Clave API"
 
 msgid "You can find your API key at https://console.anthropic.com/settings/keys"
 msgstr "Puede encontrar su clave de API en https://console.anthropic.com/settings/keys"
@@ -39,6 +36,21 @@ msgstr "Puede encontrar su clave de API en https://platform.openai.com/account/a
 msgid "API keys are provided by the UNICEF ICTD team."
 msgstr "Las claves de API las proporciona el equipo ICTD de UNICEF."
 
+msgid "Provider"
+msgstr "Proveedor"
+
+#, fuzzy
+#| msgid "Choose the method for your flow"
+msgid "Choose the provider for this model."
+msgstr "Elija el método para su flujo"
+
+msgid "API Key"
+msgstr "Clave API"
+
+#, python-format
+msgid "Leave blank to use the existing API key for this provider. %(help)s"
+msgstr ""
+
 msgid "Model"
 msgstr "Modelo"
 
@@ -48,14 +60,28 @@ msgstr "Elija el modelo que desea utilizar."
 msgid "Name"
 msgstr "Nombre"
 
-msgid "Give your model a memorable name."
-msgstr "Asigne a su modelo un nombre fácil de recordar."
+msgid "e.g. Translation Assistant"
+msgstr ""
+
+msgid "Name this model for how you plan to use it, so the name stays useful if you change providers or models later."
+msgstr ""
 
 msgid "Must be unique."
 msgstr "Debe ser único."
 
 msgid "Artificial Intelligence"
 msgstr "Inteligencia artificial"
+
+#, fuzzy
+#| msgid "Model"
+msgid "New Model"
+msgstr "Modelo"
+
+msgid "Create"
+msgstr "Crear"
+
+msgid "Save"
+msgstr "Guardar"
 
 msgid "Your LLM model has been deleted."
 msgstr "Su modelo LLM ha sido eliminado."
@@ -1372,9 +1398,6 @@ msgstr "Su token de autenticación de Plivo"
 msgid "Your Plivo auth ID and auth token seem invalid. Please check them again and retry."
 msgstr "Su ID de autenticación de Plivo y su token de autenticación parecen no válidos. Revíselos de nuevo y vuelva a intentarlo."
 
-msgid "Save"
-msgstr "Guardar"
-
 msgid "Plivo credentials verified. You can now add a Plivo channel."
 msgstr "Credenciales de Plivo verificadas. Ahora puede agregar un canal de Plivo."
 
@@ -2293,9 +2316,6 @@ msgstr "Eliminar todos"
 msgid "Usages"
 msgstr "Usos"
 
-msgid "Create"
-msgstr "Crear"
-
 msgid "Not a valid phone number."
 msgstr "No es un número de teléfono válido."
 
@@ -2729,9 +2749,6 @@ msgstr "Errado"
 msgid "Failed"
 msgstr "Error"
 
-msgid "Provider"
-msgstr "Proveedor"
-
 msgid "Busy"
 msgstr "Ocupado"
 
@@ -2749,6 +2766,91 @@ msgstr "Nunca"
 
 msgid "Calls"
 msgstr "Llamadas"
+
+#, fuzzy
+#| msgid "Website Language"
+msgid "Website"
+msgstr "Idioma del sitio web"
+
+#, fuzzy
+#| msgid "Documentation"
+msgid "Documents"
+msgstr "Documentación"
+
+msgid "The address to crawl, e.g. https://help.example.com"
+msgstr ""
+
+msgid "Max Pages"
+msgstr ""
+
+msgid "Refresh"
+msgstr "Actualizar"
+
+msgid "Shortcuts"
+msgstr "Atajos"
+
+msgid "Helpdesk"
+msgstr ""
+
+msgid "Indexing"
+msgstr ""
+
+msgid "Daily"
+msgstr "Diariamente"
+
+msgid "Weekly"
+msgstr "Semanal"
+
+msgid "Monthly"
+msgstr "Mensualmente"
+
+msgid "Draft"
+msgstr ""
+
+#, fuzzy
+#| msgid "Public Key"
+msgid "Published"
+msgstr "Llave pública"
+
+#, fuzzy
+#| msgid "New Shortcut"
+msgid "New Source"
+msgstr "Nuevo atajo"
+
+msgid "Upload"
+msgstr ""
+
+#, fuzzy
+#| msgid "Update Shortcut"
+msgid "Update Source"
+msgstr "Actualizar atajo"
+
+#, fuzzy
+#| msgid "Delete Shortcut"
+msgid "Delete Source"
+msgstr "Eliminar atajo"
+
+msgid "New Shortcut"
+msgstr "Nuevo atajo"
+
+#, fuzzy
+#| msgid "Your label has been deleted."
+msgid "Your knowledge source has been deleted."
+msgstr "Su etiqueta ha sido eliminada."
+
+msgid "Files can only be added to document sets."
+msgstr ""
+
+#, python-format
+msgid "Limit of %d documents reached."
+msgstr ""
+
+msgid "Unsupported file type"
+msgstr "Tipo de archivo no admitido"
+
+#, python-format
+msgid "Limit for file uploads is %s MB"
+msgstr "El límite para la subida de archivos es de %s MB"
 
 msgid "The name for our alias"
 msgstr "El nombre de nuestro alias"
@@ -2948,13 +3050,6 @@ msgstr "Actualizar etiqueta"
 
 msgid "Your label has been deleted."
 msgstr "Su etiqueta ha sido eliminada."
-
-msgid "Unsupported file type"
-msgstr "Tipo de archivo no admitido"
-
-#, python-format
-msgid "Limit for file uploads is %s MB"
-msgstr "El límite para la subida de archivos es de %s MB"
 
 msgid "Channel Disconnected"
 msgstr "Canal desconectado"
@@ -3238,6 +3333,9 @@ msgstr "Activadores"
 msgid "Tickets"
 msgstr "Tickets"
 
+msgid "Knowledge"
+msgstr ""
+
 msgid "Notifications"
 msgstr "Notificaciones"
 
@@ -3424,15 +3522,6 @@ msgstr "Errores"
 msgid "Template Fetch Logs"
 msgstr "Registros de obtención de plantillas"
 
-msgid "Daily"
-msgstr "Diariamente"
-
-msgid "Weekly"
-msgstr "Semanal"
-
-msgid "Monthly"
-msgstr "Mensualmente"
-
 msgid "Yearly"
 msgstr "Anual"
 
@@ -3595,9 +3684,6 @@ msgstr "Deshabilitado"
 msgid "In Appeal"
 msgstr "En apelación"
 
-msgid "Refresh"
-msgstr "Actualizar"
-
 msgid "Your templates have been fetched and refreshed."
 msgstr "Sus plantillas se han obtenido y actualizado."
 
@@ -3620,14 +3706,11 @@ msgstr "Tickets sin asignar"
 msgid "All Tickets"
 msgstr "Todos los tickets"
 
-msgid "New Shortcut"
-msgstr "Nuevo atajo"
-
 msgid "New Team"
 msgstr "Nuevo equipo"
 
-msgid "Shortcuts"
-msgstr "Atajos"
+msgid "Topics"
+msgstr "Temas"
 
 msgid "Analytics"
 msgstr "Analítica"
@@ -5451,6 +5534,71 @@ msgstr "Fin"
 msgid "No calls"
 msgstr "Sin llamadas"
 
+#, fuzzy, python-format
+#| msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
+msgid "You are about to delete the knowledge source <b>%(object)s</b> and everything indexed from it. There is no way to undo this. Are you sure?"
+msgstr "Está a punto de eliminar el equipo <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
+
+msgid "Help articles written by your workspace. Published articles are searchable by AI agents."
+msgstr ""
+
+#, fuzzy
+#| msgid "No archives"
+msgid "No articles"
+msgstr "Sin archivos"
+
+msgid "Update Shortcut"
+msgstr "Actualizar atajo"
+
+msgid "Delete Shortcut"
+msgstr "Eliminar atajo"
+
+msgid "No shortcuts"
+msgstr "Sin atajos"
+
+#, fuzzy
+#| msgid "These are canned responses that agents can use to quickly reply to tickets."
+msgid "Canned responses that agents can use to quickly reply to tickets."
+msgstr "Estas son respuestas predefinidas que los agentes pueden utilizar para responder rápidamente a los tickets."
+
+#, fuzzy, python-format
+#| msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
+msgid "You are about to delete the document <b>%(object.name)s</b> and everything indexed from it. There is no way to undo this. Are you sure?"
+msgstr "Está a punto de eliminar el equipo <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
+
+#, fuzzy
+#| msgid "Delete Event"
+msgid "Delete Document"
+msgstr "Eliminar Evento"
+
+msgid "Uploaded documents that AI agents can search when handling conversations."
+msgstr ""
+
+#, fuzzy
+#| msgid "You have reached the per-workspace limit and must delete existing ones before you can create new ones."
+msgid "You have reached the limit of documents for this source and must delete existing ones before you can upload more."
+msgstr "Ha alcanzado el límite por workspace y debe eliminar los existentes antes de poder crear nuevos."
+
+#, fuzzy
+#| msgid "No sync events yet"
+msgid "No documents yet"
+msgstr "Aún no hay eventos de sincronización"
+
+#, fuzzy
+#| msgid "Last synced"
+msgid "Last Indexed"
+msgstr "Última sincronización"
+
+#, fuzzy
+#| msgid "Usages"
+msgid "Pages"
+msgstr "Usos"
+
+#, fuzzy
+#| msgid "No models yet"
+msgid "No pages yet"
+msgstr "Aún no hay modelos"
+
 #, python-format
 msgid "Aliases for %(name)s"
 msgstr "Alias para %(name)s"
@@ -6542,17 +6690,8 @@ msgstr "Otros idiomas"
 msgid "You are about to delete the shortcut <b>%(object)s</b>. There is no way to undo this. Are you sure?"
 msgstr "Está a punto de eliminar el atajo <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
 
-msgid "Update Shortcut"
-msgstr "Actualizar atajo"
-
-msgid "Delete Shortcut"
-msgstr "Eliminar atajo"
-
 msgid "These are canned responses that agents can use to quickly reply to tickets."
 msgstr "Estas son respuestas predefinidas que los agentes pueden utilizar para responder rápidamente a los tickets."
-
-msgid "No shortcuts"
-msgstr "Sin atajos"
 
 #, python-format
 msgid "Sorry, the <b>%(object)s</b> team can't be deleted while it still has agents. Move the agents to another team first and then try again."
@@ -6568,9 +6707,6 @@ msgstr "Está a punto de eliminar el equipo <b>%(object)s</b>. No hay forma de d
 
 msgid "Agent users can be organized into teams to restrict which ticket topics they can access."
 msgstr "Los usuarios agentes se pueden organizar en equipos para restringir a qué temas de tickets pueden acceder."
-
-msgid "Topics"
-msgstr "Temas"
 
 msgid "No teams"
 msgstr "Sin equipos"
