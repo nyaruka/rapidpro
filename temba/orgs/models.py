@@ -575,8 +575,8 @@ class Org(LegacyIDMixin, SmartModel):
             trigger_type = trigger_def.get("trigger_type", "")
 
             # TODO need better way to report import results back to users
-            # ignore scheduled triggers
-            if trigger_type == "S":
+            # ignore scheduled triggers as they're missing their schedules, and removed trigger types
+            if trigger_type in ("S", "I", "O"):
                 continue
 
             Trigger.clean_import_def(trigger_def)
