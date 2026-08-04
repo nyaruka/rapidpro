@@ -96,8 +96,8 @@ class KnowledgeUpdateForm(UniqueNameMixin, forms.ModelForm):
 
 class ArticleForm(forms.ModelForm):
     """
-    Create and update form for a helpdesk article. Publishing isn't here - it's an explicit action of its own, so that
-    saving an edit can never silently make a draft public.
+    Create and update form for a helpdesk article. Publishing isn't a field here - the editor asks for it explicitly
+    alongside the save, so that saving an edit can never silently make a draft public.
     """
 
     def __init__(self, org, *args, **kwargs):

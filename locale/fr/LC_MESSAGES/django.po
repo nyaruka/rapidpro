@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 20:24+0000\n"
+"POT-Creation-Date: 2026-08-04 21:48+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -2861,15 +2861,6 @@ msgstr "La limite pour les envois de fichiers est de %s Mo"
 msgid "New Article"
 msgstr "Nouvel article"
 
-msgid "Publish"
-msgstr "Publier"
-
-msgid "Unpublish"
-msgstr "Dépublier"
-
-msgid "Delete Article"
-msgstr "Supprimer l'article"
-
 msgid "Invalid ordering."
 msgstr "Ordre non valide."
 
@@ -5571,14 +5562,29 @@ msgstr "Vous avez atteint la limite de %(limit)s articles. Vous devez supprimer 
 msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. Any articles beneath it will move up to take its place. There is no way to undo this. Are you sure?"
 msgstr "Vous êtes sur le point de supprimer l'article <b>%(object)s</b> et ses captures d'écran. Les articles situés en dessous remonteront pour prendre sa place. Cette action est irréversible. Voulez-vous continuer ?"
 
+msgid "Update Article"
+msgstr "Mettre à jour l'article"
+
+msgid "Delete Article"
+msgstr "Supprimer l'article"
+
 msgid "No articles"
 msgstr "Aucun article"
 
 msgid "Help articles written by your workspace. Published articles are searchable by AI agents."
 msgstr "Articles d'aide rédigés par votre espace de travail. Les agents IA peuvent effectuer des recherches dans les articles publiés."
 
+msgid "This article is published and searchable by agents."
+msgstr "Cet article est publié et les agents peuvent le trouver."
+
 msgid "This article is a draft. It isn't searchable by agents until it's published."
 msgstr "Cet article est un brouillon. Les agents ne peuvent pas le trouver tant qu'il n'est pas publié."
+
+msgid "Unpublish"
+msgstr "Dépublier"
+
+msgid "Publish"
+msgstr "Publier"
 
 #, fuzzy, python-format
 #| msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"

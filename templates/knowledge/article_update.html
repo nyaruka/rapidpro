@@ -1,6 +1,71 @@
-{% extends "smartmin/update.html" %}
-{% load i18n %}
+{% extends "includes/modax.html" %}
+{% load smartmin i18n %}
 
-{% block title-text %}
-  {{ object.title }}
-{% endblock title-text %}
+{% block pre-form %}
+  <div class="article-controls">
+    <div class="article-status">
+      {% if object.status == "P" %}
+        {% trans "This article is published and searchable by agents." %}
+      {% else %}
+        {% trans "This article is a draft. It isn't searchable by agents until it's published." %}
+      {% endif %}
+    </div>
+    {% if org_perms.knowledge.article_delete %}
+      <temba-button name="{% trans "Delete" %}" destructive small onclick="deleteArticle()">
+      </temba-button>
+    {% endif %}
+    {% if object.status == "P" %}
+      <temba-button name="{% trans "Unpublish" %}" secondary small onclick="saveArticle({unpublish: 1})">
+      </temba-button>
+    {% else %}
+      <temba-button name="{% trans "Publish" %}" small onclick="saveArticle({publish: 1})">
+      </temba-button>
+    {% endif %}
+  </div>
+{% endblock pre-form %}
+{% block fields %}
+  {% render_field 'title' %}
+  {% if form.language %}{% render_field 'language' %}{% endif %}
+  {% render_field 'body' %}
+{% endblock fields %}
+{% block modal-script %}
+  {{ block.super }}
+  <script type="text/javascript">
+    // publishing goes through the form rather than an endpoint of its own, so that it saves whatever is in the editor
+    // rather than quietly discarding it
+    function saveArticle(intent) {
+      getModax("#update-article").submit(intent);
+    }
+
+    function deleteArticle() {
+      // the editor stays open behind the confirmation, so backing out of it doesn't cost the user their edits
+      var confirmation = document.querySelector("#delete-article");
+      confirmation.endpoint = "{% url 'knowledge.article_delete' object.uuid %}";
+      confirmation.open = true;
+    }
+  </script>
+{% endblock modal-script %}
+{% block modal-extra-style %}
+  {{ block.super }}
+  <style type="text/css">
+    .article-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .article-status {
+      flex-grow: 1;
+      font-size: 0.9em;
+      opacity: 0.6;
+    }
+
+    /* the dialog is sized by its content, so cap the body and let it scroll rather than letting a long article push
+       the dialog past the bottom of the window */
+    .modax-body {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+  </style>
+{% endblock modal-extra-style %}

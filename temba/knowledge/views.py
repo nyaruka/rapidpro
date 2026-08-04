@@ -1,6 +1,7 @@
 import magic
 from smartmin.views import SmartCRUDL, SmartReadView, SmartTemplateView
 
+from django.core.exceptions import ValidationError
 from django.db.models.functions import Lower
 from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
@@ -14,7 +15,6 @@ from temba.orgs.views.base import (
     BaseMenuView,
     BaseReadView,
     BaseUpdateModal,
-    BaseUpdateView,
 )
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, RequireFeatureMixin
 from temba.utils import json
@@ -286,19 +286,7 @@ class HelpdeskMixin(RequireFeatureMixin):
 
 class ArticleCRUDL(SmartCRUDL):
     model = Article
-    actions = ("list", "read", "create", "update", "delete", "sort", "publish", "unpublish", "upload")
-
-    class BasePage(HelpdeskMixin, SpaMixin):
-        """
-        The pages of the authoring surface, all of which sit under the helpdesk in the menu.
-        """
-
-        menu_path = "/knowledge/helpdesk"
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["helpdesk"] = self.helpdesk
-            return context
+    actions = ("list", "create", "update", "delete", "sort", "upload")
 
     class BaseObject(HelpdeskMixin):
         """
@@ -311,12 +299,14 @@ class ArticleCRUDL(SmartCRUDL):
         def derive_queryset(self, **kwargs):
             return super().derive_queryset(**kwargs).filter(knowledge=self.helpdesk)
 
-    class List(BasePage, ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
+    class List(HelpdeskMixin, SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
         """
-        The helpdesk itself - the article tree, which the list component fetches and reorders for itself.
+        The helpdesk itself - the article tree, which the list component fetches and reorders for itself. Articles are
+        opened, written and published in a dialog here, so this is the only page the authoring surface has.
         """
 
         title = _("Helpdesk")
+        menu_path = "/knowledge/helpdesk"
 
         def build_context_menu(self, menu):
             if self.has_org_perm("knowledge.article_create"):
@@ -328,6 +318,20 @@ class ArticleCRUDL(SmartCRUDL):
                     as_button=True,
                 )
 
+        def derive_article_to_edit(self):
+            """
+            The article the editor should open on arrival, named by the create modal so that titling a new one drops
+            you straight into writing it.
+            """
+            uuid = self.request.GET.get("edit", "")
+            if not uuid:
+                return None
+
+            try:
+                return self.helpdesk.articles.filter(uuid=uuid, is_active=True).first()
+            except ValidationError:  # not a uuid at all
+                return None
+
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["object"] = self.helpdesk
@@ -338,42 +342,10 @@ class ArticleCRUDL(SmartCRUDL):
             if self.has_org_perm("knowledge.article_sort"):
                 context["sort_url"] = reverse("knowledge.article_sort")
 
-            return context
+            article = self.derive_article_to_edit()
+            if article:
+                context["edit_url"] = reverse("knowledge.article_update", args=[article.uuid])
 
-    class Read(BaseObject, BasePage, ContextMenuMixin, BaseReadView):
-        """
-        An article as readers will see it - the sanitized render of its markdown.
-        """
-
-        def derive_title(self):
-            return self.object.title
-
-        def build_context_menu(self, menu):
-            obj = self.get_object()  # self.object isn't set when the content menu is fetched
-
-            # the tree lives on the helpdesk page now, so every article page needs a way back to it
-            menu.add_link(_("Helpdesk"), reverse("knowledge.article_list"))
-
-            if self.has_org_perm("knowledge.article_update"):
-                menu.add_link(_("Edit"), reverse("knowledge.article_update", args=[obj.uuid]))
-
-            if obj.status == Article.STATUS_DRAFT:
-                if self.has_org_perm("knowledge.article_publish"):
-                    menu.add_url_post(_("Publish"), reverse("knowledge.article_publish", args=[obj.uuid]))
-            elif self.has_org_perm("knowledge.article_unpublish"):
-                menu.add_url_post(_("Unpublish"), reverse("knowledge.article_unpublish", args=[obj.uuid]))
-
-            if self.has_org_perm("knowledge.article_delete"):
-                menu.add_modax(
-                    _("Delete"),
-                    "delete-article",
-                    reverse("knowledge.article_delete", args=[obj.uuid]),
-                    title=_("Delete Article"),
-                )
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-            context["rendered"] = self.object.as_html()
             return context
 
     class Create(HelpdeskMixin, BaseCreateModal):
@@ -406,24 +378,18 @@ class ArticleCRUDL(SmartCRUDL):
             )
 
         def get_success_url(self):
-            # straight into the editor - a new article has nothing to read yet
-            return reverse("knowledge.article_update", args=[self.object.uuid])
+            # back to the helpdesk, which opens the editor on what we just made
+            return f"{reverse('knowledge.article_list')}?edit={self.object.uuid}"
 
-    class Update(BaseObject, BasePage, ContextMenuMixin, BaseUpdateView):
+    class Update(BaseObject, BaseUpdateModal):
         """
-        The editor - a full page rather than a modal, because an article body needs the room.
+        The editor, opened as a dialog from the helpdesk. It renders the article rather than its markdown, so it's also
+        how an article is read - there's no separate read page - and it therefore carries the publish control too.
         """
 
         form_class = ArticleForm
+        success_url = "hide"  # the helpdesk refreshes its tree rather than navigating anywhere
         success_message = ""
-
-        def derive_title(self):
-            return self.object.title
-
-        def get_form_kwargs(self):
-            kwargs = super().get_form_kwargs()
-            kwargs["org"] = self.request.org
-            return kwargs
 
         def get_form(self):
             form = super().get_form()
@@ -437,10 +403,6 @@ class ArticleCRUDL(SmartCRUDL):
             )
             return form
 
-        def build_context_menu(self, menu):
-            menu.add_link(_("Helpdesk"), reverse("knowledge.article_list"))
-            menu.add_link(_("View"), reverse("knowledge.article_read", args=[self.get_object().uuid]))
-
         def pre_save(self, obj):
             obj = super().pre_save(obj)
 
@@ -448,8 +410,17 @@ class ArticleCRUDL(SmartCRUDL):
             obj.slug = Article.get_unique_slug(obj.knowledge, obj.title, ignore=obj)
             return obj
 
-        def get_success_url(self):
-            return reverse("knowledge.article_read", args=[self.object.uuid])
+        def post_save(self, obj):
+            obj = super().post_save(obj)
+
+            # publishing rides along with the save so that it can't discard whatever is in the editor, but only when
+            # the user asked for it - an ordinary save leaves a draft a draft
+            if self.request.POST.get("publish"):
+                obj.publish(self.request.user)
+            elif self.request.POST.get("unpublish"):
+                obj.unpublish(self.request.user)
+
+            return obj
 
     class Delete(BaseObject, BaseDeleteModal):
         cancel_url = "@knowledge.article_list"
@@ -458,29 +429,6 @@ class ArticleCRUDL(SmartCRUDL):
 
         def get_queryset(self, **kwargs):
             return super().get_queryset(**kwargs).filter(knowledge=self.helpdesk)
-
-    class Publish(BaseObject, PostOnlyMixin, OrgObjPermsMixin, SmartReadView):
-        """
-        Makes an article live, and therefore indexable. Explicit rather than a field on the editor form, so that saving
-        an edit can never make a draft public by accident.
-        """
-
-        def post(self, request, *args, **kwargs):
-            self.object = self.get_object()
-            self.object.publish(request.user)
-
-            return HttpResponseRedirect(reverse("knowledge.article_read", args=[self.object.uuid]))
-
-    class Unpublish(BaseObject, PostOnlyMixin, OrgObjPermsMixin, SmartReadView):
-        """
-        Returns an article to draft. Its modified_on bumps, so mailroom's next sweep drops its chunks.
-        """
-
-        def post(self, request, *args, **kwargs):
-            self.object = self.get_object()
-            self.object.unpublish(request.user)
-
-            return HttpResponseRedirect(reverse("knowledge.article_read", args=[self.object.uuid]))
 
     class Sort(HelpdeskMixin, PostOnlyMixin, OrgPermsMixin, SmartTemplateView):
         """

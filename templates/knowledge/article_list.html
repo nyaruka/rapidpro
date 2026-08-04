@@ -7,6 +7,11 @@
   <div id="title-text" class="hide">{{ title }}</div>
 {% endblock page-header %}
 {% block content %}
+  <temba-modax header="{{ _("Update Article") |escapejs }}"
+               id="update-article"
+               -temba-submitted="refreshArticles()">
+  </temba-modax>
+  {# after the editor, so its confirmation sits on top of it rather than behind #}
   <temba-modax header="{{ _("Delete Article") |escapejs }}" id="delete-article">
   </temba-modax>
   <temba-article-list id="article-list"
@@ -17,9 +22,6 @@
                       max-depth="{{ max_depth }}"
                       {% if sort_url %}sort-endpoint="{{ sort_url }}"{% endif %}
                       -temba-selection="handleContentMenuSelected(event)"
-                      -temba-article-delete="showDeleteArticleModal(event.detail.item.uuid)"
-                      {% if org_perms.knowledge.article_update %}editable{% endif %}
-                      {% if org_perms.knowledge.article_delete %}deletable{% endif %}
                       empty-message="{% trans "No articles" %}">
     <div slot="subtitle">
       {% blocktrans trimmed %}
@@ -32,11 +34,45 @@
   {{ block.super }}
   {% include "includes/page_header_menu.html" %}
   <script>
-    function showDeleteArticleModal(uuid) {
-      var modax = document.querySelector('#delete-article');
-      modax.endpoint = `/article/delete/${uuid}/`;
+    function showArticleEditor(endpoint) {
+      var modax = document.querySelector('#update-article');
+      modax.endpoint = endpoint;
       modax.open = true;
+
+      // temba-modax doesn't pass a size through to the dialog it renders, and its default is far too narrow for
+      // writing an article in, so widen that dialog once the modax has rendered it
+      modax.updateComplete.then(function() {
+        var dialog = modax.shadowRoot.querySelector('temba-dialog');
+        if (dialog) {
+          dialog.width = 'min(60rem, 92vw)';
+        }
+      });
     }
+
+    function refreshArticles() {
+      document.querySelector('#article-list').refresh();
+    }
+
+    onSpload(function() {
+      var list = document.querySelector('#article-list');
+
+      // the list asks to navigate to the row that was clicked, but articles are read and written in the dialog here,
+      // so the request stops at the list rather than reaching the SPA's handler on the document
+      list.addEventListener('temba-redirected', function(event) {
+        event.stopPropagation();
+      });
+
+      {% if org_perms.knowledge.article_update %}
+      list.addEventListener('temba-row-click', function(event) {
+        showArticleEditor(`/article/update/${event.detail.item.uuid}/`);
+      });
+
+      {% if edit_url %}
+      // we've just come from naming a new article, so open it for writing
+      showArticleEditor('{{ edit_url }}');
+      {% endif %}
+      {% endif %}
+    });
   </script>
 {% endblock extra-script %}
 {% block extra-style %}

@@ -44,48 +44,39 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(reverse("knowledge.article_sort"), response.context["sort_url"])
         self.assertContains(response, "temba-article-list")
 
+        # rows open the editor dialog rather than a page of their own, so the list offers no row actions of its own
+        self.assertContains(response, 'id="update-article"')
+        self.assertNotContains(response, "-temba-article-delete")
+
         self.assertContentMenu(list_url, self.admin, ["New"])
+
+        # nothing is opened for editing unless we've been sent here by the create modal
+        self.assertNotIn("edit_url", response.context)
+
+        response = self.requestView(f"{list_url}?edit={flows.uuid}", self.admin)
+        self.assertEqual(reverse("knowledge.article_update", args=[flows.uuid]), response.context["edit_url"])
+
+        # an article that isn't ours to edit, or isn't a uuid at all, is simply ignored
+        other_org = Article.create(
+            self.org2.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK), self.admin2, "Other"
+        )
+        for edit in (other_org.uuid, "not-a-uuid", ""):
+            response = self.requestView(f"{list_url}?edit={edit}", self.admin)
+            self.assertNotIn("edit_url", response.context)
 
         # 404 if the system source is somehow absent
         self.org.knowledge.filter(knowledge_type=Knowledge.TYPE_HELPDESK).update(is_active=False)
         response = self.requestView(list_url, self.admin)
         self.assertEqual(404, response.status_code)
 
-    def test_read(self):
-        article = Article.create(self.helpdesk, self.admin, "Flows", body="# Flows\n\nAre **great**.")
-        other_org = Article.create(
-            self.org2.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK), self.admin2, "Other"
-        )
-
-        read_url = reverse("knowledge.article_read", args=[article.uuid])
-
-        # nobody can access if agents feature not enabled
-        response = self.requestView(read_url, self.admin)
-        self.assertRedirect(response, reverse("orgs.org_workspace"))
+    def test_read_is_gone(self):
+        # articles are read in the editor dialog, so there's no read page and nothing at its old URL
+        article = Article.create(self.helpdesk, self.admin, "Flows")
 
         self.enable_agents(self.org)
+        self.login(self.admin)
 
-        self.assertRequestDisallowed(read_url, [None, self.agent, self.admin2])
-
-        response = self.assertReadFetch(read_url, [self.editor, self.admin], context_object=article)
-
-        self.assertEqual("<h1>Flows</h1>\n<p>Are <strong>great</strong>.</p>", response.context["rendered"])
-        self.assertContains(response, "<strong>great</strong>")
-        self.assertContains(response, "This article is a draft")
-
-        # a draft offers publishing, a published article offers the reverse
-        self.assertContentMenu(read_url, self.admin, ["Helpdesk", "Edit", "Publish", "Delete"])
-
-        article.publish(self.admin)
-        self.assertContentMenu(read_url, self.admin, ["Helpdesk", "Edit", "Unpublish", "Delete"])
-
-        response = self.requestView(read_url, self.admin)
-        self.assertNotContains(response, "This article is a draft")
-
-        # another org's articles aren't ours to read even if we know the uuid
-        self.enable_agents(self.org2)
-        response = self.requestView(reverse("knowledge.article_read", args=[other_org.uuid]), self.admin)
-        self.assertEqual(404, response.status_code)
+        self.assertEqual(404, self.client.get(f"/article/read/{article.uuid}/").status_code)
 
     def test_create(self):
         create_url = reverse("knowledge.article_create")
@@ -120,10 +111,11 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("spa", article.language)
         self.assertEqual(Article.STATUS_DRAFT, article.status)  # new articles are drafts
 
-        # and we're dropped straight into the editor
+        # and we're sent back to the helpdesk, which opens the editor on what we just made
         response = self.requestView(create_url, self.admin, post_data={"title": "Flows", "language": "eng"})
-        self.assertRedirect(
-            response, reverse("knowledge.article_update", args=[Article.objects.get(title="Flows").uuid])
+        self.assertEqual(302, response.status_code)
+        self.assertEqual(
+            f"{reverse('knowledge.article_list')}?edit={Article.objects.get(title='Flows').uuid}", response.url
         )
 
         # can't create beyond the limit
@@ -155,6 +147,11 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         # the editor is pointed at this article for uploads
         self.assertContains(response, reverse("knowledge.article_upload", args=[article.uuid]))
 
+        # and carries the publish and delete controls, because it's the only view of an article there is
+        self.assertContains(response, "This article is a draft")
+        self.assertContains(response, "Publish")
+        self.assertContains(response, reverse("knowledge.article_delete", args=[article.uuid]))
+
         self.assertUpdateSubmit(
             update_url, self.admin, {"title": "All About Flows", "language": "kin", "body": "# Flows"}
         )
@@ -165,8 +162,6 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("all-about-flows", article.slug)  # the slug follows the title
         self.assertEqual("kin", article.language)
         self.assertEqual(Article.STATUS_DRAFT, article.status)  # saving an edit doesn't publish
-
-        self.assertContentMenu(update_url, self.admin, ["Helpdesk", "View"])
 
         # an article keeps the language it was written in as a choice even if the workspace later drops it, so that
         # dropping a language can't make its articles permanently unsaveable
@@ -179,37 +174,38 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_publishing(self):
         article = Article.create(self.helpdesk, self.admin, "Flows")
 
-        publish_url = reverse("knowledge.article_publish", args=[article.uuid])
-        unpublish_url = reverse("knowledge.article_unpublish", args=[article.uuid])
-
-        # nobody can access if agents feature not enabled
-        response = self.requestView(publish_url, self.admin, post_data={})
-        self.assertRedirect(response, reverse("orgs.org_workspace"))
+        update_url = reverse("knowledge.article_update", args=[article.uuid])
 
         self.enable_agents(self.org)
 
-        self.assertRequestDisallowed(publish_url, [None, self.agent, self.admin2])
-
-        self.login(self.admin)
-
-        # GET isn't allowed
-        self.assertEqual(405, self.client.get(publish_url).status_code)
-
-        response = self.client.post(publish_url)
-        self.assertRedirect(response, reverse("knowledge.article_read", args=[article.uuid]))
+        # publishing travels with the save, so that asking for it can never throw away what's in the editor
+        self.assertUpdateSubmit(
+            update_url, self.admin, {"title": "Flows", "language": "eng", "body": "# Flows", "publish": "1"}
+        )
 
         article.refresh_from_db()
+        self.assertEqual("# Flows", article.body)
         self.assertEqual(Article.STATUS_PUBLISHED, article.status)
         self.assertIsNotNone(article.published_on)
 
-        self.assertEqual(405, self.client.get(unpublish_url).status_code)
+        # a published article offers the reverse
+        response = self.assertUpdateFetch(update_url, [self.admin], form_fields=("title", "language", "body"))
+        self.assertContains(response, "This article is published")
+        self.assertContains(response, "Unpublish")
 
-        response = self.client.post(unpublish_url)
-        self.assertRedirect(response, reverse("knowledge.article_read", args=[article.uuid]))
+        modified_on = article.modified_on
+
+        self.assertUpdateSubmit(
+            update_url, self.admin, {"title": "Flows", "language": "eng", "body": "# Flows!", "unpublish": "1"}
+        )
 
         article.refresh_from_db()
+        self.assertEqual("# Flows!", article.body)
         self.assertEqual(Article.STATUS_DRAFT, article.status)
         self.assertIsNone(article.published_on)
+
+        # which has to bump modified_on so that mailroom's sweep drops its chunks
+        self.assertGreater(article.modified_on, modified_on)
 
     def test_sort(self):
         flows = Article.create(self.helpdesk, self.admin, "Flows")
