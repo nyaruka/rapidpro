@@ -22,13 +22,15 @@
 {% block modal-extra-style %}
   {{ block.super }}
   <style type="text/css">
-    /* The dialog takes most of the window's height and holds it, with the editor taking whatever the controls above
-       it leave over and scrolling the article inside itself. So writing happens in a window that doesn't move, and
-       a long article never pushes the dialog past the bottom of the screen. Every wrapper between the body and the
-       editor has to pass the height along, which is what the run of flex rules is for. */
-    .modax-body {
+    /* The dialog takes nearly the window's whole height and holds it, with the editor taking whatever the controls
+       above it leave over and scrolling the article inside itself. So writing happens in a window that doesn't move,
+       and a long article never pushes the dialog past the bottom of the screen. Every wrapper between the body and the
+       editor has to pass the height along, which is what the run of flex rules is for. The selector outweighs the
+       modax's own .modax-body rule, whose padding would otherwise win the tie and take height the editor can use. */
+    temba-dialog .modax-body {
       box-sizing: border-box;
-      height: 78vh;
+      height: 88vh;
+      padding: 12px 20px;
       display: flex;
       flex-direction: column;
     }
