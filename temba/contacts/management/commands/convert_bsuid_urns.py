@@ -94,8 +94,10 @@ class Command(BaseCommand):
                 owner_contact_id, kept_urn_id = owner
                 if owner_contact_id == u.contact_id:
                     # the bsuid URN duplicates a whatsapp URN the same contact already has, so move its
-                    # references onto the survivor and drop it
-                    u.reassign_content_to(kept_urn_id)
+                    # references (all on_delete=PROTECT) onto the survivor and drop it
+                    u.msgs.update(contact_urn_id=kept_urn_id)
+                    u.calls.update(contact_urn_id=kept_urn_id)
+                    u.channel_events.update(contact_urn_id=kept_urn_id)
                     u.delete()
                     num_dropped += 1
                     if u.contact_id:

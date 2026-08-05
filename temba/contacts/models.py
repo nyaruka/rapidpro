@@ -1259,7 +1259,7 @@ class Contact(LegacyIDMixin, LegacyUUIDMixin, SmartModel):
         for urn in self.urns.all():
             # delete the urn if it has no associated content.. which should be the case if it wasn't
             # stolen from another contact
-            if not urn.has_content():
+            if not urn.msgs.all() and not urn.channel_events.all() and not urn.calls.all():
                 urn.delete()
             else:
                 urn.contact = None
@@ -1430,10 +1430,6 @@ class ContactURN(LegacyIDMixin, models.Model):
     ANON_MASK = "*" * 8  # Returned instead of URN values for anon orgs
     ANON_MASK_HTML = "•" * 8  # Pretty HTML version of anon mask
 
-    # reverse relations holding content that references a URN (all on_delete=PROTECT), so a URN can't be
-    # deleted until these are moved elsewhere or gone
-    CONTENT_RELATIONS = ("msgs", "calls", "channel_events")
-
     org = models.ForeignKey(Org, related_name="urns", on_delete=models.PROTECT)
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT, null=True, related_name="urns")
 
@@ -1480,19 +1476,6 @@ class ContactURN(LegacyIDMixin, models.Model):
             return self.ANON_MASK
 
         return URN.format(self.urn, international=international, formatted=formatted)
-
-    def has_content(self) -> bool:
-        """
-        Whether any messages, calls or channel events still reference this URN.
-        """
-        return any(getattr(self, rel).exists() for rel in self.CONTENT_RELATIONS)
-
-    def reassign_content_to(self, urn_id: int):
-        """
-        Moves any messages, calls and channel events referencing this URN onto the URN with the given id.
-        """
-        for rel in self.CONTENT_RELATIONS:
-            getattr(self, rel).update(contact_urn_id=urn_id)
 
     @property
     def urn(self) -> str:
