@@ -1,3 +1,4 @@
+import colorsys
 import mimetypes
 import os
 import re
@@ -123,9 +124,10 @@ class CellBreaksProcessor(Treeprocessor):
 # The column stylesheet a layout table's header cells can carry - `width: 200px; background: #eef2ff` in otherwise
 # empty header cells, put there by the editor. Riding in the markdown itself, it survives any renderer; one that
 # doesn't understand it just shows it as header text.
-COLUMN_DECLARATION = re.compile(r"^(width|background)\s*:\s*(\S+)$", re.IGNORECASE)
+COLUMN_DECLARATION = re.compile(r"^(width|background|padding)\s*:\s*(\S+)$", re.IGNORECASE)
 COLUMN_WIDTH = re.compile(r"^\d+(px|%)$")
 COLUMN_BACKGROUND = re.compile(r"^#[0-9a-f]{3,8}$")
+COLUMN_PADDING = re.compile(r"^\d+px$")
 
 
 def parse_column_style(text: str) -> dict | None:
@@ -145,8 +147,30 @@ def parse_column_style(text: str) -> dict | None:
             return None
         if key == "background" and not COLUMN_BACKGROUND.match(value):
             return None
+        if key == "padding" and not COLUMN_PADDING.match(value):
+            return None
         out[key] = value
     return out
+
+
+def text_on(background: str) -> str:
+    """
+    A readable text color drawn from a cell's own background: a deep shade of the same hue over a light fill, a
+    pale one over a dark fill. Derived the same way the editor derives it, so author and reader see the same text.
+    """
+    value = background.lstrip("#")
+    if len(value) in (3, 4):
+        value = "".join(c * 2 for c in value[:3])
+    r, g, b = (int(value[i : i + 2], 16) / 255 for i in (0, 2, 4))
+
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    if l > 0.55:
+        s, l = min(s, 0.55), 0.27
+    else:
+        s, l = min(s, 0.45), 0.95
+
+    r, g, b = colorsys.hls_to_rgb(h, l, s)
+    return "#%02x%02x%02x" % (round(r * 255), round(g * 255), round(b * 255))
 
 
 class ColumnStyles(Extension):
@@ -194,26 +218,53 @@ class ColumnStylesProcessor(Treeprocessor):
         if any(style.get("width") for style in styles):
             table.set("style", "table-layout: fixed; width: 100%")
 
+        # what belongs to the cells themselves: padding, and text drawn from the column's own color - a colgroup
+        # can paint a background but can't reach the text over it. Any alignment the renderer put on a cell stays.
+        tbody = table.find("tbody")
+        for tr in tbody.findall("tr") if tbody is not None else []:
+            for index, td in enumerate(tr.findall("td")):
+                style = styles[index] if index < len(styles) else {}
+                parts = []
+                align = re.search(r"text-align:\s*(left|center|right)", td.get("style") or "")
+                if align:
+                    parts.append(f"text-align: {align[1]}")
+                if style.get("padding"):
+                    parts.append(f"padding: {style['padding']}")
+                if style.get("background"):
+                    parts.append(f"color: {text_on(style['background'])}")
+                if parts:
+                    td.set("style", "; ".join(parts))
+                elif td.get("style"):
+                    del td.attrib["style"]
+
 
 # markdown extensions we render article bodies with. Deliberately conservative - no extension that would make markdown
 # itself more expressive than what the editor can round-trip.
 MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
 
-# nh3's default attribute allowances plus class on images (where AnnotateImages puts one) and style on cols and
-# tables (where ColumnStyles puts what it realizes)
+# nh3's default attribute allowances plus class on images (where AnnotateImages puts one) and style on tables and
+# their cells and cols (where ColumnStyles and the tables extension put what they realize)
 SANITIZE_ATTRIBUTES = {
     **nh3.ALLOWED_ATTRIBUTES,
     "img": nh3.ALLOWED_ATTRIBUTES["img"] | {"class"},
     "col": nh3.ALLOWED_ATTRIBUTES.get("col", set()) | {"style"},
     "table": nh3.ALLOWED_ATTRIBUTES.get("table", set()) | {"style"},
+    "td": nh3.ALLOWED_ATTRIBUTES.get("td", set()) | {"style"},
+    "th": nh3.ALLOWED_ATTRIBUTES.get("th", set()) | {"style"},
 }
+
+# the only declarations a cell's style may carry: the alignment the tables extension writes, and the padding and
+# derived text color ColumnStyles writes
+CELL_DECLARATION = re.compile(
+    r"^(text-align:\s*(left|center|right)|padding:\s*\d+px|color:\s*#[0-9a-f]{3,8})$", re.IGNORECASE
+)
 
 
 def _sanitize_attribute(element: str, attribute: str, value: str) -> str | None:
     """
     Tightens what SANITIZE_ATTRIBUTES lets through: an image's class may only carry the classes AnnotateImages
-    emits, and a col or table style only what ColumnStyles writes. Nothing else in the pipeline can put those
-    attributes there, so like the sanitizing itself this is defense in depth.
+    emits, and a table, col or cell style only what our own pipeline writes. Nothing else can put those attributes
+    there, so like the sanitizing itself this is defense in depth.
     """
     if element == "img" and attribute == "class":
         kept = [c for c in value.split() if c in IMAGE_CLASSES]
@@ -222,6 +273,9 @@ def _sanitize_attribute(element: str, attribute: str, value: str) -> str | None:
         return value if parse_column_style(value) else None
     if element == "table" and attribute == "style":
         return value if value == "table-layout: fixed; width: 100%" else None
+    if element in ("td", "th") and attribute == "style":
+        kept = [d.strip() for d in value.split(";") if d.strip() and CELL_DECLARATION.match(d.strip())]
+        return "; ".join(kept) if kept else None
     return value
 
 
