@@ -668,7 +668,6 @@ class MailroomClientTest(TembaTest):
         ann = self.create_contact("Ann", urns=["tel:+12340000001"])
         bob = self.create_contact("Bob", urns=["tel:+12340000002"])
         group = self.create_group("Doctors", contacts=[])
-        optin = self.create_optin("Cat Facts")
         bcast = self.create_broadcast(self.admin, {"eng": {"text": "Hello"}}, groups=[group])
         template = self.create_template("reminder", [])
 
@@ -684,7 +683,6 @@ class MailroomClientTest(TembaTest):
             "age > 20",
             "",
             Exclusions(in_a_flow=True),
-            optin,
             template,
             ["@contact"],
             ScheduleSpec(start="2024-06-20T16:23:30Z", repeat_period=Schedule.REPEAT_DAILY),
@@ -711,7 +709,6 @@ class MailroomClientTest(TembaTest):
                     "not_seen_since_days": 0,
                     "started_previously": False,
                 },
-                "optin_id": optin.id,
                 "template_id": template.id,
                 "template_variables": ["@contact"],
                 "schedule": {"start": "2024-06-20T16:23:30Z", "repeat_period": "D", "repeat_days_of_week": None},
