@@ -126,7 +126,7 @@ class CellBreaksProcessor(Treeprocessor):
 # understand it just shows it as header text. A background is an index into the org's shared palette rather than a
 # color: the article embeds the choice, the palette says what the choice currently looks like - so recoloring a
 # palette entry restyles its every use, and an index the palette no longer answers for paints nothing.
-COLUMN_DECLARATION = re.compile(r"^(width|background|padding)\s*:\s*(\S+)$", re.IGNORECASE)
+COLUMN_DECLARATION = re.compile(r"^(width|background|padding|border)\s*:\s*(\S+)$", re.IGNORECASE)
 COLUMN_WIDTH = re.compile(r"^\d+(px|%)$")
 COLUMN_BACKGROUND = re.compile(r"^\d+$")
 COLUMN_PADDING = re.compile(r"^\d+px$")
@@ -151,8 +151,23 @@ def parse_column_style(text: str) -> dict | None:
             return None
         if key == "padding" and not COLUMN_PADDING.match(value):
             return None
+        if key == "border" and value != "solid":
+            return None
         out[key] = value
     return out
+
+
+def _hex_to_hls(color: str) -> tuple:
+    value = color.lstrip("#")
+    if len(value) in (3, 4):
+        value = "".join(c * 2 for c in value[:3])
+    r, g, b = (int(value[i : i + 2], 16) / 255 for i in (0, 2, 4))
+    return colorsys.rgb_to_hls(r, g, b)
+
+
+def _hls_to_hex(h: float, l: float, s: float) -> str:
+    r, g, b = colorsys.hls_to_rgb(h, l, s)
+    return "#%02x%02x%02x" % (round(r * 255), round(g * 255), round(b * 255))
 
 
 def text_on(background: str) -> str:
@@ -160,19 +175,27 @@ def text_on(background: str) -> str:
     A readable text color drawn from a cell's own background: a deep shade of the same hue over a light fill, a
     pale one over a dark fill. Derived the same way the editor derives it, so author and reader see the same text.
     """
-    value = background.lstrip("#")
-    if len(value) in (3, 4):
-        value = "".join(c * 2 for c in value[:3])
-    r, g, b = (int(value[i : i + 2], 16) / 255 for i in (0, 2, 4))
-
-    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    h, l, s = _hex_to_hls(background)
     if l > 0.55:
         s, l = min(s, 0.55), 0.27
     else:
         s, l = min(s, 0.45), 0.95
+    return _hls_to_hex(h, l, s)
 
-    r, g, b = colorsys.hls_to_rgb(h, l, s)
-    return "#%02x%02x%02x" % (round(r * 255), round(g * 255), round(b * 255))
+
+def border_on(background: str) -> str:
+    """
+    The border a column can ask for, drawn from its own fill the same way its text is - a middle shade of the hue,
+    or a plain neutral when there's no fill to draw from.
+    """
+    if not background:
+        return "#d0d5dd"
+    h, l, s = _hex_to_hls(background)
+    if l > 0.55:
+        s, l = min(s, 0.5), 0.6
+    else:
+        s, l = min(s, 0.4), 0.75
+    return _hls_to_hex(h, l, s)
 
 
 class ColumnStyles(Extension):
@@ -251,6 +274,8 @@ class ColumnStylesProcessor(Treeprocessor):
                     parts.append(f"padding: {style['padding']}")
                 if fill:
                     parts.append(f"color: {text_on(fill)}")
+                if style.get("border"):
+                    parts.append(f"border: 1px solid {border_on(fill)}")
                 if parts:
                     td.set("style", "; ".join(parts))
                 elif td.get("style"):
@@ -275,7 +300,8 @@ SANITIZE_ATTRIBUTES = {
 # the only declarations a cell's style may carry: the alignment the tables extension writes, and the padding and
 # derived text color ColumnStyles writes
 CELL_DECLARATION = re.compile(
-    r"^(text-align:\s*(left|center|right)|padding:\s*\d+px|color:\s*#[0-9a-f]{3,8})$", re.IGNORECASE
+    r"^(text-align:\s*(left|center|right)|padding:\s*\d+px|color:\s*#[0-9a-f]{3,8}|border:\s*1px solid #[0-9a-f]{3,8})$",
+    re.IGNORECASE,
 )
 
 # and the only ones a col's may: the width straight from the stylesheet, and the palette color its index resolved to
