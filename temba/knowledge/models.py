@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import parse_qs
-from xml.etree.ElementTree import Element
+from xml.etree.ElementTree import Element, SubElement
 
 import markdown
 import nh3
@@ -120,23 +120,108 @@ class CellBreaksProcessor(Treeprocessor):
                     element.insert(at + offset, br)
 
 
+# The column stylesheet a layout table's header cells can carry - `width: 200px; background: #eef2ff` in otherwise
+# empty header cells, put there by the editor. Riding in the markdown itself, it survives any renderer; one that
+# doesn't understand it just shows it as header text.
+COLUMN_DECLARATION = re.compile(r"^(width|background)\s*:\s*(\S+)$", re.IGNORECASE)
+COLUMN_WIDTH = re.compile(r"^\d+(px|%)$")
+COLUMN_BACKGROUND = re.compile(r"^#[0-9a-f]{3,8}$")
+
+
+def parse_column_style(text: str) -> dict | None:
+    """
+    Reads a header cell's stylesheet, or returns None when its text isn't one.
+    """
+    out = {}
+    for piece in text.split(";"):
+        declaration = piece.strip()
+        if not declaration:
+            continue
+        match = COLUMN_DECLARATION.match(declaration)
+        if not match:
+            return None
+        key, value = match[1].lower(), match[2].lower()
+        if key == "width" and not COLUMN_WIDTH.match(value):
+            return None
+        if key == "background" and not COLUMN_BACKGROUND.match(value):
+            return None
+        out[key] = value
+    return out
+
+
+class ColumnStyles(Extension):
+    """
+    Realizes the column stylesheets in a layout table's header cells as a colgroup, leaving the header genuinely
+    empty. Every header cell has to be empty or read as a stylesheet; any real header text leaves the table alone.
+    """
+
+    def extendMarkdown(self, md):
+        md.treeprocessors.register(ColumnStylesProcessor(md), "column_styles", 4)
+
+
+class ColumnStylesProcessor(Treeprocessor):
+    def run(self, root):
+        for table in root.iter("table"):
+            self._decorate(table)
+
+    def _decorate(self, table):
+        thead = table.find("thead")
+        head = thead.findall(".//th") if thead is not None else []
+        if not head:
+            return
+
+        styles = []
+        for th in head:
+            # a header cell with markup in it is real content, however its text reads
+            parsed = parse_column_style((th.text or "").strip()) if len(th) == 0 else None
+            if parsed is None:
+                return
+            styles.append(parsed)
+
+        for th in head:
+            th.text = ""
+
+        if any(styles):
+            colgroup = Element("colgroup")
+            for style in styles:
+                col = SubElement(colgroup, "col")
+                parts = [f"{key}: {style[key]}" for key in ("width", "background") if style.get(key)]
+                if parts:
+                    col.set("style", "; ".join(parts))
+            table.insert(0, colgroup)
+
+        # a sized column only holds its size in a fixed layout, where the unsized columns share what's left
+        if any(style.get("width") for style in styles):
+            table.set("style", "table-layout: fixed; width: 100%")
+
+
 # markdown extensions we render article bodies with. Deliberately conservative - no extension that would make markdown
 # itself more expressive than what the editor can round-trip.
 MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
 
-# nh3's default attribute allowances plus class - on images only, which is where AnnotateImages puts one
-SANITIZE_ATTRIBUTES = {**nh3.ALLOWED_ATTRIBUTES, "img": nh3.ALLOWED_ATTRIBUTES["img"] | {"class"}}
+# nh3's default attribute allowances plus class on images (where AnnotateImages puts one) and style on cols and
+# tables (where ColumnStyles puts what it realizes)
+SANITIZE_ATTRIBUTES = {
+    **nh3.ALLOWED_ATTRIBUTES,
+    "img": nh3.ALLOWED_ATTRIBUTES["img"] | {"class"},
+    "col": nh3.ALLOWED_ATTRIBUTES.get("col", set()) | {"style"},
+    "table": nh3.ALLOWED_ATTRIBUTES.get("table", set()) | {"style"},
+}
 
 
 def _sanitize_attribute(element: str, attribute: str, value: str) -> str | None:
     """
-    Tightens what SANITIZE_ATTRIBUTES lets through: an image's class attribute may only carry the size/layout classes
-    AnnotateImages emits. Nothing else in the pipeline can put a class there, so like the sanitizing itself this is
-    defense in depth.
+    Tightens what SANITIZE_ATTRIBUTES lets through: an image's class may only carry the classes AnnotateImages
+    emits, and a col or table style only what ColumnStyles writes. Nothing else in the pipeline can put those
+    attributes there, so like the sanitizing itself this is defense in depth.
     """
     if element == "img" and attribute == "class":
         kept = [c for c in value.split() if c in IMAGE_CLASSES]
         return " ".join(kept) if kept else None
+    if element == "col" and attribute == "style":
+        return value if parse_column_style(value) else None
+    if element == "table" and attribute == "style":
+        return value if value == "table-layout: fixed; width: 100%" else None
     return value
 
 
@@ -148,7 +233,9 @@ def render_markdown(body: str) -> str:
     defense in depth, and still deals with the javascript: URLs markdown will happily make a link out of.
     """
     return nh3.clean(
-        markdown.markdown(body, extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML(), AnnotateImages(), CellBreaks()]),
+        markdown.markdown(
+            body, extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML(), AnnotateImages(), CellBreaks(), ColumnStyles()]
+        ),
         attributes=SANITIZE_ATTRIBUTES,
         attribute_filter=_sanitize_attribute,
     )
