@@ -1,3 +1,5 @@
+import re
+
 import magic
 from smartmin.views import SmartCRUDL, SmartReadView, SmartTemplateView
 
@@ -286,7 +288,7 @@ class HelpdeskMixin(RequireFeatureMixin):
 
 class ArticleCRUDL(SmartCRUDL):
     model = Article
-    actions = ("list", "create", "update", "delete", "publish", "sort", "upload")
+    actions = ("list", "create", "update", "delete", "publish", "sort", "upload", "colors")
 
     class BaseObject(HelpdeskMixin):
         """
@@ -409,6 +411,8 @@ class ArticleCRUDL(SmartCRUDL):
                     # the editor uploads screenshots against this article
                     "endpoint": reverse("knowledge.article_upload", args=[self.get_object().uuid]),
                     "accept": ",".join(ArticleImage.ALLOWED_CONTENT_TYPES),
+                    # and resolves column colors against the org's shared palette
+                    "colors-endpoint": reverse("knowledge.article_colors"),
                 }
             )
             return form
@@ -451,6 +455,30 @@ class ArticleCRUDL(SmartCRUDL):
             else:
                 article.unpublish(request.user)
 
+            return JsonResponse({"status": "ok"})
+
+    class Colors(HelpdeskMixin, OrgPermsMixin, SmartTemplateView):
+        """
+        The org's article palette - the colors every author shares, so color use stays consistent across articles.
+        Articles embed an index into it, so a POST that recolors an entry restyles that color's every use, and one
+        that drops an entry blanks them until something new takes the index.
+        """
+
+        def get(self, request, *args, **kwargs):
+            return JsonResponse({"colors": self.helpdesk.colors})
+
+        def post(self, request, *args, **kwargs):
+            try:
+                colors = json.loads(request.body)["colors"]
+                if not isinstance(colors, dict) or len(colors) > Knowledge.MAX_COLORS:
+                    raise ValueError("not a palette")
+                for index, color in colors.items():
+                    if not re.fullmatch(r"\d+", index) or not re.fullmatch(r"#[0-9a-f]{3,8}", str(color).lower()):
+                        raise ValueError("not a palette entry")
+            except ValueError, TypeError, KeyError:
+                return JsonResponse({"error": _("Invalid request.")}, status=400)
+
+            self.helpdesk.set_colors({index: str(color).lower() for index, color in colors.items()})
             return JsonResponse({"status": "ok"})
 
     class Delete(BaseObject, BaseDeleteModal):

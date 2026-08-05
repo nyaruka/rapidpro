@@ -121,12 +121,14 @@ class CellBreaksProcessor(Treeprocessor):
                     element.insert(at + offset, br)
 
 
-# The column stylesheet a layout table's header cells can carry - `width: 200px; background: #eef2ff` in otherwise
-# empty header cells, put there by the editor. Riding in the markdown itself, it survives any renderer; one that
-# doesn't understand it just shows it as header text.
+# The column stylesheet a layout table's header cells can carry - `width: 40%; background: 2` in otherwise empty
+# header cells, put there by the editor. Riding in the markdown itself, it survives any renderer; one that doesn't
+# understand it just shows it as header text. A background is an index into the org's shared palette rather than a
+# color: the article embeds the choice, the palette says what the choice currently looks like - so recoloring a
+# palette entry restyles its every use, and an index the palette no longer answers for paints nothing.
 COLUMN_DECLARATION = re.compile(r"^(width|background|padding)\s*:\s*(\S+)$", re.IGNORECASE)
 COLUMN_WIDTH = re.compile(r"^\d+(px|%)$")
-COLUMN_BACKGROUND = re.compile(r"^#[0-9a-f]{3,8}$")
+COLUMN_BACKGROUND = re.compile(r"^\d+$")
 COLUMN_PADDING = re.compile(r"^\d+px$")
 
 
@@ -177,13 +179,22 @@ class ColumnStyles(Extension):
     """
     Realizes the column stylesheets in a layout table's header cells as a colgroup, leaving the header genuinely
     empty. Every header cell has to be empty or read as a stylesheet; any real header text leaves the table alone.
+    Backgrounds resolve against the org's palette on the way through.
     """
 
+    def __init__(self, colors: dict = None):
+        super().__init__()
+        self.colors = colors or {}
+
     def extendMarkdown(self, md):
-        md.treeprocessors.register(ColumnStylesProcessor(md), "column_styles", 4)
+        md.treeprocessors.register(ColumnStylesProcessor(md, self.colors), "column_styles", 4)
 
 
 class ColumnStylesProcessor(Treeprocessor):
+    def __init__(self, md, colors: dict):
+        super().__init__(md)
+        self.colors = colors
+
     def run(self, root):
         for table in root.iter("table"):
             self._decorate(table)
@@ -205,11 +216,18 @@ class ColumnStylesProcessor(Treeprocessor):
         for th in head:
             th.text = ""
 
-        if any(styles):
+        # what each column's embedded palette index currently means - possibly nothing, if it's been removed
+        fills = [self.colors.get(style["background"]) if style.get("background") else None for style in styles]
+
+        if any(style.get("width") for style in styles) or any(fills):
             colgroup = Element("colgroup")
-            for style in styles:
+            for style, fill in zip(styles, fills):
                 col = SubElement(colgroup, "col")
-                parts = [f"{key}: {style[key]}" for key in ("width", "background") if style.get(key)]
+                parts = []
+                if style.get("width"):
+                    parts.append(f"width: {style['width']}")
+                if fill:
+                    parts.append(f"background: {fill}")
                 if parts:
                     col.set("style", "; ".join(parts))
             table.insert(0, colgroup)
@@ -224,14 +242,15 @@ class ColumnStylesProcessor(Treeprocessor):
         for tr in tbody.findall("tr") if tbody is not None else []:
             for index, td in enumerate(tr.findall("td")):
                 style = styles[index] if index < len(styles) else {}
+                fill = fills[index] if index < len(fills) else None
                 parts = []
                 align = re.search(r"text-align:\s*(left|center|right)", td.get("style") or "")
                 if align:
                     parts.append(f"text-align: {align[1]}")
                 if style.get("padding"):
                     parts.append(f"padding: {style['padding']}")
-                if style.get("background"):
-                    parts.append(f"color: {text_on(style['background'])}")
+                if fill:
+                    parts.append(f"color: {text_on(fill)}")
                 if parts:
                     td.set("style", "; ".join(parts))
                 elif td.get("style"):
@@ -259,6 +278,9 @@ CELL_DECLARATION = re.compile(
     r"^(text-align:\s*(left|center|right)|padding:\s*\d+px|color:\s*#[0-9a-f]{3,8})$", re.IGNORECASE
 )
 
+# and the only ones a col's may: the width straight from the stylesheet, and the palette color its index resolved to
+COL_DECLARATION = re.compile(r"^(width:\s*\d+(px|%)|background:\s*#[0-9a-f]{3,8})$", re.IGNORECASE)
+
 
 def _sanitize_attribute(element: str, attribute: str, value: str) -> str | None:
     """
@@ -270,7 +292,8 @@ def _sanitize_attribute(element: str, attribute: str, value: str) -> str | None:
         kept = [c for c in value.split() if c in IMAGE_CLASSES]
         return " ".join(kept) if kept else None
     if element == "col" and attribute == "style":
-        return value if parse_column_style(value) else None
+        kept = [d.strip() for d in value.split(";") if d.strip() and COL_DECLARATION.match(d.strip())]
+        return "; ".join(kept) if kept else None
     if element == "table" and attribute == "style":
         return value if value == "table-layout: fixed; width: 100%" else None
     if element in ("td", "th") and attribute == "style":
@@ -279,16 +302,18 @@ def _sanitize_attribute(element: str, attribute: str, value: str) -> str | None:
     return value
 
 
-def render_markdown(body: str) -> str:
+def render_markdown(body: str, colors: dict = None) -> str:
     """
-    Renders authored markdown for display. Raw HTML is escaped rather than passed through, so that a reader sees what
-    the author saw - the editor renders client side and escapes it too, and text that merely looks like a tag (the
-    `<url>` of our own quick reply syntax, say) survives instead of being quietly swallowed. Sanitizing stays as
-    defense in depth, and still deals with the javascript: URLs markdown will happily make a link out of.
+    Renders authored markdown for display, resolving column backgrounds against the org's palette. Raw HTML is
+    escaped rather than passed through, so that a reader sees what the author saw - the editor renders client side
+    and escapes it too, and text that merely looks like a tag (the `<url>` of our own quick reply syntax, say)
+    survives instead of being quietly swallowed. Sanitizing stays as defense in depth, and still deals with the
+    javascript: URLs markdown will happily make a link out of.
     """
     return nh3.clean(
         markdown.markdown(
-            body, extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML(), AnnotateImages(), CellBreaks(), ColumnStyles()]
+            body,
+            extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML(), AnnotateImages(), CellBreaks(), ColumnStyles(colors)],
         ),
         attributes=SANITIZE_ATTRIBUTES,
         attribute_filter=_sanitize_attribute,
@@ -347,10 +372,14 @@ class Knowledge(TembaModel):
     CONFIG_MAX_PAGES = "max_pages"
     CONFIG_REFRESH = "refresh"
 
+    # config keys for TYPE_HELPDESK
+    CONFIG_COLORS = "colors"  # the org's article palette, index -> hex; articles embed the index, never the hex
+
     DEFAULT_MAX_DEPTH = 3
     DEFAULT_MAX_PAGES = 500
     MAX_MAX_PAGES = 5_000
     MAX_URL_LEN = 2048
+    MAX_COLORS = 24
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="knowledge")
     knowledge_type = models.CharField(max_length=16, choices=TYPE_CHOICES)
@@ -422,6 +451,18 @@ class Knowledge(TembaModel):
     @property
     def url(self) -> str:
         return self.config.get(self.CONFIG_URL)
+
+    @property
+    def colors(self) -> dict:
+        """
+        The org's article palette, shared by every author so color use stays consistent across articles. Articles
+        embed an index into this; recoloring an entry restyles its every use, removing one blanks them.
+        """
+        return self.config.get(self.CONFIG_COLORS, {})
+
+    def set_colors(self, colors: dict):
+        self.config[self.CONFIG_COLORS] = colors
+        self.save(update_fields=("config", "modified_on"))
 
     def mark_pending(self):
         """
@@ -652,7 +693,7 @@ class Article(models.Model):
         return self.knowledge.org
 
     def as_html(self) -> str:
-        return render_markdown(self.body)
+        return render_markdown(self.body, self.knowledge.colors)
 
     def publish(self, user):
         self.status = self.STATUS_PUBLISHED
