@@ -1,3 +1,8 @@
+v26.3.35 (2026-08-05)
+-------------------------
+ * Update temba-components to 0.174.0
+ * Use setUpTestData for shared test fixtures to speed up test suite
+
 v26.3.34 (2026-08-05)
 -------------------------
  * Add management command to convert legacy bsuid URNs to whatsapp
