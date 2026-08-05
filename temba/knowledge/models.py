@@ -187,7 +187,8 @@ def border_on(background: str) -> str:
     """
     The border a column can ask for, drawn from its own fill the same way its text is - the same hue, stepped a
     fixed distance from the fill's own lightness so it reads against any fill: gently darker over a light one,
-    clearly lighter over a dark one. A plain neutral when there's no fill to draw from.
+    deeper still over a dark one, so a dark block sits inside a darker edge. A plain neutral when there's no fill
+    to draw from.
     """
     if not background:
         return "#d0d5dd"
@@ -195,7 +196,7 @@ def border_on(background: str) -> str:
     if l > 0.55:
         s, l = min(s, 0.5), max(l - 0.16, 0.1)
     else:
-        s, l = min(s, 0.5), min(l + 0.28, 0.85)
+        s, l = min(s, 0.6), max(l - 0.14, 0.05)
     return _hls_to_hex(h, l, s)
 
 
