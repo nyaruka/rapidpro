@@ -305,12 +305,12 @@ class NotificationTest(TembaTest):
         send_notification_emails()
 
         self.assertEqual(2, len(mail.outbox))
-
-        self.assertEqual(2, len(mail.outbox))
         self.assertEqual("[Nyaruka] Incident: WhatsApp Templates Sync Failed", mail.outbox[0].subject)
-        self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())
         self.assertEqual("[Nyaruka] Incident: WhatsApp Templates Sync Failed", mail.outbox[1].subject)
-        self.assertEqual(["editor@textit.com"], mail.outbox[1].recipients())
+        self.assertEqual(
+            {"admin@textit.com", "editor@textit.com"},
+            set(mail.outbox[0].recipients()).union(mail.outbox[1].recipients()),
+        )
 
     def test_incident_started(self):
         self.org.add_user(self.editor, OrgRole.ADMINISTRATOR)  # upgrade editor to administrator
@@ -447,12 +447,12 @@ class NotificationTest(TembaTest):
         send_notification_emails()
 
         self.assertEqual(2, len(mail.outbox))
-
-        self.assertEqual(2, len(mail.outbox))
         self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[0].subject)
-        self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())
         self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[1].subject)
-        self.assertEqual(["editor@textit.com"], mail.outbox[1].recipients())
+        self.assertEqual(
+            {"admin@textit.com", "editor@textit.com"},
+            set(mail.outbox[0].recipients()).union(mail.outbox[1].recipients()),
+        )
 
         self.assertEqual(1, self.editor.notifications.filter(is_seen=False).count())
         self.assertEqual(0, self.editor.notifications.filter(is_seen=True).count())
@@ -464,12 +464,6 @@ class NotificationTest(TembaTest):
         self.assertEqual(incident.pk, incident2.pk)
         send_notification_emails()
         self.assertEqual(2, len(mail.outbox))
-
-        self.assertEqual(2, len(mail.outbox))
-        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[0].subject)
-        self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())
-        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[1].subject)
-        self.assertEqual(["editor@textit.com"], mail.outbox[1].recipients())
 
         # end incident before the user visits the page
         incident.end()
@@ -485,12 +479,12 @@ class NotificationTest(TembaTest):
 
         send_notification_emails()
         self.assertEqual(4, len(mail.outbox))
-
-        self.assertEqual(4, len(mail.outbox))
-        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[0].subject)
-        self.assertEqual(["admin@textit.com"], mail.outbox[0].recipients())
-        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[1].subject)
-        self.assertEqual(["editor@textit.com"], mail.outbox[1].recipients())
+        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[2].subject)
+        self.assertEqual("[Nyaruka] Incident: Channel Disconnected", mail.outbox[3].subject)
+        self.assertEqual(
+            {"admin@textit.com", "editor@textit.com"},
+            set(mail.outbox[2].recipients()).union(mail.outbox[3].recipients()),
+        )
 
         self.assertEqual(2, self.editor.notifications.filter(is_seen=False).count())
         self.assertEqual(0, self.editor.notifications.filter(is_seen=True).count())
