@@ -8,6 +8,7 @@ from temba.tests import CRUDLTestMixin, TembaTest, cleanup
 
 
 class ArchiveCRUDLTest(TembaTest, CRUDLTestMixin):
+    @cleanup(s3=True)
     def test_list_views(self):
         # a daily archive that has been rolled up and will not appear in the results
         d1 = self.create_archive(Archive.TYPE_MSG, "D", date(2020, 7, 31), [{"id": 1}, {"id": 2}])
