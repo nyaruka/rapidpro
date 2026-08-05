@@ -6,6 +6,7 @@ import re
 
 import django.test.runner
 from django.conf import settings
+from django.core.cache import caches
 from django.core.files.storage import storages
 from django.core.management import call_command
 from django.test.runner import DiscoverRunner, ParallelTestSuite, _init_worker
@@ -26,8 +27,20 @@ def _temba_init_worker(counter, *args, **kwargs):
     if worker_id > 10:
         raise RuntimeError("can't run more than 10 parallel test workers as each needs its own valkey database")
 
-    caches = settings.CACHES["default"]
-    caches["LOCATION"] = re.sub(r"/\d+$", f"/{worker_id - 1}", caches["LOCATION"])
+    settings.CACHES["default"]["LOCATION"] = re.sub(
+        r"/\d+$", f"/{worker_id - 1}", settings.CACHES["default"]["LOCATION"]
+    )
+
+    # the system checks run by Django's own worker init will have already instantiated the cache connection, so
+    # reset the cache handler to ensure connections are recreated with this worker's settings
+    caches.__dict__.pop("settings", None)
+    for alias in settings.CACHES:
+        try:
+            delattr(caches._connections, alias)
+        except AttributeError:
+            pass
+
+    caches["default"].clear()  # in case a previous test run left anything behind in this worker's valkey database
 
     settings.DYNAMO_TABLE_PREFIX = f"Test{worker_id}"
     settings.BUCKET_PREFIX = f"test{worker_id}"
