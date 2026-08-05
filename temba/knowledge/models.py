@@ -4,6 +4,7 @@ import re
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import parse_qs
+from xml.etree.ElementTree import Element
 
 import markdown
 import nh3
@@ -73,6 +74,52 @@ class AnnotateImagesProcessor(Treeprocessor):
                 img.set("class", " ".join(classes))
 
 
+# a cell is one line of markdown - a real newline would end its row - so the editor writes line breaks inside cells
+# as literal <br> text, and rendering turns them back into the breaks they mean
+CELL_BREAK = re.compile(r"<br\s*/?>", re.IGNORECASE)
+
+
+class CellBreaks(Extension):
+    """
+    Turns the literal <br>s inside table cells into the line breaks they mean. Raw HTML is escaped rather than parsed,
+    so they arrive as text; a cell is one line of markdown and <br> is the only way it can carry a break. Cells only -
+    everywhere else text that merely looks like a tag stays text.
+    """
+
+    def extendMarkdown(self, md):
+        md.treeprocessors.register(CellBreaksProcessor(md), "cell_breaks", 5)
+
+
+class CellBreaksProcessor(Treeprocessor):
+    def run(self, root):
+        for tag in ("th", "td"):
+            for cell in root.iter(tag):
+                self._reveal(cell)
+
+    def _reveal(self, element):
+        # a break can sit inside a cell's emphasis or link as easily as in the cell itself
+        for child in list(element):
+            self._reveal(child)
+
+        if element.text and CELL_BREAK.search(element.text):
+            parts = CELL_BREAK.split(element.text)
+            element.text = parts[0]
+            for at, part in enumerate(parts[1:]):
+                br = Element("br")
+                br.tail = part
+                element.insert(at, br)
+
+        for child in list(element):
+            if child.tail and CELL_BREAK.search(child.tail):
+                parts = CELL_BREAK.split(child.tail)
+                child.tail = parts[0]
+                at = list(element).index(child) + 1
+                for offset, part in enumerate(parts[1:]):
+                    br = Element("br")
+                    br.tail = part
+                    element.insert(at + offset, br)
+
+
 # markdown extensions we render article bodies with. Deliberately conservative - no extension that would make markdown
 # itself more expressive than what the editor can round-trip.
 MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
@@ -101,7 +148,7 @@ def render_markdown(body: str) -> str:
     defense in depth, and still deals with the javascript: URLs markdown will happily make a link out of.
     """
     return nh3.clean(
-        markdown.markdown(body, extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML(), AnnotateImages()]),
+        markdown.markdown(body, extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML(), AnnotateImages(), CellBreaks()]),
         attributes=SANITIZE_ATTRIBUTES,
         attribute_filter=_sanitize_attribute,
     )
