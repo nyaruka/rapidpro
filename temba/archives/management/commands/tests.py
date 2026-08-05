@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 from io import StringIO
 
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
 
@@ -228,7 +229,10 @@ class ArchivesToHistoryTest(TembaTest):
 
         archive1.refresh_from_db()
         self.assertEqual(4, archive1.record_count)
-        self.assertEqual(f"test-archives:{self.org.id}/message_D20150101_{archive1.hash}.jsonl.gz", archive1.location)
+        self.assertEqual(
+            f"{settings.BUCKET_PREFIX}-archives:{self.org.id}/message_D20150101_{archive1.hash}.jsonl.gz",
+            archive1.location,
+        )
         records = list(archive1.iter_records())
         self.assertEqual(4, len(records))
         self.assertIn("uuid", records[0])
@@ -244,7 +248,10 @@ class ArchivesToHistoryTest(TembaTest):
 
         archive1.refresh_from_db()
         self.assertEqual(4, archive1.record_count)
-        self.assertEqual(f"test-archives:{self.org.id}/message_D20150101_{archive1.hash}.jsonl.gz", archive1.location)
+        self.assertEqual(
+            f"{settings.BUCKET_PREFIX}-archives:{self.org.id}/message_D20150101_{archive1.hash}.jsonl.gz",
+            archive1.location,
+        )
         self.assertEqual(4, len(list(archive1.iter_records())))
 
         # update 2025 archives

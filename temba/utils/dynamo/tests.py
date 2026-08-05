@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from django.conf import settings
+
 from temba.tests import TembaTest, cleanup
 from temba.utils import dynamo
 
@@ -19,8 +21,8 @@ class DynamoTest(TembaTest):
         client2 = dynamo.get_client()
         self.assertIs(client1, client2)
 
-        self.assertEqual("TestMain", dynamo.MAIN.name)
-        self.assertEqual("TestHistory", dynamo.HISTORY.name)
+        self.assertEqual(f"{settings.DYNAMO_TABLE_PREFIX}Main", dynamo.MAIN.name)
+        self.assertEqual(f"{settings.DYNAMO_TABLE_PREFIX}History", dynamo.HISTORY.name)
 
     def test_jsongz(self):
         data = dynamo.dump_jsongz({"foo": "barbarbarbarbarbarbarbarbarbarbarbarbarbarbarbar"})
