@@ -3,6 +3,7 @@ from io import StringIO
 from unittest.mock import patch
 
 from django.core.management import call_command
+from django.db import IntegrityError
 
 from temba.contacts.models import ContactURN
 from temba.tests import TembaTest, mock_mailroom
@@ -155,6 +156,35 @@ class ConvertBsuidUrnsTest(TembaTest):
             "0 skipped as whatsapp URN belongs to a different contact) across 0 contacts",
             out.getvalue(),
         )
+
+    @mock_mailroom
+    def test_concurrent_collision_abandons_batch_and_rerun_converges(self, mr_mocks):
+        contact = self.create_contact("Ann", urns=["bsuid:RW.abc123"])
+        start = datetime.now(tzone.utc)
+
+        # a concurrent writer inserting a colliding identity between the existing-URNs check and the update
+        # surfaces as an IntegrityError from the bulk update
+        out = StringIO()
+        with patch(
+            "temba.contacts.models.ContactURN.objects.bulk_update",
+            side_effect=IntegrityError("duplicate key value violates unique constraint"),
+        ):
+            call_command("convert_bsuid_urns", stdout=out)
+
+        # the batch is abandoned: URN untouched, nothing counted, bumped or reindexed
+        self.assertEqual({("bsuid", "RW.abc123", "bsuid:RW.abc123")}, self.urns(contact))
+        self.assertIn("skipped a batch of 1 URNs due to a collision", out.getvalue())
+        self.assertIn("Converted 0 bsuid URNs to whatsapp", out.getvalue())
+        self.assertEqual(0, len(mr_mocks.calls["contact_reindex"]))
+        contact.refresh_from_db()
+        self.assertLess(contact.modified_on, start)
+
+        # re-running without the concurrent writer converts it
+        call_command("convert_bsuid_urns", stdout=StringIO())
+
+        self.assertEqual({("whatsapp", "RW.abc123", "whatsapp:RW.abc123")}, self.urns(contact))
+        contact.refresh_from_db()
+        self.assertGreater(contact.modified_on, start)
 
     @mock_mailroom
     @patch("temba.contacts.management.commands.convert_bsuid_urns.BATCH_SIZE", 2)
