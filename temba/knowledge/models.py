@@ -41,10 +41,9 @@ class EscapeRawHTML(Extension):
 # the size and layout an image can be given, carried in the fragment of its URL as #size=small&layout=inline - in the
 # markdown itself, so it survives any renderer. Each size is a single pixel cap (small=200, medium=400, large=640)
 # that renderers apply as both max-width and max-height, bounding the long axis of any aspect ratio; no fragment means
-# full size as a block, which is how markdown renders an image anyway. The left and right layouts float the image so
-# its paragraph reads as a row - image on one side, the paragraph's text filling the other.
+# full size as a block, which is how markdown renders an image anyway.
 IMAGE_SIZES = ("small", "medium", "large")
-IMAGE_LAYOUTS = ("block", "inline", "left", "right")
+IMAGE_LAYOUTS = ("block", "inline")
 IMAGE_CLASSES = {f"size-{s}" for s in IMAGE_SIZES} | {f"layout-{layout}" for layout in IMAGE_LAYOUTS}
 
 
