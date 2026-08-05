@@ -1,3 +1,8 @@
+v26.3.34 (2026-08-05)
+-------------------------
+ * Add management command to convert legacy bsuid URNs to whatsapp
+ * Remove unused optin plumbing from broadcast creation
+
 v26.3.33 (2026-08-04)
 -------------------------
  * Remove opt-in and opt-out trigger types
