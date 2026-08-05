@@ -58,54 +58,52 @@ class TembaTest(SmartminTest):
     databases = ("default", "readonly")
     default_password = "Qwerty123"
 
-    def setUp(self):
-        super().setUp()
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
 
-        # fail loudly if a test reaches a live mailroom instead of mocking it
-        install_mailroom_guard(self)
-
-        self.superuser = User.objects.create_user("super@user.com", self.default_password, is_superuser=True)
+        cls.superuser = User.objects.create_user("super@user.com", cls.default_password, is_superuser=True)
 
         # create different user types
-        self.non_org_user = self.create_user("nonorg@textit.com")
-        self.admin = self.create_user("admin@textit.com", first_name="Andy")
-        self.editor = self.create_user("editor@textit.com", first_name="Ed", last_name="McEdits")
-        self.agent = self.create_user("agent@textit.com", first_name="Agnes")
-        self.customer_support = self.create_user("support@textit.com", is_staff=True)
+        cls.non_org_user = cls.create_user("nonorg@textit.com")
+        cls.admin = cls.create_user("admin@textit.com", first_name="Andy")
+        cls.editor = cls.create_user("editor@textit.com", first_name="Ed", last_name="McEdits")
+        cls.agent = cls.create_user("agent@textit.com", first_name="Agnes")
+        cls.customer_support = cls.create_user("support@textit.com", is_staff=True)
 
         # mark all of their emails as verified
         for user in User.objects.all():
             EmailAddress.objects.create(user=user, email=user.email, verified=True, primary=True)
 
-        self.org = Org.objects.create(
+        cls.org = Org.objects.create(
             name="Nyaruka",
             timezone=ZoneInfo("Africa/Kigali"),
             flow_languages=["eng", "kin"],
-            created_by=self.admin,
-            modified_by=self.admin,
+            created_by=cls.admin,
+            modified_by=cls.admin,
         )
-        self.org.initialize()
-        self.org.add_user(self.admin, OrgRole.ADMINISTRATOR)
-        self.org.add_user(self.editor, OrgRole.EDITOR)
-        self.org.add_user(self.agent, OrgRole.AGENT)
+        cls.org.initialize()
+        cls.org.add_user(cls.admin, OrgRole.ADMINISTRATOR)
+        cls.org.add_user(cls.editor, OrgRole.EDITOR)
+        cls.org.add_user(cls.agent, OrgRole.AGENT)
 
         # setup a second org with a single admin
-        self.admin2 = self.create_user("administrator@trileet.com")
-        EmailAddress.objects.create(user=self.admin2, email=self.admin2.email, verified=True, primary=True)
-        self.org2 = Org.objects.create(
+        cls.admin2 = cls.create_user("administrator@trileet.com")
+        EmailAddress.objects.create(user=cls.admin2, email=cls.admin2.email, verified=True, primary=True)
+        cls.org2 = Org.objects.create(
             name="Trileet Inc.",
             timezone=ZoneInfo("US/Pacific"),
             flow_languages=["eng"],
-            created_by=self.admin2,
-            modified_by=self.admin2,
+            created_by=cls.admin2,
+            modified_by=cls.admin2,
         )
-        self.org2.initialize()
-        self.org2.add_user(self.admin2, OrgRole.ADMINISTRATOR)
+        cls.org2.initialize()
+        cls.org2.add_user(cls.admin2, OrgRole.ADMINISTRATOR)
 
         # a single Android channel
-        self.channel = Channel.create(
-            self.org,
-            self.admin,
+        cls.channel = Channel.create(
+            cls.org,
+            cls.admin,
             "RW",
             "A",
             name="Test Channel",
@@ -115,6 +113,12 @@ class TembaTest(SmartminTest):
             config={Channel.CONFIG_FCM_ID: "123"},
             normalize_urns=False,
         )
+
+    def setUp(self):
+        super().setUp()
+
+        # fail loudly if a test reaches a live mailroom instead of mocking it
+        install_mailroom_guard(self)
 
         # OrgRole.group and OrgRole.permissions are cached properties so get those cached before test starts to avoid
         # query count differences when a test is first to request it and when it's not.
@@ -196,8 +200,9 @@ class TembaTest(SmartminTest):
         flow.org = self.org
         return flow
 
-    def create_user(self, email, group_names=(), **kwargs):
-        user = User.objects.create_user(email=email, password=self.default_password, **kwargs)
+    @classmethod
+    def create_user(cls, email, group_names=(), **kwargs):
+        user = User.objects.create_user(email=email, password=cls.default_password, **kwargs)
         user.save()
 
         for group in group_names:
