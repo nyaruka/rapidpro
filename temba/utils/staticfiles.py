@@ -38,12 +38,20 @@ class ComponentsFinder(FileSystemFinder):
         yield from super().list(ignore_patterns)
 
     def build(self):
-        print(f"Building components bundle in {settings.COMPONENTS_DIR}...")
-
+        # output streams through so a slow install/build (e.g. a deploy host's first full components
+        # install) shows progress rather than looking hung, and the timeouts turn a genuine hang into
+        # a loud failure
+        #
         # puppeteer is only used for testing so skip its Chrome download
         env = {**os.environ, "PUPPETEER_SKIP_DOWNLOAD": "true"}
 
         for args in (["bun", "install", "--frozen-lockfile"], ["bun", "run", "build"]):
-            proc = subprocess.run(args, cwd=settings.COMPONENTS_DIR, env=env)
+            print(f"Running {' '.join(args)} in {settings.COMPONENTS_DIR}...")
+
+            try:
+                proc = subprocess.run(args, cwd=settings.COMPONENTS_DIR, env=env, timeout=600)
+            except subprocess.TimeoutExpired:
+                raise CommandError(f"{' '.join(args)} timed out after 600 seconds")
+
             if proc.returncode != 0:
-                raise CommandError(f"{' '.join(args)} failed")
+                raise CommandError(f"{' '.join(args)} failed with exit code {proc.returncode}")
