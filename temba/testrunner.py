@@ -27,9 +27,12 @@ def _temba_init_worker(counter, *args, **kwargs):
     if worker_id > 10:
         raise RuntimeError("can't run more than 10 parallel test workers as each needs its own valkey database")
 
-    settings.CACHES["default"]["LOCATION"] = re.sub(
-        r"/\d+$", f"/{worker_id - 1}", settings.CACHES["default"]["LOCATION"]
-    )
+    location = settings.CACHES["default"]["LOCATION"]
+    new_location = re.sub(r"/\d+$", f"/{worker_id - 1}", location)
+    if new_location == location:
+        raise RuntimeError(f"couldn't derive a per-worker valkey database from {location}")
+
+    settings.CACHES["default"]["LOCATION"] = new_location
 
     # the system checks run by Django's own worker init will have already instantiated the cache connection, so
     # reset the cache handler to ensure connections are recreated with this worker's settings

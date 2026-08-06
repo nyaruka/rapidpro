@@ -107,7 +107,7 @@ templating = "django"
 [tool.coverage.run]
 source = ["./temba"]
 parallel = true
-concurrency = ["multiprocessing"]
+concurrency = ["multiprocessing", "thread"]
 sigterm = true
 
 [tool.coverage.report]
