@@ -18,7 +18,8 @@ jobs:
         uses: devcontainers/ci@v0.3
         with:
           configFile: components/.github/devcontainer/devcontainer.json
-          runCmd: cd components && bun install --frozen-lockfile && bun run validate
+          # the devcontainer's workspaceFolder is already components/
+          runCmd: bun install --frozen-lockfile && bun run validate
           push: never
           env: |
             CI=true
