@@ -13,7 +13,6 @@
     "tsc:watch": "tsc --watch",
     "build": "rimraf dist && bun run svg && tsc && rollup -c rollup.components.mjs ",
     "build-wc": "rollup -c rollup.webchat.mjs",
-    "dev": "bun run build && cp -R ./dist/* ../temba/rapidpro/node_modules/@nyaruka/temba-components/dist/ && cp -R ./dist/* ../floweditor/node_modules/@nyaruka/temba-components/dist/",
     "pre-commit": "bun run locale:extract && bun run locale:build && bun run svg && git add ./src/Icons.ts ./static/svg/index.svg ./xliff ./src/locales && lint-staged",
     "format:eslint": "eslint --ext .ts . --fix --ignore-path .gitignore --ignore-pattern \"src/locales/\"",
     "format:prettier": "prettier \"**/*.js\" \"**/*.ts\" \"!src/locales/**\" --config .prettierrc --write --ignore-path .gitignore",

@@ -127,10 +127,12 @@ LOCALE_PATHS = (os.path.join(PROJECT_DIR, "../locale"),)
 RESOURCES_DIR = os.path.join(PROJECT_DIR, "../resources")
 FIXTURE_DIRS = (os.path.join(PROJECT_DIR, "../fixtures"),)
 TESTFILES_DIR = os.path.join(PROJECT_DIR, "../testfiles")
+COMPONENTS_DIR = os.path.join(PROJECT_DIR, "../components")
 STATICFILES_DIRS = (
     os.path.join(PROJECT_DIR, "../static"),
     os.path.join(PROJECT_DIR, "../media"),
-    os.path.join(PROJECT_DIR, "../node_modules/@nyaruka/temba-components/dist/static"),
+    os.path.join(PROJECT_DIR, "../components/dist/static"),
+    ("components", os.path.join(PROJECT_DIR, "../components/dist")),
     os.path.join(PROJECT_DIR, "../node_modules"),
 )
 STATIC_ROOT = os.path.join(PROJECT_DIR, "../sitestatic")
@@ -217,6 +219,9 @@ APP_URLS = []
 SITEMAP = ("public.public_index", "api")
 
 INSTALLED_APPS = (
+    # must precede django.contrib.staticfiles so its collectstatic override (which builds the components
+    # bundle first) takes precedence
+    "temba.components",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

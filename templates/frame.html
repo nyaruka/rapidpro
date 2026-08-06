@@ -170,7 +170,7 @@
         </script>
       {% else %}
         {% compress js %}
-          <script src="{% static '@nyaruka/temba-components/dist/temba-components.js' %}"></script>
+          <script src="{% static 'components/temba-components.js' %}"></script>
         {% endcompress %}
       {% endif %}
       {% if user_org %}
