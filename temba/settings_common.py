@@ -117,6 +117,7 @@ USE_L10N = True
 # various locations.
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
+    "temba.utils.staticfiles.ComponentsFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
     "compressor.finders.CompressorFinder",
 )
@@ -127,12 +128,12 @@ LOCALE_PATHS = (os.path.join(PROJECT_DIR, "../locale"),)
 RESOURCES_DIR = os.path.join(PROJECT_DIR, "../resources")
 FIXTURE_DIRS = (os.path.join(PROJECT_DIR, "../fixtures"),)
 TESTFILES_DIR = os.path.join(PROJECT_DIR, "../testfiles")
+# the components/ project, whose build output is served by temba.utils.staticfiles.ComponentsFinder
 COMPONENTS_DIR = os.path.join(PROJECT_DIR, "../components")
+
 STATICFILES_DIRS = (
     os.path.join(PROJECT_DIR, "../static"),
     os.path.join(PROJECT_DIR, "../media"),
-    os.path.join(PROJECT_DIR, "../components/dist/static"),
-    ("components", os.path.join(PROJECT_DIR, "../components/dist")),
     os.path.join(PROJECT_DIR, "../node_modules"),
 )
 STATIC_ROOT = os.path.join(PROJECT_DIR, "../sitestatic")
@@ -219,9 +220,6 @@ APP_URLS = []
 SITEMAP = ("public.public_index", "api")
 
 INSTALLED_APPS = (
-    # must precede django.contrib.staticfiles so its collectstatic override (which builds the components
-    # bundle first) takes precedence
-    "temba.components",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

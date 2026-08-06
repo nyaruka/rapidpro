@@ -21,17 +21,17 @@ ALLOWED_HOSTS = ["*"]
 INTERNAL_IPS = ("127.0.0.1",)
 
 # serve the components as live modules straight off the checkout (components/dev-dist, kept fresh
-# by `bun run watch` there) — created up front so the static finder and templates can key off it
+# by `bun run watch` there) — created up front so the static finder and templates can key off it —
+# and their svg sprite and imgs from source (these beat the dist copies in ComponentsFinder, which
+# runs after all of STATICFILES_DIRS), so a regenerated sprite (`bun run svg` after changing icons)
+# is served immediately
 COMPONENTS_DEV_DIST = os.path.join(COMPONENTS_DIR, "dev-dist")
 os.makedirs(COMPONENTS_DEV_DIST, exist_ok=True)
-STATICFILES_DIRS += (("components-dev", COMPONENTS_DEV_DIST),)
-
-# and serve their svg sprite and imgs from source rather than the dist copy (prepended so it wins),
-# so a regenerated sprite (`bun run svg` after changing icons) is served immediately
-STATICFILES_DIRS = (
+STATICFILES_DIRS += (
+    ("components-dev", COMPONENTS_DEV_DIST),
     ("svg", os.path.join(COMPONENTS_DIR, "static", "svg")),
     ("img", os.path.join(COMPONENTS_DIR, "static", "img")),
-) + STATICFILES_DIRS
+)
 
 # -----------------------------------------------------------------------------------
 # Mailroom - localhost for dev, no auth token
