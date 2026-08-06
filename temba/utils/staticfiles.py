@@ -40,7 +40,10 @@ class ComponentsFinder(FileSystemFinder):
     def build(self):
         print(f"Building components bundle in {settings.COMPONENTS_DIR}...")
 
+        # puppeteer is only used for testing so skip its Chrome download
+        env = {**os.environ, "PUPPETEER_SKIP_DOWNLOAD": "true"}
+
         for args in (["bun", "install", "--frozen-lockfile"], ["bun", "run", "build"]):
-            proc = subprocess.run(args, cwd=settings.COMPONENTS_DIR, capture_output=True, text=True)
+            proc = subprocess.run(args, cwd=settings.COMPONENTS_DIR, env=env)
             if proc.returncode != 0:
-                raise CommandError(f"{' '.join(args)} failed:\n{proc.stdout}\n{proc.stderr}")
+                raise CommandError(f"{' '.join(args)} failed")

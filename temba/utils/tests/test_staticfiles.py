@@ -1,7 +1,7 @@
 import subprocess
 import tempfile
 from pathlib import Path
-from unittest.mock import call, patch
+from unittest.mock import ANY, call, patch
 
 from django.core.management.base import CommandError
 from django.test import override_settings
@@ -36,15 +36,13 @@ class ComponentsFinderTest(TembaTest):
 
                 mock_run.assert_has_calls(
                     [
-                        call(
-                            ["bun", "install", "--frozen-lockfile"],
-                            cwd=components_dir,
-                            capture_output=True,
-                            text=True,
-                        ),
-                        call(["bun", "run", "build"], cwd=components_dir, capture_output=True, text=True),
+                        call(["bun", "install", "--frozen-lockfile"], cwd=components_dir, env=ANY),
+                        call(["bun", "run", "build"], cwd=components_dir, env=ANY),
                     ]
                 )
+
+                # the build env should prevent puppeteer from downloading Chrome
+                self.assertEqual("true", mock_run.call_args_list[0].kwargs["env"]["PUPPETEER_SKIP_DOWNLOAD"])
                 self.assertIn("svg/index.svg", listed)
                 self.assertIn("temba-components.js", listed)
 
