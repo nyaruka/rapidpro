@@ -1,3 +1,7 @@
+v26.3.38 (2026-08-06)
+-------------------------
+ * Stream the components build during collectstatic, bound it with timeouts and skip puppeteer's Chrome download
+
 v26.3.37 (2026-08-06)
 -------------------------
  * Add Spanish translation for 'No options' in components
