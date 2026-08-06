@@ -340,7 +340,6 @@ export default {
             '/api/v2/media.json': 'media.json',
             '/api/v2/users.json': 'users.json',
             '/api/v2/contacts.json': 'contacts.json',
-            '/api/v2/optins.json': 'optins.json',
             '/api/v2/topics.json': 'topics.json',
             '/api/v2/workspace.json': 'workspace.json',
             '/api/internal/locations.json': 'locations.json',

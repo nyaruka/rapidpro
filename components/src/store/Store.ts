@@ -64,7 +64,6 @@ export const STORE_ASSET_TYPES = [
   'group',
   'label',
   'llm',
-  'optin',
   'template',
   'topic',
   'user'

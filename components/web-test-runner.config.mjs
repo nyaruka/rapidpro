@@ -479,7 +479,6 @@ export default {
             '/api/v2/media.json': './static/api/media.json',
             '/api/v2/users.json': './static/api/users.json',
             '/api/v2/contacts.json': './static/api/contacts.json',
-            '/api/v2/optins.json': './static/api/optins.json',
             '/api/v2/topics.json': './static/api/topics.json',
             '/api/v2/workspace.json': './static/api/workspace.json',
             '/api/internal/locations.json': './static/api/locations.json',

@@ -29,8 +29,8 @@ const STATUS_PILLS: { [status: string]: { kind: string; label: string } } = {
  * Broadcast CRUDL list — drop-in replacement for the rapidpro
  * `msgs/broadcast_list.html` (sent) and `msgs/broadcast_scheduled.html`
  * (upcoming) cards, selected via the `mode` attribute. Every row is
- * one line: the message (text + attachment thumbnails + template /
- * opt-in pills), who it goes to, and either the send column (count or
+ * one line: the message (text + attachment thumbnails + template
+ * pill), who it goes to, and either the send column (count or
  * in-flight status) or the schedule columns. In place of a broadcast
  * read page, clicking a row opens a floating detail dialog — the same
  * pattern as the campaign read page's event details — with the full
@@ -49,9 +49,8 @@ export class BroadcastList extends ContentList<Broadcast> {
         cursor: pointer;
       }
       /* The message cell holds the body text on the leading edge with
-         its attachment thumbnails right after it and the template /
-         opt-in pills pushed to the trailing edge — the msg-list
-         treatment. */
+         its attachment thumbnails right after it and the template
+         pill pushed to the trailing edge — the msg-list treatment. */
       .msg-cell {
         display: flex;
         align-items: center;
@@ -573,9 +572,7 @@ export class BroadcastList extends ContentList<Broadcast> {
   }
 
   /** The message cell — body text with attachment thumbnails right
-   * after it and the template / opt-in pills pushed to the trailing
-   * edge. A broadcast with no text (a template or opt-in request
-   * send) leads with that pill instead. */
+   * after it and the template pill pushed to the trailing edge. */
   private renderMessage(item: Broadcast): TemplateResult {
     const text = item.text || '';
     return html`
@@ -603,22 +600,15 @@ export class BroadcastList extends ContentList<Broadcast> {
     `;
   }
 
-  /** Template / opt-in pills — what the broadcast sends beyond (or
-   * instead of) plain text. */
+  /** Template pill — what the broadcast sends beyond (or instead of)
+   * plain text. */
   private renderContentPills(item: Broadcast): TemplateResult | string {
-    if (!item.template && !item.optin) return '';
+    if (!item.template) return '';
     return html`
       <div class="cell-pills">
-        ${item.template
-          ? html`<temba-label type="label" icon=${Icon.channel_wa}
-              >${item.template.name}</temba-label
-            >`
-          : null}
-        ${item.optin
-          ? html`<temba-label type="label" icon=${Icon.optin}
-              >${item.optin.name}</temba-label
-            >`
-          : null}
+        <temba-label type="label" icon=${Icon.channel_wa}
+          >${item.template.name}</temba-label
+        >
       </div>
     `;
   }
@@ -764,8 +754,8 @@ export class BroadcastList extends ContentList<Broadcast> {
   }
 
   /** Dialog detail view for a broadcast, standing in for a read page
-   * — the full message (text, attachments, quick replies, template /
-   * opt-in), everyone it addresses including exclusions, and the
+   * — the full message (text, attachments, quick replies, template),
+   * everyone it addresses including exclusions, and the
    * schedule or delivery specifics in the header. */
   private renderDetail(): TemplateResult {
     const broadcast = this.detailBroadcast;
