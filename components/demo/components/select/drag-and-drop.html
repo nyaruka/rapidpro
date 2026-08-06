@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Multi-Select Drag and Drop Demo</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .example {
+        margin: 30px 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      .example h3 {
+        margin-top: 0;
+        color: #333;
+      }
+      .example p {
+        color: #666;
+        margin-bottom: 15px;
+      }
+      .expected {
+        background-color: #f0f8ff;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+      }
+      .expected strong {
+        color: #006400;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Multi-Select Drag and Drop Demo</h1>
+    <p>
+      <a href="/demo/index.html">← Back to main demo</a> |
+      <a href="example.html">Basic Examples</a> |
+      <a href="multi.html">Multi-Select</a>
+    </p>
+    <p>
+      This demo shows the drag and drop reordering functionality for
+      multi-select components.
+    </p>
+
+    <div class="example">
+      <h3>With 3 items (drag and drop enabled)</h3>
+      <p>
+        This multi-select has 3 pre-selected items. You should be able to drag
+        and drop to reorder them.
+      </p>
+      <temba-select multi searchable id="test3" placeholder="Select colors">
+        <temba-option name="Red" value="0" selected></temba-option>
+        <temba-option name="Green" value="1" selected></temba-option>
+        <temba-option name="Blue" value="2" selected></temba-option>
+      </temba-select>
+      <div class="expected">
+        <strong>Expected behavior:</strong>
+        <ul>
+          <li>Items should be wrapped in a sortable container</li>
+          <li>Drag an item to see a ghost element following the mouse</li>
+          <li>Drop on another item to swap their positions</li>
+          <li>Drop outside to cancel the operation</li>
+          <li>Items should maintain cursor style when hovering</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="example">
+      <h3>With 2 items (drag and drop enabled)</h3>
+      <p>
+        This multi-select has 2 pre-selected items. You should be able to drag
+        and drop to reorder them.
+      </p>
+      <temba-select multi id="test2" placeholder="Select fruits">
+        <temba-option name="Apple" value="apple" selected></temba-option>
+        <temba-option name="Banana" value="banana" selected></temba-option>
+      </temba-select>
+      <div class="expected">
+        <strong>Expected behavior:</strong>
+        <ul>
+          <li>Same drag and drop functionality as above</li>
+          <li>Swapping the two items should work</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="example">
+      <h3>With 1 item (no drag and drop)</h3>
+      <p>
+        This multi-select has only 1 pre-selected item. Drag and drop should not
+        be enabled.
+      </p>
+      <temba-select multi id="test1" placeholder="Select an item">
+        <temba-option name="Solo" value="solo" selected></temba-option>
+      </temba-select>
+      <div class="expected">
+        <strong>Expected behavior:</strong>
+        <ul>
+          <li>No sortable container should be present</li>
+          <li>Normal multi-select appearance and behavior</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="example">
+      <h3>Regular single select (no drag and drop)</h3>
+      <p>
+        This is a regular single-select. Drag and drop should not be enabled.
+      </p>
+      <temba-select id="single">
+        <temba-option name="Option 1" value="1" selected></temba-option>
+      </temba-select>
+      <div class="expected">
+        <strong>Expected behavior:</strong>
+        <ul>
+          <li>Normal single-select appearance and behavior</li>
+          <li>No sortable functionality</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // Add event listeners to monitor changes
+      document.querySelectorAll('temba-select[multi]').forEach((select) => {
+        select.addEventListener('change', () => {
+          console.log(`${select.id} values changed:`, select.values);
+        });
+      });
+
+      // Log initial state after components load
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          console.log('=== Initial State ===');
+          document.querySelectorAll('temba-select').forEach((select) => {
+            const sortableList = select.shadowRoot?.querySelector(
+              'temba-sortable-list'
+            );
+            console.log(`${select.id}:`, {
+              values: select.values,
+              hasSortableList: !!sortableList,
+              isMulti: select.hasAttribute('multi')
+            });
+          });
+        }, 500);
+      });
+    </script>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

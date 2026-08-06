@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Multi-Flow Demo</title>
+    <link href="/demo/static/css/tailwind.css" rel="stylesheet" />
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        background: #f0f2f5;
+        font-family: 'Roboto', sans-serif;
+      }
+
+      temba-store {
+        display: none;
+      }
+
+      .page-header {
+        max-width: 1400px;
+        margin: 0 auto 20px;
+      }
+
+      .page-header h1 {
+        font-size: 1.5em;
+        font-weight: 500;
+        color: #2c3e50;
+        margin: 0 0 4px;
+      }
+
+      .page-header p {
+        color: #7f8c8d;
+        margin: 0;
+        font-size: 0.9em;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-bottom: 12px;
+        color: #3498db;
+        text-decoration: none;
+        font-size: 0.9em;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+
+      .flow-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      @media (min-width: 1200px) {
+        .flow-grid {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+      }
+
+      .flow-panel {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .flow-panel-header {
+        padding: 12px 16px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e1e5e9;
+        font-weight: 500;
+        color: #2c3e50;
+        font-size: 0.95em;
+      }
+
+      .flow-panel-body {
+        position: relative;
+        height: 600px;
+      }
+
+      .flow-panel-body temba-flow-editor {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <temba-store
+      completion="/api/v2/completion.json"
+      workspace="/api/v2/workspace.json"
+    >
+    </temba-store>
+
+    <div class="page-header">
+      <a href="index.html" class="back-link">← Back to Flow Editor Examples</a>
+      <h1>Multi-Flow Demo</h1>
+      <p>
+        Three flow editors on the same page. This is a testbed for making the
+        flow editor work in multi-instance contexts.
+      </p>
+    </div>
+
+    <div class="flow-grid">
+      <div class="flow-panel">
+        <div class="flow-panel-header">Sample Flow</div>
+        <div class="flow-panel-body">
+          <temba-flow-editor
+            id="editor-1"
+            features='["ai", "locations"]'
+          ></temba-flow-editor>
+        </div>
+      </div>
+
+      <div class="flow-panel">
+        <div class="flow-panel-header">Food Order</div>
+        <div class="flow-panel-body">
+          <temba-flow-editor
+            id="editor-2"
+            features='["ai", "locations"]'
+          ></temba-flow-editor>
+        </div>
+      </div>
+
+      <div class="flow-panel">
+        <div class="flow-panel-header">Voicemail</div>
+        <div class="flow-panel-body">
+          <temba-flow-editor
+            id="editor-3"
+            features='["ai", "locations"]'
+          ></temba-flow-editor>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+
+      document.getElementById('editor-1').setAttribute('flow', 'sample-flow');
+      document.getElementById('editor-2').setAttribute('flow', 'food-order');
+      document.getElementById('editor-3').setAttribute('flow', 'voicemail');
+    </script>
+  </body>
+</html>

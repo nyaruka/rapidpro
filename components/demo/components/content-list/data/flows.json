@@ -1,0 +1,201 @@
+{
+  "count": 6,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "f-001",
+      "name": "Welcome Campaign",
+      "type": "messaging",
+      "runs": 12450,
+      "ongoing": 124,
+      "completion": 0.78,
+      "has_issues": false,
+      "labels": [
+        {
+          "uuid": "fl-001",
+          "name": "Active Campaigns"
+        },
+        {
+          "uuid": "fl-003",
+          "name": "Onboarding"
+        }
+      ],
+      "activity": [
+        82,
+        96,
+        110,
+        88,
+        130,
+        145,
+        122,
+        158,
+        170,
+        142,
+        188,
+        210,
+        195,
+        230
+      ]
+    },
+    {
+      "uuid": "f-002",
+      "name": "IVR Survey",
+      "type": "voice",
+      "runs": 3210,
+      "ongoing": 8,
+      "completion": 0.45,
+      "has_issues": true,
+      "labels": [
+        {
+          "uuid": "fl-002",
+          "name": "Surveys"
+        }
+      ],
+      "activity": [
+        40,
+        38,
+        42,
+        35,
+        30,
+        28,
+        22,
+        18,
+        15,
+        14,
+        12,
+        10,
+        8,
+        6
+      ]
+    },
+    {
+      "uuid": "f-003",
+      "name": "Daily Digest",
+      "type": "background",
+      "runs": 50231,
+      "ongoing": 0,
+      "completion": 1,
+      "has_issues": false,
+      "labels": [
+        {
+          "uuid": "fl-004",
+          "name": "Internal"
+        }
+      ],
+      "activity": [
+        500,
+        510,
+        495,
+        520,
+        530,
+        525,
+        540,
+        535,
+        550,
+        545,
+        560,
+        555,
+        570,
+        580
+      ]
+    },
+    {
+      "uuid": "f-004",
+      "name": "Field Survey",
+      "type": "survey",
+      "runs": 287,
+      "ongoing": 12,
+      "completion": 0.62,
+      "has_issues": false,
+      "labels": [
+        {
+          "uuid": "fl-002",
+          "name": "Surveys"
+        }
+      ],
+      "activity": [
+        4,
+        6,
+        12,
+        8,
+        22,
+        15,
+        18,
+        26,
+        14,
+        20,
+        30,
+        25,
+        32,
+        28
+      ]
+    },
+    {
+      "uuid": "f-005",
+      "name": "Subscription Renewal",
+      "type": "messaging",
+      "runs": 1840,
+      "ongoing": 56,
+      "completion": 0.91,
+      "has_issues": false,
+      "labels": [
+        {
+          "uuid": "fl-001",
+          "name": "Active Campaigns"
+        }
+      ],
+      "activity": [
+        20,
+        18,
+        25,
+        30,
+        28,
+        35,
+        40,
+        38,
+        45,
+        42,
+        48,
+        52,
+        50,
+        55
+      ]
+    },
+    {
+      "uuid": "f-006",
+      "name": "Legacy Onboarding",
+      "type": "messaging",
+      "runs": 4500,
+      "ongoing": 0,
+      "completion": 0.84,
+      "has_issues": false,
+      "labels": [
+        {
+          "uuid": "fl-005",
+          "name": "Archived"
+        },
+        {
+          "uuid": "fl-003",
+          "name": "Onboarding"
+        }
+      ],
+      "activity": [
+        60,
+        55,
+        50,
+        40,
+        35,
+        25,
+        20,
+        15,
+        12,
+        8,
+        5,
+        3,
+        2,
+        1
+      ]
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Message Editor Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Message Editor Examples</h1>
+
+    <p>
+      <a href="/demo/index.html">← Back to main demo</a>
+    </p>
+
+    <div class="example">
+      <h3>Basic Message Editor</h3>
+      <p>A composed component that combines text completion and media picker</p>
+      <temba-message-editor 
+        name="message"
+        placeholder="Type your message here..."
+        label="Message"
+      ></temba-message-editor>
+    </div>
+
+    <div class="example">
+      <h3>Message Editor with Value</h3>
+      <p>Pre-populated with a message</p>
+      <temba-message-editor 
+        name="message2"
+        value="Hello @contact.name, your order is ready!"
+        placeholder="Type your message here..."
+        label="Message with Completion"
+      ></temba-message-editor>
+    </div>
+
+    <div class="example">
+      <h3>Message Editor with Attachments</h3>
+      <p>Pre-populated with mixed attachment types (static and runtime)</p>
+      <temba-message-editor 
+        name="message3"
+        value="Check out this document and image"
+        placeholder="Type your message here..."
+        label="Message with Attachments"
+        attachments='["image/jpeg:http://example.com/photo.jpg", "application/pdf:http://example.com/doc.pdf", "image:@fields.profile_pic", "video:@fields.intro_video"]'
+      ></temba-message-editor>
+    </div>
+
+    <div class="example">
+      <h3>Message Editor with File Type Restrictions</h3>
+      <p>Only accepts image files</p>
+      <temba-message-editor 
+        name="message4"
+        placeholder="Type your message and attach images..."
+        label="Images Only"
+        accept="image/*"
+        max-attachments="5"
+      ></temba-message-editor>
+    </div>
+
+    <div class="example">
+      <h3>Message Editor with Counter</h3>
+      <p>With GSM character counter</p>
+      <temba-message-editor 
+        name="message5"
+        value="This message has a GSM character counter"
+        placeholder="Type your message..."
+        label="Message with Counter"
+        counter="temba-charcount"
+        gsm
+      ></temba-message-editor>
+      <temba-charcount text="count this text"></temba-charcount>
+    </div>
+
+    <div class="example">
+      <h3>Compact Message Editor</h3>
+      <p>Smaller minimum height</p>
+      <temba-message-editor 
+        name="message6"
+        placeholder="Quick message..."
+        label="Compact Editor"
+        min-height="40"
+      ></temba-message-editor>
+    </div>
+
+    <div class="example">
+      <h3>Widget Only (No Label)</h3>
+      <p>Just the widget without field wrapper</p>
+      <temba-message-editor 
+        name="message7"
+        placeholder="Widget only mode..."
+        widget-only
+      ></temba-message-editor>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+      
+      // Add some event listeners to show how the component works
+      document.addEventListener('DOMContentLoaded', () => {
+        const editors = document.querySelectorAll('temba-message-editor');
+        editors.forEach(editor => {
+          editor.addEventListener('change', (e) => {
+            console.log(`Message Editor "${editor.name}" changed:`, {
+              value: editor.value,
+              attachments: editor.attachments
+            });
+          });
+
+          editor.addEventListener('loading', (e) => {
+            console.log(`Message Editor "${editor.name}" loading:`, e.detail.loading);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+[
+  {
+    "key": "name",
+    "name": "Name",
+    "categories": ["Text"]
+  },
+  {
+    "key": "age", 
+    "name": "Age",
+    "categories": ["Number"]
+  },
+  {
+    "key": "gender",
+    "name": "Gender",
+    "categories": ["Male", "Female", "Other"]
+  }
+]

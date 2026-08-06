@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Checkbox Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Checkbox Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Basic Checkbox</h3>
+      <p>A simple checkbox component</p>
+      <temba-checkbox label="Check this out" checked></temba-checkbox>
+    </div>
+
+    <div class="example">
+      <h3>Unchecked Checkbox</h3>
+      <p>A checkbox that starts unchecked</p>
+      <temba-checkbox label="This is not checked"></temba-checkbox>
+    </div>
+
+    <div class="example">
+      <h3>Checkbox with Help Text</h3>
+      <p>A checkbox with additional help text</p>
+      <temba-checkbox
+        name="schedule"
+        label="Schedule for later delivery"
+        help_text="This is something you should think long and hard about"
+      ></temba-checkbox>
+    </div>
+
+    <div class="example">
+      <h3>Disabled Checkbox</h3>
+      <p>A checkbox that cannot be changed</p>
+      <temba-checkbox
+        name="disabled"
+        label="You can't check this one"
+        help_text="It is disabled, don't click it"
+        disabled
+      ></temba-checkbox>
+    </div>
+
+    <div class="example">
+      <h3>Multiple Checkboxes</h3>
+      <p>Several checkboxes in a row</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px">
+        <temba-checkbox label="Option 1" checked></temba-checkbox>
+        <temba-checkbox label="Option 2"></temba-checkbox>
+        <temba-checkbox label="Option 3" checked></temba-checkbox>
+      </div>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

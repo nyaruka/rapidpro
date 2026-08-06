@@ -1,0 +1,28 @@
+{
+  "fires": [
+    {
+      "contact": {
+        "uuid": "c1",
+        "name": "Amara Okafor",
+        "url": "/contact/read/c1/"
+      },
+      "time": "2026-07-13T09:12:00+00:00"
+    },
+    {
+      "contact": {
+        "uuid": "c2",
+        "name": "Josephine Uwase",
+        "url": "/contact/read/c2/"
+      },
+      "time": "2026-07-13T08:45:00+00:00"
+    },
+    {
+      "contact": {
+        "uuid": "c3",
+        "name": "Grace Mutesi",
+        "url": "/contact/read/c3/"
+      },
+      "time": "2026-07-12T17:03:00+00:00"
+    }
+  ]
+}

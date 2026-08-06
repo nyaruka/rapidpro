@@ -1,0 +1,107 @@
+{
+  "count": 5,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 301,
+      "status": "pending",
+      "text": "Good morning! Here are today's market prices for maize, beans and rice.",
+      "attachments": [],
+      "quick_replies": [],
+      "groups": [{ "uuid": "g-010", "name": "Market Subscribers" }],
+      "contacts": [],
+      "query": null,
+      "exclusions": [],
+      "schedule": {
+        "repeat_period": "D",
+        "display": "each day",
+        "next_fire": "2026-07-17T06:00:00.000000Z"
+      },
+      "created_on": "2026-06-01T10:00:00.000000Z",
+      "created_by": "admin@textit.com",
+      "modified_on": "2026-06-01T10:00:00.000000Z"
+    },
+    {
+      "id": 302,
+      "status": "pending",
+      "text": "Weekly check-in: how are you feeling this week?",
+      "attachments": [],
+      "quick_replies": ["Great", "Okay", "Not well"],
+      "groups": [
+        { "uuid": "g-011", "name": "Study Cohort A" },
+        { "uuid": "g-012", "name": "Study Cohort B" }
+      ],
+      "contacts": [{ "uuid": "c-010", "name": "Anne Smith" }],
+      "query": null,
+      "exclusions": ["Skip contacts in a flow", "Skip inactive contacts"],
+      "schedule": {
+        "repeat_period": "W",
+        "display": "each week on Monday, Wednesday",
+        "next_fire": "2026-07-20T14:30:00.000000Z"
+      },
+      "created_on": "2026-05-15T09:30:00.000000Z",
+      "created_by": "editor@textit.com",
+      "modified_on": "2026-05-15T09:30:00.000000Z"
+    },
+    {
+      "id": 303,
+      "status": "pending",
+      "text": "Monthly newsletter: new clinics, vaccination drives and more.",
+      "attachments": [
+        { "content_type": "image/jpeg", "url": "/test-assets/img/meow.jpg" }
+      ],
+      "quick_replies": [],
+      "groups": [{ "uuid": "g-013", "name": "Newsletter" }],
+      "contacts": [],
+      "query": null,
+      "exclusions": [],
+      "schedule": {
+        "repeat_period": "M",
+        "display": "each month on the 1st",
+        "next_fire": "2026-08-01T12:00:00.000000Z"
+      },
+      "created_on": "2026-01-05T13:00:00.000000Z",
+      "created_by": "admin@textit.com",
+      "modified_on": "2026-04-02T08:00:00.000000Z"
+    },
+    {
+      "id": 304,
+      "status": "pending",
+      "text": "One-time announcement for the launch event.",
+      "attachments": [],
+      "quick_replies": [],
+      "groups": [],
+      "contacts": [],
+      "query": "joined_on > 2026-01-01",
+      "exclusions": [],
+      "schedule": {
+        "repeat_period": "O",
+        "display": "once",
+        "next_fire": "2026-09-12T18:00:00.000000Z"
+      },
+      "created_on": "2026-07-11T15:45:00.000000Z",
+      "created_by": "agent@textit.com",
+      "modified_on": "2026-07-11T15:45:00.000000Z"
+    },
+    {
+      "id": 305,
+      "status": "pending",
+      "text": "This schedule has finished and will not send again.",
+      "attachments": [],
+      "quick_replies": [],
+      "groups": [{ "uuid": "g-014", "name": "Pilot Group" }],
+      "contacts": [],
+      "query": null,
+      "exclusions": [],
+      "schedule": {
+        "repeat_period": "O",
+        "display": "once",
+        "next_fire": null
+      },
+      "created_on": "2026-03-20T11:20:00.000000Z",
+      "created_by": "admin@textit.com",
+      "modified_on": "2026-03-21T11:20:00.000000Z"
+    }
+  ]
+}

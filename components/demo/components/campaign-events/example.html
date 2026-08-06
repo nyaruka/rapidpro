@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Campaign Events Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <style>
+      .demo {
+        margin: 40px 0;
+      }
+      .demo h3 {
+        margin: 0 0 4px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4d5664;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .demo .description {
+        margin: 0 0 16px 0;
+        color: #7b8593;
+        font-size: 13px;
+      }
+      .demo .events {
+        margin-top: 12px;
+        padding: 8px 12px;
+        background: #f8f9fb;
+        border: 1px solid #e6e8ec;
+        border-radius: 6px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        color: #4d5664;
+        min-height: 1.6em;
+        white-space: pre-wrap;
+      }
+      .demo .events .label {
+        color: #a2abb8;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 10px;
+        margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <temba-store></temba-store>
+    <h2>Campaign Events</h2>
+    <p>
+      The campaign read page's event schedule, rendered as one subway line per
+      anchor date field: events before the field's date sit above its station,
+      events on or after it sit below.
+    </p>
+
+    <div class="demo">
+      <h3>Schedule</h3>
+      <p class="description">
+        Two anchor fields with message and flow events, delivery-hour tips on
+        the offsets, fire counts on the right and one event still scheduling.
+      </p>
+      <temba-campaign-events
+        id="schedule"
+        header-title="Prenatal Care"
+        endpoint="/demo/components/campaign-events/data/events.json"
+      >
+        <div slot="badges">
+          <temba-label icon="group" type="group" clickable>Expecting Mothers</temba-label>
+        </div>
+      </temba-campaign-events>
+      <div class="events" id="schedule-events">
+        <div class="label">Events</div>
+        (waiting)
+      </div>
+    </div>
+
+    <div class="demo">
+      <h3>Empty</h3>
+      <p class="description">A campaign with no events yet.</p>
+      <temba-campaign-events
+        id="empty"
+        header-title="Holiday Greetings"
+        endpoint="/demo/components/campaign-events/data/empty.json"
+      ></temba-campaign-events>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+
+      const schedule = document.getElementById('schedule');
+      const log = document.getElementById('schedule-events');
+      const label = '<div class="label">Events</div>';
+      let lines = [];
+      const append = (msg) => {
+        lines.unshift(msg);
+        lines = lines.slice(0, 6);
+        log.innerHTML = label + lines.join('\n');
+      };
+      schedule.addEventListener('temba-selection', (e) =>
+        append('selection ' + JSON.stringify(e.detail).slice(0, 100))
+      );
+    </script>
+  </body>
+</html>

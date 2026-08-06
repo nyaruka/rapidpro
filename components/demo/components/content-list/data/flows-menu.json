@@ -1,0 +1,30 @@
+{
+  "items": [
+    {
+      "type": "modax",
+      "as_button": true,
+      "primary": true,
+      "label": "New Flow",
+      "url": "/flow/create/"
+    },
+    {
+      "type": "modax",
+      "as_button": false,
+      "label": "Import",
+      "url": "/flow/import/"
+    },
+    {
+      "type": "modax",
+      "as_button": false,
+      "label": "Export",
+      "url": "/flow/export/"
+    },
+    { "type": "divider" },
+    {
+      "type": "link",
+      "as_button": false,
+      "label": "Run History",
+      "url": "/flowrun/"
+    }
+  ]
+}

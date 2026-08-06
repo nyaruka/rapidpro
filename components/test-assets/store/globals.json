@@ -1,0 +1,18 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "key": "my_global_variable",
+      "name": "My Global Variable",
+      "value": "AWRS@#$234",
+      "modified_on": "2020-08-21T22:11:09.376180Z"
+    },
+    {
+      "key": "token",
+      "name": "token",
+      "value": "mothermayicup",
+      "modified_on": "2020-07-10T03:41:47.600401Z"
+    }
+  ]
+}

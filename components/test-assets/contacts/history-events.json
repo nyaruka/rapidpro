@@ -1,0 +1,208 @@
+{
+  "next": null,
+  "events": [
+    {
+      "uuid": "0199aa00-0000-7031-8000-3f2b8a11d031",
+      "type": "msg_created",
+      "created_on": "2021-03-31T00:20:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "You are all set, thanks!",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      },
+      "_status": {
+        "created_on": "2025-09-23T20:40:27.239431+00:00",
+        "status": "delivered"
+      }
+    },
+    {
+      "uuid": "0199aa00-0000-7030-8000-3f2b8a11d030",
+      "type": "run_ended",
+      "created_on": "2021-03-31T00:19:00.000000+00:00",
+      "run_uuid": "0199aa00-1111-7000-8000-000000000001",
+      "flow": {
+        "uuid": "d076d716-8071-417e-b188-d9746db223a1",
+        "name": "Update Info"
+      },
+      "status": "completed"
+    },
+    {
+      "uuid": "0199aa00-0000-7033-8000-3f2b8a11d033",
+      "type": "ticket_opened",
+      "created_on": "2021-03-31T00:18:30.000000+00:00",
+      "_user": {
+        "uuid": "user-enrique",
+        "name": "Enrique Newcomers",
+        "email": "enrique@textit.com"
+      },
+      "ticket": {
+        "uuid": "22e478f2-17e8-42d5-ab28-d1e2e37e2df4",
+        "topic": {
+          "uuid": "b8a2c78f-3f34-4b8e-9c88-ff6d2f1c2b10",
+          "name": "Billing"
+        }
+      }
+    },
+    {
+      "uuid": "0199aa00-0000-7029-8000-3f2b8a11d029",
+      "type": "ticket_topic_changed",
+      "created_on": "2021-03-31T00:18:00.000000+00:00",
+      "ticket_uuid": "22e478f2-17e8-42d5-ab28-d1e2e37e2df4",
+      "topic": {
+        "uuid": "b8a2c78f-3f34-4b8e-9c88-ff6d2f1c2b10",
+        "name": "Billing"
+      }
+    },
+    {
+      "uuid": "0199aa00-0000-7028-8000-3f2b8a11d028",
+      "type": "contact_urns_changed",
+      "created_on": "2021-03-31T00:17:00.000000+00:00",
+      "urns": [
+        "tel:+12065551212",
+        "whatsapp:12065551212"
+      ]
+    },
+    {
+      "uuid": "0199aa00-0000-7027-8000-3f2b8a11d027",
+      "type": "contact_language_changed",
+      "created_on": "2021-03-31T00:16:00.000000+00:00",
+      "language": "fra"
+    },
+    {
+      "uuid": "0199aa00-0000-7026-8000-3f2b8a11d026",
+      "type": "contact_name_changed",
+      "created_on": "2021-03-31T00:15:00.000000+00:00",
+      "name": "Ben Haggerty"
+    },
+    {
+      "uuid": "0199aa00-0000-7032-8000-3f2b8a11d032",
+      "type": "contact_field_changed",
+      "created_on": "2021-03-31T00:14:00.000000+00:00",
+      "field": {
+        "key": "last_seen",
+        "name": "Last Seen"
+      },
+      "value": {
+        "text": "2019-09-27T12:00:00.000000+00:00",
+        "datetime": "2019-09-27T12:00:00.000000+00:00"
+      }
+    },
+    {
+      "uuid": "0199aa00-0000-7025-8000-3f2b8a11d025",
+      "type": "contact_field_changed",
+      "created_on": "2021-03-31T00:13:00.000000+00:00",
+      "field": {
+        "key": "join_date",
+        "name": "Join Date"
+      },
+      "value": {
+        "text": "2021-07-18T12:00:00.000000+00:00",
+        "datetime": "2021-07-18T12:00:00.000000+00:00"
+      }
+    },
+    {
+      "uuid": "0199aa00-0000-7024-8000-3f2b8a11d024",
+      "type": "contact_field_changed",
+      "created_on": "2021-03-31T00:12:00.000000+00:00",
+      "field": {
+        "key": "age",
+        "name": "Age"
+      },
+      "value": {
+        "text": "43",
+        "number": "43"
+      }
+    },
+    {
+      "uuid": "0199aa00-0000-7023-8000-3f2b8a11d023",
+      "type": "contact_groups_changed",
+      "created_on": "2021-03-31T00:11:00.000000+00:00",
+      "groups_removed": [
+        {
+          "uuid": "b13e01ec-6c83-4349-b153-a2e48d0fd001",
+          "name": "Unregistered"
+        }
+      ]
+    },
+    {
+      "uuid": "0199aa00-0000-7022-8000-3f2b8a11d022",
+      "type": "contact_groups_changed",
+      "created_on": "2021-03-31T00:10:00.000000+00:00",
+      "groups_added": [
+        {
+          "uuid": "b13e01ec-6c83-4349-b153-a2e48d0fd003",
+          "name": "Drivers"
+        },
+        {
+          "uuid": "b13e01ec-6c83-4349-b153-a2e48d0fd004",
+          "name": "Farmers"
+        }
+      ]
+    },
+    {
+      "uuid": "01997d74-bf67-75c9-bd59-36a465fc0d99",
+      "type": "contact_groups_changed",
+      "created_on": "2021-03-31T00:09:00.000000+00:00",
+      "groups_added": [
+        {
+          "uuid": "b13e01ec-6c83-4349-b153-a2e48d0fd002",
+          "name": "Open Tickets"
+        }
+      ]
+    },
+    {
+      "uuid": "0199aa00-0000-7021-8000-3f2b8a11d021",
+      "type": "run_started",
+      "created_on": "2021-03-31T00:08:00.000000+00:00",
+      "run_uuid": "0199aa00-1111-7000-8000-000000000001",
+      "flow": {
+        "uuid": "d076d716-8071-417e-b188-d9746db223a1",
+        "name": "Update Info"
+      }
+    },
+    {
+      "uuid": "0199aa00-0000-7019-8000-3f2b8a11d019",
+      "type": "run_ended",
+      "created_on": "2021-03-31T00:07:00.000000+00:00",
+      "run_uuid": "0199aa00-1111-7000-8000-000000000002",
+      "flow": {
+        "uuid": "e076d716-8071-417e-b188-d9746db223a2",
+        "name": "Onboarding"
+      },
+      "status": "interrupted"
+    },
+    {
+      "uuid": "0199aa00-0000-7020-8000-3f2b8a11d020",
+      "type": "msg_received",
+      "created_on": "2021-03-30T18:00:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "Hi, I need to update my details",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      }
+    },
+    {
+      "uuid": "0199aa00-0000-7001-8000-3f2b8a11d901",
+      "type": "msg_created",
+      "created_on": "2021-01-15T12:00:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "Welcome to the service!",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      },
+      "_status": {
+        "created_on": "2021-01-15T12:00:00.000000+00:00",
+        "status": "delivered"
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "type": "modax",
+      "as_button": true,
+      "primary": true,
+      "label": "New Campaign",
+      "url": "/campaign/create/"
+    },
+    {
+      "type": "link",
+      "as_button": false,
+      "label": "Archived",
+      "url": "/campaign/archived/"
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "uuid": "run-uuid-1",
+      "contact": {
+        "uuid": "contact-uuid-1",
+        "name": "John Doe",
+        "urn": "tel:+1234567890",
+        "ref": "E2E6MX"
+      },
+      "flow": {
+        "uuid": "flow-uuid-1",
+        "name": "Registration Flow"
+      },
+      "exit_type": "completed",
+      "exited_on": "2023-12-01T10:30:00.000Z",
+      "created_on": "2023-12-01T10:00:00.000Z",
+      "modified_on": "2023-12-01T10:30:00.000Z",
+      "responded": true,
+      "values": {
+        "name": {
+          "name": "Name",
+          "key": "name",
+          "value": "John Doe",
+          "category": "Text"
+        },
+        "age": {
+          "name": "Age",
+          "key": "age",
+          "value": "25",
+          "category": "Number"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "uuid": "run-uuid-2",
+      "contact": {
+        "uuid": "contact-uuid-2",
+        "name": "Jane Smith",
+        "urn": "tel:+1987654321",
+        "ref": "3MWB69"
+      },
+      "flow": {
+        "uuid": "flow-uuid-1",
+        "name": "Registration Flow"
+      },
+      "exit_type": "interrupted",
+      "exited_on": "2023-12-01T11:15:00.000Z",
+      "created_on": "2023-12-01T11:00:00.000Z",
+      "modified_on": "2023-12-01T11:15:00.000Z",
+      "responded": false,
+      "values": {}
+    },
+    {
+      "id": 3,
+      "uuid": "run-uuid-3",
+      "contact": {
+        "uuid": "contact-uuid-3",
+        "name": null,
+        "urn": "tel:+1122334455",
+        "ref": "Q3GP9G"
+      },
+      "flow": {
+        "uuid": "flow-uuid-1",
+        "name": "Registration Flow"
+      },
+      "exit_type": "expired",
+      "exited_on": "2023-12-01T12:00:00.000Z",
+      "created_on": "2023-12-01T11:30:00.000Z",
+      "modified_on": "2023-12-01T12:00:00.000Z",
+      "responded": true,
+      "values": {
+        "name": {
+          "name": "Name",
+          "key": "name",
+          "value": "Anonymous User",
+          "category": "Text"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "uuid": "run-uuid-4",
+      "contact": {
+        "uuid": "contact-uuid-4",
+        "name": "Active User",
+        "urn": "tel:+1555666777",
+        "ref": "U6Y6T5"
+      },
+      "flow": {
+        "uuid": "flow-uuid-1",
+        "name": "Registration Flow"
+      },
+      "exit_type": null,
+      "exited_on": null,
+      "created_on": "2023-12-01T12:30:00.000Z",
+      "modified_on": "2023-12-01T12:45:00.000Z",
+      "responded": true,
+      "values": {}
+    },
+    {
+      "id": 5,
+      "uuid": "run-uuid-5",
+      "contact": {
+        "uuid": "contact-uuid-5",
+        "name": "Pending User",
+        "urn": "tel:+1888999000",
+        "ref": "SJPWLU"
+      },
+      "flow": {
+        "uuid": "flow-uuid-1",
+        "name": "Registration Flow"
+      },
+      "exit_type": null,
+      "exited_on": null,
+      "created_on": "2023-12-01T13:00:00.000Z",
+      "modified_on": "2023-12-01T13:00:00.000Z",
+      "responded": false,
+      "values": {}
+    }
+  ]
+}

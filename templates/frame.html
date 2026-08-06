@@ -164,13 +164,11 @@
   </head>
   {% block body %}
     <body class="bg-gradient" id="pageBody">
-      {% if COMPONENTS_DEV_MODE %}
-        <script type="module">
-          import '{{ COMPONENTS_DEV_URL }}/out-tsc/temba-modules.js';
-        </script>
+      {% if COMPONENTS_DEV %}
+        <script type="module" src="{% static 'components-dev/temba-modules.js' %}"></script>
       {% else %}
         {% compress js %}
-          <script src="{% static '@nyaruka/temba-components/dist/temba-components.js' %}"></script>
+          <script src="{% static 'components/temba-components.js' %}"></script>
         {% endcompress %}
       {% endif %}
       {% if user_org %}

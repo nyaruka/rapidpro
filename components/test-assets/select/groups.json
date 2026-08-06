@@ -1,0 +1,41 @@
+{
+  "next": "/test-assets/select/groups_2.json",
+  "previous": null,
+  "results": [
+    {
+      "uuid": "df1e0363-77ce-4ec0-be06-de5cc0ca27c7",
+      "name": "My First Group",
+      "query": null,
+      "status": "ready",
+      "count": 100
+    },
+    {
+      "uuid": "fe340775-8405-4984-845c-9674668f36db",
+      "name": "My Second Group",
+      "query": null,
+      "status": "ready",
+      "count": 200
+    },
+    {
+      "uuid": "1194ce92-af22-4b61-b47d-89022f12c90e",
+      "name": "My Third Group",
+      "query": null,
+      "status": "ready",
+      "count": 300
+    },
+    {
+      "uuid": "b9c04add-6265-4dbb-a491-277273707a89",
+      "name": "My Fourth Group",
+      "query": null,
+      "status": "ready",
+      "count": 400
+    },
+    {
+      "uuid": "148d7d29-2391-462e-834f-6009f03dcc06",
+      "name": "My Fifth Group",
+      "query": null,
+      "status": "ready",
+      "count": 500
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "version": 2,
+  "tags": [
+    {
+      "name": "temba-checkbox",
+      "description": "A simple checkbox",
+      "properties": [
+        {
+          "name": "label",
+          "type": "String",
+          "description": "The label for the checkbox",
+          "default": null
+        }
+      ],
+      "events": [],
+      "slots": [],
+      "cssProperties": [
+        {
+          "name": "--temba-checkbox-text-color",
+          "description": "Main Text Color",
+          "type": "Color"
+        }
+      ]
+    },
+    {
+      "name": "temba-charcount",
+      "description": "Character counter with unicode detection",
+      "properties": [
+        {
+          "name": "text",
+          "type": "String",
+          "description": "The text to count",
+          "default": null
+        }
+      ],
+      "events": [],
+      "slots": [],
+      "cssProperties": []
+    },
+    {
+      "name": "temba-select",
+      "description": "A select widget",
+      "properties": [
+        {
+          "name": "name",
+          "type": "String",
+          "description": "The form name for the select box",
+          "default": null
+        }
+      ],
+      "events": [],
+      "slots": [],
+      "cssProperties": []
+    }
+  ]
+}

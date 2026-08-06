@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+<file target-language="es" source-language="en" original="lit-localize-inputs" datatype="plaintext">
+<body>
+<trans-unit id="scf1453991c986b25">
+  <source>Tab to complete, enter to select</source>
+  <target>Tab para completar, enter para seleccionar</target>
+</trans-unit>
+<trans-unit id="s638236250662c6b3">
+  <source>Have sent a message in the last</source>
+</trans-unit>
+<trans-unit id="s8f02e3a18ffc083a">
+  <source>Are not currently in a flow</source>
+</trans-unit>
+<trans-unit id="s4788ee206c4570c7">
+  <source>Have not started this flow in the last 90 days</source>
+</trans-unit>
+<trans-unit id="s73b4d70c02f4b4e0">
+  <source>No options</source>
+</trans-unit>
+<trans-unit id="sbc913d7dc0f33877">
+  <source>to add</source>
+</trans-unit>
+<trans-unit id="sea4f08110bb8f15d">
+  <source>Remove</source>
+</trans-unit>
+<trans-unit id="s122d4de68bcfcdf4">
+  <source>It's okay to restart</source>
+</trans-unit>
+<trans-unit id="s3eb2567092b4d7c1">
+  <source>from the beginning</source>
+</trans-unit>
+<trans-unit id="s28f37776b3901438">
+  <source>It's okay to interrupt</source>
+</trans-unit>
+<trans-unit id="s6838d20b10f7512a">
+  <source>and start this one</source>
+</trans-unit>
+<trans-unit id="s22965bb9808befb0">
+  <source>Interrupt</source>
+</trans-unit>
+<trans-unit id="s7722a91d3a512442">
+  <source>Last seen <x id="0" equiv-text="${lastSeen.duration}"/></source>
+</trans-unit>
+<trans-unit id="s6dbbe2646b239ca5">
+  <source>Closed</source>
+</trans-unit>
+<trans-unit id="sf7c0eba7c822e3d6">
+  <source>Bold</source>
+</trans-unit>
+<trans-unit id="s523eb9043213ff0d">
+  <source>Italic</source>
+</trans-unit>
+<trans-unit id="s3cf89cb47fdde7e9">
+  <source>Link</source>
+</trans-unit>
+<trans-unit id="s3643189d1abbb7f4">
+  <source>Code</source>
+</trans-unit>
+<trans-unit id="s78beeb359125557c">
+  <source>Unable to upload file.</source>
+</trans-unit>
+<trans-unit id="sbc5f2f81604bb81a">
+  <source>Heading 1</source>
+</trans-unit>
+<trans-unit id="sbc5f2e81604bb667">
+  <source>Heading 2</source>
+</trans-unit>
+<trans-unit id="sbc5f2d81604bb4b4">
+  <source>Heading 3</source>
+</trans-unit>
+<trans-unit id="sc3ff8a955b9b8518">
+  <source>Bulleted list</source>
+</trans-unit>
+<trans-unit id="sa1cc184ce2a00abb">
+  <source>Numbered list</source>
+</trans-unit>
+<trans-unit id="s70a5d875c5467e57">
+  <source>Quote</source>
+</trans-unit>
+<trans-unit id="s0bb51791194b4414">
+  <source>code</source>
+</trans-unit>
+<trans-unit id="sbf4b9bad694f4809">
+  <source>link</source>
+</trans-unit>
+<trans-unit id="s06f6c6f99db6b552">
+  <source>Original</source>
+  <target>Original</target>
+</trans-unit>
+<trans-unit id="s3d2cc8d952adebec">
+  <source>Small</source>
+  <target>Pequeño</target>
+</trans-unit>
+<trans-unit id="sac6bdc71f750ac96">
+  <source>Medium</source>
+  <target>Mediano</target>
+</trans-unit>
+<trans-unit id="sc8736ef79380e634">
+  <source>Large</source>
+  <target>Grande</target>
+</trans-unit>
+<trans-unit id="s7411fe5ea8b707ad">
+  <source>Side by side columns</source>
+</trans-unit>
+<trans-unit id="s4616fdc48b092f86">
+  <source>Divider</source>
+</trans-unit>
+<trans-unit id="s180090175fe1115d">
+  <source>Less padding</source>
+</trans-unit>
+<trans-unit id="s8ed1cc564f1dc4f7">
+  <source>Normal padding</source>
+</trans-unit>
+<trans-unit id="saae778d2f46ba3a5">
+  <source>More padding</source>
+</trans-unit>
+<trans-unit id="s3d93f9ea0c5a13fa">
+  <source>Image</source>
+</trans-unit>
+<trans-unit id="sa959476877a85349">
+  <source>Style text</source>
+</trans-unit>
+<trans-unit id="s7dd0d53a22ca1b62">
+  <source>New color</source>
+</trans-unit>
+<trans-unit id="saa8f64ba8b9a3042">
+  <source>Remove this color everywhere it is used</source>
+</trans-unit>
+<trans-unit id="s06c4d89f9e3480b3">
+  <source>Remove styling</source>
+</trans-unit>
+<trans-unit id="sf6e9d280a30dcf25">
+  <source>Border drawn from the background color</source>
+</trans-unit>
+<trans-unit id="sd6ef5031fb7d3991">
+  <source>No color</source>
+</trans-unit>
+<trans-unit id="sab266951af1dc761">
+  <source>Markdown source</source>
+</trans-unit>
+</body>
+</file>
+</xliff>

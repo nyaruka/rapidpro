@@ -1,0 +1,46 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "d70a531e-25d8-45dc-9a5b-19ff80cee571",
+      "name": "Facebook",
+      "address": "10644654942820",
+      "type": "facebook",
+      "country": null,
+      "device": null,
+      "last_seen": null,
+      "created_on": "2023-08-13T07:41:14.855156Z"
+    },
+    {
+      "uuid": "9afd9156-a34a-43fa-91d4-914615ae2e72",
+      "name": "WhatsApp",
+      "address": "+1234567890",
+      "type": "whatsapp",
+      "country": null,
+      "device": null,
+      "last_seen": null,
+      "created_on": "2024-01-15T10:30:00.000000Z"
+    },
+    {
+      "uuid": "1532a95a-4d34-46cb-848d-a0033287833e",
+      "name": "Purrington",
+      "address": "PurringtonBot",
+      "type": "telegram",
+      "country": null,
+      "device": null,
+      "last_seen": null,
+      "created_on": "2025-02-12T02:26:05.845278Z"
+    },
+    {
+      "uuid": "07d5e7d2-434e-4a51-b652-df45eb4dbe8c",
+      "name": "Purrington",
+      "address": "10644654942820",
+      "type": "facebook",
+      "country": null,
+      "device": null,
+      "last_seen": null,
+      "created_on": "2023-08-13T07:41:14.855156Z"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "count": 6,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "c-001",
+      "name": "Vaccination Reminders",
+      "group": {
+        "uuid": "g-001",
+        "name": "Mothers"
+      },
+      "events": 4,
+      "contacts": 4832,
+      "modified_on": "2025-07-11T14:20:00.000Z"
+    },
+    {
+      "uuid": "c-002",
+      "name": "Antenatal Care Series",
+      "group": {
+        "uuid": "g-001",
+        "name": "Mothers"
+      },
+      "events": 8,
+      "contacts": 2431,
+      "modified_on": "2025-07-10T09:05:00.000Z"
+    },
+    {
+      "uuid": "c-003",
+      "name": "Drug Adherence",
+      "group": {
+        "uuid": "g-002",
+        "name": "Patients"
+      },
+      "events": 3,
+      "contacts": 1958,
+      "modified_on": "2025-07-08T18:45:00.000Z"
+    },
+    {
+      "uuid": "c-004",
+      "name": "Farmer Onboarding",
+      "group": {
+        "uuid": "g-003",
+        "name": "Farmers"
+      },
+      "events": 5,
+      "contacts": 952,
+      "modified_on": "2025-07-06T11:30:00.000Z"
+    },
+    {
+      "uuid": "c-005",
+      "name": "Teacher Check-in",
+      "group": {
+        "uuid": "g-004",
+        "name": "Teachers"
+      },
+      "events": 2,
+      "contacts": 1439,
+      "modified_on": "2025-04-28T16:00:00.000Z"
+    },
+    {
+      "uuid": "c-006",
+      "name": "Survey Followup",
+      "group": {
+        "uuid": "g-005",
+        "name": "Reporters"
+      },
+      "events": 6,
+      "contacts": 4588,
+      "modified_on": "2025-03-30T10:15:00.000Z"
+    }
+  ]
+}

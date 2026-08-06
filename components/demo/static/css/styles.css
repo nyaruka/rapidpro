@@ -1,0 +1,253 @@
+body { 
+    font-family: sans-serif; 
+    padding: 20px; 
+    max-width: 800px;
+    margin: 0 auto;
+    background: #f3f3f3;
+}
+
+.example { 
+    margin: 30px 0; 
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: var(--curvature);
+    background: white;
+}
+
+.example h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.example p {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.example label {
+    display: block; 
+    margin-bottom: 5px; 
+    font-weight: bold;
+}
+
+.expected {
+    background-color: #f0f8ff;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.expected strong {
+    color: #006400;
+}
+
+.header {
+    margin-bottom: 1em;
+    font-size: 2em;
+    font-weight: 400;
+    color: #777;
+    display: inline;
+}
+
+.nav {
+    margin: 20px 0;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.nav h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+.nav li {
+    margin: 10px 0;
+}
+
+.nav a {
+    color: #0066cc;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.nav a:hover {
+    text-decoration: underline;
+}
+
+.component-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    margin: 20px 0;
+}
+
+.component-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    justify-content: space-between;
+}
+
+.component-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+    border-bottom: 2px solid #0066cc;
+    padding-bottom: 10px;
+    
+}
+
+.component-section .component-card {
+    display: inline-block;
+    width: calc(50% - 60px);
+    vertical-align: top;
+    margin:10px;
+    
+    border: 1px solid #eee;
+    background: #f9f9f9;
+}
+
+.component-section .component-card:nth-child(even) {
+    margin-right: 0;
+}
+
+@media (max-width: 768px) {
+    .component-section .component-card {
+        width: 100%;
+        margin-right: 0;
+    }
+}
+
+.component-card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.component-card h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.component-card p {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.component-card a {
+    color: #0066cc;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.component-card a:hover {
+    text-decoration: underline;
+}
+
+/* Preserve some styling from original demo */
+.linked {
+    text-decoration: underline;
+    color: blue;
+    cursor: pointer;
+}
+
+temba-dropdown {
+    position: relative;
+    display: inline-block;
+    margin: 0em 0.5em;
+}
+
+temba-slider {
+    margin-top: 1em;
+}
+
+/* Make components visible after they load */
+temba-tabs *,
+temba-tab * {
+    opacity: 0;
+}
+
+temba-tabs:defined *,
+temba-tab:defined * {
+    opacity: 1;
+}
+
+/* Documentation section styles */
+.doc-section {
+    margin: 2em 0 1em 0;
+    padding: 1em;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+}
+
+.doc-section h2 {
+    margin-top: 0;
+    font-size: 1.1em;
+}
+
+.doc-section p {
+    font-size: 0.97em;
+}
+
+/* Code examples */
+.example-html {
+    background: #f4f4f4;
+    padding: 0.7em;
+    border-radius: 4px;
+    margin-top: 0.7em;
+    font-size: 0.97em;
+    overflow-x: auto;
+}
+
+/* Output display */
+.demo-output {
+    margin-top: 0.5em;
+    font-family: monospace;
+    background: #f7f7f7;
+    padding: 0.5em;
+    border-radius: 4px;
+}
+
+/* Attribute table - enhanced */
+.attr-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 3em;
+}
+
+.attr-table th {
+    text-align: left;
+    padding: 8px;
+    border: 1px solid #ddd;
+    background-color: #f2f2f2;
+}
+
+.attr-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
+.attr-table td:first-child {
+    background: #edfdff;
+}
+
+/* Code highlighting improvements */
+pre.language-javascript, pre.language-markup {
+    padding: 1em !important;
+    border-radius: var(--curvature);
+    background: #edfdff7e !important;
+    border: 1px solid #ddd !important;
+}

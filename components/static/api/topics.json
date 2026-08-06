@@ -1,0 +1,36 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "1b1cb507-e079-4b30-818c-1898edcbd178",
+      "name": "General",
+      "counts": {
+        "open": 2,
+        "closed": 12
+      },
+      "system": true,
+      "created_on": "2021-08-25T22:50:51.381947Z"
+    },
+    {
+      "uuid": "bf4b568d-97b8-4d20-aed5-ad8150270af8",
+      "name": "Technical Support",
+      "counts": {
+        "open": 5,
+        "closed": 23
+      },
+      "system": false,
+      "created_on": "2021-08-25T22:51:15.123456Z"
+    },
+    {
+      "uuid": "a3f7e9d2-1c8b-4e5f-9a6b-7d4c2e8f1a3b",
+      "name": "Billing",
+      "counts": {
+        "open": 1,
+        "closed": 8
+      },
+      "system": false,
+      "created_on": "2021-08-25T22:52:30.789012Z"
+    }
+  ]
+}

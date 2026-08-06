@@ -1,0 +1,100 @@
+{
+  "count": 7,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "c-001",
+      "name": "Amelia Chen",
+      "urn": "+15551112222",
+      "groups": [{ "name": "VIPs" }, { "name": "Subscribers" }],
+      "fields": {
+        "state": "California",
+        "district": "Bay Area",
+        "age": "32",
+        "gender": "F",
+        "joined": "2024-03-12T09:15:00Z"
+      },
+      "last_seen_on": "2026-05-11T13:42:11Z"
+    },
+    {
+      "uuid": "c-002",
+      "name": "Ben Okonkwo",
+      "urn": "+15553334444",
+      "groups": [{ "name": "Subscribers" }],
+      "fields": {
+        "state": "Lagos",
+        "district": "Ikeja",
+        "age": "27",
+        "gender": "M",
+        "joined": "2023-11-01T17:30:00Z"
+      },
+      "last_seen_on": "2026-05-11T13:14:02Z"
+    },
+    {
+      "uuid": "c-003",
+      "name": "Camila Reyes",
+      "urn": "+15555556666",
+      "groups": [],
+      "fields": {
+        "state": "Mexico City",
+        "age": "41",
+        "joined": "2025-01-20T08:05:00Z"
+      },
+      "last_seen_on": "2026-05-11T12:58:00Z"
+    },
+    {
+      "uuid": "c-004",
+      "name": "Daniel Park",
+      "urn": "+15557778888",
+      "groups": [{ "name": "Birds" }],
+      "fields": {
+        "state": "Seoul",
+        "district": "Gangnam",
+        "age": "29",
+        "gender": "M",
+        "joined": "2022-07-08T11:45:00Z"
+      },
+      "last_seen_on": "2026-05-11T11:30:45Z"
+    },
+    {
+      "uuid": "c-005",
+      "name": "Esther Mwangi",
+      "urn": "+15559990000",
+      "groups": [{ "name": "Dogs" }, { "name": "VIPs" }],
+      "fields": {
+        "state": "Nairobi",
+        "district": "Westlands",
+        "age": "35",
+        "gender": "F",
+        "ward": "Parklands",
+        "joined": "2024-09-30T14:20:00Z"
+      },
+      "last_seen_on": "2026-05-11T10:14:20Z"
+    },
+    {
+      "uuid": "c-006",
+      "name": "Farouk Ali",
+      "urn": "+15551110001",
+      "groups": [{ "name": "Cats" }],
+      "fields": {
+        "state": "Cairo",
+        "age": "44",
+        "joined": "2023-04-17T19:00:00Z"
+      },
+      "last_seen_on": "2026-05-10T22:01:12Z"
+    },
+    {
+      "uuid": "c-007",
+      "name": "Greta Lindqvist",
+      "urn": "+15552223333",
+      "groups": [],
+      "fields": {
+        "state": "Stockholm",
+        "gender": "F",
+        "joined": "2025-02-11T07:40:00Z"
+      },
+      "last_seen_on": "2026-05-10T16:45:00Z"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "type": "modax",
+      "as_button": true,
+      "primary": true,
+      "label": "Send Broadcast",
+      "url": "/broadcast/create/"
+    },
+    {
+      "type": "modax",
+      "as_button": false,
+      "label": "Export",
+      "url": "/msg/export/"
+    },
+    { "type": "divider" },
+    {
+      "type": "link",
+      "as_button": false,
+      "label": "Manage Labels",
+      "url": "/label/"
+    }
+  ]
+}

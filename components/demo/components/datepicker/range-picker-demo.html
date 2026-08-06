@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Range Picker Example</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <script type="module" src="../../../src/datepicker/RangePicker.ts"></script>
+    <link href="/demo/static/css/prism.css" rel="stylesheet" />
+    <script type="module" src="/demo/static/js/prism-loader.js"></script>
+  </head>
+  <body>
+    <h1>Range Picker Example</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <table class="attr-table">
+      <thead>
+        <tr>
+          <th>Attribute</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>start</td>
+          <td>The ISO date string for the start of the range</td>
+          <td>(last month, today)</td>
+        </tr>
+        <tr>
+          <td>end</td>
+          <td>The ISO date string for the end of the range</td>
+          <td>(today)</td>
+        </tr>
+        <tr>
+          <td>min</td>
+          <td>The minimum selectable ISO date</td>
+          <td>2012-01-01</td>
+        </tr>
+        <tr>
+          <td>max</td>
+          <td>The maximum selectable ISO date</td>
+          <td>(today)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <section class="doc-section">
+      <h2>Event: <code>temba-date-range-changed</code></h2>
+      <p>
+        Fired when the selected date range changes in
+        <code>&lt;temba-range-picker&gt;</code>.<br />
+      </p>
+      <pre class="language-javascript"><code class="language-javascript">{ 
+  start: string, // ISO date string for the start of the range (e.g., "2024-12-01")
+  end: string,   // ISO date string for the end of the range (e.g., "2025-01-30")
+  range?: string // (optional) Named range if selected, otherwise undefined or 'CUSTOM'
+}</code></pre>
+      <div>
+        <pre
+          class="language-javascript"
+        ><code class="language-javascript">picker.addEventListener('temba-date-range-changed', (event) => {
+  const { start, end, range } = event.detail;
+  console.log('Selected range:', start, end, range);
+});</code></pre>
+      </div>
+    </section>
+
+    <div class="example">
+      <h3>Date Range Picker</h3>
+      <p>
+        Select a start and end date using the range picker component. Default is
+        last month.
+      </p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-range-picker&gt;&lt;/temba-range-picker&gt;</code></pre>
+      <temba-range-picker></temba-range-picker>
+    </div>
+    <div class="example">
+      <h3>Initial values</h3>
+      <p>Use start and end for intial values</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-range-picker
+  start="2024-12-01"
+  end="2025-01-30"
+&gt;&lt;/temba-range-picker&gt;</code></pre>
+      <temba-range-picker
+        start="2024-12-01"
+        end="2025-01-30"
+      ></temba-range-picker>
+    </div>
+    <div class="example">
+      <h3>Min and max range</h3>
+      <p>Use min and max for acceptable ranges</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-range-picker
+  start="2024-12-15"
+  end="2025-02-05"
+  min="2024-12-10"
+  max="2025-02-10"
+&gt;&lt;/temba-range-picker&gt;</code></pre>
+      <temba-range-picker
+        start="2024-12-15"
+        end="2025-02-05"
+        min="2024-12-10"
+        max="2025-02-10"
+      ></temba-range-picker>
+    </div>
+    <div class="example">
+      <h3>Handling Range Change Event</h3>
+      <p>
+        This example shows how to listen for range changes and display the
+        selected dates.
+      </p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-range-picker id="event-demo"&gt;&lt;/temba-range-picker&gt;
+
+&lt;script type="module"&gt;
+  const picker = document.getElementById('event-demo');
+
+  picker.addEventListener('temba-date-range-changed', (e) => {
+    const output = document.getElementById('range-output');
+    output.textContent = `Start: ${e.detail.start} | End: ${e.detail.end} | Range: ${e.detail.range || 'CUSTOM'}`;
+  });
+
+&lt;/script&gt;</code></pre>
+      <temba-range-picker id="event-demo"></temba-range-picker>
+      <div id="range-output" class="demo-output">
+        Selected range will appear here...
+      </div>
+    </div>
+
+    <script type="module">
+      import '../../../out-tsc/temba-modules.js';
+
+      const picker = document.getElementById('event-demo');
+
+      // Listen for changes on the range picker
+      picker.addEventListener('temba-date-range-changed', (e) => {
+        // eslint-disable-next-line no-console
+        console.log('Range changed:', e.detail);
+        const output = document.getElementById('range-output');
+        output.textContent = `Start: ${e.detail.start} | End: ${
+          e.detail.end
+        } | Range: ${e.detail.range || 'CUSTOM'}`;
+      });
+    </script>
+  </body>
+</html>

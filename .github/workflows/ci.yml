@@ -1,6 +1,28 @@
 name: CI
 on: [push, pull_request]
 jobs:
+  components:
+    name: Components
+    runs-on: ubuntu-latest
+    steps:
+      # screenshot tests render dates so keep the timezone pinned
+      - name: Set timezone
+        uses: szenius/set-timezone@v2.0
+        with:
+          timezoneLinux: 'UTC'
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Build and test in dev container
+        uses: devcontainers/ci@v0.3
+        with:
+          configFile: components/.github/devcontainer/devcontainer.json
+          runCmd: cd components && bun install --frozen-lockfile && bun run validate
+          push: never
+          env: |
+            CI=true
+
   test:
     name: Test
     runs-on: ubuntu-latest

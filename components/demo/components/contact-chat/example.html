@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Contact Chat Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link
+      href="/demo/static/css/styles.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <style>
+      .chat-demo {
+        display: flex;
+        flex-direction: column;
+        height: 600px;
+        width: 500px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 1em 0;
+      }
+
+      .chat-demo-wide {
+        width: 700px;
+      }
+
+      .examples {
+        display: flex;
+        flex-direction: column;
+        gap: 2em;
+        padding: 1em;
+      }
+
+      h3 {
+        margin-bottom: 0.5em;
+      }
+
+      p {
+        color: #666;
+        margin-top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Contact Chat</h1>
+    <p><a href="/demo/index.html">&larr; Back to main demo</a></p>
+
+    <div class="examples">
+      <div>
+        <h3>Basic Contact Chat</h3>
+        <p>
+          Chat history with compose box. Includes message search with
+          highlighting. Click the search icon to open search.
+        </p>
+        <div class="chat-demo">
+          <temba-store
+            completion="/api/v2/completion.json"
+            fields="/api/v2/fields.json"
+            globals="/api/v2/globals.json"
+            groups="/api/v2/groups.json"
+            labels="/api/v2/labels.json"
+          ></temba-store>
+          <temba-contact-chat
+            contact="contact-1"
+            endpoint="/api/v2/contacts.json?uuid="
+            style="display:flex;flex-direction:column;flex-grow:1;min-height:0;"
+          ></temba-contact-chat>
+        </div>
+      </div>
+
+      <div>
+        <h3>Contact in Flow</h3>
+        <p>Shows the flow footer when a contact is currently in a flow.</p>
+        <div class="chat-demo">
+          <temba-store
+            completion="/api/v2/completion.json"
+            fields="/api/v2/fields.json"
+            globals="/api/v2/globals.json"
+            groups="/api/v2/groups.json"
+            labels="/api/v2/labels.json"
+          ></temba-store>
+          <temba-contact-chat
+            contact="contact-in-flow"
+            endpoint="/api/v2/contacts.json?uuid="
+            showInterrupt
+            style="display:flex;flex-direction:column;flex-grow:1;min-height:0;"
+          ></temba-contact-chat>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

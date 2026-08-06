@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Multi-Select Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Multi-Select Examples</h1>
+    <p>
+      <a href="/demo/index.html">← Back to main demo</a> |
+      <a href="example.html">Basic Examples</a> |
+      <a href="drag-and-drop.html">Drag & Drop</a>
+    </p>
+
+    <div class="example">
+      <h3>Multi-Select with Expressions</h3>
+      <p>A multi-select that supports expressions and is searchable</p>
+      <temba-select
+        placeholder="Select a color"
+        expressions="message"
+        values='[{"name":"Red","value":"0"}]'
+        searchable
+        multi
+      >
+        <temba-option name="Red" value="0"></temba-option>
+        <temba-option name="Green" value="1"></temba-option>
+        <temba-option name="Blue" value="2"></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <h3>Limited Multi-Select</h3>
+      <p>A multi-select with a maximum number of items (2)</p>
+      <temba-select
+        placeholder="Select 2 colors"
+        name="Color2"
+        label="Select up to 2 colors"
+        expressions="message"
+        maxItems="2"
+        values='[{"name":"Red","value":"0"}]'
+        searchable
+        multi
+      >
+        <temba-option name="Red" value="0"></temba-option>
+        <temba-option name="Green" value="1"></temba-option>
+        <temba-option name="Blue" value="2"></temba-option>
+        <temba-option name="Yellow" value="3"></temba-option>
+        <temba-option name="Purple" value="4"></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <h3>Empty Multi-Select</h3>
+      <p>A multi-select with no options to show empty state</p>
+      <temba-select placeholder="Select multiple options" multi> </temba-select>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Field Configuration Demo</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          sans-serif;
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+      }
+      .demo-section {
+        margin: 40px 0;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+      }
+      .demo-section h3 {
+        margin-top: 0;
+        color: #333;
+      }
+      .demo-section p {
+        color: #666;
+        margin-bottom: 20px;
+      }
+    </style>
+    <link rel="stylesheet" href="/sitestatic/css/temba-components.css" />
+  </head>
+  <body>
+    <h1>Field Configuration System Demo</h1>
+
+    <div class="demo-section">
+      <h3>Key-Value Editor</h3>
+      <p>
+        For webhook headers or similar key-value configurations. Always
+        maintains an empty row for easy addition of new values. Remove buttons
+        are hidden for empty rows:
+      </p>
+      <temba-key-value-editor
+        id="headers-demo"
+        keyPlaceholder="Header name"
+        valuePlaceholder="Header value"
+      >
+      </temba-key-value-editor>
+    </div>
+
+    <div class="demo-section">
+      <h3>Array Editor (Rules)</h3>
+      <p>For configuring lists of rules with auto-generated categories:</p>
+      <temba-array-editor id="rules-demo" itemLabel="Rule">
+      </temba-array-editor>
+    </div>
+
+    <script type="module">
+      // Initialize with some demo data
+      const headersDemo = document.getElementById('headers-demo');
+      headersDemo.value = {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer your-token-here',
+        Accept: 'application/json'
+      };
+
+      // Listen for changes
+      headersDemo.addEventListener('change', (e) => {
+        console.log('Headers changed:', e.detail?.value);
+      });
+
+      // Configure array editor
+      const rulesDemo = document.getElementById('rules-demo');
+      rulesDemo.itemConfig = {
+        operator: {
+          type: 'select',
+          label: 'Operator',
+          required: true,
+          options: [
+            { value: 'contains', label: 'contains' },
+            { value: 'equals', label: 'equals' },
+            { value: 'starts_with', label: 'starts with' },
+            { value: 'regex', label: 'regex' }
+          ]
+        },
+        operand: {
+          type: 'text',
+          label: 'Value',
+          required: true,
+          placeholder: 'Value to compare against'
+        },
+        category: {
+          type: 'text',
+          label: 'Category',
+          required: true,
+          placeholder: 'Category name for this rule'
+        }
+      };
+
+      rulesDemo.value = [
+        { operator: 'equals', operand: 'yes', category: 'positive' },
+        { operator: 'contains', operand: 'no', category: 'negative' }
+      ];
+
+      // Auto-generate category functionality
+      rulesDemo.onItemChange = (itemIndex, field, value, allItems) => {
+        const updatedItems = [...allItems];
+        const item = { ...updatedItems[itemIndex] };
+
+        item[field] = value;
+
+        // if operand changed and category is empty, auto-generate category
+        if (
+          field === 'operand' &&
+          (!item.category || item.category.trim() === '')
+        ) {
+          item.category = value
+            .toLowerCase()
+            .replace(/[^a-z0-9\\s]/g, '')
+            .replace(/\\s+/g, '_')
+            .slice(0, 20);
+        }
+
+        updatedItems[itemIndex] = item;
+        return updatedItems;
+      };
+
+      rulesDemo.addEventListener('change', (e) => {
+        console.log('Rules changed:', e.detail.value);
+      });
+    </script>
+
+    <!-- Include the component modules -->
+    <script type="module">
+      import '../out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

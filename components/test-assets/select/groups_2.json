@@ -1,0 +1,41 @@
+{
+  "next": "/test-assets/select/groups_3.json",
+  "previous": null,
+  "results": [
+    {
+      "uuid": "af1e0363-77ce-4ec0-be06-de5cc0ca27c7",
+      "name": "My Sixth Group",
+      "query": null,
+      "status": "ready",
+      "count": 600
+    },
+    {
+      "uuid": "be340775-8405-4984-845c-9674668f36db",
+      "name": "My Seventh Group",
+      "query": null,
+      "status": "ready",
+      "count": 700
+    },
+    {
+      "uuid": "c194ce92-af22-4b61-b47d-89022f12c90e",
+      "name": "My Eighth Group",
+      "query": null,
+      "status": "ready",
+      "count": 800
+    },
+    {
+      "uuid": "d9c04add-6265-4dbb-a491-277273707a89",
+      "name": "My Ninth Group",
+      "query": null,
+      "status": "ready",
+      "count": 900
+    },
+    {
+      "uuid": "e48d7d29-2391-462e-834f-6009f03dcc06",
+      "name": "My Tenth Group",
+      "query": null,
+      "status": "ready",
+      "count": 1000
+    }
+  ]
+}

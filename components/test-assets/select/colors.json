@@ -1,0 +1,18 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "name": "Red",
+      "value": "red"
+    },
+    {
+      "name": "Green",
+      "value": "green"
+    },
+    {
+      "name": "Blue",
+      "value": "blue"
+    }
+  ]
+}

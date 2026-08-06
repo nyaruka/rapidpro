@@ -1,0 +1,142 @@
+{
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "uuid": "6beaf078-3bf1-4acb-9eb0-9c8b87641b2e",
+            "name": "Reservation Confirmation",
+            "base_translation": {
+                "channel": {
+                    "uuid": "f9f488a9-cfcd-4d52-9038-313d1e8b2da5",
+                    "name": "WhatsApp"
+                },
+                "namespace": "",
+                "locale": "eng-US",
+                "status": "pending",
+                "components": [
+                    {
+                        "name": "body",
+                        "type": "body",
+                        "params": [
+                            {
+                                "type": "text"
+                            }
+                        ],
+                        "content": "We have reserved a table for you at {{1}}. See you soon!",
+                        "variables": {
+                            "1": 0
+                        }
+                    }
+                ],
+                "variables": [
+                    {
+                        "type": "text"
+                    }
+                ]
+            },
+            "created_on": "2024-04-30T21:25:18.250700Z",
+            "modified_on": "2024-04-30T21:25:18.250702Z"
+        },
+        {
+            "uuid": "2b1cdee4-71b4-4c9a-805c-9bce6a2e7277",
+            "name": "Dinner Menu",
+            "base_translation": {
+                "channel": {
+                    "uuid": "f9f488a9-cfcd-4d52-9038-313d1e8b2da5",
+                    "name": "WhatsApp"
+                },
+                "namespace": "",
+                "locale": "eng-US",
+                "status": "approved",
+                "components": [
+                    {
+                        "name": "body",
+                        "type": "body",
+                        "params": [
+                            {
+                                "type": "text"
+                            },
+                            {
+                                "type": "text"
+                            },
+                            {
+                                "type": "text"
+                            },
+                            {
+                                "type": "text"
+                            }
+                        ],
+                        "content": "Hi there {{2}}! We are in the process of preparing our world class menu. So {{2}}, tell me, would you like {{1}} or {{3}}. Thanks, {{agent}}.",
+                        "variables": {
+                            "1": 1,
+                            "2": 0,
+                            "3": 2,
+                            "agent": 3
+                        }
+                    },
+                    {
+                        "name": "button.0",
+                        "type": "button/url",
+                        "params": [
+                            {
+                                "type": "text"
+                            }
+                        ],
+                        "content": "https://example.com/?wa_customer={{1}}",
+                        "display": "Dish A",
+                        "variables": {
+                            "1": 1
+                        }
+                    },
+                    {
+                        "name": "button.1",
+                        "type": "button/url",
+                        "params": [
+                            {
+                                "type": "text"
+                            }
+                        ],
+                        "content": "https://example.com/?wa_organization={{1}}",
+                        "display": "Dish B",
+                        "variables": {
+                            "1": 2
+                        }
+                    },
+                    {
+                        "name": "button.2",
+                        "type": "button/quick_reply",
+                        "params": [
+                            {
+                                "type": "text"
+                            }
+                        ],
+                        "content": "Not Hungry"
+                    }
+                ],
+                "variables": [
+                    {
+                        "type": "text"
+                    },
+                    {
+                        "type": "text"
+                    },
+                    {
+                        "type": "text"
+                    },
+                    {
+                        "type": "text"
+                    }
+                ]
+            },
+            "created_on": "2024-04-30T21:25:18.245260Z",
+            "modified_on": "2024-04-30T21:25:18.248575Z"
+        },
+        {
+            "uuid": "3b1cdee4-71b4-4c9a-805c-9bce6a2e7277",
+            "name": "Unapproved Template",
+            "base_translation": null,
+            "created_on": "2024-04-30T21:25:18.245260Z",
+            "modified_on": "2024-04-30T21:25:18.248575Z"
+        }
+    ]
+}

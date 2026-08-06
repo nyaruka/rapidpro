@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Floating Tab & Window Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <style>
+      body {
+        min-height: 100vh;
+        position: relative;
+      }
+      .content {
+        padding: 20px;
+        max-width: 800px;
+                
+      }
+      .phone-simulator {
+        padding: 30px;
+        position: relative;
+      }
+      .phone-frame {
+        border-radius: 40px;
+        border: 8px solid #1f2937;
+        box-shadow: 0 0px 30px rgba(0, 0, 0, 0.4);
+        background: #000;
+        position: relative;
+        overflow:hidden;
+        
+      }
+      .phone-top {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        cursor: grab;
+      }
+      .phone-notch {
+        background: transparent;
+        height: 50px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+      }
+      .phone-notch::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.3) 50%, transparent 100%);
+        z-index: -1;
+      }
+      .dynamic-island {
+        
+        top: 10px;
+        left: 50%;
+        
+        width: 120px;
+        height: 30px;
+        background: #000;
+        border-radius: 20px;
+        z-index: 1;
+      }
+      .phone-notch .time {
+        color: #000;
+        font-size: 14px;
+        font-weight: 600;
+        
+      }
+      .phone-notch .status-icons {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .phone-notch .status-icons span {
+        color: #000;
+        font-size: 14px;
+      }
+      .phone-header {
+        background: transparent;
+        padding: 10px 15px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        cursor: move;
+        user-select: none;
+        border-bottom: none;
+        pointer-events: all;
+      }
+      .close-btn {
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width:29px;
+      }
+
+      .close-btn:hover {
+        color: rgba(0, 0, 0, 0.7);
+      }
+      .phone-screen {
+        background: white;
+        padding: 15px;
+        padding-top: 75px;
+        padding-bottom: 60px;
+        height:470px;
+        overflow-y: auto;
+        flex-direction: column-reverse;
+        display: flex;
+      }
+
+
+      .message {
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        border-radius: 18px;
+        max-width: 70%;
+        font-size: 15px;
+        line-height: 1.4;
+      }
+      .message.incoming {
+        background: #e5e5ea;
+        color: #000;
+        margin-right: auto;
+        border-bottom-left-radius: 4px;
+      }
+      .message.outgoing {
+        background: #007aff;
+        color: white;
+        margin-left: auto;
+        text-align: left;
+        border-bottom-right-radius: 4px;
+      }
+      .message-input {
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 70%, transparent 100%);
+        padding: 8px 16px;
+        border-top: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: absolute;
+        bottom: 0px;
+        left: 0px;
+        right: 0px;
+        z-index: 10;
+      }
+      .message-input input {
+        flex: 1;
+        border: 1px solid #c6c6c8;
+        border-radius: 20px;
+        padding: 8px 15px;
+        font-size: 15px;
+        margin-bottom:5px;
+        background: white;
+        border: none;
+        outline:none;
+      }
+      .message-input input::placeholder {
+        color: #8e8e93;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <h1>Floating Tab & Window Examples</h1>
+      <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+      <div class="example">
+        <h3>Phone Simulator</h3>
+        <p>
+          Click the green phone icon on the right to open a phone simulator
+          window. The window can be dragged around the screen.
+        </p>
+        <p>
+          Hover over the tab to see the label animate in. Click again to close
+          the window.
+        </p>
+      </div>
+
+      <div class="example">
+        <h3>Multiple Tabs</h3>
+        <p>
+          Multiple floating tabs can be displayed at once, each with different
+          colors and purposes.
+        </p>
+        <ul>
+          <li><strong>Phone (Green):</strong> Phone simulator window</li>
+          <li><strong>Clock (Purple):</strong> Revision history window</li>
+          <li><strong>Globe (Gray):</strong> Translation/localization window</li>
+        </ul>
+      </div>
+
+      <div class="example">
+        <h3>Usage</h3>
+        <pre><code>&lt;!-- Floating Tab --&gt;
+&lt;temba-floating-tab
+  id="phone-tab"
+  icon="phone"
+  label="Phone Simulator"
+  color="#10b981"
+  top="100"
+&gt;&lt;/temba-floating-tab&gt;
+
+&lt;!-- Floating Window --&gt;
+&lt;temba-floating-window
+  id="phone-window"
+  title="Phone Simulator"
+  width="250"
+  height="700"
+  top="100"
+&gt;
+  &lt;!-- Your content here --&gt;
+&lt;/temba-floating-window&gt;</code></pre>
+      </div>
+    </div>
+
+
+    <!-- Phone Simulator Tab & Window -->
+         <temba-floating-window
+      id="translation-window"
+      header="Flow Translation"
+      width="350"
+      height="600"
+      top="100"
+      color="#6b7280"
+    >
+      <div style="padding: 20px">
+        <h4 style="margin-top: 0">Translate Flow</h4>
+        <div style="display: flex; flex-direction: column; gap: 15px">
+          <div>
+            <label style="display: block; margin-bottom: 5px; font-weight: 500"
+              >Language</label
+            >
+            <select style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #d1d5db">
+              <option>English</option>
+              <option>Spanish</option>
+              <option>French</option>
+              <option>Portuguese</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </temba-floating-window>
+
+    <temba-floating-window
+      id="phone-window"
+      width="375"
+      height="720"
+      top="60"
+      chromeless
+    >
+      <div class="phone-simulator">
+        
+        <div class="phone-frame">
+          <div class="phone-top drag-handle">
+
+            <div class="phone-notch">
+              <div style="width:29px;"></div>
+              <div class="dynamic-island"></div>
+              <button class="close-btn" onclick="document.getElementById('phone-window').close()">
+                <temba-icon name="x" clickable size="2"></temba-icon>
+              </button>
+            </div>
+            
+          </div>
+          <div class="phone-screen">
+            <div class="message outgoing">Always do!</div>
+            <div class="message incoming">Drive safe!</div>
+            <div class="message outgoing">Can't wait!</div>
+            <div class="message incoming">See you soon!</div>
+            <div class="message outgoing">On it!</div>
+            <div class="message incoming">Don't forget the salad dressing!</div>
+            <div class="message outgoing">Sure thing, see you soon!</div>
+            <div class="message incoming">Great! Also need some tomatoes.</div>
+            <div class="message outgoing">I got broccoli and asparagus</div>
+            <div class="message incoming">Can you buy some veggies on your way home?</div>
+          </div>
+          <div class="message-input">
+            <input type="text" placeholder="Enter Message"/>
+          </div>
+        </div>
+      </div>
+    </temba-floating-window>
+
+    <temba-floating-window
+      id="history-window"
+      header="Revision History"
+      width="300"
+      height="500"
+      top="100"
+      color="#8b5cf6"
+    >
+      <div style="padding: 20px">
+        <h4 style="margin-top: 0">Recent Changes</h4>
+        <ul style="list-style: none; padding: 0">
+          <li style="margin-bottom: 15px; padding: 10px; background: #f3f4f6; border-radius: 8px">
+            <strong>2 hours ago</strong><br />
+            Updated flow configuration
+          </li>
+          <li style="margin-bottom: 15px; padding: 10px; background: #f3f4f6; border-radius: 8px">
+            <strong>Yesterday</strong><br />
+            Added new message template
+          </li>
+          <li style="margin-bottom: 15px; padding: 10px; background: #f3f4f6; border-radius: 8px">
+            <strong>3 days ago</strong><br />
+            Modified contact fields
+          </li>
+        </ul>
+      </div>
+    </temba-floating-window>
+
+    <temba-floating-tab
+      id="phone-tab"
+      icon="simulator"
+      label="Phone Simulator"
+      color="#10b981"
+    ></temba-floating-tab>
+
+    
+
+    <!-- History Tab & Window -->
+    <temba-floating-tab
+      id="history-tab"
+      icon="revisions"
+      label="Revision History"
+      color="#8b5cf6"
+    ></temba-floating-tab>
+
+    
+
+    <!-- Translation Tab & Window -->
+    <temba-floating-tab
+      id="translation-tab"
+      icon="language"
+      label="Flow Translation"
+      color="#6b7280"
+    ></temba-floating-tab>
+
+
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+
+      // connect tabs to windows
+      const phoneTab = document.getElementById('phone-tab');
+      const phoneWindow = document.getElementById('phone-window');
+
+      const historyTab = document.getElementById('history-tab');
+      const historyWindow = document.getElementById('history-window');
+
+      const translationTab = document.getElementById('translation-tab');
+      const translationWindow = document.getElementById('translation-window');
+
+      // phone tab/window interaction
+      phoneTab.addEventListener('temba-button-clicked', () => {
+        phoneWindow.show();
+      });
+
+      phoneWindow.addEventListener('temba-dialog-hidden', () => {
+        phoneWindow.hide();
+      });
+
+      // history tab/window interaction
+      historyTab.addEventListener('temba-button-clicked', () => {
+        historyWindow.show();
+      });
+
+      historyWindow.addEventListener('temba-dialog-hidden', () => {
+        historyWindow.hide();
+      });
+
+      // translation tab/window interaction
+      translationTab.addEventListener('temba-button-clicked', () => {
+        translationWindow.show();
+      });
+
+      translationWindow.addEventListener('temba-dialog-hidden', () => {
+        translationWindow.hide();
+      });
+    </script>
+  </body>
+</html>

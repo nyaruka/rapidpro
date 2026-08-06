@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sortable Rules Demo</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .demo-section {
+        margin: 20px 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sortable Rules Demo</h1>
+
+    <div class="demo-section">
+      <h2>Sortable Array Editor</h2>
+      <p>
+        This demonstrates sortable functionality in array editor with drag and
+        drop support:
+      </p>
+
+      <temba-array-editor
+        itemLabel="Rule"
+        sortable="true"
+        maintainEmptyItem="true"
+      ></temba-array-editor>
+
+      <script>
+        // Set up the array editor with initial data and item config
+        const arrayEditor = document.querySelector('temba-array-editor');
+
+        arrayEditor.itemConfig = {
+          operator: {
+            type: 'select',
+            required: true,
+            multi: false,
+            options: [
+              { value: 'has_any_word', name: 'has any of the words' },
+              { value: 'has_phrase', name: 'has the phrase' },
+              { value: 'has_only_phrase', name: 'has only the phrase' },
+              { value: 'has_number', name: 'has a number' },
+              { value: 'has_number_lt', name: 'has a number below' },
+              { value: 'has_number_eq', name: 'has a number equal to' },
+              { value: 'has_number_gt', name: 'has a number above' }
+            ],
+            flavor: 'xsmall',
+            width: '200px'
+          },
+          value1: {
+            type: 'text',
+            flavor: 'xsmall'
+          },
+          category: {
+            type: 'text',
+            placeholder: 'Category',
+            required: true,
+            maxWidth: '120px',
+            flavor: 'xsmall'
+          }
+        };
+
+        arrayEditor.value = [
+          {
+            operator: { value: 'has_any_word', name: 'has any of the words' },
+            value1: 'yes sure',
+            category: 'Yes'
+          },
+          {
+            operator: { value: 'has_any_word', name: 'has any of the words' },
+            value1: 'no never',
+            category: 'No'
+          },
+          {
+            operator: { value: 'has_number', name: 'has a number' },
+            value1: '',
+            category: 'Numbers'
+          }
+        ];
+
+        arrayEditor.addEventListener('change', (e) => {
+          console.log('Array changed:', e.detail.value);
+        });
+      </script>
+    </div>
+
+    <div class="demo-section">
+      <h2>Non-Sortable Array Editor (for comparison)</h2>
+      <p>This is the same array editor without sortable functionality:</p>
+
+      <temba-array-editor
+        itemLabel="Rule"
+        sortable="false"
+        maintainEmptyItem="true"
+      ></temba-array-editor>
+
+      <script>
+        // Set up the non-sortable array editor
+        const nonSortableEditor =
+          document.querySelectorAll('temba-array-editor')[1];
+
+        nonSortableEditor.itemConfig = {
+          operator: {
+            type: 'select',
+            required: true,
+            multi: false,
+            options: [
+              { value: 'has_any_word', name: 'has any of the words' },
+              { value: 'has_phrase', name: 'has the phrase' },
+              { value: 'has_only_phrase', name: 'has only the phrase' },
+              { value: 'has_number', name: 'has a number' }
+            ],
+            flavor: 'xsmall',
+            width: '200px'
+          },
+          value1: {
+            type: 'text',
+            flavor: 'xsmall'
+          },
+          category: {
+            type: 'text',
+            placeholder: 'Category',
+            required: true,
+            maxWidth: '120px',
+            flavor: 'xsmall'
+          }
+        };
+
+        nonSortableEditor.value = [
+          {
+            operator: { value: 'has_any_word', name: 'has any of the words' },
+            value1: 'yes sure',
+            category: 'Yes'
+          },
+          {
+            operator: { value: 'has_any_word', name: 'has any of the words' },
+            value1: 'no never',
+            category: 'No'
+          }
+        ];
+      </script>
+    </div>
+
+    <script type="module" src="../src/temba-components.js"></script>
+  </body>
+</html>

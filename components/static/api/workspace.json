@@ -1,0 +1,23 @@
+{
+  "uuid": "fe4e54e9-7d1c-4826-a450-4552fa47b2ef",
+  "name": "UNEP Mexico",
+  "country": "NG",
+  "languages": [
+    "eng",
+    "spa",
+    "fra",
+    "deu",
+    "por",
+    "ita",
+    "rus",
+    "zho",
+    "jpn",
+    "kor",
+    "ara",
+    "hin"
+  ],
+  "timezone": "America/Los_Angeles",
+  "date_style": "day_first",
+  "anon": false,
+  "primary_language": "eng"
+}

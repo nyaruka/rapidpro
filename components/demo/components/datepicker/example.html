@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Date Picker Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Date Picker Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Date and Time Picker</h3>
+      <p>A date picker that includes time selection</p>
+      <temba-datepicker
+        time
+        value="2020-01-20T14:00+00:00"
+        timezone="UTC"
+      ></temba-datepicker>
+    </div>
+
+    <div class="example">
+      <h3>Date Only Picker</h3>
+      <p>A date picker without time selection</p>
+      <temba-datepicker value="2022-10-09"></temba-datepicker>
+    </div>
+
+    <div class="example">
+      <h3>Date Picker with Timezone</h3>
+      <p>A date picker with a specific timezone</p>
+      <temba-datepicker
+        time
+        value="2022-10-02 01:00:00+00:00"
+        timezone="Africa/Lagos"
+      ></temba-datepicker>
+    </div>
+
+    <div class="example">
+      <h3>Empty Date Picker</h3>
+      <p>A date picker with no initial value</p>
+      <temba-datepicker></temba-datepicker>
+    </div>
+
+    <script>
+      function handleDateChange(event) {
+        console.log('Date changed:', event.target.value);
+      }
+    </script>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

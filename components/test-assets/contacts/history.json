@@ -1,0 +1,271 @@
+{
+  "next": "01997d74-bf67-749a-8440-688a41c3b270",
+  "events": [
+    {
+      "uuid": "01997d74-bf67-749a-8440-688a41c3b275",
+      "type": "ticket_reopened",
+      "created_on": "2025-09-24T20:40:27.239439+00:00",
+      "note": null,
+      "topic": null,
+      "assignee": null,
+      "ticket": {
+        "uuid": "22e478f2-17e8-42d5-ab28-d1e2e37e2df4",
+        "opened_on": "2021-09-10T17:21:47.763270+00:00",
+        "closed_on": null,
+        "topic": null,
+        "status": "O",
+        "subject": "Open ticket",
+        "body": ""
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-76d5-a447-db5e048c62b5",
+      "type": "ticket_closed",
+      "created_on": "2025-09-24T20:40:27.239438+00:00",
+      "note": null,
+      "topic": null,
+      "assignee": null,
+      "ticket": {
+        "uuid": "22e478f2-17e8-42d5-ab28-d1e2e37e2df4",
+        "opened_on": "2021-09-10T17:21:47.763270+00:00",
+        "closed_on": null,
+        "topic": null,
+        "status": "O",
+        "subject": "Open ticket",
+        "body": ""
+      },
+      "_user": {
+        "uuid": "21ec6c16-b822-4134-9b2d-268f8a340634",
+        "name": "Enrique Newcomers"
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-7165-b9e4-e5529d9f6712",
+      "type": "msg_created",
+      "created_on": "2025-09-24T20:40:27.239437+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "Hey John, just checking in on you",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      },
+      "_status": {
+        "created_on": "2025-09-24T20:40:28.239437+00:00",
+        "status": "failed",
+        "reason": "error_limit"
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-7305-b5f7-017c6eb04cf7",
+      "type": "run_ended",
+      "created_on": "2025-09-23T20:40:27.239436+00:00",
+      "run_uuid": "0198c846-da2b-799f-8af9-aaf8857f947f",
+      "flow": {
+        "uuid": "d076d716-8071-417e-b188-d9746db223a1",
+        "name": "Favorites"
+      },
+      "status": "completed"
+    },
+    {
+      "uuid": "01997d74-bf67-7332-9623-f387dc0aeb09",
+      "type": "airtime_transferred",
+      "created_on": "2025-09-23T20:40:27.239435+00:00",
+      "sender": "tel:123456",
+      "recipient": "tel:+250788123123?channel=8a81e9e0-10a0-4319-9b00-ce723cfa8303&id=9951&priority=1000",
+      "currency": null,
+      "amount": "0.00"
+    },
+    {
+      "uuid": "01997d74-bf67-77d4-9c9b-458abb7bf993",
+      "type": "msg_created",
+      "created_on": "2025-09-23T20:40:27.239434+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "No problem.\nWe are all done here.",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      },
+      "_status": {
+        "created_on": "2025-09-23T20:40:28.239434+00:00",
+        "status": "wired"
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-74a1-97db-faaf45bbff53",
+      "type": "msg_received",
+      "created_on": "2025-09-23T20:40:27.239433+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "no",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      },
+      "_deleted": {
+        "created_on": "2025-09-23T20:40:27.239433+00:00",
+        "user": {
+          "name": "Rowan Seymour",
+          "uuid": "rowan-user-uuid"
+        }
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-70c2-bfae-14c661955736",
+      "type": "msg_created",
+      "created_on": "2025-09-23T20:40:27.239432+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "Mmmmm... delicious Primus. If only they made blue Primus! Do you want to set your name?",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      },
+      "_status": {
+        "created_on": "2025-09-23T20:40:28.239434+00:00",
+        "status": "wired"
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-7199-8e8a-200e41a90d71",
+      "type": "msg_received",
+      "created_on": "2025-09-23T20:40:27.239431+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "primus",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-7768-9b3e-1a2dd9b90aa4",
+      "type": "msg_created",
+      "created_on": "2025-09-23T20:40:27.239430+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "Good choice, I like Blue too! What is your favorite beer?",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      },
+      "_status": {
+        "created_on": "2025-09-23T20:40:28.239434+00:00",
+        "status": "wired"
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-74c6-86d6-a9398ee1f5f4",
+      "type": "msg_received",
+      "created_on": "2025-09-23T20:40:27.239429+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "blue",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-75c2-9c1e-3f2b8a11d002",
+      "type": "contact_field_changed",
+      "created_on": "2025-09-23T20:40:27.239428+00:00",
+      "field": {
+        "key": "join_date",
+        "name": "Join Date"
+      },
+      "value": {
+        "text": "2021-07-18T12:00:00.000000+00:00",
+        "datetime": "2021-07-18T12:00:00.000000+00:00"
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-75c1-9c1e-3f2b8a11d001",
+      "type": "contact_field_changed",
+      "created_on": "2025-09-23T20:40:27.239428+00:00",
+      "field": {
+        "key": "age",
+        "name": "Age"
+      },
+      "value": {
+        "text": "43",
+        "number": "43"
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-75c9-bd59-36a465fc0c88",
+      "type": "contact_groups_changed",
+      "created_on": "2025-09-23T20:40:27.239428+00:00",
+      "groups_removed": [
+        {
+          "uuid": "b13e01ec-6c83-4349-b153-a2e48d0fd394",
+          "name": "aaaa"
+        }
+      ]
+    },
+    {
+      "uuid": "01997d74-bf67-703c-a223-85da4b048994",
+      "type": "contact_groups_changed",
+      "created_on": "2025-09-23T20:40:27.239427+00:00",
+      "groups_added": [
+        {
+          "uuid": "b13e01ec-6c83-4349-b153-a2e48d0fd394",
+          "name": "aaaa"
+        }
+      ]
+    },
+    {
+      "uuid": "01997d74-bf67-74f0-951f-726f573ac18d",
+      "type": "msg_created",
+      "created_on": "2025-09-23T20:40:27.239426+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "What is your favorite color?",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      },
+      "_status": {
+        "created_on": "2025-09-23T20:40:28.239434+00:00",
+        "status": "wired"
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-70a9-a0fc-6543b4d0b3d1",
+      "type": "call_missed",
+      "created_on": "2025-09-23T20:40:27.239425+00:00"
+    },
+    {
+      "uuid": "01997d74-bf67-7632-908a-555c328137cd",
+      "type": "run_started",
+      "created_on": "2025-09-23T20:40:27.239424+00:00",
+      "run_uuid": "0198c846-2cf4-7992-9bd0-9b6581e42358",
+      "flow": {
+        "uuid": "d076d716-8071-417e-b188-d9746db223a1",
+        "name": "Favorites"
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-7684-bc3b-99ebdaf16e7e",
+      "type": "msg_received",
+      "created_on": "2025-09-23T20:40:27.239423+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "fav",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      }
+    }
+  ]
+}

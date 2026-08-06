@@ -1,0 +1,45 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "c0f5b431-35e9-429c-9d57-5fee2fac46a3",
+      "email": "eric+marion+berry@textit.com",
+      "first_name": "Marion",
+      "last_name": "Berry",
+      "name": "Marion Berry",
+      "role": "agent",
+      "team": {
+        "uuid": "15236c1e-9375-4f84-bb48-ec64283d1eb9",
+        "name": "All Topics"
+      },
+      "created_on": "2023-04-05T21:11:31.909765Z",
+      "avatar": null
+    },
+    {
+      "uuid": "ae79dd5b-8c34-4602-a2c1-1e4db2419f0f",
+      "email": "eric@textit.com",
+      "first_name": "Eric",
+      "last_name": "Newcomer",
+      "name": "Eric Newcomer",
+      "role": "administrator",
+      "team": null,
+      "created_on": "2013-02-26T21:19:44Z",
+      "avatar": "https://dl-textit.s3.amazonaws.com/avatars/4/b6d756224c61435bb36b57ae03b83359.jpg"
+    },
+    {
+      "uuid": "f8e2a1b5-9c7d-4e6f-8a3b-1c5e9f2d4a6b",
+      "email": "sarah.smith@textit.com",
+      "first_name": "Sarah",
+      "last_name": "Smith",
+      "name": "Sarah Smith",
+      "role": "agent",
+      "team": {
+        "uuid": "15236c1e-9375-4f84-bb48-ec64283d1eb9",
+        "name": "All Topics"
+      },
+      "created_on": "2023-06-15T14:22:18.456789Z",
+      "avatar": null
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Progress Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Progress Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Progress with ETA</h3>
+      <p>
+        A progress bar showing current progress with an estimated completion
+        time
+      </p>
+      <temba-progress
+        total="100"
+        current="25"
+        eta="2030-09-17T07:00:00.000Z"
+      ></temba-progress>
+    </div>
+
+    <div class="example">
+      <h3>Progress 50%</h3>
+      <p>A progress bar at 50% completion</p>
+      <temba-progress total="100" current="50"></temba-progress>
+    </div>
+
+    <div class="example">
+      <h3>Progress 75%</h3>
+      <p>A progress bar at 75% completion</p>
+      <temba-progress total="100" current="75"></temba-progress>
+    </div>
+
+    <div class="example">
+      <h3>Progress Complete</h3>
+      <p>A completed progress bar</p>
+      <temba-progress total="100" current="100"></temba-progress>
+    </div>
+
+    <div class="example">
+      <h3>Progress with Different Scale</h3>
+      <p>A progress bar using a different total value</p>
+      <temba-progress total="200" current="150"></temba-progress>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>
