@@ -381,7 +381,6 @@ PERMISSIONS = {
 
 # assigns the permissions that each group should have
 GROUP_PERMISSIONS = {
-    "Beta": (),
     "Dashboard": ("orgs.org_dashboard",),
     "Granters": ("orgs.org_grant",),
     "Administrators": (
