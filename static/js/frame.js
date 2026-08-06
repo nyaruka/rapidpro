@@ -675,6 +675,12 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
     container.addEventListener('click', function (event) {
+      // a click something already claimed is not a navigation - the article editor prevents
+      // default to place the caret in a link's text instead of following it
+      if (event.defaultPrevented) {
+        return;
+      }
+
       // get our immediate path
       const path = event.composedPath().slice(0, 10);
 

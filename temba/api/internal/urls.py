@@ -9,6 +9,7 @@ from temba.msgs.api import BroadcastsEndpoint, MessagesEndpoint
 from temba.triggers.api import TriggersEndpoint
 
 from .views import (
+    ArticlesEndpoint,
     AssetsEndpoint,
     LLMsEndpoint,
     LocationsEndpoint,
@@ -20,6 +21,7 @@ from .views import (
 
 urlpatterns = [
     # ========== endpoints A-Z ===========
+    re_path(r"^articles$", ArticlesEndpoint.as_view(), name="api.internal.articles"),
     re_path(r"^assets$", AssetsEndpoint.as_view(), name="api.internal.assets"),
     re_path(r"^broadcasts$", BroadcastsEndpoint.as_view(), name="api.internal.broadcasts"),
     re_path(r"^campaigns$", CampaignsEndpoint.as_view(), name="api.internal.campaigns"),

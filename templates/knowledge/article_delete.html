@@ -1,0 +1,9 @@
+{% extends "includes/modax.html" %}
+{% load i18n %}
+
+{% block fields %}
+  {% blocktrans trimmed %}
+    You are about to delete the article <b>{{ object }}</b> and its screenshots. Any articles beneath it will move up
+    to take its place. There is no way to undo this. Are you sure?
+  {% endblocktrans %}
+{% endblock fields %}

@@ -1,7 +1,16 @@
+import colorsys
+import mimetypes
 import os
 import re
+from collections import defaultdict
 from pathlib import Path
+from urllib.parse import parse_qs
+from xml.etree.ElementTree import Element, SubElement
 
+import markdown
+import nh3
+from markdown.extensions import Extension
+from markdown.treeprocessors import Treeprocessor
 from pgvector.django import HnswIndex, VectorField
 
 from django.conf import settings
@@ -14,9 +23,329 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import Org
+from temba.utils import on_transaction_commit
 from temba.utils.models import TembaModel, delete_in_batches
 from temba.utils.s3 import public_file_storage
 from temba.utils.uuid import uuid4
+
+
+class EscapeRawHTML(Extension):
+    """
+    Renders raw HTML in the source as visible text instead of markup. The library has no option for this, so the
+    documented way to get it is to unregister the two things that recognize HTML in the first place.
+    """
+
+    def extendMarkdown(self, md):
+        md.preprocessors.deregister("html_block")
+        md.inlinePatterns.deregister("html")
+
+
+# the size and layout an image can be given, carried in the fragment of its URL as #size=small&layout=inline - in the
+# markdown itself, so it survives any renderer. Each size is a single pixel cap (small=200, medium=400, large=640)
+# that renderers apply as both max-width and max-height, bounding the long axis of any aspect ratio; no fragment means
+# full size as a block, which is how markdown renders an image anyway.
+IMAGE_SIZES = ("small", "medium", "large")
+IMAGE_LAYOUTS = ("block", "inline")
+IMAGE_CLASSES = {f"size-{s}" for s in IMAGE_SIZES} | {f"layout-{layout}" for layout in IMAGE_LAYOUTS}
+
+
+class AnnotateImages(Extension):
+    """
+    Surfaces the size/layout fragment of each image's URL as classes on its <img> - size-small, layout-inline etc -
+    for CSS to act on. The src is left intact, fragment and all; a fragment on an <img> is harmless, and stripping it
+    would make the served HTML lie about the markdown it came from.
+    """
+
+    def extendMarkdown(self, md):
+        md.treeprocessors.register(AnnotateImagesProcessor(md), "annotate_images", 5)
+
+
+class AnnotateImagesProcessor(Treeprocessor):
+    def run(self, root):
+        for img in root.iter("img"):
+            params = parse_qs(img.get("src", "").partition("#")[2])
+
+            classes = []
+            for key, allowed in (("size", IMAGE_SIZES), ("layout", IMAGE_LAYOUTS)):
+                value = params.get(key, [""])[0]
+                if value in allowed:
+                    classes.append(f"{key}-{value}")
+
+            if classes:
+                img.set("class", " ".join(classes))
+
+
+# a cell is one line of markdown - a real newline would end its row - so the editor writes line breaks inside cells
+# as literal <br> text, and rendering turns them back into the breaks they mean
+CELL_BREAK = re.compile(r"<br\s*/?>", re.IGNORECASE)
+
+
+class CellBreaks(Extension):
+    """
+    Turns the literal <br>s inside table cells into the line breaks they mean. Raw HTML is escaped rather than parsed,
+    so they arrive as text; a cell is one line of markdown and <br> is the only way it can carry a break. Cells only -
+    everywhere else text that merely looks like a tag stays text.
+    """
+
+    def extendMarkdown(self, md):
+        md.treeprocessors.register(CellBreaksProcessor(md), "cell_breaks", 5)
+
+
+class CellBreaksProcessor(Treeprocessor):
+    def run(self, root):
+        for tag in ("th", "td"):
+            for cell in root.iter(tag):
+                self._reveal(cell)
+
+    def _reveal(self, element):
+        # a break can sit inside a cell's emphasis or link as easily as in the cell itself
+        for child in list(element):
+            self._reveal(child)
+
+        if element.text and CELL_BREAK.search(element.text):
+            parts = CELL_BREAK.split(element.text)
+            element.text = parts[0]
+            for at, part in enumerate(parts[1:]):
+                br = Element("br")
+                br.tail = part
+                element.insert(at, br)
+
+        for child in list(element):
+            if child.tail and CELL_BREAK.search(child.tail):
+                parts = CELL_BREAK.split(child.tail)
+                child.tail = parts[0]
+                at = list(element).index(child) + 1
+                for offset, part in enumerate(parts[1:]):
+                    br = Element("br")
+                    br.tail = part
+                    element.insert(at + offset, br)
+
+
+# The column stylesheet a layout table's header cells can carry - `width: 40%; background: 2` in otherwise empty
+# header cells, put there by the editor. Riding in the markdown itself, it survives any renderer; one that doesn't
+# understand it just shows it as header text. A background is an index into the org's shared palette rather than a
+# color: the article embeds the choice, the palette says what the choice currently looks like - so recoloring a
+# palette entry restyles its every use, and an index the palette no longer answers for paints nothing.
+COLUMN_DECLARATION = re.compile(r"^(width|background|padding|border)\s*:\s*(\S+)$", re.IGNORECASE)
+COLUMN_WIDTH = re.compile(r"^\d+(px|%)$")
+COLUMN_BACKGROUND = re.compile(r"^\d+$")
+COLUMN_PADDING = re.compile(r"^\d+px$")
+
+
+def parse_column_style(text: str) -> dict | None:
+    """
+    Reads a header cell's stylesheet, or returns None when its text isn't one.
+    """
+    out = {}
+    for piece in text.split(";"):
+        declaration = piece.strip()
+        if not declaration:
+            continue
+        match = COLUMN_DECLARATION.match(declaration)
+        if not match:
+            return None
+        key, value = match[1].lower(), match[2].lower()
+        if key == "width" and not COLUMN_WIDTH.match(value):
+            return None
+        if key == "background" and not COLUMN_BACKGROUND.match(value):
+            return None
+        if key == "padding" and not COLUMN_PADDING.match(value):
+            return None
+        if key == "border" and value != "solid":
+            return None
+        out[key] = value
+    return out
+
+
+def _hex_to_hls(color: str) -> tuple:
+    value = color.lstrip("#")
+    if len(value) in (3, 4):
+        value = "".join(c * 2 for c in value[:3])
+    r, g, b = (int(value[i : i + 2], 16) / 255 for i in (0, 2, 4))
+    return colorsys.rgb_to_hls(r, g, b)
+
+
+def _hls_to_hex(h: float, l: float, s: float) -> str:
+    r, g, b = colorsys.hls_to_rgb(h, l, s)
+    return "#%02x%02x%02x" % (round(r * 255), round(g * 255), round(b * 255))
+
+
+def text_on(background: str) -> str:
+    """
+    A readable text color drawn from a cell's own background: a deep shade of the same hue over a light fill, a
+    pale one over a dark fill. Derived the same way the editor derives it, so author and reader see the same text.
+    """
+    h, l, s = _hex_to_hls(background)
+    if l > 0.55:
+        s, l = min(s, 0.55), 0.27
+    else:
+        s, l = min(s, 0.45), 0.95
+    return _hls_to_hex(h, l, s)
+
+
+def border_on(background: str) -> str:
+    """
+    The border a column can ask for, drawn from its own fill the same way its text is - the same hue, stepped a
+    fixed distance from the fill's own lightness so it reads against any fill: gently darker over a light one,
+    deeper still over a dark one, so a dark block sits inside a darker edge. A plain neutral when there's no fill
+    to draw from.
+    """
+    if not background:
+        return "#d0d5dd"
+    h, l, s = _hex_to_hls(background)
+    if l > 0.55:
+        s, l = min(s, 0.5), max(l - 0.16, 0.1)
+    else:
+        s, l = min(s, 0.6), max(l - 0.14, 0.05)
+    return _hls_to_hex(h, l, s)
+
+
+class ColumnStyles(Extension):
+    """
+    Realizes the column stylesheets in a layout table's header cells as a colgroup, leaving the header genuinely
+    empty. Every header cell has to be empty or read as a stylesheet; any real header text leaves the table alone.
+    Backgrounds resolve against the org's palette on the way through.
+    """
+
+    def __init__(self, colors: dict = None):
+        super().__init__()
+        self.colors = colors or {}
+
+    def extendMarkdown(self, md):
+        md.treeprocessors.register(ColumnStylesProcessor(md, self.colors), "column_styles", 4)
+
+
+class ColumnStylesProcessor(Treeprocessor):
+    def __init__(self, md, colors: dict):
+        super().__init__(md)
+        self.colors = colors
+
+    def run(self, root):
+        for table in root.iter("table"):
+            self._decorate(table)
+
+    def _decorate(self, table):
+        thead = table.find("thead")
+        head = thead.findall(".//th") if thead is not None else []
+        if not head:
+            return
+
+        styles = []
+        for th in head:
+            # a header cell with markup in it is real content, however its text reads
+            parsed = parse_column_style((th.text or "").strip()) if len(th) == 0 else None
+            if parsed is None:
+                return
+            styles.append(parsed)
+
+        for th in head:
+            th.text = ""
+
+        # what each column's embedded palette index currently means - possibly nothing, if it's been removed
+        fills = [self.colors.get(style["background"]) if style.get("background") else None for style in styles]
+
+        if any(style.get("width") for style in styles) or any(fills):
+            colgroup = Element("colgroup")
+            for style, fill in zip(styles, fills):
+                col = SubElement(colgroup, "col")
+                parts = []
+                if style.get("width"):
+                    parts.append(f"width: {style['width']}")
+                if fill:
+                    parts.append(f"background: {fill}")
+                if parts:
+                    col.set("style", "; ".join(parts))
+            table.insert(0, colgroup)
+
+        # a sized column only holds its size in a fixed layout, where the unsized columns share what's left
+        if any(style.get("width") for style in styles):
+            table.set("style", "table-layout: fixed; width: 100%")
+
+        # what belongs to the cells themselves: padding, and text drawn from the column's own color - a colgroup
+        # can paint a background but can't reach the text over it. Any alignment the renderer put on a cell stays.
+        tbody = table.find("tbody")
+        for tr in tbody.findall("tr") if tbody is not None else []:
+            for index, td in enumerate(tr.findall("td")):
+                style = styles[index] if index < len(styles) else {}
+                fill = fills[index] if index < len(fills) else None
+                parts = []
+                align = re.search(r"text-align:\s*(left|center|right)", td.get("style") or "")
+                if align:
+                    parts.append(f"text-align: {align[1]}")
+                if style.get("padding"):
+                    parts.append(f"padding: {style['padding']}")
+                if fill:
+                    parts.append(f"color: {text_on(fill)}")
+                if style.get("border"):
+                    parts.append(f"border: 1px solid {border_on(fill)}")
+                if parts:
+                    td.set("style", "; ".join(parts))
+                elif td.get("style"):
+                    del td.attrib["style"]
+
+
+# markdown extensions we render article bodies with. Deliberately conservative - no extension that would make markdown
+# itself more expressive than what the editor can round-trip.
+MARKDOWN_EXTENSIONS = ("fenced_code", "tables", "sane_lists")
+
+# nh3's default attribute allowances plus class on images (where AnnotateImages puts one) and style on tables and
+# their cells and cols (where ColumnStyles and the tables extension put what they realize)
+SANITIZE_ATTRIBUTES = {
+    **nh3.ALLOWED_ATTRIBUTES,
+    "img": nh3.ALLOWED_ATTRIBUTES["img"] | {"class"},
+    "col": nh3.ALLOWED_ATTRIBUTES.get("col", set()) | {"style"},
+    "table": nh3.ALLOWED_ATTRIBUTES.get("table", set()) | {"style"},
+    "td": nh3.ALLOWED_ATTRIBUTES.get("td", set()) | {"style"},
+    "th": nh3.ALLOWED_ATTRIBUTES.get("th", set()) | {"style"},
+}
+
+# the only declarations a cell's style may carry: the alignment the tables extension writes, and the padding and
+# derived text color ColumnStyles writes
+CELL_DECLARATION = re.compile(
+    r"^(text-align:\s*(left|center|right)|padding:\s*\d+px|color:\s*#[0-9a-f]{3,8}|border:\s*1px solid #[0-9a-f]{3,8})$",
+    re.IGNORECASE,
+)
+
+# and the only ones a col's may: the width straight from the stylesheet, and the palette color its index resolved to
+COL_DECLARATION = re.compile(r"^(width:\s*\d+(px|%)|background:\s*#[0-9a-f]{3,8})$", re.IGNORECASE)
+
+
+def _sanitize_attribute(element: str, attribute: str, value: str) -> str | None:
+    """
+    Tightens what SANITIZE_ATTRIBUTES lets through: an image's class may only carry the classes AnnotateImages
+    emits, and a table, col or cell style only what our own pipeline writes. Nothing else can put those attributes
+    there, so like the sanitizing itself this is defense in depth.
+    """
+    if element == "img" and attribute == "class":
+        kept = [c for c in value.split() if c in IMAGE_CLASSES]
+        return " ".join(kept) if kept else None
+    if element == "col" and attribute == "style":
+        kept = [d.strip() for d in value.split(";") if d.strip() and COL_DECLARATION.match(d.strip())]
+        return "; ".join(kept) if kept else None
+    if element == "table" and attribute == "style":
+        return value if value == "table-layout: fixed; width: 100%" else None
+    if element in ("td", "th") and attribute == "style":
+        kept = [d.strip() for d in value.split(";") if d.strip() and CELL_DECLARATION.match(d.strip())]
+        return "; ".join(kept) if kept else None
+    return value
+
+
+def render_markdown(body: str, colors: dict = None) -> str:
+    """
+    Renders authored markdown for display, resolving column backgrounds against the org's palette. Raw HTML is
+    escaped rather than passed through, so that a reader sees what the author saw - the editor renders client side
+    and escapes it too, and text that merely looks like a tag (the `<url>` of our own quick reply syntax, say)
+    survives instead of being quietly swallowed. Sanitizing stays as defense in depth, and still deals with the
+    javascript: URLs markdown will happily make a link out of.
+    """
+    return nh3.clean(
+        markdown.markdown(
+            body,
+            extensions=[*MARKDOWN_EXTENSIONS, EscapeRawHTML(), AnnotateImages(), CellBreaks(), ColumnStyles(colors)],
+        ),
+        attributes=SANITIZE_ATTRIBUTES,
+        attribute_filter=_sanitize_attribute,
+    )
 
 
 class Knowledge(TembaModel):
@@ -71,10 +400,14 @@ class Knowledge(TembaModel):
     CONFIG_MAX_PAGES = "max_pages"
     CONFIG_REFRESH = "refresh"
 
+    # config keys for TYPE_HELPDESK
+    CONFIG_COLORS = "colors"  # the org's article palette, index -> hex; articles embed the index, never the hex
+
     DEFAULT_MAX_DEPTH = 3
     DEFAULT_MAX_PAGES = 500
     MAX_MAX_PAGES = 5_000
     MAX_URL_LEN = 2048
+    MAX_COLORS = 24
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="knowledge")
     knowledge_type = models.CharField(max_length=16, choices=TYPE_CHOICES)
@@ -147,6 +480,18 @@ class Knowledge(TembaModel):
     def url(self) -> str:
         return self.config.get(self.CONFIG_URL)
 
+    @property
+    def colors(self) -> dict:
+        """
+        The org's article palette, shared by every author so color use stays consistent across articles. Articles
+        embed an index into this; recoloring an entry restyles its every use, removing one blanks them.
+        """
+        return self.config.get(self.CONFIG_COLORS, {})
+
+    def set_colors(self, colors: dict):
+        self.config[self.CONFIG_COLORS] = colors
+        self.save(update_fields=("config", "modified_on"))
+
     def mark_pending(self):
         """
         Flags this source as needing (re)indexing so mailroom's sweep picks it up. Called whenever this app changes
@@ -191,6 +536,12 @@ class Knowledge(TembaModel):
         self.articles.exclude(parent=None).update(parent=None)
         delete_in_batches(self.articles.all())
 
+        # ATOMIC_REQUESTS means we're inside the request's transaction, so this has to wait for the commit - otherwise
+        # a later failure rolls the rows back and leaves them pointing at objects we've already destroyed
+        on_transaction_commit(lambda: self._delete_storage(item_paths, image_paths))
+
+    @staticmethod
+    def _delete_storage(item_paths: list, image_paths: list):
         for path in item_paths:
             default_storage.delete(path)
         for path in image_paths:
@@ -220,7 +571,9 @@ class Article(models.Model):
 
     MAX_TITLE_LEN = 255
     MAX_SLUG_LEN = 255
-    MAX_DEPTH = 3  # root + two levels of nesting; enforced by the (phase 4) reorder view
+    MAX_BODY_LEN = 100_000  # bodies are chunked and embedded, so this bounds what one article can cost to index
+    MAX_DEPTH = 2  # total levels - a root and its children, no grandchildren; enforced by the reorder view
+    MAX_ARTICLES = 1000  # per helpdesk
 
     uuid = models.UUIDField(unique=True, default=uuid4)
     knowledge = models.ForeignKey(Knowledge, on_delete=models.PROTECT, related_name="articles")
@@ -234,6 +587,11 @@ class Article(models.Model):
     slug = models.SlugField(max_length=MAX_SLUG_LEN)
     body = models.TextField(default="")  # markdown source
 
+    # ISO-639-3, so a helpdesk can hold articles in several languages. Translations aren't linked to each other yet -
+    # retrieval doesn't need them, as multilingual-e5 embeds cross-lingually, and linking is a question for the
+    # eventual public site rather than for search.
+    language = models.CharField(max_length=3, default="eng")
+
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_DRAFT)
     published_on = models.DateTimeField(null=True)
 
@@ -244,6 +602,26 @@ class Article(models.Model):
     # auto_now is load-bearing: mailroom's staleness sweep is MAX(modified_on) > knowledge.last_indexed_on, so an
     # unpublish or a soft-delete has to bump it for the removal to be noticed
     modified_on = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def create(cls, knowledge, user, title: str, *, body: str = "", parent=None, language: str = None):
+        assert knowledge.knowledge_type == Knowledge.TYPE_HELPDESK, "articles can only belong to a helpdesk"
+        assert parent is None or parent.knowledge_id == knowledge.id, "parent must be in the same helpdesk"
+
+        # new articles go to the end of their level so creating one never reshuffles the tree
+        last = cls.objects.filter(knowledge=knowledge, parent=parent, is_active=True).order_by("-sort_order").first()
+
+        return cls.objects.create(
+            knowledge=knowledge,
+            parent=parent,
+            sort_order=(last.sort_order + 1) if last else 0,
+            title=title,
+            slug=cls.get_unique_slug(knowledge, title),
+            body=body,
+            language=language or knowledge.org.flow_languages[0],
+            created_by=user,
+            modified_by=user,
+        )
 
     @classmethod
     def get_unique_slug(cls, knowledge, title: str, ignore=None) -> str:
@@ -260,20 +638,129 @@ class Article(models.Model):
 
         return slug
 
+    @classmethod
+    def get_tree(cls, knowledge) -> list:
+        """
+        Returns the helpdesk's active articles in display order - depth first, siblings by (sort_order, title) - with
+        each one's depth and the uuid of the article it's shown under attached.
+
+        parent_uuid is the parent as rendered rather than as stored, so it's null for an article whose parent has been
+        deleted - which is shown as a root here and would otherwise name an article the client can't see. Articles
+        stored deeper than MAX_DEPTH allows - data can predate the cap - render flattened rather than hidden: as
+        siblings following their parent, under the deepest ancestor the cap does allow.
+        """
+        active = list(knowledge.articles.filter(is_active=True).order_by("sort_order", "title"))
+        active_ids = {a.id for a in active}
+
+        by_parent = defaultdict(list)
+        for article in active:
+            # an article whose parent isn't in the active set is shown as a root rather than dropped - otherwise it
+            # would be invisible here and so unmovable, while still being indexed if it's published
+            by_parent[article.parent_id if article.parent_id in active_ids else None].append(article)
+
+        ordered = []
+
+        def visit(article, parent, depth):
+            for child in by_parent[article.id if article else None]:
+                child.depth = depth
+                child.parent_uuid = parent.uuid if parent else None
+                ordered.append(child)
+                if depth + 1 < cls.MAX_DEPTH:
+                    visit(child, child, depth + 1)
+                else:
+                    # a row at the cap can't be shown with children, so any it has render at its own depth and
+                    # parent - flattened into the siblings that follow it rather than dropped
+                    visit(child, parent, depth)
+
+        visit(None, None, 0)
+        return ordered
+
+    @classmethod
+    def apply_sort(cls, knowledge, order: list):
+        """
+        Applies a new tree ordering given as (uuid, parent uuid or None, sort order) tuples, which need only describe
+        what moved. The client's tree is never trusted - the resulting forest is re-derived here and rejected if it
+        names an article that isn't in this helpdesk, introduces a cycle, or nests deeper than MAX_DEPTH.
+        """
+        articles = {str(a.uuid): a for a in knowledge.articles.filter(is_active=True)}
+        uuids_by_id = {a.id: uuid for uuid, a in articles.items()}
+
+        # start from the tree as it stands so unmentioned articles keep their place
+        parents = {uuid: uuids_by_id.get(a.parent_id) for uuid, a in articles.items()}
+        changed = []
+
+        for uuid, parent_uuid, sort_order in order:
+            article = articles.get(uuid)
+            if not article:
+                raise ValueError(f"no such article: {uuid}")
+            if parent_uuid is not None and parent_uuid not in articles:
+                raise ValueError(f"no such article: {parent_uuid}")
+
+            parents[uuid] = parent_uuid
+            article.parent_id = articles[parent_uuid].id if parent_uuid else None
+            article.sort_order = sort_order
+            changed.append(article)
+
+        for uuid in parents:
+            seen, depth, ancestor = {uuid}, 1, parents[uuid]
+            while ancestor is not None:
+                if ancestor in seen:
+                    raise ValueError("articles can't be their own ancestor")
+                seen.add(ancestor)
+                depth += 1
+                if depth > cls.MAX_DEPTH:
+                    raise ValueError(f"articles can't be nested more than {cls.MAX_DEPTH} deep")
+                ancestor = parents[ancestor]
+
+        # deliberately doesn't touch modified_on: ordering isn't part of what mailroom indexes, so a reorder shouldn't
+        # make the helpdesk look stale and re-embed every article in it
+        cls.objects.bulk_update(changed, ("parent", "sort_order"))
+
     @property
     def org(self):
         return self.knowledge.org
 
+    def as_html(self) -> str:
+        return render_markdown(self.body, self.knowledge.colors)
+
+    def publish(self, user):
+        self.status = self.STATUS_PUBLISHED
+        self.published_on = timezone.now()
+        self.modified_by = user
+        self.save(update_fields=("status", "published_on", "modified_by", "modified_on"))
+
+    def unpublish(self, user):
+        """
+        Reverts to a draft. modified_on bumps, so mailroom's sweep sees the helpdesk as stale and drops our chunks.
+        """
+        self.status = self.STATUS_DRAFT
+        self.published_on = None
+        self.modified_by = user
+        self.save(update_fields=("status", "published_on", "modified_by", "modified_on"))
+
     def release(self, user):
         """
-        Soft delete. Children are reparented to our parent so the tree stays connected.
+        Soft delete - a tombstone, so mailroom's delta sweep notices and drops our chunks. Children are reparented to
+        our parent so the tree stays connected, and our images go for good since nothing will render this body again.
         """
-        self.children.update(parent=self.parent)
+        image_paths = list(self.images.values_list("path", flat=True))
 
-        self.is_active = False
-        self.status = self.STATUS_DRAFT
-        self.modified_by = user
-        self.save(update_fields=("is_active", "status", "modified_by", "modified_on"))
+        with transaction.atomic():
+            self.children.update(parent=self.parent)
+            self.images.all().delete()
+
+            self.is_active = False
+            self.status = self.STATUS_DRAFT
+            self.published_on = None
+            self.modified_by = user
+            self.save(update_fields=("is_active", "status", "published_on", "modified_by", "modified_on"))
+
+        # ATOMIC_REQUESTS means the atomic block above is only a savepoint, so the storage objects can't go until the
+        # request's transaction commits - otherwise a later failure restores the article without its screenshots
+        on_transaction_commit(lambda: [public_file_storage.delete(p) for p in image_paths])
+
+    def __str__(self):
+        return self.title
 
     class Meta:
         constraints = [
@@ -287,10 +774,16 @@ class Article(models.Model):
         ]
 
 
-def get_article_image_path(article, image_uuid, filename: str) -> str:
+def get_article_image_path(article, image_uuid, content_type: str) -> str:
+    # the extension comes from the sniffed content type rather than from the uploaded filename. These objects live in
+    # a public, unauthenticated bucket, and storage backends serve a key by the type its extension implies - so a file
+    # whose first bytes sniff as an image but which is named ".html" would otherwise be served as HTML from our own
+    # domain.
+    extension = mimetypes.guess_extension(content_type) or ".bin"
+
     return (
         f"orgs/{article.knowledge.org_id}/knowledge/{article.knowledge.uuid}/"
-        f"articles/{article.uuid}/{image_uuid}{Path(filename).suffix.lower()}"
+        f"articles/{article.uuid}/{image_uuid}{extension}"
     )
 
 
@@ -299,6 +792,10 @@ class ArticleImage(models.Model):
     A screenshot uploaded to an article and referenced from its markdown by URL. Stored in public storage because the
     eventual standalone help site serves these directly.
     """
+
+    ALLOWED_CONTENT_TYPES = ("image/gif", "image/jpeg", "image/png", "image/webp")
+    MAX_UPLOAD_SIZE = 1024 * 1024 * 10  # 10MB
+    MAX_IMAGES = 50  # per article
 
     uuid = models.UUIDField(unique=True, default=uuid4)
     article = models.ForeignKey(Article, on_delete=models.PROTECT, related_name="images")
@@ -310,6 +807,32 @@ class ArticleImage(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     created_on = models.DateTimeField(default=timezone.now)
 
+    @classmethod
+    def is_allowed_type(cls, content_type: str) -> bool:
+        return content_type in cls.ALLOWED_CONTENT_TYPES
+
+    @classmethod
+    def from_upload(cls, article, user, file):
+        # borrows Media's filename cleaning but not the model itself - its alternates and ffmpeg processing are
+        # message attachment concerns that a screenshot has no use for
+        from temba.msgs.models import Media
+
+        assert cls.is_allowed_type(file.content_type), "unsupported content type"
+
+        uuid = uuid4()
+        name = Media.clean_name(file.name, file.content_type)
+        path = public_file_storage.save(get_article_image_path(article, uuid, file.content_type), file)
+
+        return cls.objects.create(
+            uuid=uuid,
+            article=article,
+            name=name,
+            path=path,
+            content_type=file.content_type,
+            size=public_file_storage.size(path),
+            created_by=user,
+        )
+
     @property
     def url(self) -> str:
         return public_file_storage.url(self.path)
@@ -319,8 +842,8 @@ class ArticleImage(models.Model):
 
         super().delete()
 
-        # only remove the storage object once the row is gone
-        public_file_storage.delete(path)
+        # only remove the storage object once the deletion has committed - see Article.release
+        on_transaction_commit(lambda: public_file_storage.delete(path))
 
 
 def get_knowledge_item_path(knowledge, item_uuid, filename: str) -> str:
@@ -426,9 +949,10 @@ class KnowledgeItem(models.Model):
             super().delete()
             self.knowledge.mark_pending()
 
-        # only remove the storage object once the deletion has committed
+        # only remove the storage object once the deletion has committed - with ATOMIC_REQUESTS the atomic block above
+        # is just a savepoint, so this has to wait for the request's transaction
         if path:
-            default_storage.delete(path)
+            on_transaction_commit(lambda: default_storage.delete(path))
 
     class Meta:
         constraints = [

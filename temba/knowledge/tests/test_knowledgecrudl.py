@@ -119,35 +119,6 @@ class KnowledgeCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(shortcuts_url, self.admin)
         self.assertEqual(404, response.status_code)
 
-    def test_helpdesk(self):
-        helpdesk_url = reverse("knowledge.knowledge_helpdesk")
-
-        # nobody can access if agents feature not enabled
-        response = self.requestView(helpdesk_url, self.admin)
-        self.assertRedirect(response, reverse("orgs.org_workspace"))
-
-        self.enable_agents(self.org)
-
-        self.assertRequestDisallowed(helpdesk_url, [None, self.agent])
-
-        # the page is a plain article list for now
-        article = self.system_helpdesk.articles.create(
-            title="Getting Started", slug="getting-started", created_by=self.admin, modified_by=self.admin
-        )
-
-        for user in (self.editor, self.admin):
-            response = self.requestView(helpdesk_url, user)
-            self.assertEqual(200, response.status_code)
-
-        self.assertEqual(self.system_helpdesk, response.context["object"])
-        self.assertEqual([article], list(response.context["articles"]))
-        self.assertContains(response, "Getting Started")
-
-        # 404 if the system source is somehow absent
-        self.org.knowledge.filter(knowledge_type=Knowledge.TYPE_HELPDESK).update(is_active=False)
-        response = self.requestView(helpdesk_url, self.admin)
-        self.assertEqual(404, response.status_code)
-
     def test_create(self):
         create_url = reverse("knowledge.knowledge_create")
 
