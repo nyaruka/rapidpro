@@ -239,9 +239,6 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(8, len(response.context["object_list"]))
         self.assertEqual("/staff/users/all", response.headers[TEMBA_MENU_SELECTION])
 
-        response = self.requestView(list_url + "?filter=beta", self.customer_support)
-        self.assertEqual(set(), set(response.context["object_list"]))
-
         response = self.requestView(list_url + "?filter=staff", self.customer_support)
         self.assertEqual({self.customer_support}, set(response.context["object_list"]))
 
@@ -278,7 +275,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(200, response.status_code)
 
         granters = Group.objects.get(name="Granters")
-        betas = Group.objects.get(name="Beta")
+        dashboard = Group.objects.get(name="Dashboard")
 
         response = self.requestView(
             update_url,
@@ -287,7 +284,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
                 "email": "eddy@textit.com",
                 "first_name": "Edward",
                 "last_name": "",
-                "groups": [granters.id, betas.id],
+                "groups": [granters.id, dashboard.id],
             },
         )
         self.assertEqual(302, response.status_code)
@@ -296,7 +293,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("eddy@textit.com", self.editor.email)
         self.assertEqual("Edward", self.editor.first_name)
         self.assertEqual("", self.editor.last_name)
-        self.assertEqual({granters, betas}, set(self.editor.groups.all()))
+        self.assertEqual({granters, dashboard}, set(self.editor.groups.all()))
 
         # submit with one less group
         response = self.requestView(

@@ -887,9 +887,6 @@ class TembaTest(SmartminTest):
         with open(path, "rb") as f:
             return SimpleUploadedFile(name or path, content=f.read(), content_type=content_type)
 
-    def make_beta(self, user):
-        user.groups.add(Group.objects.get(name="Beta"))
-
     def anonymous(self, org: Org):
         """
         Makes the given org temporarily anonymous

@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-04 21:52+0000\n"
+"POT-Creation-Date: 2026-08-06 19:32+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -3658,9 +3658,6 @@ msgstr "Utilisateur mis à jour avec succès."
 
 msgid "Update User"
 msgstr "Mettre à jour l'utilisateur"
-
-msgid "Beta"
-msgstr "Bêta"
 
 msgid "✓"
 msgstr "✓"
