@@ -69,15 +69,9 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
 
         read_url = reverse("campaigns.campaign_read", args=[campaign.uuid])
 
-        # opt into legacy mode to test the legacy read page
-        self.setLegacyUI()
-
         self.assertRequestDisallowed(read_url, [None, self.agent, self.admin2])
         response = self.assertReadFetch(read_url, [self.editor, self.admin], context_object=campaign)
         self.assertContains(response, "Welcomes")
-        self.assertContains(response, "Registered")
-        self.assertContains(response, "Event2Flow")
-        self.assertContains(response, "Event3Flow")
 
         self.assertContentMenu(read_url, self.admin, ["New Event", "Edit", "Export", "Archive"])
 
@@ -85,7 +79,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertContentMenu(read_url, self.admin, ["Activate", "Export", "-", "Delete"])
 
-    def test_new_read(self):
+    def test_read_component(self):
         group = self.create_group("Reporters", contacts=[])
         campaign = self.create_campaign(self.org, "Welcomes", group)
 
@@ -93,15 +87,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
-        # legacy mode renders the legacy table
-        self.setLegacyUI()
-        response = self.client.get(read_url)
-        self.assertNotContains(response, "temba-campaign-events")
-        self.assertIn("events", response.context)
-
-        # by default we get the temba-campaign-events component which fetches the events itself
-        self.setLegacyUI(False)
-
+        # the temba-campaign-events component fetches the events itself
         response = self.client.get(read_url)
         self.assertContains(response, "temba-campaign-events")
         self.assertContains(response, "Welcomes")
@@ -135,12 +121,6 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.editor)
 
-        # like the new read page it feeds, the endpoint doesn't exist in legacy mode
-        self.setLegacyUI()
-        response = self.client.get(events_url)
-        self.assertEqual(404, response.status_code)
-
-        self.setLegacyUI(False)
         response = self.client.get(events_url)
         self.assertEqual(200, response.status_code)
 
@@ -296,14 +276,11 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(CampaignEvent.objects.filter(campaign=campaign, is_active=False).count(), 3)
 
     def test_list(self):
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         list_url = reverse("campaigns.campaign_list")
 
         group = self.create_group("Reporters", contacts=[])
-        campaign1 = self.create_campaign(self.org, "Welcomes", group)
-        campaign2 = self.create_campaign(self.org, "Follow Ups", group)
+        self.create_campaign(self.org, "Welcomes", group)
+        self.create_campaign(self.org, "Follow Ups", group)
         campaign3 = self.create_campaign(self.org, "Reminders", group)
         campaign3.archive(self.admin)
 
@@ -311,11 +288,11 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.create_campaign(self.org2, "Welcomes", other_org_group)
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
-        self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[campaign2, campaign1])
+        self.assertListFetch(list_url, [self.editor, self.admin])
         self.assertContentMenu(list_url, self.admin, ["New Campaign"])
 
     @mock_mailroom
-    def test_new_list(self, mr_mocks):
+    def test_list_component(self, mr_mocks):
         group = self.create_group("Reporters", contacts=[])
         campaign1 = self.create_campaign(self.org, "Welcomes", group)
         campaign2 = self.create_campaign(self.org, "Follow Ups", group)
@@ -325,14 +302,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
-        # legacy mode renders the legacy table
-        self.setLegacyUI()
-        response = self.client.get(list_url)
-        self.assertNotContains(response, "temba-campaign-list")
-
-        # by default we get the temba-campaign-list component, pointed at the internal campaigns api
-        self.setLegacyUI(False)
-
+        # the temba-campaign-list component is pointed at the internal campaigns api
         response = self.client.get(list_url)
         self.assertContains(response, "temba-campaign-list")
         self.assertEqual(
@@ -373,9 +343,6 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(other_org_campaign.is_archived)
 
     def test_archived(self):
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         archived_url = reverse("campaigns.campaign_archived")
 
         group = self.create_group("Reporters", contacts=[])
@@ -390,7 +357,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         campaign2.archive(self.admin)
 
         self.assertRequestDisallowed(archived_url, [None, self.agent])
-        self.assertListFetch(archived_url, [self.editor, self.admin], context_objects=[campaign2, campaign1])
+        self.assertListFetch(archived_url, [self.editor, self.admin])
         self.assertContentMenu(archived_url, self.admin, [])
 
     @mock_mailroom

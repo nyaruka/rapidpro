@@ -263,37 +263,20 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(birth.show_in_table)
 
     def test_list(self):
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         list_url = reverse("contacts.contactfield_list")
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
-        self.assertListFetch(list_url, [self.editor, self.admin])
+
+        # the temba-field-list component fetches the fields itself
+        response = self.assertListFetch(list_url, [self.editor, self.admin])
+        self.assertContains(response, "temba-field-list")
+
         self.assertContentMenu(list_url, self.editor, ["New"])
         self.assertContentMenu(list_url, self.admin, ["New"])
 
+        # once the workspace is at its field limit, there's no New option
         with override_settings(ORG_LIMIT_DEFAULTS={"fields": 3}):
-            response = self.assertListFetch(list_url, [self.admin])
-            self.assertContains(response, "You have reached the per-workspace limit")
             self.assertContentMenu(list_url, self.admin, [])
-
-    def test_new_list(self):
-        list_url = reverse("contacts.contactfield_list")
-
-        self.login(self.admin)
-
-        # legacy mode renders the legacy field manager
-        self.setLegacyUI()
-        response = self.client.get(list_url)
-        self.assertContains(response, "temba-field-manager")
-
-        # by default we get the temba-field-list component which fetches the fields itself
-        self.setLegacyUI(False)
-
-        response = self.client.get(list_url)
-        self.assertContains(response, "temba-field-list")
-        self.assertNotContains(response, "temba-field-manager")
 
     @mock_mailroom
     def test_detail(self, mr_mocks):
@@ -314,12 +297,6 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.editor)
 
-        # like the new list page it feeds, the endpoint doesn't exist in legacy mode
-        self.setLegacyUI()
-        response = self.client.get(detail_url)
-        self.assertEqual(404, response.status_code)
-
-        self.setLegacyUI(False)
         response = self.client.get(detail_url)
         self.assertEqual(200, response.status_code)
         self.assertEqual(

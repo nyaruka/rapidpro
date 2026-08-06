@@ -1,7 +1,6 @@
 from datetime import datetime, timezone as tzone
 from unittest.mock import patch
 
-from django.contrib.auth.models import Group
 from django.urls import reverse
 
 from temba.channels.models import Channel
@@ -60,7 +59,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         create_new_convo_url = reverse("triggers.trigger_create_new_conversation")
         create_inbound_call_url = reverse("triggers.trigger_create_inbound_call")
         create_missed_call_url = reverse("triggers.trigger_create_missed_call")
-        create_opt_in_url = reverse("triggers.trigger_create_opt_in")
 
         self.assertLoginRedirect(self.client.get(create_url))
 
@@ -69,8 +67,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
         response = self.client.get(create_url)
-
-        self.assertNotContains(response, create_opt_in_url)
 
         # call triggers can be made without a call channel
         self.assertContains(response, create_inbound_call_url)
@@ -86,13 +82,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(create_url)
         self.assertContains(response, create_new_convo_url)
         self.assertNotContains(response, create_missed_call_url)
-
-        # opt-in triggers should not appear in the new trigger chooser
-        Group.objects.get(name="Beta").user_set.add(self.editor)
-        self.login(self.editor, choose_org=self.org)
-        response = self.client.get(create_url)
-
-        self.assertNotContains(response, create_opt_in_url)
 
     def test_create_keyword(self):
         create_url = reverse("triggers.trigger_create_keyword")
@@ -676,126 +665,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             form_errors={"__all__": "There already exists a trigger of this type with these options."},
         )
 
-    def test_create_opt_in(self):
-        flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
-        flow2 = self.create_flow("Flow 2", flow_type=Flow.TYPE_BACKGROUND)
-        group1 = self.create_group("Group 1", contacts=[])
-
-        channel1 = self.create_channel("FB", "Facebook 1", "1234567")
-        channel2 = self.create_channel("FB", "Facebook 2", "2345678")
-
-        # flows that shouldn't appear as options
-        self.create_flow("Flow 3", flow_type=Flow.TYPE_VOICE)
-        self.create_flow("Flow 4", is_system=True)
-        self.create_flow("Flow 5", org=self.org2)
-
-        create_url = reverse("triggers.trigger_create_opt_in")
-
-        self.assertRequestDisallowed(create_url, [None, self.agent])
-        response = self.assertCreateFetch(
-            create_url, [self.editor, self.admin], form_fields=["flow", "channel", "groups", "exclude_groups"]
-        )
-
-        # flow options should be messaging and background flows
-        self.assertEqual([flow1, flow2], list(response.context["form"].fields["flow"].queryset))
-
-        # channel options should only be channels that support optins
-        self.assertEqual([channel1, channel2], list(response.context["form"].fields["channel"].queryset))
-
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow1.id},
-            new_obj_query=Trigger.objects.filter(flow=flow1, trigger_type=Trigger.TYPE_OPT_IN),
-            success_status=200,
-        )
-
-        # we can't create another
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id},
-            form_errors={"__all__": "There already exists a trigger of this type with these options."},
-        )
-
-        # works if we specify a group
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id, "groups": group1.id},
-            new_obj_query=Trigger.objects.filter(trigger_type=Trigger.TYPE_OPT_IN, flow=flow2),
-            success_status=200,
-        )
-
-        # or a channel
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id, "channel": channel2.id},
-            new_obj_query=Trigger.objects.filter(trigger_type=Trigger.TYPE_OPT_IN, flow=flow2, channel=channel2),
-            success_status=200,
-        )
-
-    def test_create_opt_out(self):
-        flow1 = self.create_flow("Flow 1", flow_type=Flow.TYPE_MESSAGE)
-        flow2 = self.create_flow("Flow 2", flow_type=Flow.TYPE_BACKGROUND)
-        group1 = self.create_group("Group 1", contacts=[])
-
-        channel1 = self.create_channel("FB", "Facebook 1", "1234567")
-        channel2 = self.create_channel("FB", "Facebook 2", "2345678")
-
-        # flows that shouldn't appear as options
-        self.create_flow("Flow 3", flow_type=Flow.TYPE_VOICE)
-        self.create_flow("Flow 4", is_system=True)
-        self.create_flow("Flow 5", org=self.org2)
-
-        create_url = reverse("triggers.trigger_create_opt_out")
-
-        self.assertRequestDisallowed(create_url, [None, self.agent])
-        response = self.assertCreateFetch(
-            create_url, [self.editor, self.admin], form_fields=["flow", "channel", "groups", "exclude_groups"]
-        )
-
-        # flow options should be messaging and background flows
-        self.assertEqual([flow1, flow2], list(response.context["form"].fields["flow"].queryset))
-
-        # channel options should only be channels that support optins
-        self.assertEqual([channel1, channel2], list(response.context["form"].fields["channel"].queryset))
-
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow1.id},
-            new_obj_query=Trigger.objects.filter(flow=flow1, trigger_type=Trigger.TYPE_OPT_OUT),
-            success_status=200,
-        )
-
-        # we can't create another...
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id},
-            form_errors={"__all__": "There already exists a trigger of this type with these options."},
-        )
-
-        # works if we specify a group
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id, "groups": group1.id},
-            new_obj_query=Trigger.objects.filter(trigger_type=Trigger.TYPE_OPT_OUT, flow=flow2),
-            success_status=200,
-        )
-
-        # or a channel
-        self.assertCreateSubmit(
-            create_url,
-            self.admin,
-            {"flow": flow2.id, "channel": channel1.id},
-            new_obj_query=Trigger.objects.filter(trigger_type=Trigger.TYPE_OPT_OUT, flow=flow2, channel=channel1),
-            success_status=200,
-        )
-
     def test_update_keyword(self):
         flow = self.create_flow("Test")
         group1 = self.create_group("Chat", contacts=[])
@@ -1033,17 +902,14 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_list(self, mock_activate_trigger, mock_deactivate_trigger):
         list_url = reverse("triggers.trigger_list")
 
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         flow1 = self.create_flow("Report")
         flow2 = self.create_flow("Survey")
         flow3 = self.create_flow("Test", org=self.org2)
         channel = self.create_channel("FB", "Facebook", "1234567")
-        trigger1 = Trigger.create(
+        Trigger.create(
             self.org, self.admin, Trigger.TYPE_KEYWORD, flow1, keywords=["abc"], match_type=Trigger.MATCH_FIRST_WORD
         )
-        trigger2 = Trigger.create(
+        Trigger.create(
             self.org, self.admin, Trigger.TYPE_KEYWORD, flow2, keywords=["test"], match_type=Trigger.MATCH_ONLY_WORD
         )
         trigger3 = Trigger.create(
@@ -1079,28 +945,14 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
-        response = self.assertListFetch(
-            list_url, [self.editor, self.admin], context_objects=[trigger4, trigger3, trigger2, trigger1]
-        )
+        response = self.assertListFetch(list_url, [self.editor, self.admin])
         self.assertEqual(("archive",), response.context["actions"])
-
-        # can search by keyword
-        self.assertListFetch(list_url + "?search=Start", [self.admin], context_objects=[trigger3])
-
-        # can search by keyword
-        self.assertListFetch(list_url + "?search=begin", [self.admin], context_objects=[trigger3])
-
-        # or flow name
-        self.assertListFetch(list_url + "?search=VEY", [self.admin], context_objects=[trigger2])
 
         # can archive it
         self.client.post(list_url, {"action": "archive", "objects": trigger3.id})
 
         trigger3.refresh_from_db()
         self.assertTrue(trigger3.is_archived)
-
-        # no longer appears in list
-        self.assertListFetch(list_url, [self.admin], context_objects=[trigger4, trigger2, trigger1])
 
         # test when archiving fails
         mock_deactivate_trigger.side_effect = ValueError("boom")
@@ -1117,7 +969,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.status_code, 302)
         self.assertRedirect(response, reverse("triggers.trigger_create"))
 
-    def test_new_list(self):
+    def test_list_component(self):
         flow = self.create_flow("Test")
         trigger1 = Trigger.create(
             self.org, self.admin, Trigger.TYPE_KEYWORD, flow, keywords=["start"], match_type=Trigger.MATCH_ONLY_WORD
@@ -1136,14 +988,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
-        # legacy mode renders the legacy table
-        self.setLegacyUI()
-        response = self.client.get(list_url)
-        self.assertNotContains(response, "temba-trigger-list")
-
-        # by default we get the temba-trigger-list component, pointed at the internal triggers api
-        self.setLegacyUI(False)
-
+        # the temba-trigger-list component is pointed at the internal triggers api
         response = self.client.get(list_url)
         self.assertContains(response, "temba-trigger-list")
         self.assertEqual(
@@ -1180,9 +1025,6 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(trigger2.is_archived)
 
     def test_archived(self):
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         flow = self.create_flow("Test")
         other_org_flow = self.create_flow("Test", org=self.org2)
 
@@ -1196,7 +1038,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             match_type=Trigger.MATCH_ONLY_WORD,
             is_archived=True,
         )
-        trigger2 = Trigger.create(
+        Trigger.create(
             self.org,
             self.admin,
             Trigger.TYPE_KEYWORD,
@@ -1235,23 +1077,16 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         archived_url = reverse("triggers.trigger_archived")
-        list_url = reverse("triggers.trigger_list")
 
         self.assertRequestDisallowed(archived_url, [None, self.agent])
-        response = self.assertListFetch(archived_url, [self.editor, self.admin], context_objects=[trigger2, trigger1])
+        response = self.assertListFetch(archived_url, [self.editor, self.admin])
         self.assertEqual(("restore", "delete"), response.context["actions"])
 
         # can restore it
         self.client.post(archived_url, {"action": "restore", "objects": trigger1.id})
 
-        response = self.client.get(archived_url)
-
-        self.assertNotContains(response, "startkeyword")
-
-        response = self.client.get(list_url)
-
-        # should be back in the main trigger list
-        self.assertContains(response, "start")
+        trigger1.refresh_from_db()
+        self.assertFalse(trigger1.is_archived)
 
         # once archived we can duplicate it but with one active at a time
         trigger = Trigger.objects.get(keywords=["start"])
@@ -1267,17 +1102,9 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         other_trigger = Trigger.objects.filter(keywords=["start"], is_archived=False)[0]
         self.assertFalse(trigger.pk == other_trigger.pk)
 
-        # try archiving it we have one archived and the other active
-        response = self.client.get(archived_url)
-        self.assertContains(response, "start")
-
+        # restoring it leaves one archived and the other active
         self.client.post(archived_url, {"action": "restore", "objects": trigger.id})
 
-        response = self.client.get(archived_url)
-        self.assertContains(response, "start")
-
-        response = self.client.get(list_url)
-        self.assertContains(response, "start")
         self.assertEqual(1, Trigger.objects.filter(keywords=["start"], is_archived=False).count())
         self.assertNotEqual(other_trigger, Trigger.objects.filter(keywords=["start"], is_archived=False)[0])
 
@@ -1359,65 +1186,54 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             is_active=True,
         )
 
+        def archived_keywords() -> set:
+            return {t.keywords[0] for t in Trigger.objects.filter(org=self.org, is_active=True, is_archived=True)}
+
         # cannot bulk delete an active trigger
         self.client.post(archived_url, {"action": "delete", "objects": trigger7.id})
 
-        response = self.client.get(archived_url)
-        self.assertNotContains(response, trigger7.keywords[0])
-
-        response = self.client.get(list_url)
-        self.assertContains(response, trigger7.keywords[0])
+        trigger7.refresh_from_db()
+        self.assertTrue(trigger7.is_active)
 
         # cannot bulk delete a mix of active and archived triggers
         self.client.post(archived_url, {"action": "delete", "objects": [trigger3.id, trigger4.id, trigger7.id]})
-        response = self.client.get(archived_url)
-        self.assertContains(response, trigger3.keywords[0])
-        self.assertContains(response, trigger4.keywords[0])
-        self.assertContains(response, trigger5.keywords[0])
-        self.assertContains(response, trigger6.keywords[0])
-        self.assertNotContains(response, trigger7.keywords[0])
-
-        response = self.client.get(list_url)
-        self.assertContains(response, trigger7.keywords[0])
+        self.assertTrue(
+            {trigger3.keywords[0], trigger4.keywords[0], trigger5.keywords[0], trigger6.keywords[0]}
+            <= archived_keywords()
+        )
+        trigger7.refresh_from_db()
+        self.assertTrue(trigger7.is_active)
 
         # can bulk delete archived triggers
         self.client.post(archived_url, {"action": "delete", "objects": [trigger3.id, trigger4.id]})
-        response = self.client.get(archived_url)
-        self.assertNotContains(response, trigger3.keywords[0])
-        self.assertNotContains(response, trigger4.keywords[0])
-        self.assertContains(response, trigger5.keywords[0])
-        self.assertContains(response, trigger6.keywords[0])
+        remaining = archived_keywords()
+        self.assertNotIn(trigger3.keywords[0], remaining)
+        self.assertNotIn(trigger4.keywords[0], remaining)
+        self.assertIn(trigger5.keywords[0], remaining)
+        self.assertIn(trigger6.keywords[0], remaining)
 
         # can bulk "delete all" archived triggers
         self.client.post(archived_url, {"action": "delete", "all": "true"})
-        response = self.client.get(archived_url)
-        self.assertNotContains(response, trigger3.keywords[0])
-        self.assertNotContains(response, trigger4.keywords[0])
-        self.assertNotContains(response, trigger5.keywords[0])
-        self.assertNotContains(response, trigger6.keywords[0])
-        # check that the active trigger is unaffected by the bulk "delete all"
-        self.assertNotContains(response, trigger7.keywords[0])
+        self.assertEqual(set(), archived_keywords())
 
-        response = self.client.get(list_url)
-        self.assertContains(response, trigger7.keywords[0])
+        # check that the active trigger is unaffected by the bulk "delete all"
+        trigger7.refresh_from_db()
+        self.assertTrue(trigger7.is_active)
 
     def test_folder(self):
-        # opt into legacy mode to test the legacy list rendering
-        self.setLegacyUI()
-
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
         flow3 = self.create_flow("Flow 3", org=self.org2)
 
-        trigger1 = Trigger.create(
+        Trigger.create(
             self.org, self.admin, Trigger.TYPE_KEYWORD, flow1, keywords=["test"], match_type=Trigger.MATCH_ONLY_WORD
         )
-        trigger2 = Trigger.create(
+        Trigger.create(
             self.org, self.admin, Trigger.TYPE_KEYWORD, flow2, keywords=["abc"], match_type=Trigger.MATCH_ONLY_WORD
         )
-        trigger3 = Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow1, referrer_id="234")
-        trigger4 = Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow2, referrer_id="456")
-        trigger5 = Trigger.create(self.org, self.admin, Trigger.TYPE_CATCH_ALL, flow1)
+        Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow1, referrer_id="234")
+        Trigger.create(self.org, self.admin, Trigger.TYPE_REFERRAL, flow2, referrer_id="456")
+        Trigger.create(self.org, self.admin, Trigger.TYPE_CATCH_ALL, flow1)
         Trigger.create(
             self.org2, self.admin, Trigger.TYPE_KEYWORD, flow3, keywords=["other"], match_type=Trigger.MATCH_ONLY_WORD
         )
@@ -1430,14 +1246,9 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(referral_url, [None, self.agent])
         self.assertRequestDisallowed(tickets_url, [None, self.agent])
 
-        response = self.assertListFetch(
-            messages_url, [self.editor, self.admin], context_objects=[trigger2, trigger1, trigger5]
-        )
+        response = self.assertListFetch(messages_url, [self.editor, self.admin])
         self.assertEqual("/trigger/messages", response.headers[TEMBA_MENU_SELECTION])
         self.assertEqual(("archive",), response.context["actions"])
 
-        # can search by keywords
-        self.assertListFetch(messages_url + "?search=TEST", [self.admin], context_objects=[trigger1])
-
-        self.assertListFetch(referral_url, [self.admin], context_objects=[trigger4, trigger3])
-        self.assertListFetch(tickets_url, [self.admin], context_objects=[])
+        self.assertListFetch(referral_url, [self.admin])
+        self.assertListFetch(tickets_url, [self.admin])

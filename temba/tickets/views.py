@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from temba import mailroom
 from temba.contacts.models import URN
 from temba.msgs.models import Msg
 from temba.orgs.models import Org, OrgRole
@@ -193,6 +194,7 @@ class TicketCRUDL(SmartCRUDL):
         "menu",
         "list",
         "folder",
+        "search",
         "update",
         "note",
         "chart",
@@ -311,21 +313,13 @@ class TicketCRUDL(SmartCRUDL):
         Placeholder view for the ticketing frontend components which fetch tickets from the folders view below.
         """
 
-        NEW_LIST_TEMPLATE = "tickets/ticket_list_new.html"
-
-        def get_template_names(self):
-            if not getattr(self.request, "legacy", False):
-                return [self.NEW_LIST_TEMPLATE]
-
-            return super().get_template_names()
-
         @classmethod
         def derive_url_pattern(cls, path, action):
             folders = "|".join(TicketFolder.all().keys())
-            return rf"^ticket/((?P<folder>{folders}|{UUID_REGEX.pattern})/((?P<status>open|closed)/)?((?P<uuid>[a-z0-9\-]+)/)?)?$"
+            return rf"^ticket/((?P<folder>{folders}|{UUID_REGEX.pattern})/((?P<uuid>[a-z0-9\-]+)/)?)?$"
 
         def derive_menu_path(self):
-            folder, status, ticket, in_page = self.tickets_path
+            folder, ticket, in_page = self.tickets_path
 
             # topics are nested inside their own menu group, the system folders aren't
             if isinstance(folder, TopicFolder):
@@ -334,9 +328,9 @@ class TicketCRUDL(SmartCRUDL):
             return f"/ticket/{folder.slug}/"
 
         @cached_property
-        def tickets_path(self) -> tuple[TicketFolder, str, Ticket, bool]:
+        def tickets_path(self) -> tuple[TicketFolder, Ticket, bool]:
             """
-            Returns tuple of folder, status, ticket, and whether that ticket exists in first page of tickets
+            Returns tuple of folder, ticket, and whether that ticket exists in first page of tickets
             """
 
             org = self.request.org
@@ -347,37 +341,31 @@ class TicketCRUDL(SmartCRUDL):
             if not folder:
                 raise Http404()
 
-            status_slug = self.kwargs.get("status")  # only legacy URLs include a status
-            status = Ticket.STATUS_CLOSED if status_slug == "closed" else Ticket.STATUS_OPEN
-
             # is the request for a specific ticket? (a malformed uuid is treated as not found)
             if (uuid := self.kwargs.get("uuid")) and is_uuid(uuid):
                 # is the ticket in the first page of the current folder?
                 first_page_qs = folder.get_queryset(org, user, ordered=True)
-                if status_slug:
-                    first_page_qs = first_page_qs.filter(status=status)
 
                 for ticket in list(first_page_qs[: TicketCRUDL.Folder.paginate_by]):
                     if str(ticket.uuid) == uuid:
-                        return folder, ticket.status, ticket, True
+                        return folder, ticket, True
 
                 # if not, see if we can access it in the All or Mine tickets folders and if so switch to that
                 mine_folder = TicketFolder.from_slug(org, user, MineFolder.slug)
                 all_folder = TicketFolder.from_slug(org, user, AllFolder.slug)
                 for fallback in (mine_folder, all_folder):  # don't rebind folder, we fall back to it below
                     if ticket := fallback.get_queryset(org, user, ordered=False).filter(uuid=uuid).first():
-                        return fallback, ticket.status, ticket, False
+                        return fallback, ticket, False
 
-            return folder, status, None, False
+            return folder, None, False
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            folder, status, ticket, in_page = self.tickets_path
+            folder, ticket, in_page = self.tickets_path
 
             context["title"] = folder.name
             context["folder"] = str(folder.slug)
-            context["status"] = "open" if status == Ticket.STATUS_OPEN else "closed"
             context["has_tickets"] = self.request.org.tickets.exists()
             context["msg_logs_after"] = (timezone.now() - settings.RETENTION_PERIODS["channellog"]).isoformat()
             # serialized for temba-card-layout's settings attribute
@@ -400,10 +388,13 @@ class TicketCRUDL(SmartCRUDL):
             context["can_assign"] = membership.can_assign if membership else True
             context["can_reply_non_own"] = membership.can_reply_non_own if membership else True
 
+            # cross-ticket search is only available to users who can access all topics (see TicketCRUDL.Search)
+            context["can_search"] = Topic.get_restriction(self.request.org, self.request.user) is None
+
             return context
 
         def build_context_menu(self, menu):
-            folder, status, ticket, in_page = self.tickets_path
+            folder, ticket, in_page = self.tickets_path
 
             if ticket and ticket.status == Ticket.STATUS_OPEN:
                 if self.has_org_perm("tickets.ticket_note"):
@@ -435,7 +426,7 @@ class TicketCRUDL(SmartCRUDL):
         @classmethod
         def derive_url_pattern(cls, path, action):
             folders = "|".join(TicketFolder.all().keys())
-            return rf"^{path}/{action}/(?P<folder>{folders}|{UUID_REGEX.pattern})/((?P<status>open|closed)/)?((?P<uuid>[a-z0-9\-]+))?$"
+            return rf"^{path}/{action}/(?P<folder>{folders}|{UUID_REGEX.pattern})/((?P<uuid>[a-z0-9\-]+))?$"
 
         @cached_property
         def folder(self) -> TicketFolder:
@@ -491,8 +482,6 @@ class TicketCRUDL(SmartCRUDL):
 
         def get_tickets(self) -> list:
             uuid = self.kwargs.get("uuid", None)
-            status_slug = self.kwargs.get("status")
-            status = (Ticket.STATUS_OPEN if status_slug == "open" else Ticket.STATUS_CLOSED) if status_slug else None
             after = self._int_param("after")
             before = self._int_param("before")
             before_id = self._int_param("before_id")
@@ -502,25 +491,18 @@ class TicketCRUDL(SmartCRUDL):
                 if not is_uuid(uuid):  # malformed uuid can't match anything
                     return []
 
-                qs = self._get_queryset(ordered=True)
-                if status:
-                    qs = qs.filter(status=status)
-                return list(qs.filter(uuid=uuid))
+                return list(self._get_queryset(ordered=True).filter(uuid=uuid))
 
             # all new activity since a previous fetch.. our indexes have status between org/assignee and
-            # last_activity_on so status always needs to be constrained - as equality for a status specific
-            # fetch, or as both statuses so the planner can still use the index for the merged fetch
+            # last_activity_on so status always needs to be constrained - as both statuses so the planner can still
+            # use the index for the merged fetch
             if after:
                 after = timestamp_to_datetime(after)
                 qs = (
                     self._get_queryset(ordered=False)
                     .filter(last_activity_on__gt=after)
                     .order_by("last_activity_on", "id")
-                )
-                qs = (
-                    qs.filter(status=status)
-                    if status
-                    else qs.filter(status__in=(Ticket.STATUS_OPEN, Ticket.STATUS_CLOSED))
+                    .filter(status__in=(Ticket.STATUS_OPEN, Ticket.STATUS_CLOSED))
                 )
 
                 # bounded so a long gap in polling can't return the world - the client advances its cursor and
@@ -542,33 +524,23 @@ class TicketCRUDL(SmartCRUDL):
                 return tickets
 
             # pages are read in index order - open before closed, then most recent activity - and paged by an
-            # exact (last_activity_on, id) cursor so that tickets sharing a timestamp can't be lost
+            # exact (status, last_activity_on, id) cursor so that tickets sharing a timestamp can't be lost. The
+            # status component comes from the row the previous page ended on, since a page can cross the open/closed
+            # boundary; an in-flight link without it is assumed to be in the open tickets.
             qs = self._get_queryset(ordered=True)
-            if status:
-                qs = qs.filter(status=status)
 
             if before and before_id:
-                before = timestamp_to_datetime(before)
-                if status:
-                    cursor = RawSQL(
-                        "(tickets_ticket.last_activity_on, tickets_ticket.id) < (%s, %s)",
-                        (before, before_id),
-                        output_field=models.BooleanField(),
-                    )
-                else:
-                    # a merged cursor is always in the open tickets because next links switch to the closed
-                    # URL once a page ends in a closed ticket
-                    cursor = RawSQL(
+                before_status = self.request.GET.get("before_status")
+                if before_status not in (Ticket.STATUS_OPEN, Ticket.STATUS_CLOSED):
+                    before_status = Ticket.STATUS_OPEN
+
+                qs = qs.filter(
+                    RawSQL(
                         "(tickets_ticket.status, tickets_ticket.last_activity_on, tickets_ticket.id) < (%s, %s, %s)",
-                        (Ticket.STATUS_OPEN, before, before_id),
+                        (before_status, timestamp_to_datetime(before), before_id),
                         output_field=models.BooleanField(),
                     )
-                qs = qs.filter(cursor)
-            elif before and status:
-                # kept for any in-flight links from before cursors included ids - only meaningful for a status
-                # specific fetch, on the merged fetch a timestamp alone can't say which side of the open/closed
-                # boundary it's on so it's ignored and the first page is served
-                qs = qs.filter(last_activity_on__lt=timestamp_to_datetime(before))
+                )
 
             return list(qs[: self.paginate_by])
 
@@ -635,23 +607,65 @@ class TicketCRUDL(SmartCRUDL):
             if not self._int_param("after") and len(context["tickets"]) >= self.paginate_by:
                 last = context["tickets"][-1]
 
-                # merged paging continues without a status until it crosses into closed tickets
-                status_slug = self.kwargs.get("status")
-                if not status_slug and last.status == Ticket.STATUS_CLOSED:
-                    status_slug = "closed"
-
-                # the status and uuid parts of the pattern are optional so it can only be reversed by folder
+                # the uuid part of the pattern is optional so it can only be reversed by folder
                 folder_url = reverse("tickets.ticket_folder", kwargs={"folder": self.folder.slug})
-                if status_slug:
-                    folder_url += f"{status_slug}/"
 
-                next_url = f"{folder_url}?before={datetime_to_timestamp(last.last_activity_on)}&before_id={last.id}"
+                next_url = (
+                    f"{folder_url}?before={datetime_to_timestamp(last.last_activity_on)}"
+                    f"&before_id={last.id}&before_status={last.status}"
+                )
                 if self.assignee:
                     next_url += f"&assignee={self.assignee.uuid}"
 
                 results["next"] = next_url
 
             return JsonResponse(results)
+
+    class Search(OrgPermsMixin, SmartTemplateView):
+        """
+        Searches message text across the tickets in this org. Only available to users who can access all of the org's
+        topics - the search backend can't yet scope matches by topic, so rather than post-filter its capped results
+        (which could silently return nothing for a restricted user), topic-restricted agents don't get search at all.
+        """
+
+        permission = "tickets.ticket_list"
+
+        def has_permission(self, request, *args, **kwargs):
+            return super().has_permission(request, *args, **kwargs) and (
+                Topic.get_restriction(request.org, request.user) is None
+            )
+
+        def get(self, request, *args, **kwargs):
+            org = request.org
+            text = request.GET.get("text", "").strip()
+            if not text:
+                return JsonResponse({"results": []})
+
+            matches = mailroom.get_client().msg_search(org, text, in_ticket=True)
+
+            # resolve the tickets the matched events belong to - anything unresolvable (a ticket in another org, one
+            # that no longer exists, or a malformed uuid) is dropped
+            ticket_uuids = {e.get("ticket_uuid") for _, e in matches if is_uuid(e.get("ticket_uuid"))}
+            tickets_by_uuid = {str(t.uuid): t for t in org.tickets.filter(uuid__in=ticket_uuids)}
+
+            results = []
+            for contact, event in matches:
+                ticket = tickets_by_uuid.get(event.get("ticket_uuid"))
+                if not ticket:
+                    continue
+
+                results.append(
+                    {
+                        "contact": {"uuid": str(contact.uuid), "name": contact.get_display(org=org)},
+                        "ticket": {
+                            "uuid": str(ticket.uuid),
+                            "status": "open" if ticket.status == Ticket.STATUS_OPEN else "closed",
+                        },
+                        "event": event,
+                    }
+                )
+
+            return JsonResponse({"results": results})
 
     class Update(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.ModelForm):

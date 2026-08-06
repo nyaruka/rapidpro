@@ -81,8 +81,9 @@ class TicketTest(TembaTest):
         self.assertEqual(all_tickets, set(Ticket.get_accessible(self.org, self.admin)))
         self.assertEqual(all_tickets, set(Ticket.get_accessible(self.org, self.agent)))
 
-        # an agent on a topic-restricted team only sees tickets in their topics, plus any assigned to them
-        self.assertEqual({sales_ticket, assigned_ticket}, set(Ticket.get_accessible(self.org, agent2)))
+        # an agent on a topic-restricted team only sees tickets in their topics - even one assigned to them in a topic
+        # their team doesn't have access to is not visible
+        self.assertEqual({sales_ticket}, set(Ticket.get_accessible(self.org, agent2)))
 
         # a non-staff user with no membership in the org sees nothing (fails closed)
         self.assertEqual(set(), set(Ticket.get_accessible(self.org, self.admin2)))

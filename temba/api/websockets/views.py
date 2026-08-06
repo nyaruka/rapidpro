@@ -216,9 +216,8 @@ class SubscriptionEndpoint(BaseEndpoint):
         ``history:<contact-uuid>:<ticket-uuid>`` - a ticket's history. The contact must belong to the workspace and be
         active, and the ticket must in turn belong to that contact - and so to the same workspace, since a ticket
         always shares its contact's org - and the user must actually be allowed to view it: an agent on a
-        topic-restricted team can only see tickets in their team's topics (plus any assigned to them), exactly as the
-        ticketing UI scopes them, so we authorize through ``Ticket.get_accessible`` rather than just checking the
-        ticket exists.
+        topic-restricted team can only see tickets in their team's topics, exactly as the ticketing UI scopes them, so
+        we authorize through ``Ticket.get_accessible`` rather than just checking the ticket exists.
         """
         org = request.org
         contact = org.contacts.filter(uuid=contact_uuid, is_active=True).first()

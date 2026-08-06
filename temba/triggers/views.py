@@ -35,7 +35,6 @@ class Folder(Enum):
     )
     REFERRAL = (_("Referral"), (Trigger.TYPE_REFERRAL,), ("-priority",))
     TICKETS = (_("Tickets"), (Trigger.TYPE_CLOSED_TICKET,), ("-priority",))
-    OPTINS = (_("Opt-Ins"), (Trigger.TYPE_OPT_IN, Trigger.TYPE_OPT_OUT), ("-priority",))
 
     def __init__(self, title, types, ordering):
         self.title = title
@@ -187,8 +186,6 @@ class TriggerCRUDL(SmartCRUDL):
         "create_new_conversation",
         "create_referral",
         "create_closed_ticket",
-        "create_opt_in",
-        "create_opt_out",
         "update",
         "list",
         "menu",
@@ -361,12 +358,6 @@ class TriggerCRUDL(SmartCRUDL):
     class CreateClosedTicket(BaseCreate):
         trigger_type = Trigger.TYPE_CLOSED_TICKET
 
-    class CreateOptIn(BaseCreate):
-        trigger_type = Trigger.TYPE_OPT_IN
-
-    class CreateOptOut(BaseCreate):
-        trigger_type = Trigger.TYPE_OPT_OUT
-
     class Update(ModalFormMixin, ComponentFormMixin, OrgObjPermsMixin, SmartUpdateView):
         def get_form_class(self):
             return self.object.type.form
@@ -431,12 +422,10 @@ class TriggerCRUDL(SmartCRUDL):
         default_template = "triggers/trigger_list.html"
         search_fields = ("keywords__icontains", "flow__name__icontains", "channel__name__icontains")
 
-        # By default every trigger list view renders the temba-trigger-list component
-        # (triggers/trigger_list_new.html); the component fetches/pages triggers itself from the internal triggers
-        # API. Viewers can opt back into the legacy table via legacy mode (LegacyMiddleware → request.legacy).
-        NEW_LIST_TEMPLATE = "triggers/trigger_list_new.html"
+        # the temba-trigger-list component fetches and pages triggers itself from the internal triggers API
+        paginate_by = None
 
-        # Optional subtitle rendered under the title on the new-list view.
+        # Optional subtitle rendered under the title.
         subtitle = ""
 
         # Bulk-action key -> config consumed by temba-trigger-list (label, icon). Triggers post their numeric ids in
@@ -451,22 +440,6 @@ class TriggerCRUDL(SmartCRUDL):
                 "confirm": _("Are you sure you want to delete the selected triggers? This cannot be undone."),
             },
         }
-
-        def _use_new_list(self) -> bool:
-            # `getattr` defaults to False so a view called via RequestFactory (or if LegacyMiddleware is reordered
-            # out) doesn't AttributeError.
-            return not getattr(self.request, "legacy", False)
-
-        def get_template_names(self):
-            if self._use_new_list():
-                return [self.NEW_LIST_TEMPLATE]
-            return super().get_template_names()
-
-        def get_paginate_by(self, queryset):
-            # The temba-trigger-list component fetches and pages triggers itself.
-            if self._use_new_list():
-                return None
-            return super().get_paginate_by(queryset)
 
         def derive_subtitle(self):
             return self.subtitle
@@ -488,10 +461,10 @@ class TriggerCRUDL(SmartCRUDL):
             )
 
         def get_queryset(self, *args, **kwargs):
-            # On the new list the temba-trigger-list component fetches and pages triggers from the internal triggers
-            # API, so a GET page needs no object list. A POST (bulk action) still needs the real queryset, since
-            # BulkActionMixin validates the posted `objects` against it.
-            if self._use_new_list() and self.request.method == "GET":
+            # The temba-trigger-list component fetches and pages triggers from the internal triggers API, so a GET
+            # page needs no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin
+            # validates the posted `objects` against it.
+            if self.request.method == "GET":
                 return Trigger.objects.none()
 
             return super().get_queryset(*args, **kwargs)
@@ -499,21 +472,20 @@ class TriggerCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            # New-list view context: the resolved triggers-api endpoint (folder= for active/archived/type folders),
-            # the subtitle, and the bulk-action configs the temba-trigger-list expects (resolved + JSON-encoded here
-            # so the template stays inert).
-            if self._use_new_list():
-                context["new_list_endpoint"] = f"{reverse('api.internal.triggers')}.json?{self.derive_new_list_query()}"
-                subtitle = self.derive_subtitle()
-                context["new_list_subtitle"] = str(subtitle) if subtitle else ""
-                actions = []
-                for key in self.get_bulk_actions():
-                    cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
-                    cfg["key"] = key
-                    # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
-                    cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
-                    actions.append(cfg)
-                context["new_list_bulk_actions"] = actions
+            # the resolved triggers-api endpoint (folder= for active/archived/type folders), the subtitle, and the
+            # bulk-action configs the temba-trigger-list expects (resolved + JSON-encoded here so the template stays
+            # inert)
+            context["new_list_endpoint"] = f"{reverse('api.internal.triggers')}.json?{self.derive_new_list_query()}"
+            subtitle = self.derive_subtitle()
+            context["new_list_subtitle"] = str(subtitle) if subtitle else ""
+            actions = []
+            for key in self.get_bulk_actions():
+                cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
+                cfg["key"] = key
+                # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
+                cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
+                actions.append(cfg)
+            context["new_list_bulk_actions"] = actions
 
             return context
 

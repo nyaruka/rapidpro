@@ -1,3 +1,32 @@
+v26.3.35 (2026-08-05)
+-------------------------
+ * Update temba-components to 0.174.0
+ * Use setUpTestData for shared test fixtures to speed up test suite
+
+v26.3.34 (2026-08-05)
+-------------------------
+ * Add management command to convert legacy bsuid URNs to whatsapp
+ * Remove unused optin plumbing from broadcast creation
+
+v26.3.33 (2026-08-04)
+-------------------------
+ * Remove opt-in and opt-out trigger types
+ * Allow whatsapp URNs to hold either a phone number or a business-scoped user id
+ * Make contact chat search always cover the contact's full history
+
+v26.3.32 (2026-08-04)
+-------------------------
+ * Add cross-ticket message search to the tickets page
+ * Remove the legacy UI escape hatch
+ * Gate ticket access on topic only, removing the assignee escape hatch
+ * Add knowledge base sources for AI and human agents
+ * Move the knowledge models into their own app and rename the top level section from Library to Knowledge
+ * Add the pgvector dependency and switch CI postgres to the pgvector image
+ * Render the shortcuts list like other component list pages
+ * Update @nyaruka/temba-components to 0.173.0
+ * Add es, fr and pt_BR translations for WhatsApp connect and LLM form strings
+ * Update dependencies
+
 v26.3.31 (2026-08-03)
 -------------------------
  * Update @nyaruka/temba-components to 0.172.0
