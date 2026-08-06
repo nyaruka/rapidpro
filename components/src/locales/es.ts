@@ -11,10 +11,10 @@
     export const templates = {
       's06f6c6f99db6b552': `Original`,
 's3d2cc8d952adebec': `Pequeño`,
+'s73b4d70c02f4b4e0': `Sin opciones`,
 'sac6bdc71f750ac96': `Mediano`,
 'sc8736ef79380e634': `Grande`,
 'scf1453991c986b25': `Tab para completar, enter para seleccionar`,
-'s73b4d70c02f4b4e0': `No options`,
 'sbc913d7dc0f33877': `to add`,
 's7722a91d3a512442': str`Last seen ${0}`,
 's22965bb9808befb0': `Interrupt`,
