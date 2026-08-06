@@ -26,6 +26,13 @@ COMPONENTS_DEV_DIST = os.path.join(COMPONENTS_DIR, "dev-dist")
 os.makedirs(COMPONENTS_DEV_DIST, exist_ok=True)
 STATICFILES_DIRS += (("components-dev", COMPONENTS_DEV_DIST),)
 
+# and serve their svg sprite and imgs from source rather than the dist copy (prepended so it wins),
+# so a regenerated sprite (`bun run svg` after changing icons) is served immediately
+STATICFILES_DIRS = (
+    ("svg", os.path.join(COMPONENTS_DIR, "static", "svg")),
+    ("img", os.path.join(COMPONENTS_DIR, "static", "img")),
+) + STATICFILES_DIRS
+
 # -----------------------------------------------------------------------------------
 # Mailroom - localhost for dev, no auth token
 # -----------------------------------------------------------------------------------
