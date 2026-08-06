@@ -12,6 +12,7 @@ from temba.channels.models import Channel
 from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.flows.models import Flow, FlowLabel
 from temba.globals.models import Global
+from temba.knowledge.models import Article, Knowledge
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import OptIn
 from temba.notifications.models import Notification
@@ -46,6 +47,31 @@ class BaseEndpoint(BaseAPIView):
 # ============================================================
 # Endpoints (A-Z)
 # ============================================================
+
+
+class ArticlesEndpoint(BaseEndpoint):
+    """
+    The org's helpdesk articles as a tree, flattened into display order.
+
+    Not a paginated list endpoint: a page boundary through a tree hides the parents that give the rows below it their
+    shape, and a helpdesk holds at most Article.MAX_ARTICLES anyway - so the whole tree is returned at once.
+    """
+
+    model = Article  # only to derive the permission - the tree is read through Article.get_tree
+
+    def get(self, request, *args, **kwargs):
+        org = request.org
+        articles = []
+
+        # the helpdesk is part of the agents feature, same as every other view of it
+        if Org.FEATURE_AGENTS in org.features:
+            helpdesk = org.knowledge.filter(
+                knowledge_type=Knowledge.TYPE_HELPDESK, is_system=True, is_active=True
+            ).first()
+            if helpdesk:
+                articles = Article.get_tree(helpdesk)
+
+        return Response({"results": serializers.ArticleReadSerializer(articles, many=True).data})
 
 
 class LLMsEndpoint(ListAPIMixin, BaseEndpoint):

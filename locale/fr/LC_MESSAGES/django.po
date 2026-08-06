@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-06 19:32+0000\n"
+"POT-Creation-Date: 2026-08-06 19:35+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -2782,6 +2782,12 @@ msgstr ""
 msgid "Refresh"
 msgstr "Actualiser"
 
+msgid "Title"
+msgstr "Titre"
+
+msgid "Body"
+msgstr "Corps"
+
 msgid "Shortcuts"
 msgstr "Raccourcis"
 
@@ -2801,12 +2807,10 @@ msgid "Monthly"
 msgstr "Mensuellement"
 
 msgid "Draft"
-msgstr ""
+msgstr "Brouillon"
 
-#, fuzzy
-#| msgid "Public Key"
 msgid "Published"
-msgstr "Clé publique"
+msgstr "Publié"
 
 #, fuzzy
 #| msgid "New Shortcut"
@@ -2847,6 +2851,19 @@ msgstr "Type de fichier non pris en charge"
 #, python-format
 msgid "Limit for file uploads is %s MB"
 msgstr "La limite pour les envois de fichiers est de %s Mo"
+
+msgid "New Article"
+msgstr "Nouvel article"
+
+msgid "No such article."
+msgstr "Cet article n'existe pas."
+
+msgid "Invalid ordering."
+msgstr "Ordre non valide."
+
+#, python-format
+msgid "Limit of %d images reached."
+msgstr "La limite de %d images est atteinte."
 
 msgid "The name for our alias"
 msgstr "Le nom de notre alias"
@@ -5473,18 +5490,27 @@ msgstr "Fin"
 msgid "No calls"
 msgstr "Aucun appel"
 
+#, python-format
+msgid "You have reached the limit of %(limit)s articles. You must delete existing ones before you can create new ones."
+msgstr "Vous avez atteint la limite de %(limit)s articles. Vous devez supprimer des articles existants avant de pouvoir en créer de nouveaux."
+
+#, python-format
+msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. Any articles beneath it will move up to take its place. There is no way to undo this. Are you sure?"
+msgstr "Vous êtes sur le point de supprimer l'article <b>%(object)s</b> et ses captures d'écran. Les articles situés en dessous remonteront pour prendre sa place. Cette action est irréversible. Voulez-vous continuer ?"
+
+msgid "Delete Article"
+msgstr "Supprimer l'article"
+
+msgid "No articles"
+msgstr "Aucun article"
+
+msgid "Help articles written by your workspace. Published articles are searchable by AI agents."
+msgstr "Articles d'aide rédigés par votre espace de travail. Les agents IA peuvent effectuer des recherches dans les articles publiés."
+
 #, fuzzy, python-format
 #| msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
 msgid "You are about to delete the knowledge source <b>%(object)s</b> and everything indexed from it. There is no way to undo this. Are you sure?"
 msgstr "Vous êtes sur le point de supprimer l'équipe <b>%(object)s</b>. Cette action est irréversible. Voulez-vous continuer ?"
-
-msgid "Help articles written by your workspace. Published articles are searchable by AI agents."
-msgstr ""
-
-#, fuzzy
-#| msgid "No archives"
-msgid "No articles"
-msgstr "Aucune archive"
 
 msgid "Update Shortcut"
 msgstr "Mettre à jour le raccourci"

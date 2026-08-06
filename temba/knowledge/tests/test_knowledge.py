@@ -1,3 +1,5 @@
+from xml.etree.ElementTree import Element, SubElement
+
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
@@ -6,10 +8,13 @@ from django.test.utils import override_settings
 from temba.knowledge.models import (
     Article,
     ArticleImage,
+    ColumnStylesProcessor,
     Knowledge,
     KnowledgeChunk,
     KnowledgeItem,
+    _sanitize_attribute,
     get_article_image_path,
+    parse_column_style,
 )
 from temba.tests import TembaTest, cleanup
 from temba.utils.s3 import public_file_storage
@@ -161,7 +166,7 @@ class KnowledgeTest(TembaTest):
         self.create_chunk(helpdesk, parent.uuid, "flows are...")
 
         image_path = public_file_storage.save(
-            get_article_image_path(parent, uuid4(), "shot1.png"), SimpleUploadedFile("shot1.png", b"png")
+            get_article_image_path(parent, uuid4(), "image/png"), SimpleUploadedFile("shot1.png", b"png")
         )
         ArticleImage.objects.create(
             article=parent,
@@ -337,11 +342,388 @@ class ArticleTest(TembaTest):
                 modified_by=self.admin,
             )
 
+    def test_create(self):
+        article1 = Article.create(self.helpdesk, self.admin, "Getting Started")
+
+        self.assertEqual(self.helpdesk, article1.knowledge)
+        self.assertIsNone(article1.parent)
+        self.assertEqual(0, article1.sort_order)
+        self.assertEqual("getting-started", article1.slug)
+        self.assertEqual("", article1.body)
+        self.assertEqual(Article.STATUS_DRAFT, article1.status)  # new articles are always drafts
+        self.assertIsNone(article1.published_on)
+        self.assertEqual("eng", article1.language)  # defaults to the workspace's primary flow language
+
+        # new articles go to the end of their level so creating one never reshuffles the tree
+        article2 = Article.create(self.helpdesk, self.admin, "Flows", body="# Flows", language="spa")
+        self.assertEqual(1, article2.sort_order)
+        self.assertEqual("# Flows", article2.body)
+        self.assertEqual("spa", article2.language)
+
+        child = Article.create(self.helpdesk, self.admin, "Nodes", parent=article2)
+        self.assertEqual(article2, child.parent)
+        self.assertEqual(0, child.sort_order)
+
+    def test_get_tree(self):
+        flows = self.create_article(self.helpdesk, "Flows")
+        contacts = self.create_article(self.helpdesk, "Contacts")
+        nodes = self.create_article(self.helpdesk, "Nodes", parent=flows)
+        edges = self.create_article(self.helpdesk, "Edges", parent=flows)
+        deleted = self.create_article(self.helpdesk, "Old", parent=flows)
+
+        Article.objects.filter(id=contacts.id).update(sort_order=1)
+        Article.objects.filter(id=nodes.id).update(sort_order=1)
+        deleted.release(self.admin)
+
+        tree = Article.get_tree(self.helpdesk)
+
+        # depth first, siblings by sort order then title, and released articles omitted
+        self.assertEqual([flows, edges, nodes, contacts], tree)
+        self.assertEqual([0, 1, 1, 0], [a.depth for a in tree])
+        self.assertEqual([None, flows.uuid, flows.uuid, None], [a.parent_uuid for a in tree])
+
+        # an article stored deeper than the cap allows - data can predate it - renders flattened rather than hidden:
+        # as a sibling following its parent, under the deepest ancestor the cap does allow
+        grand = self.create_article(self.helpdesk, "Grand", parent=edges)
+
+        tree = Article.get_tree(self.helpdesk)
+
+        self.assertEqual([flows, edges, grand, nodes, contacts], tree)
+        self.assertEqual([0, 1, 1, 1, 0], [a.depth for a in tree])
+        self.assertEqual([None, flows.uuid, flows.uuid, flows.uuid, None], [a.parent_uuid for a in tree])
+
+        grand.release(self.admin)
+
+        # an article orphaned by its parent going inactive is shown as a root rather than dropped - otherwise it would
+        # be invisible here, and so unmovable, while still being indexed if it were published
+        Article.objects.filter(id=flows.id).update(is_active=False)
+
+        tree = Article.get_tree(self.helpdesk)
+
+        self.assertEqual([edges, contacts, nodes], tree)
+        self.assertEqual([0, 0, 0], [a.depth for a in tree])
+
+        # and shown as a root means shown with no parent, rather than naming one that isn't in the tree
+        self.assertEqual([None, None, None], [a.parent_uuid for a in tree])
+
+    def test_apply_sort(self):
+        flows = self.create_article(self.helpdesk, "Flows")
+        contacts = self.create_article(self.helpdesk, "Contacts")
+        nodes = self.create_article(self.helpdesk, "Nodes")
+        other = self.create_article(self.org2.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK), "Other")
+        modified_on = flows.modified_on
+
+        Article.apply_sort(
+            self.helpdesk,
+            [(str(contacts.uuid), None, 0), (str(flows.uuid), None, 1), (str(nodes.uuid), str(flows.uuid), 0)],
+        )
+
+        self.assertEqual([contacts, flows, nodes], Article.get_tree(self.helpdesk))
+        self.assertEqual([0, 0, 1], [a.depth for a in Article.get_tree(self.helpdesk)])
+
+        # reordering isn't something mailroom indexes, so it doesn't make articles look stale
+        flows.refresh_from_db()
+        self.assertEqual(modified_on, flows.modified_on)
+
+        # an article we don't own can't be moved into our tree, or be made a parent in it
+        with self.assertRaises(ValueError):
+            Article.apply_sort(self.helpdesk, [(str(other.uuid), None, 0)])
+        with self.assertRaises(ValueError):
+            Article.apply_sort(self.helpdesk, [(str(flows.uuid), str(other.uuid), 0)])
+
+        # nor can an article be its own ancestor
+        with self.assertRaises(ValueError):
+            Article.apply_sort(self.helpdesk, [(str(flows.uuid), str(flows.uuid), 0)])
+        with self.assertRaises(ValueError):
+            Article.apply_sort(
+                self.helpdesk, [(str(flows.uuid), str(contacts.uuid), 0), (str(contacts.uuid), str(flows.uuid), 0)]
+            )
+
+        # nesting is allowed up to the cap...
+        deep = self.create_article(self.helpdesk, "Deep")
+        deeper = self.create_article(self.helpdesk, "Deeper")
+        Article.apply_sort(self.helpdesk, [(str(deep.uuid), str(flows.uuid), 1)])
+
+        # ...but no further - deep's parent comes from the part of the tree the client didn't mention
+        with self.assertRaises(ValueError):
+            Article.apply_sort(self.helpdesk, [(str(deeper.uuid), str(deep.uuid), 0)])
+
+        # none of the rejected moves changed anything
+        self.assertEqual([contacts, deeper, flows, nodes, deep], Article.get_tree(self.helpdesk))
+        self.assertEqual([0, 0, 0, 1, 1], [a.depth for a in Article.get_tree(self.helpdesk)])
+
+    def test_as_html(self):
+        article = self.create_article(self.helpdesk, "Getting Started")
+
+        article.body = "# Heading\n\nSome **bold** text with a [link](https://nyaruka.com).\n\n* one\n* two"
+        self.assertEqual(
+            '<h1>Heading</h1>\n<p>Some <strong>bold</strong> text with a <a href="https://nyaruka.com" '
+            'rel="noopener noreferrer">link</a>.</p>\n<ul>\n<li>one</li>\n<li>two</li>\n</ul>',
+            article.as_html(),
+        )
+
+        # tables and fenced code blocks are rendered
+        article.body = "| a | b |\n| - | - |\n| 1 | 2 |"
+        self.assertIn("<table>", article.as_html())
+
+        # raw HTML in the source is escaped rather than rendered, the way the editor shows it to the author, and the
+        # javascript: URLs markdown will make a link out of are still sanitized away
+        article.body = "<script>alert(1)</script><p onclick='x'>hi</p>\n\n[bad](javascript:alert(1))"
+        self.assertEqual(
+            "<p>&lt;script&gt;alert(1)&lt;/script&gt;&lt;p onclick='x'&gt;hi&lt;/p&gt;</p>\n"
+            '<p><a rel="noopener noreferrer">bad</a></p>',
+            article.as_html(),
+        )
+
+        # so text that only looks like a tag survives instead of being quietly swallowed as an unknown one
+        article.body = "Quick replies use `<url>Visit<extra>https://example.com`, and a bare <url> survives too"
+        self.assertEqual(
+            "<p>Quick replies use <code>&lt;url&gt;Visit&lt;extra&gt;https://example.com</code>, "
+            "and a bare &lt;url&gt; survives too</p>",
+            article.as_html(),
+        )
+
+        # images survive, since screenshots are the point of them
+        article.body = "![shot](https://example.com/shot.png)"
+        self.assertEqual('<p><img alt="shot" src="https://example.com/shot.png"></p>', article.as_html())
+
+        # the size and layout an image was given ride the fragment of its URL and come out as classes on the <img>,
+        # with the src untouched - fragment and all
+        for fragment, classes in (
+            ("#size=small", "size-small"),
+            ("#size=medium", "size-medium"),
+            ("#size=large", "size-large"),
+            ("#layout=block", "layout-block"),
+            ("#layout=inline", "layout-inline"),
+            ("#size=small&layout=inline", "size-small layout-inline"),
+            ("#size=large&layout=block", "size-large layout-block"),
+        ):
+            article.body = f"![shot](https://example.com/shot.png{fragment})"
+            src = f"https://example.com/shot.png{fragment}".replace("&", "&amp;")
+            self.assertEqual(
+                f'<p><img alt="shot" class="{classes}" src="{src}"></p>', article.as_html(), f"for fragment {fragment}"
+            )
+
+        # a size or layout we don't have is ignored rather than guessed at, as is a fragment that isn't ours at all
+        for fragment in ("#size=huge", "#layout=diagonal", "#section-2", "#size=small=small"):
+            article.body = f"![shot](https://example.com/shot.png{fragment})"
+            self.assertEqual(
+                f'<p><img alt="shot" src="https://example.com/shot.png{fragment}"></p>',
+                article.as_html(),
+                f"for fragment {fragment}",
+            )
+
+    def test_as_html_cell_breaks(self):
+        article = self.create_article(self.helpdesk, "Getting Started")
+
+        # a cell is one line of markdown - a real newline would end its row - so the editor writes the breaks inside
+        # one as literal <br> text, and rendering turns them back into the breaks they mean. A break can sit inside a
+        # cell's emphasis or link as easily as in the cell itself, and follow one as easily as open it.
+        article.body = (
+            "| Step | Detail |\n| - | - |\n"
+            "| **One<br>Two** | plain<br>break |\n"
+            "| [a<br/>b](https://x.com) tail<BR>end | x |"
+        )
+        self.assertEqual(
+            "<table>\n<thead>\n<tr>\n<th>Step</th>\n<th>Detail</th>\n</tr>\n</thead>\n<tbody>\n"
+            "<tr>\n<td><strong>One<br>Two</strong></td>\n<td>plain<br>break</td>\n</tr>\n"
+            '<tr>\n<td><a href="https://x.com" rel="noopener noreferrer">a<br>b</a> tail<br>end</td>\n'
+            "<td>x</td>\n</tr>\n</tbody>\n</table>",
+            article.as_html(),
+        )
+
+        # cells only - everywhere else text that merely looks like a tag stays text
+        article.body = "one<br>two"
+        self.assertEqual("<p>one&lt;br&gt;two</p>", article.as_html())
+
+    def test_as_html_columns(self):
+        article = self.create_article(self.helpdesk, "Getting Started")
+
+        # a helpdesk starts with no palette at all
+        self.assertEqual({}, self.helpdesk.colors)
+
+        self.helpdesk.set_colors({"1": "#ffe8a3", "2": "#123456"})
+
+        self.helpdesk.refresh_from_db()
+        self.assertEqual({"1": "#ffe8a3", "2": "#123456"}, self.helpdesk.colors)
+
+        # the stylesheets in a layout table's header cells are realized as a colgroup, leaving the header genuinely
+        # empty: widths and palette fills belong to the columns, while what a colgroup can't reach - padding, text
+        # drawn from the column's own fill, a border drawn from it - goes on the cells. Alignment stays where the
+        # renderer put it, and a sized column only holds its size in a fixed layout.
+        article.body = (
+            "| width: 40%; padding: 8px | background: 1; border: solid | background: 2; border: solid |\n"
+            "| - | :-: | - |\n"
+            "| one | two | three |"
+        )
+        self.assertEqual(
+            '<table style="table-layout: fixed; width: 100%">\n'
+            '<colgroup><col style="width: 40%"><col style="background: #ffe8a3">'
+            '<col style="background: #123456"></colgroup>'
+            '<thead>\n<tr>\n<th></th>\n<th style="text-align: center"></th>\n<th></th>\n</tr>\n</thead>\n'
+            '<tbody>\n<tr>\n<td style="padding: 8px">one</td>\n'
+            '<td style="text-align: center; color: #6b581f; border: 1px solid #d4be7d">two</td>\n'
+            '<td style="color: #edf2f8; border: 1px solid #07101a">three</td>\n</tr>\n</tbody>\n</table>',
+            article.as_html(),
+        )
+
+        # the article embeds the palette index, so recoloring the entry restyles its every use - text and border
+        # included, since both are drawn from the fill
+        article.body = "| background: 1 |\n| - |\n| one |"
+        self.assertEqual(
+            '<table>\n<colgroup><col style="background: #ffe8a3"></colgroup>'
+            "<thead>\n<tr>\n<th></th>\n</tr>\n</thead>\n"
+            '<tbody>\n<tr>\n<td style="color: #6b581f">one</td>\n</tr>\n</tbody>\n</table>',
+            article.as_html(),
+        )
+
+        self.helpdesk.set_colors({"1": "#fc0"})
+
+        # short palette hexes resolve the same way, and a light fill takes deep text where a dark one takes pale
+        self.assertEqual(
+            '<table>\n<colgroup><col style="background: #fc0"></colgroup>'
+            "<thead>\n<tr>\n<th></th>\n</tr>\n</thead>\n"
+            '<tbody>\n<tr>\n<td style="color: #f8f6ed">one</td>\n</tr>\n</tbody>\n</table>',
+            article.as_html(),
+        )
+
+        # an index the palette no longer answers for paints nothing, while the rest of the stylesheet still holds
+        article.body = "| background: 9 | width: 10px |\n| - | - |\n| one | two |"
+        self.assertEqual(
+            '<table style="table-layout: fixed; width: 100%">\n'
+            '<colgroup><col><col style="width: 10px"></colgroup>'
+            "<thead>\n<tr>\n<th></th>\n<th></th>\n</tr>\n</thead>\n"
+            "<tbody>\n<tr>\n<td>one</td>\n<td>two</td>\n</tr>\n</tbody>\n</table>",
+            article.as_html(),
+        )
+
+        # a border with no fill to draw from takes a plain neutral
+        article.body = "| border: solid | padding: 12px |\n| - | - |\n| one | two |"
+
+        # and columns that ask for nothing a column can carry get no colgroup and no fixed layout
+        self.assertEqual(
+            "<table>\n<thead>\n<tr>\n<th></th>\n<th></th>\n</tr>\n</thead>\n"
+            '<tbody>\n<tr>\n<td style="border: 1px solid #d0d5dd">one</td>\n'
+            '<td style="padding: 12px">two</td>\n</tr>\n</tbody>\n</table>',
+            article.as_html(),
+        )
+
+        # every header cell has to be empty or read as a stylesheet - a value we don't allow, text that isn't a
+        # stylesheet at all, or markup however its text reads, and the table is left exactly as written
+        for header in ("| width: 40 | background: 1 |", "| Step | background: 1 |", "| **width: 40%** | width: 10px |"):
+            article.body = f"{header}\n| - | - |\n| one | two |"
+            self.assertNotIn("<colgroup>", article.as_html(), f"for header {header}")
+            self.assertNotIn("style", article.as_html(), f"for header {header}")
+
+    def test_parse_column_style(self):
+        self.assertEqual({}, parse_column_style(""))
+        self.assertEqual({"width": "40%"}, parse_column_style("width: 40%"))
+        self.assertEqual({"width": "300px", "background": "3"}, parse_column_style("width: 300px; background: 3"))
+        self.assertEqual({"padding": "8px", "border": "solid"}, parse_column_style("padding: 8px; border: solid"))
+
+        # the editor's own trailing separator leaves an empty declaration, which is nothing rather than a mistake
+        self.assertEqual({"width": "40%"}, parse_column_style("width: 40%; "))
+
+        # a stylesheet is CSS-ish, so it reads like CSS does
+        self.assertEqual({"background": "2"}, parse_column_style("BACKGROUND:2"))
+
+        # a declaration we don't know, or a value we don't allow, means the cell isn't a stylesheet at all - better a
+        # header that shows what was written than a table half understood
+        for text in (
+            "Step",
+            "width",
+            "color: red",
+            "width: 40",
+            "width: 40em",
+            "background: red",
+            "background: 1.5",
+            "padding: 8",
+            "padding: 2em",
+            "border: dashed",
+        ):
+            self.assertIsNone(parse_column_style(text), f"for {text}")
+
+    def test_column_styles_processor(self):
+        # markdown hands the processor only tables it built itself, which always have a header row and only ever put
+        # alignment on a cell - so what it does with a table that has neither is exercised directly
+        root = Element("div")
+        headless = SubElement(root, "table")
+        td1 = SubElement(SubElement(SubElement(headless, "tbody"), "tr"), "td")
+        td1.set("style", "color: red")
+
+        styled = SubElement(root, "table")
+        SubElement(SubElement(SubElement(styled, "thead"), "tr"), "th").text = "width: 40%"
+        td2 = SubElement(SubElement(SubElement(styled, "tbody"), "tr"), "td")
+        td2.set("style", "color: red")
+
+        ColumnStylesProcessor(None, {}).run(root)
+
+        # a table with no header carries no stylesheet, so it's left exactly as it was
+        self.assertEqual("color: red", td1.get("style"))
+
+        # but one that does owns its cells' styling, so anything else there goes
+        self.assertIsNone(td2.get("style"))
+
+    def test_sanitize_attribute(self):
+        # the sanitizer only lets the size/layout classes through on an image, and nothing above it in the rendering
+        # can put any other class there - so exercised directly, as the defense in depth it is
+        self.assertEqual("size-small layout-inline", _sanitize_attribute("img", "class", "size-small layout-inline"))
+        self.assertEqual("size-small", _sanitize_attribute("img", "class", "size-small sneaky"))
+        self.assertIsNone(_sanitize_attribute("img", "class", "sneaky"))
+        self.assertEqual("https://x.com", _sanitize_attribute("a", "href", "https://x.com"))
+
+        # and a table, col or cell style only carries what our own pipeline writes
+        self.assertEqual(
+            "width: 40%; background: #ffe8a3", _sanitize_attribute("col", "style", "width: 40%; background: #ffe8a3")
+        )
+        self.assertEqual("width: 40%", _sanitize_attribute("col", "style", "width: 40%; position: fixed"))
+        self.assertIsNone(_sanitize_attribute("col", "style", "background: url(x)"))
+
+        self.assertEqual(
+            "table-layout: fixed; width: 100%",
+            _sanitize_attribute("table", "style", "table-layout: fixed; width: 100%"),
+        )
+        self.assertIsNone(_sanitize_attribute("table", "style", "position: fixed"))
+
+        cell_style = "text-align: left; padding: 8px; color: #6b581f; border: 1px solid #d0d5dd"
+        self.assertEqual(cell_style, _sanitize_attribute("td", "style", cell_style))
+        self.assertEqual("text-align: center", _sanitize_attribute("th", "style", "text-align: center; width: 40%"))
+        self.assertIsNone(_sanitize_attribute("td", "style", "position: fixed"))
+
+    def test_publishing(self):
+        article = self.create_article(self.helpdesk, "Getting Started")
+        modified_on = article.modified_on
+
+        article.publish(self.editor)
+
+        article.refresh_from_db()
+        self.assertEqual(Article.STATUS_PUBLISHED, article.status)
+        self.assertIsNotNone(article.published_on)
+        self.assertEqual(self.editor, article.modified_by)
+        self.assertGreater(article.modified_on, modified_on)
+
+        modified_on = article.modified_on
+        article.unpublish(self.admin)
+
+        # modified_on bumps so mailroom's sweep sees the source as stale and drops the chunks
+        article.refresh_from_db()
+        self.assertEqual(Article.STATUS_DRAFT, article.status)
+        self.assertIsNone(article.published_on)
+        self.assertGreater(article.modified_on, modified_on)
+
+    @cleanup(s3=True)
     def test_release(self):
         parent = self.create_article(self.helpdesk, "Flows", status=Article.STATUS_PUBLISHED)
         child1 = self.create_article(self.helpdesk, "Nodes", parent=parent)
         child2 = self.create_article(self.helpdesk, "Edges", parent=parent)
         modified_on = parent.modified_on
+
+        path = public_file_storage.save(
+            get_article_image_path(parent, uuid4(), "image/png"), SimpleUploadedFile("shot.png", b"png")
+        )
+        ArticleImage.objects.create(
+            article=parent, name="shot.png", path=path, content_type="image/png", size=3, created_by=self.admin
+        )
 
         parent.release(self.admin)
 
@@ -349,6 +731,7 @@ class ArticleTest(TembaTest):
         parent.refresh_from_db()
         self.assertFalse(parent.is_active)
         self.assertEqual(Article.STATUS_DRAFT, parent.status)
+        self.assertIsNone(parent.published_on)
         self.assertGreater(parent.modified_on, modified_on)
 
         # children reparented to our parent (the root) so the tree stays connected
@@ -357,8 +740,39 @@ class ArticleTest(TembaTest):
         self.assertIsNone(child1.parent)
         self.assertIsNone(child2.parent)
 
+        # and our images are gone for good - rows first, then the storage objects
+        self.assertEqual(0, ArticleImage.objects.count())
+        self.assertFalse(public_file_storage.exists(path))
+
 
 class ArticleImageTest(TembaTest):
+    @cleanup(s3=True)
+    def test_from_upload(self):
+        helpdesk = self.org.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK)
+        article = Article.create(helpdesk, self.admin, "Getting Started")
+
+        image = ArticleImage.from_upload(
+            article, self.admin, SimpleUploadedFile("Screen Shot!.PNG", b"png", content_type="image/png")
+        )
+
+        self.assertEqual(article, image.article)
+        self.assertEqual("Screen Shot.PNG", image.name)  # cleaned
+        self.assertEqual(
+            f"orgs/{self.org.id}/knowledge/{helpdesk.uuid}/articles/{article.uuid}/{image.uuid}.png", image.path
+        )
+        self.assertEqual("image/png", image.content_type)
+        self.assertEqual(3, image.size)
+        self.assertTrue(public_file_storage.exists(image.path))
+
+        # the stored key's extension comes from the sniffed type, never the uploaded name - these live in a public
+        # bucket which serves an object as whatever its extension implies, so a .html name would be served as HTML
+        image = ArticleImage.from_upload(
+            article, self.admin, SimpleUploadedFile("evil.html", b"png", content_type="image/png")
+        )
+
+        self.assertEqual("evil.html", image.name)
+        self.assertTrue(image.path.endswith(f"{image.uuid}.png"))
+
     @cleanup(s3=True)
     def test_delete(self):
         helpdesk = self.org.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK)
@@ -372,7 +786,7 @@ class ArticleImageTest(TembaTest):
 
         image_uuid = uuid4()
         path = public_file_storage.save(
-            get_article_image_path(article, image_uuid, "Screen Shot.PNG"), SimpleUploadedFile("shot1.png", b"png")
+            get_article_image_path(article, image_uuid, "image/png"), SimpleUploadedFile("shot1.png", b"png")
         )
         self.assertEqual(f"orgs/{self.org.id}/knowledge/{helpdesk.uuid}/articles/{article.uuid}/{image_uuid}.png", path)
         image = ArticleImage.objects.create(

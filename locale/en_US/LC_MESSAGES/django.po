@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-06 19:32+0000\n"
+"POT-Creation-Date: 2026-08-06 19:35+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -2764,6 +2764,12 @@ msgstr ""
 msgid "Refresh"
 msgstr ""
 
+msgid "Title"
+msgstr ""
+
+msgid "Body"
+msgstr ""
+
 msgid "Shortcuts"
 msgstr ""
 
@@ -2818,6 +2824,19 @@ msgstr ""
 
 #, python-format
 msgid "Limit for file uploads is %s MB"
+msgstr ""
+
+msgid "New Article"
+msgstr ""
+
+msgid "No such article."
+msgstr ""
+
+msgid "Invalid ordering."
+msgstr ""
+
+#, python-format
+msgid "Limit of %d images reached."
 msgstr ""
 
 msgid "The name for our alias"
@@ -5407,13 +5426,24 @@ msgid "No calls"
 msgstr ""
 
 #, python-format
-msgid "You are about to delete the knowledge source <b>%(object)s</b> and everything indexed from it. There is no way to undo this. Are you sure?"
+msgid "You have reached the limit of %(limit)s articles. You must delete existing ones before you can create new ones."
+msgstr ""
+
+#, python-format
+msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. Any articles beneath it will move up to take its place. There is no way to undo this. Are you sure?"
+msgstr ""
+
+msgid "Delete Article"
+msgstr ""
+
+msgid "No articles"
 msgstr ""
 
 msgid "Help articles written by your workspace. Published articles are searchable by AI agents."
 msgstr ""
 
-msgid "No articles"
+#, python-format
+msgid "You are about to delete the knowledge source <b>%(object)s</b> and everything indexed from it. There is no way to undo this. Are you sure?"
 msgstr ""
 
 msgid "Update Shortcut"

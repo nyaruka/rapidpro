@@ -1,23 +1,34 @@
+import re
+
 import magic
 from smartmin.views import SmartCRUDL, SmartReadView, SmartTemplateView
 
+from django.core.exceptions import ValidationError
 from django.db.models.functions import Lower
 from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.orgs.models import Org
-from temba.orgs.views.base import BaseCreateModal, BaseDeleteModal, BaseMenuView, BaseReadView, BaseUpdateModal
+from temba.orgs.views.base import (
+    BaseCreateModal,
+    BaseDeleteModal,
+    BaseMenuView,
+    BaseReadView,
+    BaseUpdateModal,
+)
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, RequireFeatureMixin
+from temba.utils import json
 from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 
-from .forms import KnowledgeForm, KnowledgeUpdateForm
-from .models import Knowledge, KnowledgeItem
+from .forms import ArticleCreateForm, ArticleForm, KnowledgeForm, KnowledgeUpdateForm
+from .models import Article, ArticleImage, Knowledge, KnowledgeItem
 
 
 class KnowledgeCRUDL(SmartCRUDL):
     model = Knowledge
-    actions = ("menu", "read", "create", "update", "delete", "upload", "shortcuts", "helpdesk")
+    actions = ("menu", "read", "create", "update", "delete", "upload", "shortcuts")
 
     class Menu(RequireFeatureMixin, BaseMenuView):
         require_feature = Org.FEATURE_AGENTS
@@ -38,8 +49,8 @@ class KnowledgeCRUDL(SmartCRUDL):
                     menu_id="helpdesk",
                     name=_("Helpdesk"),
                     icon="help",
-                    href="knowledge.knowledge_helpdesk",
-                    perm="knowledge.knowledge_read",
+                    href="knowledge.article_list",
+                    perm="knowledge.article_list",
                 ),
             ]
 
@@ -150,30 +161,6 @@ class KnowledgeCRUDL(SmartCRUDL):
             context["shortcuts_endpoint"] = f"{reverse('api.internal.shortcuts')}.json"
             return context
 
-    class Helpdesk(RequireFeatureMixin, SpaMixin, OrgPermsMixin, SmartTemplateView):
-        """
-        The org's system helpdesk source at a fixed URL so it can be a menu item.
-        """
-
-        require_feature = Org.FEATURE_AGENTS
-        permission = "knowledge.knowledge_read"
-        title = _("Helpdesk")
-        menu_path = "/knowledge/helpdesk"
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-
-            obj = self.request.org.knowledge.filter(
-                knowledge_type=Knowledge.TYPE_HELPDESK, is_system=True, is_active=True
-            ).first()
-            if not obj:
-                raise Http404()
-
-            context["object"] = obj
-            # phase 1: a flat list in tree order. Phase 4 replaces this with the authoring surface.
-            context["articles"] = obj.articles.filter(is_active=True).order_by("parent_id", "sort_order", "title")
-            return context
-
     class Create(RequireFeatureMixin, BaseCreateModal):
         require_feature = Org.FEATURE_AGENTS
         form_class = KnowledgeForm
@@ -279,3 +266,283 @@ class KnowledgeItemCRUDL(SmartCRUDL):
             self.object.delete()  # hard delete - purges chunks then the storage object
 
             return HttpResponseRedirect(reverse("knowledge.knowledge_read", args=[knowledge.uuid]))
+
+
+class HelpdeskMixin(RequireFeatureMixin):
+    """
+    Common to every article view: the agents feature gate, and the org's system helpdesk source, which is the only
+    place articles can live - so it's resolved here rather than taken from the URL.
+    """
+
+    require_feature = Org.FEATURE_AGENTS
+
+    @cached_property
+    def helpdesk(self):
+        obj = self.request.org.knowledge.filter(
+            knowledge_type=Knowledge.TYPE_HELPDESK, is_system=True, is_active=True
+        ).first()
+        if not obj:
+            raise Http404()
+        return obj
+
+
+class ArticleCRUDL(SmartCRUDL):
+    model = Article
+    actions = ("list", "create", "update", "delete", "publish", "sort", "upload", "colors")
+
+    class BaseObject(HelpdeskMixin):
+        """
+        Scopes a view of a single article to this org's helpdesk.
+        """
+
+        slug_url_kwarg = "uuid"
+        model_org_lookup = "knowledge__org"
+
+        def derive_queryset(self, **kwargs):
+            return super().derive_queryset(**kwargs).filter(knowledge=self.helpdesk)
+
+    class List(HelpdeskMixin, SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
+        """
+        The helpdesk itself - the article tree, which the list component fetches and reorders for itself. Articles are
+        opened, written and published in a dialog here, so this is the only page the authoring surface has.
+        """
+
+        title = _("Helpdesk")
+        menu_path = "/knowledge/helpdesk"
+
+        def build_context_menu(self, menu):
+            if self.has_org_perm("knowledge.article_create"):
+                menu.add_modax(
+                    _("New"),
+                    "new-article",
+                    reverse("knowledge.article_create"),
+                    title=_("New Article"),
+                    as_button=True,
+                )
+
+        def derive_article_to_edit(self):
+            """
+            The article the editor should open on arrival, named by the create modal so that titling a new one drops
+            you straight into writing it.
+            """
+            uuid = self.request.GET.get("edit", "")
+            if not uuid:
+                return None
+
+            try:
+                return self.helpdesk.articles.filter(uuid=uuid, is_active=True).first()
+            except ValidationError:  # not a uuid at all
+                return None
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["object"] = self.helpdesk
+            context["articles_endpoint"] = f"{reverse('api.internal.articles')}.json"
+            context["max_depth"] = Article.MAX_DEPTH
+
+            # without the permission the component is given nowhere to post to, so it offers no drag at all - and
+            # likewise no publish switch, leaving the status as something a row states rather than something it does
+            if self.has_org_perm("knowledge.article_sort"):
+                context["sort_url"] = reverse("knowledge.article_sort")
+            if self.has_org_perm("knowledge.article_publish"):
+                context["publish_url"] = reverse("knowledge.article_publish")
+
+            article = self.derive_article_to_edit()
+            if article:
+                context["edit_article"] = article
+
+            return context
+
+    class Create(HelpdeskMixin, BaseCreateModal):
+        form_class = ArticleCreateForm
+        title = _("New Article")
+
+        def get_blocker(self) -> str:
+            if self.helpdesk.articles.filter(is_active=True).count() >= Article.MAX_ARTICLES:
+                return "limit_reached"
+            return ""
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["blocker"] = self.get_blocker()
+            context["max_articles"] = Article.MAX_ARTICLES
+            return context
+
+        def form_valid(self, form):
+            if self.get_blocker():
+                return self.form_invalid(form)
+            return super().form_valid(form)
+
+        def pre_save(self, obj):
+            return obj  # articles belong to a helpdesk rather than directly to the org
+
+        def save(self, obj):
+            # must set self.object as smartmin ignores the return value
+            self.object = Article.create(
+                self.helpdesk, self.request.user, obj.title, language=self.form.cleaned_data.get("language")
+            )
+
+        def get_success_url(self):
+            # back to the helpdesk, which opens the editor on what we just made
+            return f"{reverse('knowledge.article_list')}?edit={self.object.uuid}"
+
+    class Update(BaseObject, BaseUpdateModal):
+        """
+        The editor, opened as a dialog from the helpdesk. It renders the article rather than its markdown, so it's also
+        how an article is read - there's no separate read page. Publishing is done from the article's row; in here the
+        status is a pill riding the title, stating rather than doing.
+        """
+
+        form_class = ArticleForm
+        success_url = "hide"  # the helpdesk refreshes its tree rather than navigating anywhere
+        success_message = ""
+
+        def get_form(self):
+            form = super().get_form()
+
+            # the dialog carries no title bar of its own, so the article's title stands as one (the template renders
+            # it by hand, with the status pill riding inside it) and the article below it needs no label either
+            form.fields["body"].widget.attrs.update(
+                {
+                    "hide_label": True,
+                    # the editor takes the height the dialog gives it and scrolls the article inside itself, so a long
+                    # one is written in the same window as a short one
+                    "fill": True,
+                    # the editor uploads screenshots against this article
+                    "endpoint": reverse("knowledge.article_upload", args=[self.get_object().uuid]),
+                    "accept": ",".join(ArticleImage.ALLOWED_CONTENT_TYPES),
+                    # and resolves column colors against the org's shared palette
+                    "colors-endpoint": reverse("knowledge.article_colors"),
+                }
+            )
+            return form
+
+        def pre_save(self, obj):
+            obj = super().pre_save(obj)
+
+            # the title is the article's identity on the eventual public site, so the slug follows it
+            obj.slug = Article.get_unique_slug(obj.knowledge, obj.title, ignore=obj)
+            return obj
+
+    class Publish(HelpdeskMixin, PostOnlyMixin, OrgPermsMixin, SmartTemplateView):
+        """
+        Puts one article in or out of the agents' reach, posted as {uuid, status} by the switch on its row in the
+        helpdesk. It's a list action rather than part of the editor: an article is published as a whole, and doing it
+        from the row means never having to open one to say so.
+        """
+
+        # the status names the tree endpoint serves, which are what the switch has to send back
+        STATUSES = {"published": Article.STATUS_PUBLISHED, "draft": Article.STATUS_DRAFT}
+
+        def post(self, request, *args, **kwargs):
+            try:
+                payload = json.loads(request.body)
+                uuid = str(payload["uuid"])
+                status = self.STATUSES[payload["status"]]
+            except ValueError, TypeError, KeyError:
+                return JsonResponse({"error": _("Invalid request.")}, status=400)
+
+            try:
+                article = self.helpdesk.articles.filter(uuid=uuid, is_active=True).first()
+            except ValidationError:  # not a uuid at all
+                article = None
+
+            if not article:
+                return JsonResponse({"error": _("No such article.")}, status=404)
+
+            if status == Article.STATUS_PUBLISHED:
+                article.publish(request.user)
+            else:
+                article.unpublish(request.user)
+
+            return JsonResponse({"status": "ok"})
+
+    class Colors(HelpdeskMixin, OrgPermsMixin, SmartTemplateView):
+        """
+        The org's article palette - the colors every author shares, so color use stays consistent across articles.
+        Articles embed an index into it, so a POST that recolors an entry restyles that color's every use, and one
+        that drops an entry blanks them until something new takes the index.
+        """
+
+        def get(self, request, *args, **kwargs):
+            return JsonResponse({"colors": self.helpdesk.colors})
+
+        def post(self, request, *args, **kwargs):
+            try:
+                colors = json.loads(request.body)["colors"]
+                if not isinstance(colors, dict) or len(colors) > Knowledge.MAX_COLORS:
+                    raise ValueError("not a palette")
+                for index, color in colors.items():
+                    if not re.fullmatch(r"\d+", index) or not re.fullmatch(r"#[0-9a-f]{3,8}", str(color).lower()):
+                        raise ValueError("not a palette entry")
+            except ValueError, TypeError, KeyError:
+                return JsonResponse({"error": _("Invalid request.")}, status=400)
+
+            self.helpdesk.set_colors({index: str(color).lower() for index, color in colors.items()})
+            return JsonResponse({"status": "ok"})
+
+    class Delete(BaseObject, BaseDeleteModal):
+        cancel_url = "@knowledge.article_list"
+        redirect_url = "@knowledge.article_list"
+        submit_button_name = _("Delete")
+
+        def get_queryset(self, **kwargs):
+            return super().get_queryset(**kwargs).filter(knowledge=self.helpdesk)
+
+    class Sort(HelpdeskMixin, PostOnlyMixin, OrgPermsMixin, SmartTemplateView):
+        """
+        Applies a new tree ordering, posted as (uuid, parent, sort_order) triples. The client's tree is never trusted -
+        the model re-derives the resulting forest and rejects it if it isn't one.
+        """
+
+        def post(self, request, *args, **kwargs):
+            try:
+                payload = json.loads(request.body)
+                if len(payload) > Article.MAX_ARTICLES:
+                    raise ValueError("too many entries")
+
+                # sort orders are clamped rather than trusted - JSON numbers are unbounded, so an enormous one is
+                # either an OverflowError here or an integer out of range at the database
+                order = [
+                    (
+                        str(i["uuid"]),
+                        i["parent"] and str(i["parent"]),
+                        max(0, min(int(i["sort_order"]), Article.MAX_ARTICLES)),
+                    )
+                    for i in payload
+                ]
+            except ValueError, TypeError, KeyError, OverflowError:
+                return JsonResponse({"error": _("Invalid ordering.")}, status=400)
+
+            try:
+                Article.apply_sort(self.helpdesk, order)
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+
+            return JsonResponse({"status": "ok"})
+
+    class Upload(BaseObject, PostOnlyMixin, OrgObjPermsMixin, SmartReadView):
+        """
+        A screenshot for an article body. Multipart in, JSON out - always 200, errors are {"error": "..."}. The image
+        goes to public storage because the eventual standalone help site will serve these directly.
+        """
+
+        def post(self, request, *args, **kwargs):
+            obj = self.get_object()
+
+            if obj.images.count() >= ArticleImage.MAX_IMAGES:
+                return JsonResponse({"error": _("Limit of %d images reached.") % ArticleImage.MAX_IMAGES})
+
+            file = request.FILES["file"]
+            detected_type = magic.from_buffer(next(file.chunks(chunk_size=2048)), mime=True)
+
+            if not ArticleImage.is_allowed_type(detected_type):
+                return JsonResponse({"error": _("Unsupported file type")})
+            if file.size > ArticleImage.MAX_UPLOAD_SIZE:
+                limit_MB = ArticleImage.MAX_UPLOAD_SIZE / (1024 * 1024)
+                return JsonResponse({"error": _("Limit for file uploads is %s MB") % limit_MB})
+
+            file.content_type = detected_type  # trust the sniffed type, not the browser's
+            image = ArticleImage.from_upload(obj, request.user, file)
+
+            return JsonResponse({"uuid": str(image.uuid), "name": image.name, "url": image.url})

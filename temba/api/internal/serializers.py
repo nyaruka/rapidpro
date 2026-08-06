@@ -3,6 +3,7 @@ from datetime import timezone as tzone
 from rest_framework import serializers
 
 from temba.ai.models import LLM
+from temba.knowledge.models import Article
 from temba.locations.models import AdminBoundary
 from temba.orgs.models import Org
 from temba.templates.models import Template, TemplateTranslation
@@ -16,6 +17,27 @@ class ModelAsJsonSerializer(serializers.BaseSerializer):
         # (e.g. Msg.as_json uses context["user"] / context["org"]
         # for the channel-log link).
         return instance.as_json(context=self.context)
+
+
+class ArticleReadSerializer(serializers.ModelSerializer):
+    STATUSES = {Article.STATUS_DRAFT: "draft", Article.STATUS_PUBLISHED: "published"}
+
+    status = serializers.SerializerMethodField()
+    parent = serializers.SerializerMethodField()
+
+    # both are attached by Article.get_tree rather than stored, since the tree is what this endpoint serves
+    depth = serializers.IntegerField()
+    modified_on = serializers.DateTimeField(default_timezone=tzone.utc)
+
+    def get_status(self, obj) -> str:
+        return self.STATUSES[obj.status]
+
+    def get_parent(self, obj) -> str:
+        return str(obj.parent_uuid) if obj.parent_uuid else None
+
+    class Meta:
+        model = Article
+        fields = ("uuid", "title", "status", "parent", "depth", "modified_on")
 
 
 class LLMReadSerializer(serializers.ModelSerializer):
