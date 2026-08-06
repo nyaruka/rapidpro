@@ -36,13 +36,8 @@ class ComponentsFinderTest(TembaTest):
 
                 mock_run.assert_has_calls(
                     [
-                        call(
-                            ["bun", "install", "--frozen-lockfile"],
-                            cwd=components_dir,
-                            capture_output=True,
-                            text=True,
-                        ),
-                        call(["bun", "run", "build"], cwd=components_dir, capture_output=True, text=True),
+                        call(["bun", "install", "--frozen-lockfile"], cwd=components_dir, timeout=600),
+                        call(["bun", "run", "build"], cwd=components_dir, timeout=600),
                     ]
                 )
                 self.assertIn("svg/index.svg", listed)
@@ -50,7 +45,14 @@ class ComponentsFinderTest(TembaTest):
 
                 # a failed build aborts the listing
                 with patch("temba.utils.staticfiles.subprocess.run") as mock_run:
-                    mock_run.return_value = subprocess.CompletedProcess([], returncode=1, stdout="out", stderr="boom")
+                    mock_run.return_value = subprocess.CompletedProcess([], returncode=1)
+
+                    with self.assertRaises(CommandError):
+                        list(finder.list([]))
+
+                # as does one that hangs past the timeout
+                with patch("temba.utils.staticfiles.subprocess.run") as mock_run:
+                    mock_run.side_effect = subprocess.TimeoutExpired(cmd="bun", timeout=600)
 
                     with self.assertRaises(CommandError):
                         list(finder.list([]))
