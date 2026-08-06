@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Card Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <style>
+      .example {
+        max-width: 400px;
+        margin-bottom: 2em;
+      }
+
+      temba-card p {
+        margin: 0.5em 0;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Cards</h1>
+    <p><a href="/demo/index.html">&larr; Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Basic Card</h3>
+      <temba-card label="Details" icon="info">
+        <p>Card content grows to fit — cards never scroll internally.</p>
+        <p>Click the header to collapse.</p>
+      </temba-card>
+    </div>
+
+    <div class="example">
+      <h3>Card with Count</h3>
+      <temba-card label="Fields" icon="fields" count="12">
+        <p>The count badge is driven by the count attribute or by a slotted
+          child firing temba-details-changed.</p>
+      </temba-card>
+    </div>
+
+    <div class="example">
+      <h3>Collapsed with Activity Dot</h3>
+      <temba-card label="Notepad" icon="notes" count="1" activity collapsed>
+        <p>Activity shows a dot instead of a number.</p>
+      </temba-card>
+    </div>
+
+    <div class="example">
+      <h3>Card Stack</h3>
+      <p>Drag headers to reorder. Order changes are logged below.</p>
+      <temba-card-stack id="stack">
+        <temba-card id="card-a" label="Details" icon="info">
+          <p>First card.</p>
+        </temba-card>
+        <temba-card id="card-b" label="Fields" icon="fields" count="4">
+          <p>Second card with a longer body.</p>
+          <p>Line two.</p>
+          <p>Line three.</p>
+        </temba-card>
+        <temba-card id="card-c" label="Next Up" icon="schedule" count="2">
+          <p>Third card.</p>
+        </temba-card>
+        <temba-card id="card-d" label="Notepad" icon="notes" activity count="1">
+          <p>Fourth card.</p>
+        </temba-card>
+      </temba-card-stack>
+      <pre id="log"></pre>
+    </div>
+
+    <div class="example">
+      <h3>Card Stack with Initial Order</h3>
+      <p>DOM says a, b, c — the order attribute says c, a, b.</p>
+      <temba-card-stack order='["ordered-c", "ordered-a", "ordered-b"]'>
+        <temba-card id="ordered-a" label="A" icon="info">
+          <p>Card A</p>
+        </temba-card>
+        <temba-card id="ordered-b" label="B" icon="fields">
+          <p>Card B</p>
+        </temba-card>
+        <temba-card id="ordered-c" label="C" icon="schedule">
+          <p>Card C</p>
+        </temba-card>
+      </temba-card-stack>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+
+      const log = document.querySelector('#log');
+      document
+        .querySelector('#stack')
+        .addEventListener('temba-order-changed', (event) => {
+          log.textContent = 'order: ' + event.detail.ids.join(', ');
+        });
+      document.querySelector('#stack').addEventListener('toggle', (event) => {
+        log.textContent =
+          'toggle: ' +
+          event.detail.label +
+          ' collapsed=' +
+          event.detail.collapsed;
+      });
+    </script>
+  </body>
+</html>

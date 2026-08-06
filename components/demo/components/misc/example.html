@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Miscellaneous Components</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <temba-lightbox> </temba-lightbox>
+    <h1>Miscellaneous Components</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Loading Component</h3>
+      <p>A loading spinner for async operations</p>
+      <temba-loading></temba-loading>
+    </div>
+
+    <div class="example">
+      <h3>Thumbnail Component</h3>
+      <p>Image thumbnails with autozooming and downloading</p>
+      <div style="display: flex; gap: 15px; align-items: center">
+        <!-- normally a server would provide the content type, but our demo doesn't so we do it manually-->
+        <temba-thumbnail
+          url="../data/images/gus.png"
+          size="small"
+          contentType="image"
+        ></temba-thumbnail>
+      </div>
+    </div>
+
+    <div class="example">
+      <h3>Tip Component</h3>
+      <p>Tooltip components for additional information</p>
+      <div style="display: flex; gap: 20px; flex-wrap: wrap">
+        <div>
+          <temba-tip text="This is a basic tooltip"
+            ><span>Hover me</span></temba-tip
+          >
+        </div>
+        <div>
+          <temba-tip text="This tooltip appears above" position="top">
+            <span>Top tip</span></temba-tip
+          >
+        </div>
+        <div>
+          <temba-tip text="This tooltip appears to the right" position="right"
+            ><span>Right tip</span></temba-tip
+          >
+        </div>
+        <div>
+          <temba-tip text="This tooltip appears to the bottom" position="bottom"
+            ><span>Bottom tip</span></temba-tip
+          >
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

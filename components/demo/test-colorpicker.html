@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ColorPicker Test</title>
+    <style>
+        body { padding: 20px; font-family: Arial, sans-serif; }
+        .test-section { margin: 20px 0; border: 1px solid #ccc; padding: 20px; }
+        temba-color-picker { width: 300px; }
+    </style>
+    <script type="module" src="/dist/temba-components.js"></script>
+</head>
+<body>
+    <h1>ColorPicker Visual Test</h1>
+    
+    <div class="test-section">
+        <h3>ColorPicker with label (new behavior)</h3>
+        <temba-color-picker name="primary" label="Primary Color"></temba-color-picker>
+    </div>
+    
+    <div class="test-section">
+        <h3>ColorPicker with widgetOnly (should match old behavior)</h3>
+        <temba-color-picker name="primary" label="Primary Color" widgetOnly></temba-color-picker>
+    </div>
+    
+    <div class="test-section">
+        <h3>ColorPicker without label</h3>
+        <temba-color-picker name="primary"></temba-color-picker>
+    </div>
+</body>
+</html>

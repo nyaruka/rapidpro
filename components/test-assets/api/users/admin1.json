@@ -1,0 +1,13 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "email": "admin1@nyaruka.com",
+      "first_name": "Adam",
+      "last_name": "McAdmin",
+      "role": "administrator",
+      "created_on": "2023-01-18T19:33:13.336367Z"
+    }
+  ]
+}

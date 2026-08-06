@@ -1,0 +1,13 @@
+{
+  "name": "temba-components-ci",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "runArgs": [
+    "--shm-size=1g"
+  ],
+  "remoteUser": "node"
+}

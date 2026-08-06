@@ -1,0 +1,3 @@
+# pnpm-style strict node_modules (no phantom dependencies)
+[install]
+linker = "isolated"

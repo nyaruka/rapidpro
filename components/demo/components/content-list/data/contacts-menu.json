@@ -1,0 +1,37 @@
+{
+  "items": [
+    {
+      "type": "modax",
+      "as_button": true,
+      "primary": true,
+      "label": "New Contact",
+      "url": "/contact/create/"
+    },
+    {
+      "type": "modax",
+      "as_button": true,
+      "primary": false,
+      "label": "Import",
+      "url": "/contactimport/create/"
+    },
+    {
+      "type": "modax",
+      "as_button": false,
+      "label": "Export",
+      "url": "/contact/export/"
+    },
+    { "type": "divider" },
+    {
+      "type": "link",
+      "as_button": false,
+      "label": "Manage Fields",
+      "url": "/contactfield/"
+    },
+    {
+      "type": "link",
+      "as_button": false,
+      "label": "Manage Groups",
+      "url": "/group/"
+    }
+  ]
+}

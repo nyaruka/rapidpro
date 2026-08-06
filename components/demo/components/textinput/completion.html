@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Completion Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <temba-store completion="/api/v2/completion.json"></temba-store>
+    <h1>Completion Examples</h1>
+
+    <p>
+      <a href="/demo/index.html">← Back to main demo</a> |
+      <a href="example.html">Basic Text Input</a>
+    </p>
+
+    <h2 style="color: tomato">These examples aren't working yet..</h2>
+    <div class="example">
+      <h3>Basic Completion</h3>
+      <p>A text input with completion functionality</p>
+      <temba-completion value="you complete me @cont"></temba-completion>
+    </div>
+
+    <div class="example">
+      <h3>Completion with Character Counter</h3>
+      <p>A textarea completion with GSM character counter</p>
+      <temba-completion
+        counter="temba-charcount"
+        value="This is a GSM charcounter in a textarea"
+        gsm
+        textarea
+      ></temba-completion>
+      <temba-charcount text="count this text"></temba-charcount>
+    </div>
+
+    <div class="example">
+      <h3>Empty Completion</h3>
+      <p>An empty completion field</p>
+      <temba-completion
+        placeholder="Start typing to see completion..."
+      ></temba-completion>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

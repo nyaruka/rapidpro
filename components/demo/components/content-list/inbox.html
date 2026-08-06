@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Inbox — Full-window List</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <style>
+      /* The list fills the window and scrolls its own body — the page
+         itself never scrolls. html/body are pinned to the viewport
+         and body is a flex column so the fill-window list takes the
+         slack (a footer below it would stay visible). */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        max-width: none;
+        overflow: hidden;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      /* A stand-in for the SPA's page footer, so the demo shows the
+         list filling the space above it rather than the whole window. */
+      .demo-footer {
+        flex: 0 0 auto;
+        text-align: center;
+        padding: 14px;
+        font-size: 12px;
+        color: #8b95a3;
+        background: #e9ebef;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- temba-date (sent durations) reads locale + relative-time
+         formatting off the store, so the page needs one present. -->
+    <temba-store></temba-store>
+
+    <temba-msg-list
+      id="inbox"
+      fill-window
+      list-title="Inbox"
+      subtitle="Incoming messages that weren't automatically handled by a flow."
+      endpoint="/demo/components/content-list/data/messages-many.json"
+      content-menu-endpoint="/demo/components/content-list/data/messages-menu.json"
+    ></temba-msg-list>
+
+    <div class="demo-footer">
+      Footer — stays visible; the list fills the space above it.
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

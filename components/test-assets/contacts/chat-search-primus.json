@@ -1,0 +1,30 @@
+{
+  "results": [
+    {
+      "uuid": "01997d74-bf67-7199-8e8a-200e41a90d71",
+      "type": "msg_received",
+      "created_on": "2025-09-23T20:40:27.239431+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "primus",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      }
+    },
+    {
+      "uuid": "01997d74-bf67-77d4-9c9b-458abb7bf993",
+      "type": "msg_created",
+      "created_on": "2025-09-23T20:40:27.239434+00:00",
+      "msg": {
+        "urn": "tel:+250788123123",
+        "text": "Mmmmm... delicious Primus. If only they made blue Primus! Do you want to set your name?",
+        "channel": {
+          "uuid": "8a81e9e0-10a0-4319-9b00-ce723cfa8303",
+          "name": "SMS Channel"
+        }
+      }
+    }
+  ]
+}

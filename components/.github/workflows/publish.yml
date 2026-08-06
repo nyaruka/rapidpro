@@ -1,0 +1,40 @@
+name: Publish to NPM
+
+on:
+  push:
+    tags:
+      - '*'
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v5
+      - name: Build in dev container
+        uses: devcontainers/ci@v0.3
+        with:
+          configFile: .github/devcontainer/devcontainer.json
+          runCmd: bun install --frozen-lockfile && bun run build
+          push: never
+          env: |
+            CI=true
+      - name: Check build output
+        run: ls -la && ls -la dist/ || echo "No dist folder"
+      - name: Setup Node.js and upgrade npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Upgrade npm (requires 9.5.0+ for provenance; pinned since npm 12.0.0 breaks provenance publish)
+        run: |
+          echo "Current npm version:"
+          npm --version
+          npm install -g npm@11
+          echo "Updated npm version:"
+          npm --version
+      - name: Publish to NPM
+        run: npm publish --provenance --access public

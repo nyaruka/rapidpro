@@ -1,0 +1,27 @@
+{
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "c-101",
+      "name": "Amelia Chen",
+      "urn": { "scheme": "tel", "display": "********" },
+      "ref": "S5XQ4X",
+      "groups": [],
+      "fields": {},
+      "last_seen_on": "2026-05-11T13:42:11Z",
+      "created_on": "2024-03-12T09:15:00Z"
+    },
+    {
+      "uuid": "c-102",
+      "name": "",
+      "urn": { "scheme": "tel", "display": "********" },
+      "ref": "WG67XY",
+      "groups": [],
+      "fields": {},
+      "last_seen_on": null,
+      "created_on": "2023-11-01T17:30:00Z"
+    }
+  ]
+}

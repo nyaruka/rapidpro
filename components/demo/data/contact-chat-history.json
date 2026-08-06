@@ -1,0 +1,138 @@
+{
+  "next": null,
+  "events": [
+    {
+      "uuid": "019f1e71-4a20-7c15-9d42-8b1f6e2a9c04",
+      "type": "msg_received",
+      "created_on": "2026-07-01T16:09:29.000000+00:00",
+      "msg": {
+        "urn": "telegram:7856382063",
+        "channel": {
+          "uuid": "246dfb67-dfcb-475d-ae81-cb49357537c7",
+          "name": "Telegram ureportglobal"
+        },
+        "external_id": "123751",
+        "text": "This message was deleted"
+      },
+      "_deleted": {
+        "created_on": "2026-07-01T16:10:00.000000+00:00",
+        "by_contact": true
+      }
+    },
+    {
+      "uuid": "019f1e70-ed92-7861-8b57-93cf1a1f88b3",
+      "type": "msg_received",
+      "created_on": "2026-07-01T16:09:05.262559+00:00",
+      "msg": {
+        "urn": "telegram:7856382063",
+        "channel": {
+          "uuid": "246dfb67-dfcb-475d-ae81-cb49357537c7",
+          "name": "Telegram ureportglobal"
+        },
+        "external_id": "123750",
+        "text": ""
+      }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000010",
+      "type": "msg_created",
+      "created_on": "2025-09-24T20:40:27.239439+00:00",
+      "msg": {
+        "urn": "tel:+1234567890",
+        "text": "Thanks for your order! We'll deliver your 5 bags of maize to your farm tomorrow morning.",
+        "channel": { "uuid": "ch-001", "name": "SMS Channel" }
+      },
+      "_status": { "status": "delivered", "created_on": "2025-09-24T20:40:28.000000+00:00" }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000009",
+      "type": "msg_received",
+      "created_on": "2025-09-24T20:35:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+1234567890",
+        "text": "Yes please, I'd like to order 5 bags of maize delivered to my farm",
+        "channel": { "uuid": "ch-001", "name": "SMS Channel" }
+      }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000008",
+      "type": "msg_created",
+      "created_on": "2025-09-24T20:30:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+1234567890",
+        "text": "Current market prices:\nMaize KES 3,200/bag\nBeans KES 8,500/bag\nRice KES 4,800/bag\nCassava KES 2,100/bag",
+        "channel": { "uuid": "ch-001", "name": "SMS Channel" }
+      },
+      "_status": { "status": "delivered", "created_on": "2025-09-24T20:30:01.000000+00:00" }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000007",
+      "type": "msg_received",
+      "created_on": "2025-09-24T20:25:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+1234567890",
+        "text": "Can you send me today's market prices for crops?",
+        "channel": { "uuid": "ch-001", "name": "SMS Channel" }
+      }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000006",
+      "type": "msg_created",
+      "created_on": "2025-09-24T18:00:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+1234567890",
+        "text": "Perfect, I'll make sure to be home. Thank you",
+        "channel": { "uuid": "ch-001", "name": "SMS Channel" }
+      },
+      "_status": { "status": "delivered", "created_on": "2025-09-24T18:00:01.000000+00:00" }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000005",
+      "type": "msg_received",
+      "created_on": "2025-09-24T17:55:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+1234567890",
+        "text": "The extension officer will visit your farm on Thursday between 9am and 12pm",
+        "channel": { "uuid": "ch-001", "name": "SMS Channel" }
+      }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000004",
+      "type": "msg_received",
+      "created_on": "2025-09-24T17:50:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+1234567890",
+        "text": "When can I expect the extension officer to visit?",
+        "channel": { "uuid": "ch-001", "name": "SMS Channel" }
+      }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000003",
+      "type": "msg_created",
+      "created_on": "2025-09-23T14:00:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+1234567890",
+        "text": "Welcome to FarmAssist! We help farmers with market prices, weather updates, and agricultural advice. How can we help you today?",
+        "channel": { "uuid": "ch-001", "name": "SMS Channel" }
+      },
+      "_status": { "status": "delivered", "created_on": "2025-09-23T14:00:01.000000+00:00" }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000002",
+      "type": "msg_received",
+      "created_on": "2025-09-23T13:55:00.000000+00:00",
+      "msg": {
+        "urn": "tel:+1234567890",
+        "text": "Hello",
+        "channel": { "uuid": "ch-001", "name": "SMS Channel" }
+      }
+    },
+    {
+      "uuid": "019a0001-0001-7001-8001-000000000001",
+      "type": "run_started",
+      "created_on": "2025-09-23T13:55:00.000000+00:00",
+      "run_uuid": "run-001",
+      "flow": { "uuid": "flow-001", "name": "FarmAssist Onboarding" }
+    }
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "key": "global_four",
+      "name": "Global Four",
+      "value": "My Global Value has a first name",
+      "modified_on": "2020-12-07T17:59:20.863878Z"
+    },
+    {
+      "key": "global_eight",
+      "name": "Global Eight",
+      "value": "Your bones don't break, mine do. That's clear. Your cells react to bacteria and viruses differently than mine. You don't get sick, I do. That's also clear. But for some reason, you and I react the exact same way to water. We swallow it too fast, we choke. We get some in our lungs, we drown. However unreal it may seem, we are connected, you and I. We're on the same curve, just on opposite ends.  Well, the way they make shows is, they make one show. That show's called a pilot. Then they show that show to the people who make shows, and on the strength of that one show they decide if they're going to make more shows. Some pilots get pic",
+      "modified_on": "2020-12-07T17:57:22.962495Z"
+    },
+    {
+      "key": "global_test_p",
+      "name": "Global Test P",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:42:01.132396Z"
+    },
+    {
+      "key": "global_test_z",
+      "name": "Global Test Z",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:35:18.523219Z"
+    },
+    {
+      "key": "global_test_y",
+      "name": "Global Test Y",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:35:14.807313Z"
+    },
+    {
+      "key": "global_test_x",
+      "name": "Global Test X",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:35:09.525308Z"
+    },
+    {
+      "key": "global_test_w",
+      "name": "Global Test W",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:35:06.365719Z"
+    },
+    {
+      "key": "global_test_v",
+      "name": "Global Test V",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:35:03.039078Z"
+    },
+    {
+      "key": "global_test_u",
+      "name": "Global Test U",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:59.096707Z"
+    },
+    {
+      "key": "global_test_t",
+      "name": "Global Test T",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:55.518491Z"
+    },
+    {
+      "key": "global_test_s",
+      "name": "Global Test S",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:51.539813Z"
+    },
+    {
+      "key": "global_test_r",
+      "name": "Global Test R",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:47.533335Z"
+    },
+    {
+      "key": "global_test_q",
+      "name": "Global Test Q",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:43.761926Z"
+    },
+    {
+      "key": "global_test_o",
+      "name": "Global Test O",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:36.578755Z"
+    },
+    {
+      "key": "global_test_n",
+      "name": "Global Test N",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:31.458012Z"
+    },
+    {
+      "key": "global_test_m",
+      "name": "Global Test M",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:27.390781Z"
+    },
+    {
+      "key": "global_test_l",
+      "name": "Global Test L",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:23.008439Z"
+    },
+    {
+      "key": "global_test_k",
+      "name": "Global Test K",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:19.420698Z"
+    },
+    {
+      "key": "global_test_j",
+      "name": "Global Test J",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:34:06.226292Z"
+    },
+    {
+      "key": "global_test_i",
+      "name": "Global Test I",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:44.380855Z"
+    },
+    {
+      "key": "global_test_h",
+      "name": "Global Test H",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:40.415455Z"
+    },
+    {
+      "key": "global_test_g",
+      "name": "Global Test G",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:37.349024Z"
+    },
+    {
+      "key": "global_test_f",
+      "name": "Global Test F",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:33.983507Z"
+    },
+    {
+      "key": "global_test_e",
+      "name": "Global Test E",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:29.696723Z"
+    },
+    {
+      "key": "global_test_d",
+      "name": "Global Test D",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:25.315775Z"
+    },
+    {
+      "key": "global_test_c",
+      "name": "Global Test C",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:22.373764Z"
+    },
+    {
+      "key": "global_test_b",
+      "name": "Global Test B",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:15.930861Z"
+    },
+    {
+      "key": "global_test_a",
+      "name": "Global Test A",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:12.091198Z"
+    },
+    {
+      "key": "global_ten",
+      "name": "Global Ten",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:04.674635Z"
+    },
+    {
+      "key": "global_nine",
+      "name": "Global Nine",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:33:00.547987Z"
+    },
+    {
+      "key": "global_seven",
+      "name": "Global Seven",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:32:51.203569Z"
+    },
+    {
+      "key": "global_six",
+      "name": "Global Six",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:32:46.947134Z"
+    },
+    {
+      "key": "global_three",
+      "name": "Global Three",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:32:31.320492Z"
+    },
+    {
+      "key": "global_two",
+      "name": "Global Two",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:32:25.443777Z"
+    },
+    {
+      "key": "global_one",
+      "name": "Global One",
+      "value": "My Global Value",
+      "modified_on": "2020-12-07T17:32:14.189103Z"
+    },
+    {
+      "key": "my_global_variable",
+      "name": "My Global Variable",
+      "value": "AWRS@#$234",
+      "modified_on": "2020-08-21T22:11:09.376180Z"
+    },
+    {
+      "key": "token",
+      "name": "token",
+      "value": "mothermayicup",
+      "modified_on": "2020-07-10T03:41:47.600401Z"
+    }
+  ]
+}

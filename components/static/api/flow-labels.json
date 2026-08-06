@@ -1,0 +1,31 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "fl-001",
+      "name": "Active Campaigns",
+      "count": 12
+    },
+    {
+      "uuid": "fl-002",
+      "name": "Surveys",
+      "count": 8
+    },
+    {
+      "uuid": "fl-003",
+      "name": "Onboarding",
+      "count": 4
+    },
+    {
+      "uuid": "fl-004",
+      "name": "Internal",
+      "count": 2
+    },
+    {
+      "uuid": "fl-005",
+      "name": "Archived",
+      "count": 6
+    }
+  ]
+}

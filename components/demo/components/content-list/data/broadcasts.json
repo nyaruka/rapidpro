@@ -1,0 +1,132 @@
+{
+  "count": 7,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 201,
+      "status": "completed",
+      "text": "Your appointment is confirmed for tomorrow at 10am. Reply CHANGE to reschedule.",
+      "attachments": [],
+      "quick_replies": ["Confirm", "Change"],
+      "groups": [{ "uuid": "g-001", "name": "Patients" }],
+      "contacts": [],
+      "query": null,
+      "exclusions": ["Skip contacts in a flow"],
+      "schedule": null,
+      "msg_count": 12480,
+      "created_on": "2026-07-14T14:32:00.000000Z",
+      "created_by": "admin@textit.com",
+      "modified_on": "2026-07-14T14:40:00.000000Z"
+    },
+    {
+      "id": 202,
+      "status": "started",
+      "progress": { "total": 40200, "started": 18960 },
+      "text": "Clinic hours change next week — we open at 8am Monday through Thursday.",
+      "attachments": [
+        { "content_type": "image/jpeg", "url": "/test-assets/img/meow.jpg" }
+      ],
+      "quick_replies": [],
+      "groups": [
+        { "uuid": "g-002", "name": "All Contacts" },
+        { "uuid": "g-003", "name": "Nairobi" },
+        { "uuid": "g-004", "name": "Mombasa" }
+      ],
+      "contacts": [],
+      "query": null,
+      "exclusions": [],
+      "schedule": null,
+      "msg_count": 18960,
+      "created_on": "2026-07-16T09:05:00.000000Z",
+      "created_by": "agent@textit.com",
+      "modified_on": "2026-07-16T09:05:00.000000Z"
+    },
+    {
+      "id": 203,
+      "status": "failed",
+      "text": "Flash sale! 20% off everything through Friday.",
+      "attachments": [],
+      "quick_replies": [],
+      "groups": [],
+      "contacts": [{ "uuid": "c-001", "name": "Ben Haggerty" }],
+      "query": null,
+      "exclusions": [],
+      "schedule": null,
+      "msg_count": 0,
+      "created_on": "2026-07-10T16:20:00.000000Z",
+      "created_by": "admin@textit.com",
+      "modified_on": "2026-07-10T16:22:00.000000Z"
+    },
+    {
+      "id": 204,
+      "status": "completed",
+      "text": "",
+      "attachments": [],
+      "quick_replies": [],
+      "template": { "uuid": "t-001", "name": "order_update" },
+      "groups": [{ "uuid": "g-005", "name": "Wholesale Buyers" }],
+      "contacts": [],
+      "query": null,
+      "exclusions": [],
+      "schedule": null,
+      "msg_count": 342,
+      "created_on": "2026-07-08T11:00:00.000000Z",
+      "created_by": "admin@textit.com",
+      "modified_on": "2026-07-08T11:04:00.000000Z"
+    },
+    {
+      "id": 205,
+      "status": "completed",
+      "text": "Please opt in to receive weekly market prices.",
+      "attachments": [],
+      "quick_replies": [],
+      "optin": { "uuid": "o-001", "name": "Market Prices" },
+      "groups": [],
+      "contacts": [],
+      "query": "age > 18 AND state = \"Lagos\"",
+      "exclusions": ["Skip inactive contacts"],
+      "schedule": null,
+      "msg_count": 5211,
+      "created_on": "2026-07-02T08:15:00.000000Z",
+      "created_by": "editor@textit.com",
+      "modified_on": "2026-07-02T08:30:00.000000Z"
+    },
+    {
+      "id": 206,
+      "status": "queued",
+      "progress": { "total": 310, "started": 24 },
+      "text": "Reminder: submit your weekly report by 5pm today.",
+      "attachments": [],
+      "quick_replies": ["Done", "Need help"],
+      "groups": [{ "uuid": "g-006", "name": "Field Staff" }],
+      "contacts": [{ "uuid": "c-002", "name": "Joe Lopez" }],
+      "query": null,
+      "exclusions": [],
+      "schedule": null,
+      "msg_count": 0,
+      "created_on": "2026-07-16T13:45:00.000000Z",
+      "created_by": "admin@textit.com",
+      "modified_on": "2026-07-16T13:45:00.000000Z"
+    },
+    {
+      "id": 207,
+      "status": "interrupted",
+      "text": "System maintenance tonight from 11pm to 1am — services may be briefly unavailable. We apologize for any inconvenience and appreciate your patience.",
+      "attachments": [
+        { "content_type": "image/jpeg", "url": "/test-assets/img/meow.jpg" },
+        { "content_type": "application/pdf", "url": "/test-assets/img/schedule.pdf" }
+      ],
+      "quick_replies": [],
+      "groups": [{ "uuid": "g-002", "name": "All Contacts" }],
+      "contacts": [],
+      "query": null,
+      "exclusions": [],
+      "schedule": null,
+      "msg_count": 1042,
+      "created_on": "2026-06-28T22:10:00.000000Z",
+      "created_by": "admin@textit.com",
+      "modified_on": "2026-06-28T22:30:00.000000Z"
+    }
+  ]
+}

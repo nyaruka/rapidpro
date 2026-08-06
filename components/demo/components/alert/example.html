@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Alert Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Alert Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Basic Alert</h3>
+      <p>A simple alert component</p>
+      <temba-alert>This is a basic alert message.</temba-alert>
+    </div>
+
+    <div class="example">
+      <h3>Success Alert</h3>
+      <p>An alert for successful actions</p>
+      <temba-alert level="success"
+        >Your changes have been saved successfully!</temba-alert
+      >
+    </div>
+
+    <div class="example">
+      <h3>Warning Alert</h3>
+      <p>An alert for warning messages</p>
+      <temba-alert level="warning"
+        >Please review your input before proceeding.</temba-alert
+      >
+    </div>
+
+    <div class="example">
+      <h3>Error Alert</h3>
+      <p>An alert for error messages</p>
+      <temba-alert level="error"
+        >An error occurred while processing your request.</temba-alert
+      >
+    </div>
+
+    <div class="example">
+      <h3>Info Alert</h3>
+      <p>An alert for informational messages</p>
+      <temba-alert level="info"
+        >This feature is currently in beta testing.</temba-alert
+      >
+    </div>
+
+    <div class="example">
+      <h3>Dismissible Alert</h3>
+      <p>An alert that can be closed</p>
+      <temba-alert dismissible
+        >This alert can be dismissed by clicking the X button.</temba-alert
+      >
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

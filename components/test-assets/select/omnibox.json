@@ -1,0 +1,55 @@
+{
+  "results": [
+    {
+      "id": "47cf9575-a326-468b-a26d-8c0577197426",
+      "name": "Doctors",
+      "type": "group",
+      "count": 133
+    },
+    {
+      "id": "0dea1b4b-29bb-4727-8c84-a70216dbf3e1",
+      "name": "Drivers",
+      "type": "group",
+      "count": 62
+    },
+    {
+      "id": "27099c42-a3db-4a82-8052-8530062e4eeb",
+      "name": "Empty",
+      "type": "group",
+      "count": 0
+    },
+    {
+      "id": "92405e93-5db1-4dd5-bfc4-90e9f4d74627",
+      "name": "Farmers",
+      "type": "group",
+      "count": 166
+    },
+    {
+      "id": "adb5285c-8c6c-4d96-8c5b-4684468e2ef4",
+      "name": "Open Tickets",
+      "type": "group",
+      "count": 3
+    },
+    {
+      "id": "6b21b63c-cc31-4314-bda6-b4a864ddf681",
+      "name": "Reporters",
+      "type": "group",
+      "count": 306
+    },
+    {
+      "id": "9c431fb2-eee4-4200-91f9-6188f377b80e",
+      "name": "Teachers",
+      "type": "group",
+      "count": 105
+    },
+    {
+      "id": "827d8d18-07a1-48da-8146-965b9d6a59c8",
+      "name": "Testers",
+      "type": "group",
+      "count": 31
+    }
+  ],
+  "more": false,
+  "total": 8,
+  "err": "nil"
+}

@@ -1,0 +1,23 @@
+  {
+  "compilerOptions": {
+    "allowJs": false,
+    "target": "es2018",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "noEmitOnError": true,
+    "lib": ["es2017", "dom", "dom.iterable"],
+    "strict": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "outDir": "out-tsc",
+    "sourceMap": true,
+    "inlineSources": true,
+    "rootDir": "./",
+    "declaration": false,
+    "noEmit": false,
+  },
+  "include": ["**/*.ts", "setup-test.js"]
+}

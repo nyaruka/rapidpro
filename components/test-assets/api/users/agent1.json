@@ -1,0 +1,13 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "email": "agent1@nyaruka.com",
+      "first_name": "Agnes",
+      "last_name": "McAgent",
+      "role": "agent",
+      "created_on": "2023-01-18T19:33:13.637127Z"
+    }
+  ]
+}

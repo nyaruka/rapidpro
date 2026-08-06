@@ -1,0 +1,24 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "level": 0,
+      "boundary": "country-1",
+      "name": "United States",
+      "aliases": ["US", "USA"]
+    },
+    {
+      "level": 1,
+      "boundary": "state-1",
+      "name": "New York",
+      "parent": "country-1"
+    },
+    {
+      "level": 2,
+      "boundary": "city-1",
+      "name": "New York City",
+      "parent": "state-1"
+    }
+  ]
+}

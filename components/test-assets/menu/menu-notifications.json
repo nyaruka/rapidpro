@@ -1,0 +1,27 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": "tasks",
+      "name": "Tasks",
+      "icon": "icon.tickets_mine",
+      "endpoint": "/test-assets/menu/menu-tasks.json"
+    },
+    {
+      "id": "notifications",
+      "name": "Notifications",
+      "icon": "icon.notification",
+      "popup": true,
+      "bottom": true,
+      "bubble": null,
+      "items": [
+        {
+          "id": "notifications-list",
+          "type": "temba-notification-list",
+          "href": "/test-assets/list/notifications.json"
+        }
+      ]
+    }
+  ]
+}

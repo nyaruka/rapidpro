@@ -1,0 +1,126 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "key": "born",
+      "name": "Born",
+      "type": "number",
+      "featured": false,
+      "priority": 0,
+      "usages": {
+        "flows": 3,
+        "groups": 0,
+        "campaign_events": 0
+      },
+      "agent_access": "view",
+      "label": "Born",
+      "value_type": "numeric"
+    },
+    {
+      "key": "profile_pic",
+      "name": "Profile Pic",
+      "type": "text",
+      "featured": false,
+      "priority": 0,
+      "usages": {
+        "flows": 0,
+        "groups": 0,
+        "campaign_events": 0
+      },
+      "agent_access": "view",
+      "label": "Profile Pic",
+      "value_type": "text"
+    },
+    {
+      "key": "state",
+      "name": "State",
+      "type": "text",
+      "featured": true,
+      "priority": 0,
+      "usages": {
+        "flows": 1,
+        "groups": 0,
+        "campaign_events": 0
+      },
+      "agent_access": "view",
+      "label": "State",
+      "value_type": "text"
+    },
+    {
+      "key": "district",
+      "name": "District",
+      "type": "text",
+      "featured": true,
+      "priority": 0,
+      "usages": {
+        "flows": 1,
+        "groups": 1,
+        "campaign_events": 0
+      },
+      "agent_access": "view",
+      "label": "District",
+      "value_type": "text"
+    },
+    {
+      "key": "ward",
+      "name": "Ward",
+      "type": "ward",
+      "featured": true,
+      "priority": 0,
+      "usages": {
+        "flows": 0,
+        "groups": 0,
+        "campaign_events": 0
+      },
+      "agent_access": "view",
+      "label": "Ward",
+      "value_type": "ward"
+    },
+    {
+      "key": "joined",
+      "name": "Joined On",
+      "type": "datetime",
+      "featured": true,
+      "priority": 0,
+      "usages": {
+        "flows": 0,
+        "groups": 1,
+        "campaign_events": 2
+      },
+      "agent_access": "view",
+      "label": "Joined On",
+      "value_type": "datetime"
+    },
+    {
+      "key": "age",
+      "name": "Age",
+      "type": "text",
+      "featured": true,
+      "priority": 0,
+      "usages": {
+        "flows": 2,
+        "groups": 1,
+        "campaign_events": 0
+      },
+      "agent_access": "view",
+      "label": "Age",
+      "value_type": "text"
+    },
+    {
+      "key": "gender",
+      "name": "Gender",
+      "type": "text",
+      "featured": true,
+      "priority": 0,
+      "usages": {
+        "flows": 5,
+        "groups": 0,
+        "campaign_events": 0
+      },
+      "agent_access": "view",
+      "label": "Gender",
+      "value_type": "text"
+    }
+  ]
+}

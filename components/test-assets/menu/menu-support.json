@@ -1,0 +1,58 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": "tasks",
+      "name": "Tasks",
+      "icon": "icon.tickets_mine",
+      "endpoint": "/test-assets/menu/menu-tasks.json"
+    },
+    {
+      "id": "support",
+      "name": "Support",
+      "icon": "help",
+      "bottom": true,
+      "popup": true,
+      "event": "temba-support-menu",
+      "items": [
+        {
+          "id": "help_docs",
+          "name": "Help Docs",
+          "type": "link",
+          "href": "https://help.textit.com",
+          "icon": "docs",
+          "target": "_blank"
+        },
+        {
+          "id": "privacy",
+          "name": "Privacy Policy",
+          "type": "link",
+          "href": "/policy/",
+          "icon": "privacy",
+          "target": "_blank"
+        },
+        {
+          "id": "open_chat",
+          "name": "Chat with Support",
+          "type": "link",
+          "event": "temba-show-support",
+          "icon": "message"
+        }
+      ]
+    },
+    {
+      "id": "notifications",
+      "name": "Notifications",
+      "icon": "notification",
+      "bottom": true,
+      "popup": true,
+      "items": [
+        {
+          "id": "latest",
+          "name": "Latest"
+        }
+      ]
+    }
+  ]
+}

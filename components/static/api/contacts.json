@@ -1,0 +1,44 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "contact-1",
+      "name": "John Doe",
+      "language": "eng",
+      "urns": ["tel:+1234567890"],
+      "fields": {},
+      "groups": [],
+      "blocked": false,
+      "stopped": false,
+      "created_on": "2024-01-01T00:00:00Z",
+      "modified_on": "2024-01-01T00:00:00Z"
+    },
+    {
+      "uuid": "contact-2",
+      "name": "Jane Smith",
+      "language": "eng",
+      "urns": ["tel:+0987654321"],
+      "fields": {},
+      "groups": [],
+      "blocked": false,
+      "stopped": false,
+      "created_on": "2024-01-01T00:00:00Z",
+      "modified_on": "2024-01-01T00:00:00Z"
+    },
+    {
+      "uuid": "contact-in-flow",
+      "name": "Alice Farmer",
+      "language": "eng",
+      "status": "active",
+      "urns": ["tel:+254700123456"],
+      "fields": {},
+      "groups": [],
+      "blocked": false,
+      "stopped": false,
+      "flow": { "uuid": "flow-daily", "name": "Daily Crop Report" },
+      "created_on": "2024-06-15T00:00:00Z",
+      "modified_on": "2025-09-24T00:00:00Z"
+    }
+  ]
+}

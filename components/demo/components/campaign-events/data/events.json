@@ -1,0 +1,128 @@
+{
+  "campaign": {
+    "uuid": "camp-1",
+    "name": "Prenatal Care"
+  },
+  "events": [
+    {
+      "uuid": "event-1",
+      "type": "message",
+      "status": "ready",
+      "offset": -14,
+      "unit": "D",
+      "offset_display": "2 weeks before",
+      "delivery_hour_display": "at 9:00 a.m.",
+      "relative_to": {
+        "key": "due_date",
+        "name": "Due Date"
+      },
+      "message": "Hi @contact, your delivery is only two weeks away. Time to pack your bag!",
+      "count": 1204,
+      "edit_url": "/campaignevent/update/event-1/",
+      "delete_url": "/campaignevent/delete/event-1/",
+      "fires_url": "/demo/components/campaign-events/data/fires.json"
+    },
+    {
+      "uuid": "event-2",
+      "type": "message",
+      "status": "ready",
+      "offset": -3,
+      "unit": "D",
+      "offset_display": "3 days before",
+      "delivery_hour_display": "at 9:00 a.m.",
+      "relative_to": {
+        "key": "due_date",
+        "name": "Due Date"
+      },
+      "message": "Almost there @contact! Remember to arrange transport to the clinic.",
+      "count": 1187,
+      "edit_url": "/campaignevent/update/event-2/",
+      "delete_url": "/campaignevent/delete/event-2/",
+      "fires_url": "/demo/components/campaign-events/data/fires.json"
+    },
+    {
+      "uuid": "event-3",
+      "type": "flow",
+      "status": "ready",
+      "offset": 0,
+      "unit": "D",
+      "offset_display": "on",
+      "relative_to": {
+        "key": "due_date",
+        "name": "Due Date"
+      },
+      "flow": {
+        "uuid": "flow-1",
+        "name": "Delivery Day Checkin",
+        "url": "/flow/editor/flow-1/"
+      },
+      "count": 1032,
+      "edit_url": "/campaignevent/update/event-3/",
+      "delete_url": "/campaignevent/delete/event-3/",
+      "fires_url": "/demo/components/campaign-events/data/fires.json"
+    },
+    {
+      "uuid": "event-4",
+      "type": "flow",
+      "status": "ready",
+      "offset": 6,
+      "unit": "W",
+      "offset_display": "6 weeks after",
+      "delivery_hour_display": "at 2:00 p.m.",
+      "relative_to": {
+        "key": "due_date",
+        "name": "Due Date"
+      },
+      "flow": {
+        "uuid": "flow-2",
+        "name": "Postnatal Survey",
+        "url": "/flow/editor/flow-2/"
+      },
+      "count": 890,
+      "edit_url": "/campaignevent/update/event-4/",
+      "delete_url": "/campaignevent/delete/event-4/",
+      "fires_url": "/demo/components/campaign-events/data/fires.json"
+    },
+    {
+      "uuid": "event-5",
+      "type": "message",
+      "status": "ready",
+      "offset": 30,
+      "unit": "M",
+      "offset_display": "30 minutes after",
+      "relative_to": {
+        "key": "last_visit",
+        "name": "Last Visit"
+      },
+      "message": "Thanks for visiting! Your next checkup date is @fields.next_checkup.",
+      "count": 456,
+      "edit_url": "/campaignevent/update/event-5/",
+      "delete_url": "/campaignevent/delete/event-5/",
+      "fires_url": "/demo/components/campaign-events/data/fires.json"
+    },
+    {
+      "uuid": "event-6",
+      "type": "flow",
+      "status": "scheduling",
+      "offset": 4,
+      "unit": "W",
+      "offset_display": "4 weeks after",
+      "delivery_hour_display": "at 10:00 a.m.",
+      "relative_to": {
+        "key": "last_visit",
+        "name": "Last Visit"
+      },
+      "flow": {
+        "uuid": "flow-3",
+        "name": "Missed Visit Followup",
+        "url": "/flow/editor/flow-3/"
+      },
+      "count": 0,
+      "edit_url": "/campaignevent/update/event-6/",
+      "delete_url": "/campaignevent/delete/event-6/",
+      "fires_url": "/demo/components/campaign-events/data/fires.json"
+    }
+  ],
+  "can_edit": true,
+  "can_delete": true
+}

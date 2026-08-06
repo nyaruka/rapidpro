@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chart Example - Horizontal Charts</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <script type="module" src="../../../src/chart/TembaChart.ts"></script>
+    <link href="/demo/static/css/prism.css" rel="stylesheet" />
+    <script type="module" src="/demo/static/js/prism-loader.js"></script>
+  </head>
+  <body>
+    <h1>Chart Example - Horizontal Charts</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <table class="attr-table">
+      <thead>
+        <tr>
+          <th>Attribute</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>chartType</td>
+          <td>Type of chart to display ('bar', 'line', 'pie', etc.)</td>
+          <td>'bar'</td>
+        </tr>
+        <tr>
+          <td>horizontal</td>
+          <td>Whether to display the bar chart horizontally</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>header</td>
+          <td>Title text displayed above the chart</td>
+          <td>''</td>
+        </tr>
+        <tr>
+          <td>data</td>
+          <td>Chart data object containing labels and datasets</td>
+          <td>None (required)</td>
+        </tr>
+        <tr>
+          <td>percent</td>
+          <td>Whether to show percentage values on chart</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>maxChartHeight</td>
+          <td>Maximum height for the chart in pixels</td>
+          <td>250</td>
+        </tr>
+        <tr>
+          <td>legend</td>
+          <td>Whether to show the chart legend</td>
+          <td>false</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="example">
+      <h3>Regular Vertical Bar Chart</h3>
+      <p>Default vertical bar chart display</p>
+      <pre class="example-html"><code class="language-markup">&lt;temba-chart
+  type="bar"
+  header="Monthly Sales (Vertical)"
+  style="height: 300px; display: block"
+&gt;&lt;/temba-chart&gt;</code></pre>
+      <temba-chart
+        type="bar"
+        header="Monthly Sales (Vertical)"
+        style="height: 300px; display: block"
+        id="vertical-chart"
+      ></temba-chart>
+    </div>
+
+    <div class="example">
+      <h3>Horizontal Bar Chart</h3>
+      <p>Bar chart displayed horizontally using the horizontal attribute</p>
+      <pre class="example-html"><code class="language-markup">&lt;temba-chart
+  type="bar"
+  horizontal
+  header="Monthly Sales (Horizontal)"
+  style="height: 300px; display: block"
+&gt;&lt;/temba-chart&gt;</code></pre>
+      <temba-chart
+        type="bar"
+        horizontal
+        header="Monthly Sales (Horizontal)"
+        style="height: 300px; display: block"
+        id="horizontal-chart"
+      ></temba-chart>
+    </div>
+
+    <div class="example">
+      <h3>Horizontal Bar Chart with Percentages</h3>
+      <p>Horizontal bar chart showing percentage values</p>
+      <pre class="example-html"><code class="language-markup">&lt;temba-chart
+  type="bar"
+  horizontal
+  percent
+  header="Monthly Sales with Percentages (Horizontal)"
+  style="height: 300px; display: block"
+&gt;&lt;/temba-chart&gt;</code></pre>
+      <temba-chart
+        type="bar"
+        horizontal
+        percent
+        header="Monthly Sales with Percentages (Horizontal)"
+        style="height: 300px; display: block"
+        id="horizontal-percent-chart"
+      ></temba-chart>
+    </div>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+
+      // Sample data for the charts
+      const sampleData = {
+        labels: ['January', 'February', 'March', 'April', 'May', 'June'],
+        datasets: [
+          {
+            label: 'Product A',
+            data: [65, 59, 80, 81, 56, 55],
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          },
+          {
+            label: 'Product B',
+            data: [28, 48, 40, 19, 86, 27],
+            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+          }
+        ]
+      };
+
+      // Wait for the DOM to be ready and charts to be defined
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+          const charts = document.querySelectorAll('temba-chart');
+          charts.forEach((chart) => {
+            chart.data = sampleData;
+          });
+        }, 100);
+      });
+    </script>
+  </body>
+</html>

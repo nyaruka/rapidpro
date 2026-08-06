@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "type": "modax",
+      "as_button": false,
+      "label": "Start Flow",
+      "url": "/flow/start/?c=contact-1"
+    },
+    {
+      "type": "modax",
+      "as_button": false,
+      "label": "Open Ticket",
+      "url": "/ticket/open/?c=contact-1"
+    }
+  ]
+}

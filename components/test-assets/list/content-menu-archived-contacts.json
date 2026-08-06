@@ -1,0 +1,12 @@
+{
+    "items": [
+        {
+            "id": "contacts_delete_all",
+            "type": "js",
+            "label": "Delete All",
+            "on_click": "handleDeleteAllContacts(event)",
+            "link_class": "contacts-btn-delete-all",
+            "as_button": false
+        }
+    ]
+}

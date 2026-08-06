@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Select Component Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Select Component Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Basic Select</h3>
+      <p>A simple dropdown selection with info text</p>
+      <temba-select
+        placeholder="Select a color"
+        info_text="Some colors are very dangerous, choose wisely"
+      >
+        <temba-option name="Red" value="0"></temba-option>
+        <temba-option name="Green" value="1"></temba-option>
+        <temba-option name="Blue" value="2"></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <h3>Clearable Select</h3>
+      <p>A select that can be cleared after selection</p>
+      <temba-select placeholder="Select a color" clearable>
+        <temba-option name="Red" value="0"></temba-option>
+        <temba-option name="Green" value="1"></temba-option>
+        <temba-option name="Blue" value="2"></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <h3>Empty Select</h3>
+      <p>A select with no options to show empty state</p>
+      <temba-select placeholder="Click to see empty state"> </temba-select>
+    </div>
+
+    <div class="example">
+      <h3>Empty Searchable Select</h3>
+      <p>A searchable select with no options</p>
+      <temba-select placeholder="Search for options" searchable> </temba-select>
+    </div>
+
+    <div class="example">
+      <h3>Pre-selected Option</h3>
+      <p>A select with a pre-selected value</p>
+      <temba-select placeholder="Select a color" clearable>
+        <temba-option name="Red" value="0"></temba-option>
+        <temba-option name="Green" value="1" selected></temba-option>
+        <temba-option name="Blue" value="2"></temba-option>
+      </temba-select>
+    </div>
+
+    <script>
+      function handleColorChange(event) {
+        console.log('Color changed:', event.target.value);
+      }
+    </script>
+
+    <script type="module">
+      import '/out-tsc/temba-modules.js';
+    </script>
+  </body>
+</html>

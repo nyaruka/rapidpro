@@ -1,0 +1,6 @@
+{
+  "results": [
+    { "uuid": "lbl-1", "name": "Important" },
+    { "uuid": "lbl-2", "name": "Spam" }
+  ]
+}

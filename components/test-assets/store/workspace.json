@@ -1,0 +1,14 @@
+{
+  "uuid": "3e8e7154-0233-4d53-b564-c258ee8390f9",
+  "name": "WHO Chile",
+  "country": "NG",
+  "languages": ["eng", "spa", "afr"],
+  "timezone": "PST8PDT",
+  "date_style": "day_first",
+  "anon": false,
+  "credits": {
+    "used": -1,
+    "remaining": -1
+  },
+  "primary_language": "eng"
+}

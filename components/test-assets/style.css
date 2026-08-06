@@ -1,0 +1,94 @@
+@font-face {
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./fonts/roboto-mono-v12-latin-regular.ttf'),
+    url('./fonts/roboto-mono-v12-latin-regular.woff2') format('woff2'),
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+    url('./fonts/roboto-mono-v12-latin-regular.woff') format('woff');
+  /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+
+/* roboto-mono-300 - latin */
+@font-face {
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 300;
+  src: url('./fonts/roboto-mono-v12-latin-300.ttf'),
+    url('./fonts/roboto-mono-v12-latin-300.woff2') format('woff2'),
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+    url('./fonts/roboto-mono-v12-latin-300.woff') format('woff');
+  /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+
+/* roboto-300 - latin */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 300;
+  src: url('./fonts/roboto-v20-latin-300.ttf'),
+    url('./fonts/roboto-v20-latin-300.woff2') format('woff2'),
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+    url('./fonts/roboto-v20-latin-300.woff') format('woff');
+  /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+
+/* roboto-regular - latin */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./fonts/roboto-v20-latin-regular.ttf'),
+    url('./fonts/roboto-v20-latin-regular.woff2') format('woff2'),
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+    url('./fonts/roboto-v20-latin-regular.woff') format('woff');
+  /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+
+/* roboto-500 - latin */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 500;
+  src: url('./fonts/roboto-v20-latin-500.ttf'),
+    url('./fonts/roboto-v20-latin-500.woff2') format('woff2'),
+    /* Chrome 26+, Opera 23+, Firefox 39+ */
+    url('./fonts/roboto-v20-latin-500.woff') format('woff');
+  /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+}
+
+/* Force disable spin animations by overriding keyframes - this pierces shadow DOM */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(0deg); }
+}
+
+#mocha {
+  display: none;
+}
+
+/* Disable transitions and carets for deterministic screenshots */
+*,
+*::before,
+*::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  --transition-speed: 0ms !important;
+  --test-animation-duration: 0s !important;
+  --test-animation-play-state: paused !important;
+  --test-backdrop-filter: none !important;
+  caret-color: transparent;
+}
+
+/** 
+  Without this body styling our screenshots don't have the proper dpi, 
+  perhaps triggers a different rendering path for puppeteer? The styling
+  appears like it could be anything.
+  Unsure. 
+**/
+body {
+  padding: 20px;
+}
