@@ -1,13 +1,14 @@
 {
   "name": "@nyaruka/temba-components",
   "version": "0.174.0",
+  "private": true,
   "description": "Web components to support rapidpro and related projects",
-  "author": "Nyaruka <code@nyaruka.coim>",
+  "author": "Nyaruka <code@nyaruka.com>",
   "main": "dist/index.js",
   "module": "dist/index.js",
-  "homepage": "https://github.com/nyaruka/temba-components/",
+  "homepage": "https://github.com/rapidpro/rapidpro/",
   "license": "AGPL-3.0-only",
-  "repository": "https://github.com/nyaruka/temba-components/",
+  "repository": "https://github.com/rapidpro/rapidpro/",
   "scripts": {
     "start": "concurrently --kill-others --names tsc,web-dev-server \"bun run tsc:watch\" \"web-dev-server --app-index demo/index.html --node-resolve --watch --port 3010 --esbuild-target auto\"",
     "tsc:watch": "tsc --watch",
