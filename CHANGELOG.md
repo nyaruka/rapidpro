@@ -1,3 +1,7 @@
+v26.3.37 (2026-08-06)
+-------------------------
+ * Add Spanish translation for 'No options' in components
+
 v26.3.36 (2026-08-06)
 -------------------------
  * Add the helpdesk authoring surface for creating and editing articles
