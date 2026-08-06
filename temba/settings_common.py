@@ -25,6 +25,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 2500  # needed for exports of big workspaces
 # Tests
 # -----------------------------------------------------------------------------------
 TESTING = sys.argv[1:2] == ["test"]
+TEST_RUNNER = "temba.testrunner.TembaTestRunner"
 
 if TESTING:
     PASSWORD_HASHERS = ("django.contrib.auth.hashers.MD5PasswordHasher",)

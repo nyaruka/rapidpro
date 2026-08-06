@@ -1,5 +1,7 @@
 from datetime import date, datetime, timezone as tzone
 
+from django.conf import settings
+
 from temba.archives.models import Archive
 from temba.tests import MigrationTest
 
@@ -88,7 +90,7 @@ class ClearEmptyUploadsTest(MigrationTest):
 
         # empty archive with upload
         self.d240503 = self.create_archive(Archive.TYPE_MSG, "D", date(2024, 5, 3), [])
-        self.d240503.location = "test-archives:some/key/for/archive.zip"
+        self.d240503.location = f"{settings.BUCKET_PREFIX}-archives:some/key/for/archive.zip"
         self.d240503.hash = "somehashvalue"
         self.d240503.save()
 
