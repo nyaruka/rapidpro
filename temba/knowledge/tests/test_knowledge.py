@@ -1,3 +1,5 @@
+from xml.etree.ElementTree import Element, SubElement
+
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
@@ -6,11 +8,13 @@ from django.test.utils import override_settings
 from temba.knowledge.models import (
     Article,
     ArticleImage,
+    ColumnStylesProcessor,
     Knowledge,
     KnowledgeChunk,
     KnowledgeItem,
     _sanitize_attribute,
     get_article_image_path,
+    parse_column_style,
 )
 from temba.tests import TembaTest, cleanup
 from temba.utils.s3 import public_file_storage
@@ -509,6 +513,157 @@ class ArticleTest(TembaTest):
                 f"for fragment {fragment}",
             )
 
+    def test_as_html_cell_breaks(self):
+        article = self.create_article(self.helpdesk, "Getting Started")
+
+        # a cell is one line of markdown - a real newline would end its row - so the editor writes the breaks inside
+        # one as literal <br> text, and rendering turns them back into the breaks they mean. A break can sit inside a
+        # cell's emphasis or link as easily as in the cell itself, and follow one as easily as open it.
+        article.body = (
+            "| Step | Detail |\n| - | - |\n"
+            "| **One<br>Two** | plain<br>break |\n"
+            "| [a<br/>b](https://x.com) tail<BR>end | x |"
+        )
+        self.assertEqual(
+            "<table>\n<thead>\n<tr>\n<th>Step</th>\n<th>Detail</th>\n</tr>\n</thead>\n<tbody>\n"
+            "<tr>\n<td><strong>One<br>Two</strong></td>\n<td>plain<br>break</td>\n</tr>\n"
+            '<tr>\n<td><a href="https://x.com" rel="noopener noreferrer">a<br>b</a> tail<br>end</td>\n'
+            "<td>x</td>\n</tr>\n</tbody>\n</table>",
+            article.as_html(),
+        )
+
+        # cells only - everywhere else text that merely looks like a tag stays text
+        article.body = "one<br>two"
+        self.assertEqual("<p>one&lt;br&gt;two</p>", article.as_html())
+
+    def test_as_html_columns(self):
+        article = self.create_article(self.helpdesk, "Getting Started")
+
+        # a helpdesk starts with no palette at all
+        self.assertEqual({}, self.helpdesk.colors)
+
+        self.helpdesk.set_colors({"1": "#ffe8a3", "2": "#123456"})
+
+        self.helpdesk.refresh_from_db()
+        self.assertEqual({"1": "#ffe8a3", "2": "#123456"}, self.helpdesk.colors)
+
+        # the stylesheets in a layout table's header cells are realized as a colgroup, leaving the header genuinely
+        # empty: widths and palette fills belong to the columns, while what a colgroup can't reach - padding, text
+        # drawn from the column's own fill, a border drawn from it - goes on the cells. Alignment stays where the
+        # renderer put it, and a sized column only holds its size in a fixed layout.
+        article.body = (
+            "| width: 40%; padding: 8px | background: 1; border: solid | background: 2; border: solid |\n"
+            "| - | :-: | - |\n"
+            "| one | two | three |"
+        )
+        self.assertEqual(
+            '<table style="table-layout: fixed; width: 100%">\n'
+            '<colgroup><col style="width: 40%"><col style="background: #ffe8a3">'
+            '<col style="background: #123456"></colgroup>'
+            '<thead>\n<tr>\n<th></th>\n<th style="text-align: center"></th>\n<th></th>\n</tr>\n</thead>\n'
+            '<tbody>\n<tr>\n<td style="padding: 8px">one</td>\n'
+            '<td style="text-align: center; color: #6b581f; border: 1px solid #d4be7d">two</td>\n'
+            '<td style="color: #edf2f8; border: 1px solid #07101a">three</td>\n</tr>\n</tbody>\n</table>',
+            article.as_html(),
+        )
+
+        # the article embeds the palette index, so recoloring the entry restyles its every use - text and border
+        # included, since both are drawn from the fill
+        article.body = "| background: 1 |\n| - |\n| one |"
+        self.assertEqual(
+            '<table>\n<colgroup><col style="background: #ffe8a3"></colgroup>'
+            "<thead>\n<tr>\n<th></th>\n</tr>\n</thead>\n"
+            '<tbody>\n<tr>\n<td style="color: #6b581f">one</td>\n</tr>\n</tbody>\n</table>',
+            article.as_html(),
+        )
+
+        self.helpdesk.set_colors({"1": "#fc0"})
+
+        # short palette hexes resolve the same way, and a light fill takes deep text where a dark one takes pale
+        self.assertEqual(
+            '<table>\n<colgroup><col style="background: #fc0"></colgroup>'
+            "<thead>\n<tr>\n<th></th>\n</tr>\n</thead>\n"
+            '<tbody>\n<tr>\n<td style="color: #f8f6ed">one</td>\n</tr>\n</tbody>\n</table>',
+            article.as_html(),
+        )
+
+        # an index the palette no longer answers for paints nothing, while the rest of the stylesheet still holds
+        article.body = "| background: 9 | width: 10px |\n| - | - |\n| one | two |"
+        self.assertEqual(
+            '<table style="table-layout: fixed; width: 100%">\n'
+            '<colgroup><col><col style="width: 10px"></colgroup>'
+            "<thead>\n<tr>\n<th></th>\n<th></th>\n</tr>\n</thead>\n"
+            "<tbody>\n<tr>\n<td>one</td>\n<td>two</td>\n</tr>\n</tbody>\n</table>",
+            article.as_html(),
+        )
+
+        # a border with no fill to draw from takes a plain neutral
+        article.body = "| border: solid | padding: 12px |\n| - | - |\n| one | two |"
+
+        # and columns that ask for nothing a column can carry get no colgroup and no fixed layout
+        self.assertEqual(
+            "<table>\n<thead>\n<tr>\n<th></th>\n<th></th>\n</tr>\n</thead>\n"
+            '<tbody>\n<tr>\n<td style="border: 1px solid #d0d5dd">one</td>\n'
+            '<td style="padding: 12px">two</td>\n</tr>\n</tbody>\n</table>',
+            article.as_html(),
+        )
+
+        # every header cell has to be empty or read as a stylesheet - a value we don't allow, text that isn't a
+        # stylesheet at all, or markup however its text reads, and the table is left exactly as written
+        for header in ("| width: 40 | background: 1 |", "| Step | background: 1 |", "| **width: 40%** | width: 10px |"):
+            article.body = f"{header}\n| - | - |\n| one | two |"
+            self.assertNotIn("<colgroup>", article.as_html(), f"for header {header}")
+            self.assertNotIn("style", article.as_html(), f"for header {header}")
+
+    def test_parse_column_style(self):
+        self.assertEqual({}, parse_column_style(""))
+        self.assertEqual({"width": "40%"}, parse_column_style("width: 40%"))
+        self.assertEqual({"width": "300px", "background": "3"}, parse_column_style("width: 300px; background: 3"))
+        self.assertEqual({"padding": "8px", "border": "solid"}, parse_column_style("padding: 8px; border: solid"))
+
+        # the editor's own trailing separator leaves an empty declaration, which is nothing rather than a mistake
+        self.assertEqual({"width": "40%"}, parse_column_style("width: 40%; "))
+
+        # a stylesheet is CSS-ish, so it reads like CSS does
+        self.assertEqual({"background": "2"}, parse_column_style("BACKGROUND:2"))
+
+        # a declaration we don't know, or a value we don't allow, means the cell isn't a stylesheet at all - better a
+        # header that shows what was written than a table half understood
+        for text in (
+            "Step",
+            "width",
+            "color: red",
+            "width: 40",
+            "width: 40em",
+            "background: red",
+            "background: 1.5",
+            "padding: 8",
+            "padding: 2em",
+            "border: dashed",
+        ):
+            self.assertIsNone(parse_column_style(text), f"for {text}")
+
+    def test_column_styles_processor(self):
+        # markdown hands the processor only tables it built itself, which always have a header row and only ever put
+        # alignment on a cell - so what it does with a table that has neither is exercised directly
+        root = Element("div")
+        headless = SubElement(root, "table")
+        td1 = SubElement(SubElement(SubElement(headless, "tbody"), "tr"), "td")
+        td1.set("style", "color: red")
+
+        styled = SubElement(root, "table")
+        SubElement(SubElement(SubElement(styled, "thead"), "tr"), "th").text = "width: 40%"
+        td2 = SubElement(SubElement(SubElement(styled, "tbody"), "tr"), "td")
+        td2.set("style", "color: red")
+
+        ColumnStylesProcessor(None, {}).run(root)
+
+        # a table with no header carries no stylesheet, so it's left exactly as it was
+        self.assertEqual("color: red", td1.get("style"))
+
+        # but one that does owns its cells' styling, so anything else there goes
+        self.assertIsNone(td2.get("style"))
+
     def test_sanitize_attribute(self):
         # the sanitizer only lets the size/layout classes through on an image, and nothing above it in the rendering
         # can put any other class there - so exercised directly, as the defense in depth it is
@@ -516,6 +671,24 @@ class ArticleTest(TembaTest):
         self.assertEqual("size-small", _sanitize_attribute("img", "class", "size-small sneaky"))
         self.assertIsNone(_sanitize_attribute("img", "class", "sneaky"))
         self.assertEqual("https://x.com", _sanitize_attribute("a", "href", "https://x.com"))
+
+        # and a table, col or cell style only carries what our own pipeline writes
+        self.assertEqual(
+            "width: 40%; background: #ffe8a3", _sanitize_attribute("col", "style", "width: 40%; background: #ffe8a3")
+        )
+        self.assertEqual("width: 40%", _sanitize_attribute("col", "style", "width: 40%; position: fixed"))
+        self.assertIsNone(_sanitize_attribute("col", "style", "background: url(x)"))
+
+        self.assertEqual(
+            "table-layout: fixed; width: 100%",
+            _sanitize_attribute("table", "style", "table-layout: fixed; width: 100%"),
+        )
+        self.assertIsNone(_sanitize_attribute("table", "style", "position: fixed"))
+
+        cell_style = "text-align: left; padding: 8px; color: #6b581f; border: 1px solid #d0d5dd"
+        self.assertEqual(cell_style, _sanitize_attribute("td", "style", cell_style))
+        self.assertEqual("text-align: center", _sanitize_attribute("th", "style", "text-align: center; width: 40%"))
+        self.assertIsNone(_sanitize_attribute("td", "style", "position: fixed"))
 
     def test_publishing(self):
         article = self.create_article(self.helpdesk, "Getting Started")

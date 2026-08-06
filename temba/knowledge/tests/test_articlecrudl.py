@@ -349,6 +349,74 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         flows.refresh_from_db()
         self.assertEqual(Article.MAX_ARTICLES, flows.sort_order)
 
+    def test_colors(self):
+        colors_url = reverse("knowledge.article_colors")
+
+        # nobody can access if agents feature not enabled
+        response = self.requestView(colors_url, self.admin)
+        self.assertRedirect(response, reverse("orgs.org_workspace"))
+
+        self.enable_agents(self.org)
+
+        self.assertRequestDisallowed(colors_url, [None, self.agent])
+
+        self.login(self.admin)
+
+        # a helpdesk starts with no palette at all
+        self.assertEqual({"colors": {}}, self.client.get(colors_url).json())
+
+        def set_colors(payload):
+            return self.client.post(colors_url, json.dumps(payload), content_type="application/json")
+
+        response = set_colors({"colors": {"0": "#FFE8A3", "1": "#123456"}})
+        self.assertEqual({"status": "ok"}, response.json())
+
+        # the palette is the org's, so it lives on the helpdesk rather than on any one article
+        self.helpdesk.refresh_from_db()
+        self.assertEqual({"0": "#ffe8a3", "1": "#123456"}, self.helpdesk.colors)  # normalized as it's written
+
+        # and is what every author's editor reads back
+        self.assertEqual({"colors": {"0": "#ffe8a3", "1": "#123456"}}, self.client.get(colors_url).json())
+
+        # dropping an entry is how a color stops being offered - articles that embed its index blank until something
+        # new takes it
+        self.assertEqual({"status": "ok"}, set_colors({"colors": {"0": "#ffe8a3"}}).json())
+
+        self.helpdesk.refresh_from_db()
+        self.assertEqual({"0": "#ffe8a3"}, self.helpdesk.colors)
+
+        # a payload that isn't a palette of indexes and hexes is refused rather than half stored
+        for payload in (
+            {"colors": []},
+            {"colors": "#ffe8a3"},
+            {"colors": {"first": "#ffe8a3"}},
+            {"colors": {"0": "red"}},
+            {"colors": {"0": "#ffe8a3; x"}},
+            {"colors": {"0": 16}},
+            {"palette": {}},
+            [],
+        ):
+            response = set_colors(payload)
+            self.assertEqual(400, response.status_code, f"for {payload}")
+            self.assertEqual({"error": "Invalid request."}, response.json())
+
+        response = self.client.post(colors_url, "not json", content_type="application/json")
+        self.assertEqual(400, response.status_code)
+
+        # as is a palette bigger than we offer to author with
+        response = set_colors({"colors": {str(i): "#ffe8a3" for i in range(Knowledge.MAX_COLORS + 1)}})
+        self.assertEqual(400, response.status_code)
+
+        # none of which touched the palette we had
+        self.helpdesk.refresh_from_db()
+        self.assertEqual({"0": "#ffe8a3"}, self.helpdesk.colors)
+
+        # the palette is resolved from the requesting org, so another org's authors get their own
+        self.enable_agents(self.org2)
+        self.login(self.admin2)
+
+        self.assertEqual({"colors": {}}, self.client.get(colors_url).json())
+
     @cleanup(s3=True)
     def test_upload(self):
         article = Article.create(self.helpdesk, self.admin, "Flows")
