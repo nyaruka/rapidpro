@@ -63,14 +63,14 @@
         </p>
         <div class="chat-demo">
           <temba-store
-            completion="/api/v2/completion.json"
+            completion="/mr/docs/en-us/editor.json"
             fields="/api/v2/fields.json"
             globals="/api/v2/globals.json"
             groups="/api/v2/groups.json"
             labels="/api/v2/labels.json"
           ></temba-store>
           <temba-contact-chat
-            contact="contact-1"
+            id="chat-1"
             endpoint="/api/v2/contacts.json?uuid="
             style="display:flex;flex-direction:column;flex-grow:1;min-height:0;"
           ></temba-contact-chat>
@@ -82,14 +82,14 @@
         <p>Shows the flow footer when a contact is currently in a flow.</p>
         <div class="chat-demo">
           <temba-store
-            completion="/api/v2/completion.json"
+            completion="/mr/docs/en-us/editor.json"
             fields="/api/v2/fields.json"
             globals="/api/v2/globals.json"
             groups="/api/v2/groups.json"
             labels="/api/v2/labels.json"
           ></temba-store>
           <temba-contact-chat
-            contact="contact-in-flow"
+            id="chat-2"
             endpoint="/api/v2/contacts.json?uuid="
             showInterrupt
             style="display:flex;flex-direction:column;flex-grow:1;min-height:0;"
@@ -99,7 +99,22 @@
     </div>
 
     <script type="module">
-      import '/out-tsc/temba-modules.js';
+      import '/static/components-dev/temba-modules.js';
+
+      // Chat with the org's two most recent contacts
+      const response = await fetch('/api/v2/contacts.json');
+      const data = await response.json();
+      const contacts = data.results || [];
+      if (contacts[0]) {
+        document
+          .getElementById('chat-1')
+          .setAttribute('contact', contacts[0].uuid);
+      }
+      if (contacts[1] || contacts[0]) {
+        document
+          .getElementById('chat-2')
+          .setAttribute('contact', (contacts[1] || contacts[0]).uuid);
+      }
     </script>
   </body>
 </html>

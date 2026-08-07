@@ -38,21 +38,24 @@
   </head>
   <body>
     <temba-store
-      completion="/api/v2/completion.json"
+      completion="/mr/docs/en-us/editor.json"
       workspace="/api/v2/workspace.json"
     >
     </temba-store>
     <temba-flow-editor id="flow-editor" features='["ai", "locations"]'></temba-flow-editor>
 
     <script type="module">
-      import '/out-tsc/temba-modules.js';
+      import '/static/components-dev/temba-modules.js';
 
-      // Get flow parameter from URL, default to 'sample-flow'
+      // The flow parameter is a real flow uuid for the logged-in org — with
+      // none given, send them to the listing to pick one
       const urlParams = new URLSearchParams(window.location.search);
-      const flowName = urlParams.get('flow') || 'sample-flow';
-
-      // Set the flow attribute on the editor
-      document.getElementById('flow-editor').setAttribute('flow', flowName);
+      const flowUuid = urlParams.get('flow');
+      if (flowUuid) {
+        document.getElementById('flow-editor').setAttribute('flow', flowUuid);
+      } else {
+        window.location.replace('index.html');
+      }
     </script>
   </body>
 </html>

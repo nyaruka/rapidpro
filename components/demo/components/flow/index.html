@@ -98,79 +98,23 @@
     </div>
 
     <script type="module">
-      // Function to load and display flows dynamically
+      // List the logged-in org's flows from the real API
       async function loadFlows() {
         const flowCardsContainer = document.getElementById('flow-cards');
 
         try {
-          // Get list of flow files from the flows directory API
-          const response = await fetch('/api/flows-list');
-          const files = await response.json();
-
-          if (!Array.isArray(files) || files.length === 0) {
-            // Fallback: try known flows if directory listing doesn't work
-            await loadKnownFlows(flowCardsContainer);
-            return;
-          }
-
-          const flows = [];
-
-          // Load each flow file to get its definition
-          for (const fileName of files) {
-            const flowId = fileName.replace('.json', '');
-
-            try {
-              const flowResponse = await fetch(`/demo/data/flows/${fileName}`);
-              const flowData = await flowResponse.json();
-              const flowName = flowData.definition?.name || flowId;
-
-              flows.push({
-                id: flowId,
-                name: flowName
-              });
-            } catch (error) {
-              console.warn(`Failed to load flow ${fileName}:`, error);
-              // Add with fallback name
-              flows.push({
-                id: flowId,
-                name: flowId
-                  .replace('-', ' ')
-                  .replace(/\b\w/g, (l) => l.toUpperCase())
-              });
-            }
-          }
+          const response = await fetch('/api/v2/flows.json');
+          const data = await response.json();
+          const flows = (data.results || []).map((flow) => ({
+            id: flow.uuid,
+            name: flow.name
+          }));
 
           displayFlows(flows, flowCardsContainer);
         } catch (error) {
-          console.warn(
-            'Failed to load flows from directory, using fallback:',
-            error
-          );
-          // await loadKnownFlows(flowCardsContainer);
+          console.warn('Failed to load flows:', error);
+          displayFlows([], flowCardsContainer);
         }
-      }
-
-      // Fallback function for known flows
-      async function loadKnownFlows(container) {
-        const knownFlows = ['sample-flow', 'food-order', 'voicemail'];
-        const flows = [];
-
-        for (const flowId of knownFlows) {
-          try {
-            const response = await fetch(`/demo/data/flows/${flowId}.json`);
-            const flowData = await response.json();
-            const flowName = flowData.definition?.name || flowId;
-
-            flows.push({
-              id: flowId,
-              name: flowName
-            });
-          } catch (error) {
-            console.warn(`Failed to load flow ${flowId}:`, error);
-          }
-        }
-
-        displayFlows(flows, container);
       }
 
       // Function to display flows in the UI

@@ -456,7 +456,6 @@ export default {
     replacePlugin({
       preventAssignment: true,
       'process.env.NODE_ENV': JSON.stringify('test'),
-      __TEMBA_DEV_SERVER__: JSON.stringify(false),
       __TEMBA_COMPONENTS_VERSION__: JSON.stringify(TEMBA_COMPONENTS_VERSION)
     }),
     {
