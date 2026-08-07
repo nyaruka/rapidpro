@@ -7,6 +7,10 @@ jobs:
   changes:
     name: Changes
     runs-on: ubuntu-latest
+    # explicit least-privilege token: listing the PR's files is all this job does,
+    # and it keeps working if the org ever restricts default token permissions
+    permissions:
+      pull-requests: read
     outputs:
       components: ${{ steps.filter.outputs.components }}
       temba: ${{ steps.filter.outputs.temba }}
