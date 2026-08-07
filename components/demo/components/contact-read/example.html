@@ -36,7 +36,7 @@
   </head>
   <body>
     <temba-store
-      completion="/api/v2/completion.json"
+      completion="/mr/docs/en-us/editor.json"
       fields="/api/v2/fields.json"
       globals="/api/v2/globals.json"
       groups="/api/v2/groups.json"
@@ -46,38 +46,32 @@
 
     <div class="read-page">
       <temba-page-header
-        header-title="Ben Haggerty"
+        header-title="Contact"
         content-menu-endpoint="/demo/components/contact-read/data/contact-menu.json"
       ></temba-page-header>
 
       <temba-card-layout id="layout">
         <temba-contact-chat
           slot="main"
-          contact="contact-1"
           endpoint="/api/v2/contacts.json?uuid="
         ></temba-contact-chat>
 
         <temba-card id="card-details" label="Details" icon="info">
           <temba-contact-details
-            contact="contact-dave-active"
-            endpoint="/test-assets/contacts/"
+            endpoint="/api/v2/contacts.json?uuid="
             editable
           ></temba-contact-details>
         </temba-card>
         <temba-card id="card-fields" label="Fields" icon="fields">
-          <temba-contact-fields
-            contact="contact-1"
-            endpoint="/api/v2/contacts.json?uuid="
-          >
+          <temba-contact-fields endpoint="/api/v2/contacts.json?uuid=">
             <div slot="empty">No fields set.</div>
           </temba-contact-fields>
         </temba-card>
         <temba-card id="card-nextup" label="Next Up" icon="schedule">
-          <temba-contact-timeline contact="contact-1"></temba-contact-timeline>
+          <temba-contact-timeline></temba-contact-timeline>
         </temba-card>
         <temba-card id="card-notepad" variant="note" label="Notepad" icon="notes" activity bleed>
           <temba-contact-notepad
-            contact="contact-1"
             endpoint="/api/v2/contacts.json?uuid="
             autogrow
           ></temba-contact-notepad>
@@ -86,7 +80,22 @@
     </div>
 
     <script type="module">
-      import '/out-tsc/temba-modules.js';
+      import '/static/components-dev/temba-modules.js';
+
+      // Read page for the org's most recent contact
+      const response = await fetch('/api/v2/contacts.json');
+      const data = await response.json();
+      const contact = (data.results || [])[0];
+      if (contact) {
+        document
+          .querySelector('temba-page-header')
+          .setAttribute('header-title', contact.name || 'Contact');
+        document
+          .querySelectorAll(
+            'temba-contact-chat, temba-contact-details, temba-contact-fields, temba-contact-timeline, temba-contact-notepad'
+          )
+          .forEach((ele) => ele.setAttribute('contact', contact.uuid));
+      }
 
       document.querySelector('temba-contact-details').schemes = [
         { value: 'tel', name: 'Phone Number' },

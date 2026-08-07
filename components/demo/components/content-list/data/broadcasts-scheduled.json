@@ -49,7 +49,7 @@
       "status": "pending",
       "text": "Monthly newsletter: new clinics, vaccination drives and more.",
       "attachments": [
-        { "content_type": "image/jpeg", "url": "/test-assets/img/meow.jpg" }
+        { "content_type": "image/jpeg", "url": "/demo/data/images/purrington.jpg" }
       ],
       "quick_replies": [],
       "groups": [{ "uuid": "g-013", "name": "Newsletter" }],
