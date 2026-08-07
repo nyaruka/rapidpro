@@ -77,7 +77,7 @@ jobs:
             CI=true
 
   test:
-    name: Test
+    name: Django
     needs: changes
     if: needs.changes.outputs.temba == 'true'
     runs-on: ubuntu-latest
