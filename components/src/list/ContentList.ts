@@ -3,7 +3,7 @@ import { property, state } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { Icon } from '../Icons';
 import { CustomEventType } from '../interfaces';
-import { getUrl, postJSON, postUrl } from '../utils';
+import { formatCount, getUrl, postJSON, postUrl } from '../utils';
 import { designTokens } from '../styles/designTokens';
 
 /** A single column in the list. Subclasses typically define a static
@@ -2144,6 +2144,7 @@ export class ContentList<T = any> extends RapidElement {
   ): TemplateResult | string {
     const value = (item as any)?.[column.key];
     if (value == null) return '';
+    if (typeof value === 'number') return formatCount(value);
     return String(value);
   }
 
@@ -2471,7 +2472,9 @@ export class ContentList<T = any> extends RapidElement {
     return html`
       <div class="bulk-bar ${this.bulkCollapsed ? 'collapsed' : ''}">
         ${this.bulkActions.map((a) => this.renderBulkAction(a))}
-        <span class="bulk-count">${this.selectedIds.size} selected</span>
+        <span class="bulk-count"
+          >${formatCount(this.selectedIds.size)} selected</span
+        >
       </div>
     `;
   }
@@ -3892,7 +3895,8 @@ export class ContentList<T = any> extends RapidElement {
         </span>
         ${this.hasCount
           ? html`<span class="pager-status"
-              >${first}&ndash;${last} of ${this.total}</span
+              >${formatCount(first)}&ndash;${formatCount(last)} of
+              ${formatCount(this.total)}</span
             >`
           : null}
         <span

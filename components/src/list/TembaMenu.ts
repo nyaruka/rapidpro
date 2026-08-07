@@ -2,7 +2,13 @@ import { css, html, TemplateResult } from 'lit';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { property } from 'lit/decorators.js';
 import { CustomEventType } from '../interfaces';
-import { debounce, fetchResults, getClasses, renderAvatar } from '../utils';
+import {
+  debounce,
+  fetchResults,
+  formatCount,
+  getClasses,
+  renderAvatar
+} from '../utils';
 import { Icon } from '../Icons';
 import { Dropdown } from '../display/Dropdown';
 import { NotificationList } from './NotificationList';
@@ -1389,7 +1395,7 @@ export class TembaMenu extends ResizeElement {
                         class="count ${menuItem.bubble ? 'bubble' : ''}"
                         style="background-color: ${menuItem.bubble}"
                       >
-                        ${menuItem.count.toLocaleString()}
+                        ${formatCount(menuItem.count)}
                       </div>
                     `
                   : html`<div class="count"></div>`}`

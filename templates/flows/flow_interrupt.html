@@ -5,7 +5,7 @@
   {% if run_count %}
     {% if can_interrupt %}
       <div class="mb-4">
-        {% blocktrans trimmed %}
+        {% blocktrans trimmed with run_count=run_count|intcomma %}
           This will interrupt the <b>{{ run_count }}</b> contacts currently in this flow. There is no way to undo this.
           Are you sure?
         {% endblocktrans %}

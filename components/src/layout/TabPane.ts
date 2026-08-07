@@ -2,7 +2,7 @@ import { css, html, PropertyValueMap, TemplateResult } from 'lit';
 import { property } from 'lit/decorators.js';
 import { CustomEventType } from '../interfaces';
 import { RapidElement } from '../RapidElement';
-import { getClasses } from '../utils';
+import { formatCount, getClasses } from '../utils';
 import { Tab } from './Tab';
 
 export class TabPane extends RapidElement {
@@ -348,7 +348,7 @@ export class TabPane extends RapidElement {
                     <div class="badge">
                       ${tab.count > 0 && !tab.activity
                         ? html`<div class="count">
-                            ${tab.count.toLocaleString()}
+                            ${formatCount(tab.count)}
                           </div>`
                         : null}
                       ${tab.activity && tab.count > 0 && !tab.dirty

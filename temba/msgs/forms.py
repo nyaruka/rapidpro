@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.humanize.templatetags.humanize import intcomma
 from django.forms import Form, ValidationError
 from django.utils.translation import gettext_lazy as _
 
@@ -55,7 +56,7 @@ class ComposeForm(Form):
                 attachments = values.get("attachments", [])
                 if text and len(text) > Msg.MAX_TEXT_LEN:
                     raise forms.ValidationError(
-                        _("Maximum allowed text is %(limit)d characters."), params={"limit": Msg.MAX_TEXT_LEN}
+                        _("Maximum allowed text is %(limit)s characters."), params={"limit": intcomma(Msg.MAX_TEXT_LEN)}
                     )
                 if attachments and len(attachments) > Msg.MAX_ATTACHMENTS:
                     raise forms.ValidationError(

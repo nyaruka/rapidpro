@@ -2,7 +2,7 @@ import { css, html, TemplateResult } from 'lit';
 import { property } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { designTokens } from '../styles/designTokens';
-import { getClasses } from '../utils';
+import { formatCount, getClasses } from '../utils';
 import { Icon } from '../Icons';
 
 /**
@@ -319,7 +319,7 @@ export class Card extends RapidElement {
           ${this.count > 0
             ? this.activity
               ? html`<div class="dot"></div>`
-              : html`<div class="count">${this.count.toLocaleString()}</div>`
+              : html`<div class="count">${formatCount(this.count)}</div>`
             : null}
           <temba-icon
             name=${Icon.arrow_down}

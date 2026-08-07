@@ -21,7 +21,7 @@ import {
 } from './types';
 import { CustomEventType } from '../interfaces';
 import { Dialog } from '../layout/Dialog';
-import { generateUUID } from '../utils';
+import { formatCount, generateUUID } from '../utils';
 import {
   formatIssueMessage,
   resolveToLocalizationFormData,
@@ -2415,7 +2415,7 @@ export class NodeEditor extends RapidElement {
                           ? 'hidden'
                           : ''}"
                       >
-                        ${valueCount}
+                        ${formatCount(valueCount)}
                       </div>`
                     : ''}
               </div>`
