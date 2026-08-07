@@ -25,7 +25,7 @@
       "progress": { "total": 40200, "started": 18960 },
       "text": "Clinic hours change next week — we open at 8am Monday through Thursday.",
       "attachments": [
-        { "content_type": "image/jpeg", "url": "/test-assets/img/meow.jpg" }
+        { "content_type": "image/jpeg", "url": "/demo/data/images/purrington.jpg" }
       ],
       "quick_replies": [],
       "groups": [
@@ -113,8 +113,8 @@
       "status": "interrupted",
       "text": "System maintenance tonight from 11pm to 1am — services may be briefly unavailable. We apologize for any inconvenience and appreciate your patience.",
       "attachments": [
-        { "content_type": "image/jpeg", "url": "/test-assets/img/meow.jpg" },
-        { "content_type": "application/pdf", "url": "/test-assets/img/schedule.pdf" }
+        { "content_type": "image/jpeg", "url": "/demo/data/images/purrington.jpg" },
+        { "content_type": "application/pdf", "url": "/demo/data/docs/schedule.pdf" }
       ],
       "quick_replies": [],
       "groups": [{ "uuid": "g-002", "name": "All Contacts" }],

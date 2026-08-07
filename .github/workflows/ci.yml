@@ -1,8 +1,60 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 jobs:
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    # explicit least-privilege token: listing the PR's files is all this job does,
+    # and it keeps working if the org ever restricts default token permissions
+    permissions:
+      pull-requests: read
+    outputs:
+      components: ${{ steps.filter.outputs.components }}
+      temba: ${{ steps.filter.outputs.temba }}
+    steps:
+      # decide which areas a PR touches so we only run the CI that's called for; jobs
+      # skipped here still report a check run (conclusion: skipped) which satisfies
+      # branch protection, so both jobs can stay required. pushes to main always run
+      # everything to keep a complete baseline.
+      - name: Detect changed areas
+        id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "components=true" >> "$GITHUB_OUTPUT"
+            echo "temba=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # fail open: if we can't list the changed files, run everything rather than nothing
+          if ! files=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --paginate --jq '.[].filename'); then
+            echo "could not list changed files; running everything"
+            echo "components=true" >> "$GITHUB_OUTPUT"
+            echo "temba=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "changed files:"
+          echo "$files"
+          components=false
+          temba=false
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              .github/workflows/ci.yml) components=true; temba=true ;;
+              components/*) components=true ;;
+              *) temba=true ;;
+            esac
+          done <<< "$files"
+          echo "components=$components" >> "$GITHUB_OUTPUT"
+          echo "temba=$temba" >> "$GITHUB_OUTPUT"
+
   components:
     name: Components
+    needs: changes
+    if: needs.changes.outputs.components == 'true'
     runs-on: ubuntu-latest
     steps:
       # screenshot tests render dates so keep the timezone pinned
@@ -18,13 +70,16 @@ jobs:
         uses: devcontainers/ci@v0.3
         with:
           configFile: components/.github/devcontainer/devcontainer.json
-          runCmd: cd components && bun install --frozen-lockfile && bun run validate
+          # the devcontainer's workspaceFolder is already components/
+          runCmd: bun install --frozen-lockfile && bun run validate
           push: never
           env: |
             CI=true
 
   test:
     name: Test
+    needs: changes
+    if: needs.changes.outputs.temba == 'true'
     runs-on: ubuntu-latest
     container:
       image: python:3.14-trixie

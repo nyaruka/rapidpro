@@ -101,7 +101,7 @@
   </head>
   <body>
     <temba-store
-      completion="/api/v2/completion.json"
+      completion="/mr/docs/en-us/editor.json"
       workspace="/api/v2/workspace.json"
     >
     </temba-store>
@@ -115,44 +115,36 @@
       </p>
     </div>
 
-    <div class="flow-grid">
-      <div class="flow-panel">
-        <div class="flow-panel-header">Sample Flow</div>
-        <div class="flow-panel-body">
-          <temba-flow-editor
-            id="editor-1"
-            features='["ai", "locations"]'
-          ></temba-flow-editor>
-        </div>
-      </div>
-
-      <div class="flow-panel">
-        <div class="flow-panel-header">Food Order</div>
-        <div class="flow-panel-body">
-          <temba-flow-editor
-            id="editor-2"
-            features='["ai", "locations"]'
-          ></temba-flow-editor>
-        </div>
-      </div>
-
-      <div class="flow-panel">
-        <div class="flow-panel-header">Voicemail</div>
-        <div class="flow-panel-body">
-          <temba-flow-editor
-            id="editor-3"
-            features='["ai", "locations"]'
-          ></temba-flow-editor>
-        </div>
-      </div>
-    </div>
+    <div class="flow-grid" id="flow-grid"></div>
 
     <script type="module">
-      import '/out-tsc/temba-modules.js';
+      import '/static/components-dev/temba-modules.js';
 
-      document.getElementById('editor-1').setAttribute('flow', 'sample-flow');
-      document.getElementById('editor-2').setAttribute('flow', 'food-order');
-      document.getElementById('editor-3').setAttribute('flow', 'voicemail');
+      // Show the org's first three flows side by side
+      const response = await fetch('/api/v2/flows.json');
+      const data = await response.json();
+      const flows = (data.results || []).slice(0, 3);
+
+      const grid = document.getElementById('flow-grid');
+      flows.forEach((flow) => {
+        const panel = document.createElement('div');
+        panel.className = 'flow-panel';
+
+        const header = document.createElement('div');
+        header.className = 'flow-panel-header';
+        header.textContent = flow.name;
+        panel.appendChild(header);
+
+        const body = document.createElement('div');
+        body.className = 'flow-panel-body';
+        const editor = document.createElement('temba-flow-editor');
+        editor.setAttribute('features', '["ai", "locations"]');
+        editor.setAttribute('flow', flow.uuid);
+        body.appendChild(editor);
+        panel.appendChild(body);
+
+        grid.appendChild(panel);
+      });
     </script>
   </body>
 </html>

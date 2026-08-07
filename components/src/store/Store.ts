@@ -133,25 +133,6 @@ const watchesAsset = (watcher: AssetWatcher, asset: StoreAsset): boolean => {
   );
 };
 
-declare const __TEMBA_DEV_SERVER__: boolean;
-
-/**
- * True only when running against the temba-components dev server, which
- * replaces `__TEMBA_DEV_SERVER__` with `true` at serve time. The production
- * rollup build and the test runner replace it with `false`; for any other
- * consumer the token is undefined and the try/catch falls back to `false`.
- * We deliberately do not key off `process.env.NODE_ENV` — the published IIFE
- * bundle (rollup.components.mjs) hardcodes that to 'development', so it can't
- * distinguish the dev server from a production consumer.
- */
-const isDevServer = (): boolean => {
-  try {
-    return __TEMBA_DEV_SERVER__ === true;
-  } catch {
-    return false;
-  }
-};
-
 export class Store extends RapidElement {
   public static get styles() {
     return css`
@@ -336,7 +317,7 @@ export class Store extends RapidElement {
     const fetches = [];
     if (this.completionEndpoint) {
       fetches.push(
-        getUrl(this.getCompletionEndpoint()).then((response) => {
+        getUrl(this.completionEndpoint).then((response) => {
           this.schema = response.json['context'] as CompletionSchema;
           this.fnOptions = response.json['functions'] as CompletionOption[];
         })
@@ -553,27 +534,6 @@ export class Store extends RapidElement {
         setLocale(target);
       }
     }
-  }
-
-  /**
-   * Resolves the completion endpoint to fetch. When running against the
-   * temba-components dev server we override the configured endpoint so the
-   * editor serves our own editor.json (static/mr/docs/en-us/editor.json)
-   * rather than the host application's mailroom completions. The dev-server
-   * origin is derived from import.meta.url so this works even when the
-   * components are loaded cross-origin (e.g. rapidpro on :8001 with the
-   * components dev server on :3011).
-   */
-  private getCompletionEndpoint(): string {
-    if (isDevServer()) {
-      try {
-        const origin = new URL(import.meta.url).origin;
-        return `${origin}/api/v2/completion.json`;
-      } catch {
-        // import.meta.url unavailable; fall back to the configured endpoint
-      }
-    }
-    return this.completionEndpoint;
   }
 
   public getCompletionSchema(): CompletionSchema {

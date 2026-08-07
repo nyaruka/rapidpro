@@ -30,11 +30,10 @@ We use [bun](https://bun.com), so you'll want to install with that if you care a
 
 ## Demo
 
-To view the interactive demo, use start.
-
-```bash
-% bun run start
-```
+The interactive demo is served by the Django dev server (`DEBUG` only) at `/demo/`. It uses the
+live dev build of the components (`bun run watch` keeping `dev-dist/` fresh — the dev stack runs
+this for you) and hits the real temba endpoints, so demos show whatever data the logged-in user
+has.
 
 ## Testing
 
@@ -54,7 +53,7 @@ Simply include the built file as a module and you should be off to the races!
 <html>
   <head>
     <script type="module">
-      import '../out-tsc/temba-components.js';
+      import '/static/components-dev/temba-modules.js';
     </script>
   </head>
   <body>
@@ -65,16 +64,4 @@ Simply include the built file as a module and you should be off to the races!
     </temba-select>
   </body>
 </html>
-```
-
-To interactively work with components whilst embedded in another project, it can easily be done with a couple nginx rules.
-
-```
-  location ~ /out-tsc/(.*) {
-      proxy_pass http://localhost:3010/out-tsc/$1;
-  }
-
-  location ~ /node_modules/(.*) {
-      proxy_pass http://localhost:3010/node_modules/$1;
-  }
 ```

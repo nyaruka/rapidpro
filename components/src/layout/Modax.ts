@@ -282,6 +282,8 @@ export class Modax extends RapidElement {
       const script = this.ownerDocument.createElement('script');
       const code = scripts[i].innerText;
 
+      // skip the module script @web/test-runner injects into test pages —
+      // re-executing it as a classic script is a syntax error
       if (scripts[i].src && scripts[i].src.indexOf('web-dev-server') === -1) {
         script.src = scripts[i].src;
         script.type = 'text/javascript';
