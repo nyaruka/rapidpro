@@ -152,13 +152,30 @@ const dragRow = async (
     (candidate) => candidate.querySelector('.title').textContent.trim() === uuid
   );
   const handle = row.querySelector('.drag-handle');
-  const bounds = handle.getBoundingClientRect();
 
-  await moveMouse(
-    bounds.left + bounds.width / 2,
-    bounds.top + bounds.height / 2
-  );
-  await mouseDown();
+  // the handle is a nested component, so give it until it has painted a real
+  // hit target before aiming the mouse at it
+  await waitForCondition(() => {
+    const box = handle.getBoundingClientRect();
+    return box.width > 0 && box.height > 0;
+  });
+
+  // a press can land beside the handle while layout is still settling, which
+  // would turn the whole drag into a no-op - check it engaged and re-press if not
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const bounds = handle.getBoundingClientRect();
+    await moveMouse(
+      bounds.left + bounds.width / 2,
+      bounds.top + bounds.height / 2
+    );
+    await mouseDown();
+    if ((list as any).dragUuid) {
+      break;
+    }
+    await mouseUp();
+    await waitFor(50);
+  }
+
   await moveMouse(toX, toY);
   await mouseUp();
   await list.updateComplete;
