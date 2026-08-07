@@ -2144,7 +2144,6 @@ export class ContentList<T = any> extends RapidElement {
   ): TemplateResult | string {
     const value = (item as any)?.[column.key];
     if (value == null) return '';
-    if (typeof value === 'number') return formatCount(value);
     return String(value);
   }
 
