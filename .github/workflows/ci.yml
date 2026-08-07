@@ -25,7 +25,13 @@ jobs:
             echo "temba=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          files=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --paginate --jq '.[].filename')
+          # fail open: if we can't list the changed files, run everything rather than nothing
+          if ! files=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --paginate --jq '.[].filename'); then
+            echo "could not list changed files; running everything"
+            echo "components=true" >> "$GITHUB_OUTPUT"
+            echo "temba=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "changed files:"
           echo "$files"
           components=false
