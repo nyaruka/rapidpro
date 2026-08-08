@@ -120,7 +120,7 @@ jobs:
           apt install -y --no-install-recommends libgdal-dev ffmpeg gettext
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v8
 
       - name: Install Node
         uses: actions/setup-node@v6
