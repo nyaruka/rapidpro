@@ -1,5 +1,5 @@
 {% extends "orgs/base/list.html" %}
-{% load smartmin temba i18n humanize %}
+{% load smartmin temba i18n %}
 
 {% block modaxes %}
   <temba-modax header="{{ _("Update Global") |escapejs }}" -temba-redirected="refreshGlobals" id="update-global">
@@ -35,7 +35,7 @@
                 {% if usage_count %}
                   <div onclick="event.stopPropagation(); showGlobalUsagesModal('{{ obj.uuid }}');" class="uses">
                     <div class="lbl linked">
-                      {% blocktrans trimmed count counter=usage_count %}
+                      {% blocktrans trimmed with counter=usage_count|intcomma count num=usage_count %}
                         {{ counter }} use
                       {% plural %}
                         {{ counter }} uses

@@ -22,7 +22,7 @@
       {% endblock "extra-fields" %}
       <tr>
         <th>{% trans "Number of records" %}</th>
-        <td>{{ object.num_records }}</td>
+        <td>{{ object.num_records|intcomma }}</td>
       </tr>
     </table>
   </div>

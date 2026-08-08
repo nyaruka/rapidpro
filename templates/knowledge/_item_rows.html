@@ -22,7 +22,7 @@
         <div class="lbl">{{ item.get_status_display }}</div>
       {% endif %}
     </td>
-    <td class="text-right">{{ item.num_chunks }}</td>
+    <td class="text-right">{{ item.num_chunks|intcomma }}</td>
     <td class="text-right whitespace-nowrap">{{ item.created_on|timedate }}</td>
     {% if deletable %}
       <td class="w-10">

@@ -8,6 +8,7 @@ import {
 import { EndpointMonitorElement } from '../store/EndpointMonitorElement';
 import { Icon } from '../Icons';
 import { designTokens } from '../styles/designTokens';
+import { formatCount } from '../utils';
 
 interface CampaignEventsResponse {
   events: CampaignScheduleEvent[];
@@ -792,7 +793,7 @@ export class CampaignEvents extends EndpointMonitorElement {
     }
     return html`
       <div class="count" title=${this.lang_scheduled_contacts}>
-        ${(event.count || 0).toLocaleString()}
+        ${formatCount(event.count || 0)}
         <temba-icon name=${Icon.contact} size="0.9"></temba-icon>
       </div>
     `;
@@ -1086,7 +1087,7 @@ export class CampaignEvents extends EndpointMonitorElement {
                               name=${Icon.contact}
                               size="0.9"
                             ></temba-icon>
-                            ${(event.count || 0).toLocaleString()}
+                            ${formatCount(event.count || 0)}
                             ${this.lang_scheduled}`}
                     </div>
                   </div>

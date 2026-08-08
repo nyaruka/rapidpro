@@ -1,7 +1,13 @@
 import { TemplateResult, html, css, PropertyValueMap } from 'lit';
 import { unsafeHTML } from 'lit-html/directives/unsafe-html.js';
 import { property } from 'lit/decorators.js';
-import { getClasses, postJSON, stopEvent, WebResponse } from '../utils';
+import {
+  formatCount,
+  getClasses,
+  postJSON,
+  stopEvent,
+  WebResponse
+} from '../utils';
 import { TextInput } from './TextInput';
 import '../display/Alert';
 import { Contact, CustomEventType } from '../interfaces';
@@ -564,7 +570,7 @@ export class ContactSearch extends FieldElement {
               target="_"
               href="/contact/?search=${encodeURIComponent(this.summary.query)}"
             >
-              ${count.toLocaleString()}
+              ${formatCount(count)}
             </a>
             contact${count !== 1 ? 's' : ''}
           </div>

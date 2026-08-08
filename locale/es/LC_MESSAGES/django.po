@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-06 19:35+0000\n"
+"POT-Creation-Date: 2026-08-07 15:29+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -326,8 +326,8 @@ msgid "This field is required."
 msgstr "Este campo es obligatorio."
 
 #, python-format
-msgid "Maximum allowed text is %(limit)d characters."
-msgstr "El texto máximo permitido es de %(limit)d caracteres."
+msgid "Maximum allowed text is %(limit)s characters."
+msgstr "El texto máximo permitido es de %(limit)s caracteres."
 
 #, python-format
 msgid "Maximum allowed attachments is %(limit)d files."
@@ -2238,8 +2238,8 @@ msgid "Import file contains duplicated contact URN '%(urn)s' on row %(row)s."
 msgstr "El archivo de importación contiene el URN de contacto duplicado '%(urn)s' en la fila %(row)s."
 
 #, python-format
-msgid "Import files can contain a maximum of %(max)d records."
-msgstr "Los archivos de importación pueden contener un máximo de %(max)d registros."
+msgid "Import files can contain a maximum of %(max)s records."
+msgstr "Los archivos de importación pueden contener un máximo de %(max)s registros."
 
 msgid "Import file doesn't contain any records."
 msgstr "El archivo de importación no contiene ningún registro."

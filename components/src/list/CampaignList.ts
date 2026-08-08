@@ -2,6 +2,7 @@ import { css, html, TemplateResult } from 'lit';
 import { ContentList, ContentListColumn } from './ContentList';
 import { Icon } from '../Icons';
 import { Campaign, CustomEventType, ObjectReference } from '../interfaces';
+import { formatCount } from '../utils';
 
 /**
  * Campaign CRUDL list — drop-in replacement for the rapidpro
@@ -123,12 +124,10 @@ export class CampaignList extends ContentList<Campaign> {
             >`
           : '';
       case 'events':
-        return html`<span class="num"
-          >${(item.events ?? 0).toLocaleString()}</span
-        >`;
+        return html`<span class="num">${formatCount(item.events ?? 0)}</span>`;
       case 'contacts':
         return html`<span class="num"
-          >${(item.contacts ?? 0).toLocaleString()}</span
+          >${formatCount(item.contacts ?? 0)}</span
         >`;
       case 'modified_on':
         return item.modified_on

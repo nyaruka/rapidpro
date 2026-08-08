@@ -1,4 +1,4 @@
-{% load humanize i18n %}
+{% load i18n %}
 
 {% if not paginator or paginator.num_pages <= 1 %}
   {% blocktrans trimmed with count=object_list|length|intcomma count cc=object_list|length %}

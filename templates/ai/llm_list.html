@@ -33,7 +33,7 @@
                 {% if usage_count %}
                   <div onclick="event.stopPropagation() ; showLLMUsagesModal('{{ obj.uuid }}');" class="uses">
                     <div class="lbl linked">
-                      {% blocktrans trimmed count counter=usage_count %}
+                      {% blocktrans trimmed with counter=usage_count|intcomma count num=usage_count %}
                         {{ counter }} use
                       {% plural %}
                         {{ counter }} uses

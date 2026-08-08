@@ -22,7 +22,7 @@
           <td>{{ object.currency|default:"--" }}</td>
           <td>
             {% if object.actual_amount %}
-              {{ object.actual_amount|floatformat:2 }}
+              {{ object.actual_amount|floatformat:2|intcomma }}
             {% else %}
               --
             {% endif %}
