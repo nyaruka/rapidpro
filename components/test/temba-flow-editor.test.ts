@@ -16,6 +16,7 @@ import {
 } from '../src/live/SocketService';
 import { Store } from '../src/store/Store';
 import { setRealtimeContext } from '../src/live/Realtime';
+import { CustomEventType } from '../src/interfaces';
 
 class EditorSocketProvider implements SocketProvider {
   subscriptions: {
@@ -799,6 +800,134 @@ describe('Editor', () => {
       // Check that the properties exist (they are private but we can verify they exist)
       expect(editor).to.have.property('definition');
       expect(editor).to.have.property('canvasSize');
+    });
+  });
+
+  describe('action edit requests', () => {
+    // an action type whose config has a form, so it is editable
+    const EDITABLE_ACTION = {
+      uuid: 'action-1',
+      type: 'set_contact_name',
+      name: 'Alice'
+    };
+
+    // request_optin is kept only so old definitions still render — its
+    // config declares no form, so it must never open the editor
+    const FORMLESS_ACTION = {
+      uuid: 'action-1',
+      type: 'request_optin',
+      optin: { uuid: 'optin-1', name: 'U-Report' }
+    };
+
+    const getEditor = async (action: any): Promise<Editor> => {
+      const editor: Editor = await fixture(html`
+        <temba-flow-editor>
+          <div id="canvas"></div>
+        </temba-flow-editor>
+      `);
+      (editor as any).definition = {
+        nodes: [{ uuid: 'node-1', actions: [action], exits: [] }],
+        _ui: {
+          nodes: {
+            'node-1': {
+              type: 'execute_actions',
+              position: { left: 50, top: 50 }
+            }
+          }
+        }
+      };
+      await editor.updateComplete;
+      return editor;
+    };
+
+    const nodeEditor = (editor: Editor) =>
+      editor.querySelector('temba-node-editor');
+
+    const requestEdit = async (editor: Editor, action: any) => {
+      editor.dispatchEvent(
+        new CustomEvent(CustomEventType.ActionEditRequested, {
+          detail: { action, nodeUuid: 'node-1' },
+          bubbles: true,
+          composed: true
+        })
+      );
+      await editor.updateComplete;
+    };
+
+    const selectIssue = async (editor: Editor, action: any) => {
+      editor.querySelector('temba-issues-window').dispatchEvent(
+        new CustomEvent(CustomEventType.IssueSelected, {
+          detail: {
+            issue: { node_uuid: 'node-1', action_uuid: action.uuid }
+          }
+        })
+      );
+      await editor.updateComplete;
+    };
+
+    const selectSearchResult = async (editor: Editor, action: any) => {
+      editor.querySelector('temba-flow-search').dispatchEvent(
+        new CustomEvent('temba-search-result-selected', {
+          detail: { nodeUuid: 'node-1', action }
+        })
+      );
+      // the search path opens the dialog on a short delay
+      await aTimeout(250);
+      await editor.updateComplete;
+    };
+
+    describe('via an edit request', () => {
+      it('opens the editor for an action config with a form', async () => {
+        editor = await getEditor(EDITABLE_ACTION);
+        await requestEdit(editor, EDITABLE_ACTION);
+
+        expect((editor as any).editingAction).to.equal(EDITABLE_ACTION);
+        expect(nodeEditor(editor)).to.exist;
+      });
+
+      it('ignores actions whose config has no form', async () => {
+        editor = await getEditor(FORMLESS_ACTION);
+        await requestEdit(editor, FORMLESS_ACTION);
+
+        expect((editor as any).editingAction).to.be.null;
+        expect(nodeEditor(editor)).to.not.exist;
+      });
+    });
+
+    describe('via a selected issue', () => {
+      it('opens the editor for an action config with a form', async () => {
+        editor = await getEditor(EDITABLE_ACTION);
+        await selectIssue(editor, EDITABLE_ACTION);
+
+        expect((editor as any).editingAction).to.equal(EDITABLE_ACTION);
+        expect(nodeEditor(editor)).to.exist;
+      });
+
+      it('ignores actions whose config has no form', async () => {
+        editor = await getEditor(FORMLESS_ACTION);
+        await selectIssue(editor, FORMLESS_ACTION);
+
+        expect((editor as any).editingAction).to.be.null;
+        expect(nodeEditor(editor)).to.not.exist;
+      });
+    });
+
+    describe('via a selected search result', () => {
+      it('opens the editor for an action config with a form', async () => {
+        editor = await getEditor(EDITABLE_ACTION);
+        await selectSearchResult(editor, EDITABLE_ACTION);
+
+        expect((editor as any).editingAction).to.equal(EDITABLE_ACTION);
+        expect(nodeEditor(editor)).to.exist;
+      });
+
+      it('ignores actions whose config has no form', async () => {
+        editor = await getEditor(FORMLESS_ACTION);
+        await selectSearchResult(editor, FORMLESS_ACTION);
+
+        expect((editor as any).editingAction).to.be.null;
+        expect(nodeEditor(editor)).to.not.exist;
+      });
     });
   });
 
