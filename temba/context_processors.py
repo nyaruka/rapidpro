@@ -6,7 +6,7 @@ from django.conf import settings
 def config(request):
     dev_bundle = os.path.join(settings.COMPONENTS_DIR, "dev-dist", "temba-modules.js")
     dist_bundle = os.path.join(settings.COMPONENTS_DIR, "dist", "temba-components.js")
-    collected_bundle = os.path.join(settings.STATIC_ROOT, "components", "temba-components.js")
+    collected_bundle = os.path.join(settings.COMPRESS_ROOT, "components", "temba-components.js")
 
     return {
         # in development serve the components as live modules (components/dev-dist, kept fresh by
