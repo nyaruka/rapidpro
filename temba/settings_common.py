@@ -731,14 +731,6 @@ REST_HANDLE_EXCEPTIONS = not TESTING
 # Compression
 # -----------------------------------------------------------------------------------
 
-if TESTING:
-    # if only testing, disable less compilation
-    COMPRESS_PRECOMPILERS = ()
-else:
-    COMPRESS_PRECOMPILERS = (
-        ("text/less", 'lessc --include-path="%s" {infile} {outfile}' % os.path.join(PROJECT_DIR, "../static", "less")),
-    )
-
 COMPRESS_FILTERS = {
     "css": ["compressor.filters.css_default.CssAbsoluteFilter"],
     "js": [],

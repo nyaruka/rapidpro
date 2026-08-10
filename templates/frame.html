@@ -165,6 +165,8 @@
   {% block body %}
     <body class="bg-gradient" id="pageBody">
       {% if COMPONENTS_DEV %}
+        {# may 404 before a first components build has produced anything — preferable to the #}
+        {# compress block below hard-failing the whole page on a missing packaged bundle #}
         <script type="module" src="{% static 'components-dev/temba-modules.js' %}"></script>
       {% else %}
         {% compress js %}
