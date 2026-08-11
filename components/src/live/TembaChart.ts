@@ -9,7 +9,7 @@ import {
 } from 'lit';
 
 import { Select, SelectOption } from '../form/select/Select';
-import { darkenColor, getClasses } from '../utils';
+import { darkenColor, formatCount, getClasses } from '../utils';
 import { getStore } from '../store/Store';
 
 // eslint-disable-next-line import/no-named-as-default
@@ -707,7 +707,7 @@ export class TembaChart extends RapidElement {
                     if (this.yType === 'duration') {
                       return `${label}: ${formatDurationFromSeconds(value)}`;
                     }
-                    return `${label}: ${value}`;
+                    return `${label}: ${formatCount(value)}`;
                   }
                 }
               },

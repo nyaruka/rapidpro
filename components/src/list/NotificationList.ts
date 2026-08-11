@@ -7,7 +7,7 @@ import {
   RealtimeSubscription,
   subscribeToNotifications
 } from '../live/Realtime';
-import { deleteRequest } from '../utils';
+import { deleteRequest, formatCount } from '../utils';
 
 export class NotificationList extends TembaList {
   reverseRefresh = false;
@@ -83,21 +83,21 @@ export class NotificationList extends TembaList {
       } else if (notification.type === 'import:finished') {
         if (notification.import.type === 'contact') {
           icon = Icon.contact_import;
-          body = `Imported ${notification.import.num_records.toLocaleString()} contacts`;
+          body = `Imported ${formatCount(notification.import.num_records)} contacts`;
         }
       } else if (notification.type === 'export:finished') {
         if (notification.export.type === 'contact') {
           icon = Icon.contact_export;
-          body = `Exported ${notification.export.num_records.toLocaleString()} contacts`;
+          body = `Exported ${formatCount(notification.export.num_records)} contacts`;
         } else if (notification.export.type === 'message') {
           icon = Icon.message_export;
-          body = `Exported ${notification.export.num_records.toLocaleString()} messages`;
+          body = `Exported ${formatCount(notification.export.num_records)} messages`;
         } else if (notification.export.type === 'results') {
           icon = Icon.results_export;
           body = 'Exported flow results';
         } else if (notification.export.type === 'ticket') {
           icon = Icon.tickets_export;
-          body = `Exported ${notification.export.num_records.toLocaleString()} tickets`;
+          body = `Exported ${formatCount(notification.export.num_records)} tickets`;
         } else if (notification.export.type === 'definition') {
           icon = Icon.definitions_export;
           body = 'Exported definitions';

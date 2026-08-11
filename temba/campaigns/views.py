@@ -3,6 +3,7 @@ from uuid import UUID
 from smartmin.views import SmartCreateView, SmartCRUDL
 
 from django import forms
+from django.contrib.humanize.templatetags.humanize import intcomma
 from django.db.models.functions import Lower
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -449,7 +450,8 @@ class CampaignEventForm(forms.ModelForm):
                         self.add_error(
                             "compose",
                             forms.ValidationError(
-                                _("Maximum allowed text is %(limit)d characters."), params={"limit": Msg.MAX_TEXT_LEN}
+                                _("Maximum allowed text is %(limit)s characters."),
+                                params={"limit": intcomma(Msg.MAX_TEXT_LEN)},
                             ),
                         )
                     if attachments and len(attachments) > Msg.MAX_ATTACHMENTS:

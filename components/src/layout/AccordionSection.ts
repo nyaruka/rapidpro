@@ -1,5 +1,6 @@
 import { LitElement, TemplateResult, css, html } from 'lit';
 import { property } from 'lit/decorators.js';
+import { formatCount } from '../utils';
 
 export class AccordionSection extends LitElement {
   static get styles() {
@@ -224,7 +225,9 @@ export class AccordionSection extends LitElement {
                     class="checkmark-icon"
                   ></temba-icon>`
                 : showBubble
-                  ? html`<div class="count-bubble">${this.count}</div>`
+                  ? html`<div class="count-bubble">
+                      ${formatCount(this.count)}
+                    </div>`
                   : ''}
             </div>`}
       </div>

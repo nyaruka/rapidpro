@@ -1,4 +1,5 @@
 import { isRightClick } from './utils';
+import { formatCount } from '../utils';
 
 export type TargetFace = 'top' | 'left' | 'right';
 
@@ -1033,7 +1034,7 @@ export class Plumber {
           this.canvas.appendChild(overlayEl);
           this.overlays.set(exitId, overlayEl);
         } else {
-          overlayEl.textContent = count.toLocaleString();
+          overlayEl.textContent = formatCount(count);
           overlayEl.setAttribute('data-activity-key', activityKey);
         }
 
@@ -1056,7 +1057,7 @@ export class Plumber {
   ): HTMLElement {
     const el = document.createElement('div');
     el.className = 'activity-overlay';
-    el.textContent = count.toLocaleString();
+    el.textContent = formatCount(count);
     el.setAttribute('data-activity-key', activityKey);
 
     el.addEventListener('mouseenter', () => {
