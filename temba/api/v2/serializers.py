@@ -18,7 +18,7 @@ from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
 from temba.mailroom import modifiers
 from temba.mailroom.client.types import Exclusions
-from temba.msgs.models import Broadcast, Label, Media, Msg, OptIn
+from temba.msgs.models import Broadcast, Label, Media, Msg
 from temba.orgs.models import Org, OrgRole
 from temba.tickets.models import Ticket, Topic
 from temba.users.models import User
@@ -1571,29 +1571,6 @@ class MsgBulkActionSerializer(WriteSerializer):
                     msg.restore()
 
         return BulkActionFailure(missing_message_ids) if missing_message_ids else None
-
-
-class OptInReadSerializer(ReadSerializer):
-    created_on = serializers.DateTimeField(default_timezone=tzone.utc)
-
-    class Meta:
-        model = Topic
-        fields = ("uuid", "name", "created_on")
-
-
-class OptInWriteSerializer(WriteSerializer):
-    name = serializers.CharField(
-        required=True,
-        max_length=OptIn.MAX_NAME_LEN,
-        validators=[
-            NameValidator(OptIn.MAX_NAME_LEN),
-            UniqueForOrgValidator(queryset=OptIn.objects.filter(is_active=True), ignore_case=True),
-        ],
-    )
-
-    def save(self):
-        name = self.validated_data["name"]
-        return OptIn.create(self.context["org"], self.context["user"], name)
 
 
 class ResthookReadSerializer(ReadSerializer):
