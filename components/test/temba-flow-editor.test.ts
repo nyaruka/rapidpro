@@ -822,7 +822,7 @@ describe('Editor', () => {
 
     const unsupportedDialog = () =>
       [...document.body.querySelectorAll('temba-dialog')].find(
-        (d: any) => d.header === 'Action No Longer Supported'
+        (d: any) => d.header === 'Unsupported Action'
       ) as any;
 
     const getEditor = async (action: any): Promise<Editor> => {

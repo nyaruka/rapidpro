@@ -1655,7 +1655,7 @@ export class Editor extends RapidElement {
 
   private showUnsupportedActionDialog(): void {
     const dialog = document.createElement('temba-dialog') as Dialog;
-    dialog.header = 'Action No Longer Supported';
+    dialog.header = 'Unsupported Action';
     dialog.primaryButtonName = '';
     dialog.cancelButtonName = 'Ok';
 
