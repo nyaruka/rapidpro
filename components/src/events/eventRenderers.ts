@@ -16,6 +16,7 @@ import {
   URNsChangedEvent
 } from '../events';
 import { getLanguageName } from '../languages';
+import { formatCount } from '../utils';
 
 export enum Events {
   AIRTIME_CREATED = 'airtime_created',
@@ -548,7 +549,7 @@ export const renderEventSummary = (
           style="display: inline-block; vertical-align: -2px; margin-right: 3px;"
         ></temba-icon>`
     )}<span style="font-weight: 600; margin-left: 2px;"
-      >${events.length}</span
+      >${formatCount(events.length)}</span
     ></temba-label
   >`;
 };

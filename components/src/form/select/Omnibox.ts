@@ -3,6 +3,7 @@ import { property } from 'lit/decorators.js';
 import { styleMap } from 'lit-html/directives/style-map.js';
 import { Select, SelectOption } from './Select';
 import { Icon } from '../../Icons';
+import { formatCount } from '../../utils';
 
 enum OmniType {
   Group = 'group',
@@ -98,7 +99,7 @@ export class Omnibox extends Select<OmniOption> {
 
     if (option.type === OmniType.Group) {
       return html`
-        <div style=${styleMap(style)}>${option.count.toLocaleString()}</div>
+        <div style=${styleMap(style)}>${formatCount(option.count)}</div>
       `;
     }
 
@@ -123,7 +124,7 @@ export class Omnibox extends Select<OmniOption> {
       return html`<div style="display:flex; align-items:center; gap:6px;">
         ${base}<span
           style="opacity:0.7; font-size:11px; font-variant-numeric: tabular-nums; font-weight: var(--w-medium);"
-          >${option.count.toLocaleString()}</span
+          >${formatCount(option.count)}</span
         >
       </div>`;
     }

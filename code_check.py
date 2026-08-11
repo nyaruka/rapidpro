@@ -3,6 +3,7 @@
 import argparse
 import subprocess
 import tempfile
+import tomllib
 
 import colorama
 
@@ -33,33 +34,46 @@ def status(line):
 if __name__ == "__main__":
     colorama.init()
 
-    status("Check for missing migrations")
-    cmd("python manage.py makemigrations --check")
+    # checks run against the project in the current directory - which needn't be this checkout, as projects that
+    # build on this one run this same script - and are configured by the [tool.code_check] section of its
+    # pyproject.toml
+    with open("pyproject.toml", "rb") as f:
+        config = tomllib.load(f)["tool"]["code_check"]
+
+    packages = " ".join(config["packages"])
+    locale_dir = config["locale"]
+    ignores = " ".join(f"--ignore='{i}'" for i in config.get("ignore", []))
+
+    if config.get("migrations", False):
+        status("Check for missing migrations")
+        cmd("python manage.py makemigrations --check")
 
     status("Check locale files are up to date")
     with tempfile.TemporaryDirectory() as backup_dir:
         # take a copy of the PO files so we can compare the regenerated ones against them, and then put them
         # back. we compare against the working copy rather than using git because git isn't usable from here
         # in CI, where the checkout isn't a safe directory for the user running the checks
-        cmd(f"cp -a locale/. {backup_dir}")
+        cmd(f"cp -a {locale_dir}/. {backup_dir}")
+
+        # run without django settings so makemessages only sees locale directories under the current directory -
+        # with settings configured, LOCALE_PATHS could pull other projects' catalogs into scope
         cmd(
-            "python manage.py makemessages -a -e haml,html,txt,py --no-location --no-wrap --ignore='env/*' "
-            "--ignore='.venv/*' --ignore='.claude/*' --ignore='fabfile.py' --ignore='media/*' "
-            "--ignore='sitestatic/*' --ignore='static/*' --ignore='node_modules/*' 2>&1"
+            f"DJANGO_SETTINGS_MODULE= django-admin makemessages -a -e haml,html,txt,py --no-location --no-wrap "
+            f"{ignores} 2>&1"
         )
-        cmd("for f in locale/*/LC_MESSAGES/django.po; do msgattrib --no-obsolete --no-wrap -o $f $f; done")
+        cmd(f"for f in {locale_dir}/*/LC_MESSAGES/django.po; do msgattrib --no-obsolete --no-wrap -o $f $f; done")
 
         # POT-Creation-Date can change without any actual message changes so ignore it. if this fails then the
         # regenerated files are left in place, ready to be committed
-        cmd(f"diff -ur -I '^\"POT-Creation-Date:' {backup_dir} locale")
+        cmd(f"diff -ur -I '^\"POT-Creation-Date:' {backup_dir} {locale_dir}")
 
         # nothing to do, so restore the originals rather than leaving a dirty working tree behind
-        cmd(f"cp -a {backup_dir}/. locale")
+        cmd(f"cp -a {backup_dir}/. {locale_dir}")
 
     status("Running ruff format")
-    cmd("ruff format --check temba")
+    cmd(f"ruff format --check {packages}")
 
     status("Running ruff")
-    cmd("ruff check temba")
+    cmd(f"ruff check {packages}")
 
     print("👍 " + colorama.Fore.GREEN + "Code looks good. Make that PR!")

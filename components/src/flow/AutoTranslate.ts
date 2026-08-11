@@ -8,6 +8,7 @@ import { FlowDefinition } from '../store/flow-definition';
 import { TranslationEntry, buildTranslationBundles } from './flow-translations';
 import { getLanguageName } from '../languages';
 import { LLMModel, hasLLMRole } from './flow-utils';
+import { formatCount } from '../utils';
 
 interface TranslationModel {
   uuid: string;
@@ -756,7 +757,7 @@ export class AutoTranslate extends RapidElement {
     const statusText = this.interrupt
       ? 'Stopping...'
       : total > 1
-        ? `Translating ${currentBatch} of ${total}`
+        ? `Translating ${formatCount(currentBatch)} of ${formatCount(total)}`
         : 'Translating';
 
     return html`

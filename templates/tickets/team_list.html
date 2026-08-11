@@ -21,7 +21,7 @@
       {% for obj in object_list %}
         <tr onclick="goto(event, this)" href="{% url 'orgs.user_team' obj.id %}">
           <td>{{ obj.name }}</td>
-          <td>{{ obj.user_count }}</td>
+          <td>{{ obj.user_count|intcomma }}</td>
           <td>
             {% if obj.all_topics %}
               {% trans "All" %}

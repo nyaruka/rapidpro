@@ -22,7 +22,7 @@
               {# djlint:off #}
               {% blocktrans trimmed count counter=obj.locale_count %}{{ counter }} language{% plural %}{{ counter }} languages{% endblocktrans %},
               {# djlint:on #}
-              {% blocktrans trimmed count counter=obj.channel_count %}
+              {% blocktrans trimmed with counter=obj.channel_count|intcomma count num=obj.channel_count %}
                 {{ counter }} channel
               {% plural %}
                 {{ counter }} channels
@@ -34,7 +34,7 @@
                   {% if usage_count %}
                     <div onclick="event.stopPropagation(); showTemplateUsagesModal('{{ obj.uuid }}');" class="uses">
                       <div class="lbl linked">
-                        {% blocktrans trimmed count counter=usage_count %}
+                        {% blocktrans trimmed with counter=usage_count|intcomma count num=usage_count %}
                           {{ counter }} use
                         {% plural %}
                           {{ counter }} uses

@@ -3,7 +3,7 @@ import { property, state } from 'lit/decorators.js';
 import { ContentList, ContentListColumn } from './ContentList';
 import { Icon } from '../Icons';
 import { Broadcast, CustomEventType, ObjectReference } from '../interfaces';
-import { attachmentAsString } from '../utils';
+import { attachmentAsString, formatCount } from '../utils';
 
 /** Placeholder shown in any cell whose value is empty. */
 const EMPTY = '--';
@@ -641,9 +641,7 @@ export class BroadcastList extends ContentList<Broadcast> {
   private renderMessages(item: Broadcast): TemplateResult | string {
     const status = item.status || '';
     if (status === 'completed') {
-      return html`<span class="num"
-        >${(item.msg_count ?? 0).toLocaleString()}</span
-      >`;
+      return html`<span class="num">${formatCount(item.msg_count ?? 0)}</span>`;
     }
     if (this.isSending(item)) {
       return html`<temba-progress
@@ -758,7 +756,7 @@ export class BroadcastList extends ContentList<Broadcast> {
     return html`
       <div class="detail-count">
         <temba-icon name=${Icon.message} size="0.9"></temba-icon>
-        ${broadcast.msg_count.toLocaleString()} messages
+        ${formatCount(broadcast.msg_count)} messages
       </div>
     `;
   }

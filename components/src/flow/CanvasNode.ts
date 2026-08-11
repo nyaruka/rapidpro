@@ -5,7 +5,7 @@ import { ACTION_GROUP_METADATA, SPLIT_GROUP_METADATA } from './types';
 import { Action, Exit, Node, NodeUI, Router } from '../store/flow-definition';
 import { property } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
-import { generateUUID, getClasses } from '../utils';
+import { formatCount, generateUUID, getClasses } from '../utils';
 import { SortableList } from '../list/SortableList';
 import { isRightClick, localizeAction, renderClamped } from './utils';
 import { Plumber } from './Plumber';
@@ -2056,9 +2056,7 @@ export class CanvasNode extends RapidElement {
         style="left:${this.ui.position.left}px;top:${this.ui.position.top}px"
       >
         ${activeCount > 0
-          ? html`<div class="active-count">
-              ${activeCount.toLocaleString()}
-            </div>`
+          ? html`<div class="active-count">${formatCount(activeCount)}</div>`
           : ''}
         ${nodeConfig &&
         nodeConfig.type !== 'execute_actions' &&
