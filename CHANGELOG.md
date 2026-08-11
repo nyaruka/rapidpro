@@ -1,3 +1,7 @@
+v26.3.41 (2026-08-11)
+-------------------------
+ * Drop the OptIn model and the optin columns on broadcasts, messages and channel events
+
 v26.3.40 (2026-08-11)
 -------------------------
  * Remove the opt-ins API endpoint
