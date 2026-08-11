@@ -34,7 +34,6 @@ const getInitialValue = (
       text: text ? text : '',
       attachments: attachments ? attachments : [],
       quick_replies: quick_replies ? quick_replies : [],
-      optin: null,
       template: null,
       variables: []
     }
@@ -196,7 +195,6 @@ describe('temba-compose broadcast edit', () => {
         text: 'Hello from broadcast',
         attachments: [],
         quick_replies: [{ text: 'Yes' }, 'No'],
-        optin: null,
         template: null,
         variables: []
       }
@@ -208,7 +206,6 @@ describe('temba-compose broadcast edit', () => {
       attachments: true,
       completion: true,
       quickreplies: true,
-      optins: true,
       templates: true,
       maxlength: 4096,
       languages: languages,
@@ -256,7 +253,6 @@ describe('temba-compose broadcast edit', () => {
       attachments: true,
       completion: true,
       quickreplies: true,
-      optins: true,
       templates: true,
       maxlength: 4096,
       languages: languages,

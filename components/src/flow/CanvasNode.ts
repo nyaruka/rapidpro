@@ -1,6 +1,12 @@
 import { css, html, PropertyValueMap, TemplateResult } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { ACTION_CONFIG, ActionConfig, NODE_CONFIG, NodeConfig } from './config';
+import {
+  ACTION_CONFIG,
+  ActionConfig,
+  isUnsupportedAction,
+  NODE_CONFIG,
+  NodeConfig
+} from './config';
 import { ACTION_GROUP_METADATA, SPLIT_GROUP_METADATA } from './types';
 import { Action, Exit, Node, NodeUI, Router } from '../store/flow-definition';
 import { property } from 'lit/decorators.js';
@@ -1109,10 +1115,16 @@ export class CanvasNode extends RapidElement {
   private isActiveLink(target: HTMLElement, action?: Action): boolean {
     if (!target.closest('.linked-name') && !target.closest('.linked-pill'))
       return false;
-    if (action) return !this.issuesByAction?.has(action.uuid);
+    if (action) {
+      return (
+        !this.issuesByAction?.has(action.uuid) && !isUnsupportedAction(action)
+      );
+    }
     return !(
       this.issuesByNode?.has(this.node.uuid) ||
-      this.node.actions?.some((a) => this.issuesByAction?.has(a.uuid))
+      this.node.actions?.some(
+        (a) => this.issuesByAction?.has(a.uuid) || isUnsupportedAction(a)
+      )
     );
   }
 
@@ -1799,7 +1811,8 @@ export class CanvasNode extends RapidElement {
     const displayAction = this.getLocalizedAction(action);
 
     if (config) {
-      const hasIssues = this.issuesByAction?.has(action.uuid);
+      const hasIssues =
+        this.issuesByAction?.has(action.uuid) || isUnsupportedAction(action);
       const classes = [
         'action',
         'sortable',
@@ -2042,7 +2055,9 @@ export class CanvasNode extends RapidElement {
     // Check for node-level issues or action-level issues on any action in this node
     const nodeHasIssues =
       this.issuesByNode?.has(this.node.uuid) ||
-      this.node.actions?.some((a) => this.issuesByAction?.has(a.uuid));
+      this.node.actions?.some(
+        (a) => this.issuesByAction?.has(a.uuid) || isUnsupportedAction(a)
+      );
 
     return html`
       <div

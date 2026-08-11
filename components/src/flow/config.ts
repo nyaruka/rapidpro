@@ -67,6 +67,28 @@ export const ACTION_CONFIG: {
   enter_flow
 });
 
+/**
+ * Whether an action can be opened in the editor. Some action types are
+ * retained purely so actions left behind in older flow definitions still
+ * render; their config declares no form, so opening the dialog for one
+ * would just show an empty editor.
+ */
+export function isEditableAction(action?: { type?: string }): boolean {
+  return !!(action?.type && ACTION_CONFIG[action.type]?.form);
+}
+
+/**
+ * Action types that are no longer supported. They still render so older
+ * flow definitions remain legible, but they are flagged on the canvas the
+ * same way as flow issues, and clicking one explains that it should be
+ * removed instead of opening an editor.
+ */
+export const UNSUPPORTED_ACTIONS: string[] = ['request_optin'];
+
+export function isUnsupportedAction(action?: { type?: string }): boolean {
+  return !!(action?.type && UNSUPPORTED_ACTIONS.includes(action.type));
+}
+
 // Helper to register a config and its aliases
 function registerConfigWithAliases<T extends NodeConfig | ActionConfig>(
   config: Record<string, T>

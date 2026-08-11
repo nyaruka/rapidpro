@@ -19,7 +19,6 @@ export interface ComposeValue {
   text: string;
   attachments: { uuid: string }[];
   quick_replies: (string | QuickReply)[];
-  optin: string;
   template: string;
   variables: string[];
 }
@@ -85,10 +84,6 @@ export class Compose extends FieldElement {
       }
 
       .quick-replies {
-        margin: 0.2em;
-      }
-
-      .optins {
         margin: 0.2em;
       }
 
@@ -159,9 +154,6 @@ export class Compose extends FieldElement {
   quickReplies: boolean;
 
   @property({ type: Boolean })
-  optIns: boolean;
-
-  @property({ type: Boolean })
   templates: boolean;
 
   @property({ type: Boolean, attribute: 'template-session' })
@@ -207,9 +199,6 @@ export class Compose extends FieldElement {
   currentQuickReplies: { name: string; value: string }[] = [];
 
   @property({ type: Array })
-  currentOptin: { name: string; uuid: string }[] = [];
-
-  @property({ type: Array })
   variables: string[] = [];
 
   @property({ type: String })
@@ -221,9 +210,6 @@ export class Compose extends FieldElement {
   // locale for the template
   @property({ type: String })
   locale: string;
-
-  @property({ type: String })
-  optinEndpoint = '/api/v2/optins.json';
 
   @property({ type: String })
   templateEndpoint = '/api/internal/templates.json';
@@ -243,7 +229,6 @@ export class Compose extends FieldElement {
       text: string;
       attachments: Attachment[];
       quick_replies: (string | QuickReply)[];
-      optin?: { name: string; uuid: string };
       template?: string;
       variables?: string[];
       locale?: string;
@@ -369,7 +354,6 @@ export class Compose extends FieldElement {
         )
         .filter((reply): reply is string => reply !== null)
         .map((value) => ({ name: value, value }));
-      this.currentOptin = langValue['optin'] ? [langValue['optin']] : [];
     }
 
     if (
@@ -377,7 +361,6 @@ export class Compose extends FieldElement {
       (changed.has('currentText') ||
         changed.has('currentAttachments') ||
         changed.has('currentQuickReplies') ||
-        changed.has('currentOptin') ||
         changed.has('currentTemplate') ||
         changed.has('variables'))
     ) {
@@ -388,14 +371,12 @@ export class Compose extends FieldElement {
         trimmed ||
         (this.currentAttachments || []).length > 0 ||
         this.currentQuickReplies.length > 0 ||
-        this.currentOptin.length > 0 ||
         this.variables.length > 0
       ) {
         this.langValues[this.currentLanguage] = {
           text: trimmed,
           attachments: this.currentAttachments,
           quick_replies: this.currentQuickReplies.map((option) => option.value),
-          optin: this.currentOptin.length > 0 ? this.currentOptin[0] : null,
           template: this.currentTemplate ? this.currentTemplate.uuid : null,
           variables: this.variables,
           locale: this.locale
@@ -539,7 +520,6 @@ export class Compose extends FieldElement {
         (changes.has('currentText') ||
           changes.has('currentAttachments') ||
           changes.has('currentQuickReplies'))) ||
-      changes.has('currentOptin') ||
       changes.has('currentTemplate') ||
       changes.has('variables')
     ) {
@@ -586,11 +566,6 @@ export class Compose extends FieldElement {
 
   private handleQuickReplyChange() {
     this.requestUpdate('currentQuickReplies');
-  }
-
-  private handleOptInChange(event: InputEvent) {
-    this.currentOptin = (event.target as any).values;
-    this.requestUpdate('currentOptin');
   }
 
   private handleEditorChange(evt: Event) {
@@ -754,10 +729,8 @@ export class Compose extends FieldElement {
   }
 
   protected renderWidget(): TemplateResult {
-    const showOptins = this.optIns && this.isBaseLanguage();
     const showTemplates = this.templates && this.isBaseLanguage();
-    const hasAccordionSections =
-      this.quickReplies || showOptins || showTemplates;
+    const hasAccordionSections = this.quickReplies || showTemplates;
 
     return html`
       <div>
@@ -859,23 +832,6 @@ export class Compose extends FieldElement {
                       template-warning=${this.templateWarning || nothing}
                     >
                     </temba-template-editor>
-                  </temba-accordion-section>`
-                : null}
-              ${showOptins
-                ? html`<temba-accordion-section
-                    label="Facebook Opt-in"
-                    ?checked=${this.currentOptin.length > 0}
-                  >
-                    <temba-select
-                      @change=${this.handleOptInChange}
-                      .values=${this.currentOptin}
-                      endpoint="${this.optinEndpoint}"
-                      valueKey="uuid"
-                      class="optins"
-                      searchable
-                      clearable
-                      placeholder="Select an opt-in to use for Facebook (optional)"
-                    ></temba-select>
                   </temba-accordion-section>`
                 : null}
             </temba-accordion>`

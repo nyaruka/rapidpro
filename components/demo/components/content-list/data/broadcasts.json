@@ -81,7 +81,6 @@
       "text": "Please opt in to receive weekly market prices.",
       "attachments": [],
       "quick_replies": [],
-      "optin": { "uuid": "o-001", "name": "Market Prices" },
       "groups": [],
       "contacts": [],
       "query": "age > 18 AND state = \"Lagos\"",

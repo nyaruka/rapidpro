@@ -242,8 +242,6 @@ export interface Broadcast {
   /** Base-language quick replies — engine `{text}` objects, with
    * plain strings tolerated for older data. */
   quick_replies?: (string | QuickReply)[];
-  /** The opt-in the broadcast requests, when it is one. */
-  optin?: ObjectReference | null;
   /** The WhatsApp template the broadcast sends, when it uses one. */
   template?: ObjectReference | null;
   /** Recipient groups. */
