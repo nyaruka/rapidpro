@@ -4,7 +4,7 @@ import { ContactField, CustomEventType } from '../interfaces';
 import { EndpointMonitorElement } from '../store/EndpointMonitorElement';
 import { Icon } from '../Icons';
 import { designTokens } from '../styles/designTokens';
-import { postJSON } from '../utils';
+import { formatCount, postJSON } from '../utils';
 
 const TYPE_NAMES = {
   text: 'Text',
@@ -867,7 +867,7 @@ export class FieldList extends EndpointMonitorElement {
           )}
           ${total > items.length
             ? html`<div class="usage-more">
-                and ${total - items.length} more
+                and ${formatCount(total - items.length)} more
               </div>`
             : null}
         </div>
@@ -904,7 +904,7 @@ export class FieldList extends EndpointMonitorElement {
           )}
           ${total > events.length
             ? html`<div class="usage-more">
-                and ${total - events.length} more
+                and ${formatCount(total - events.length)} more
               </div>`
             : null}
         </div>

@@ -14,7 +14,7 @@
       </temba-charcount>
     </div>
     {% if recipient_count %}
-      {% blocktrans trimmed count recipient_count as recipients %}
+      {% blocktrans trimmed with recipients=recipient_count|intcomma count counter=recipient_count %}
         <b>{{ recipients }}</b> recipient currently at this point in the flow
       {% plural %}
         <b>{{ recipients }}</b> recipients currently at this point in the flow

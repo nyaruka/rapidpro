@@ -1,5 +1,5 @@
 {% extends "orgs/base/list.html" %}
-{% load i18n temba smartmin humanize %}
+{% load i18n temba smartmin %}
 
 {% block modaxes %}
   <temba-modax header="{{ _("Update Workspace") |escapejs }}" id="update-child">
@@ -23,7 +23,7 @@
         <tr onclick="{% if obj.id != user_org.id %}showUpdateChildModal({{ obj.id }}){% endif %}"
             class="{% if obj.id != user_org.id %}hover-linked update{% endif %}">
           <td>{{ obj.name }}</td>
-          <td style="text-align:right">{{ obj.users.all|length }}</td>
+          <td style="text-align:right">{{ obj.users.all|length|intcomma }}</td>
           <td style="text-align:right">{{ obj.get_contact_count|intcomma }}</td>
           <td style="text-align:right">{{ obj.created_on|day }}</td>
           <td class="w-2">

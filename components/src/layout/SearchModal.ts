@@ -3,6 +3,7 @@ import { property, state, query } from 'lit/decorators.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { Icon } from '../Icons';
 import { RapidElement } from '../RapidElement';
+import { formatCount } from '../utils';
 
 export interface ModalSearchResult {
   // The label shown in the result's badge (e.g. "Send Message", a contact name)
@@ -518,7 +519,8 @@ export abstract class SearchModal<
         )}
       </div>
       <div class="result-count">
-        ${this.results.length} result${this.results.length !== 1 ? 's' : ''}
+        ${formatCount(this.results.length) +
+        (this.results.length !== 1 ? ' results' : ' result')}
       </div>
     `;
   }

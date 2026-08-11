@@ -167,6 +167,7 @@ TEMPLATES = [
             os.path.join(PROJECT_DIR, "../templates"),
         ],
         "OPTIONS": {
+            "builtins": ["django.contrib.humanize.templatetags.humanize"],
             "context_processors": [
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.debug",

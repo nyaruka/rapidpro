@@ -17,6 +17,7 @@ import {
   User
 } from '../interfaces';
 import {
+  formatCount,
   fetchResults,
   generateUUIDv7,
   getUrl,
@@ -2100,7 +2101,8 @@ export class ContactChat extends ContactStoreElement {
           : this.searchResults.length > 0
             ? html`<div class="match-pager">
                 <span class="pager-status"
-                  >${this.searchIndex + 1} of ${this.searchResults.length}</span
+                  >${formatCount(this.searchIndex + 1)} of
+                  ${formatCount(this.searchResults.length)}</span
                 >
                 <span
                   class="page-btn ${this.searchFocused &&
