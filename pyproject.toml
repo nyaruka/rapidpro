@@ -68,6 +68,7 @@ dev = [
     "responses>=0.25.3",
     "ruff>=0.15.6",
     "djlint>=1.34.1",
+    "tblib>=3.0",
 ]
 
 [tool.code_check]
@@ -112,6 +113,9 @@ templating = "django"
 
 [tool.coverage.run]
 source = ["./temba"]
+parallel = true
+concurrency = ["multiprocessing", "thread"]
+sigterm = true
 
 [tool.coverage.report]
 ignore_errors = true
@@ -125,7 +129,7 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError",
 ]
-omit = ["**/tests*", "**/tests/*", "*settings*", "**/management/commands/*"]
+omit = ["**/tests*", "**/tests/*", "*settings*", "**/management/commands/*", "**/testrunner.py"]
 
 [build-system]
 requires = ["hatchling"]

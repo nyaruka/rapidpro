@@ -1039,7 +1039,7 @@ def cleanup(*, valkey=False, dynamodb=False, s3=False):
                 dynamo_truncate(dynamo.MAIN)
             if s3:
                 s3client = s3_utils.client()
-                for bucket_name in ["test-default", "test-archives"]:
+                for bucket_name in (f"{settings.BUCKET_PREFIX}-default", f"{settings.BUCKET_PREFIX}-archives"):
                     objects = s3client.list_objects_v2(Bucket=bucket_name)
                     for obj in objects.get("Contents", []):
                         s3client.delete_object(Bucket=bucket_name, Key=obj["Key"])
