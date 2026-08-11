@@ -1,3 +1,9 @@
+v26.3.40 (2026-08-11)
+-------------------------
+ * Remove the opt-ins API endpoint
+ * Stop resolving opt-in assets, tracking opt-ins as flow dependencies, and emitting them on broadcasts
+ * Use a dedicated dynamodb-local service for the default DynamoDB endpoint
+
 v26.3.39 (2026-08-11)
 -------------------------
  * Flag no-longer-supported actions like flow issues and explain on click
