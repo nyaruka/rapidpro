@@ -177,6 +177,8 @@ class Flow(AssetNameMixin, LegacyIDMixin, TembaModel, DependencyMixin):
     group_dependencies = models.ManyToManyField(ContactGroup, related_name="dependent_flows")
     label_dependencies = models.ManyToManyField(Label, related_name="dependent_flows")
     llm_dependencies = models.ManyToManyField(LLM, related_name="dependent_flows")
+    # retained only so the table survives a rolling deploy — nothing reads or writes it any more, and it goes
+    # along with the OptIn model itself
     optin_dependencies = models.ManyToManyField(OptIn, related_name="dependent_flows")
     template_dependencies = models.ManyToManyField(Template, related_name="dependent_flows")
     topic_dependencies = models.ManyToManyField(Topic, related_name="dependent_flows")
@@ -484,11 +486,6 @@ class Flow(AssetNameMixin, LegacyIDMixin, TembaModel, DependencyMixin):
         for ref in deps_of_type("label"):
             label, _ = Label.import_def(self.org, user, ref)
             dependency_mapping[ref["uuid"]] = str(label.uuid)
-
-        # ensure any opt-in dependencies exist
-        for ref in deps_of_type("optin"):
-            optin, _ = OptIn.import_def(self.org, user, ref)
-            dependency_mapping[ref["uuid"]] = str(optin.uuid)
 
         # ensure any topic dependencies exist
         for ref in deps_of_type("topic"):
@@ -903,7 +900,6 @@ class Flow(AssetNameMixin, LegacyIDMixin, TembaModel, DependencyMixin):
             "group": ContactGroup.get_groups(self.org).filter(uuid__in=identifiers["group"]),
             "label": Label.get_active_for_org(self.org).filter(uuid__in=identifiers["label"]),
             "llm": self.org.llms.filter(is_active=True, uuid__in=identifiers["llm"]),
-            "optin": OptIn.get_active_for_org(self.org).filter(uuid__in=identifiers["optin"]),
             "template": self.org.templates.filter(uuid__in=identifiers["template"]),
             "topic": self.org.topics.filter(is_active=True, uuid__in=identifiers["topic"]),
             "user": self.org.users.filter(is_active=True, email__in=identifiers["user"]),

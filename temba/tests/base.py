@@ -30,7 +30,7 @@ from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
 from temba.ivr.models import Call
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.mailroom.events import Event
-from temba.msgs.models import Broadcast, Label, Msg, OptIn
+from temba.msgs.models import Broadcast, Label, Msg
 from temba.orgs.models import Org, OrgRole
 from temba.templates.models import Template
 from temba.tickets.models import Ticket
@@ -782,9 +782,6 @@ class TembaTest(SmartminTest):
             opened_in=opened_in,
             closed_on=closed_on,
         )
-
-    def create_optin(self, name: str, org=None):
-        return OptIn.create(org or self.org, self.admin, name)
 
     def set_contact_field(self, contact, key, value):
         update_field_locally(self.admin, contact, key, value)

@@ -21,7 +21,7 @@ from temba.contacts.models import Contact, ContactField, ContactGroup, ContactNo
 from temba.flows.models import Flow, FlowRun, FlowStart, FlowStartCount
 from temba.globals.models import Global
 from temba.locations.models import AdminBoundary, BoundaryAlias
-from temba.msgs.models import Broadcast, BroadcastMsgCount, Label, LabelCount, Media, Msg, MsgFolder, OptIn
+from temba.msgs.models import Broadcast, BroadcastMsgCount, Label, LabelCount, Media, Msg, MsgFolder
 from temba.orgs.models import OrgMembership
 from temba.orgs.views.mixins import OrgPermsMixin
 from temba.tickets.models import Ticket, Topic
@@ -75,8 +75,6 @@ from .serializers import (
     MsgBulkActionSerializer,
     MsgReadSerializer,
     MsgWriteSerializer,
-    OptInReadSerializer,
-    OptInWriteSerializer,
     ResthookReadSerializer,
     ResthookSubscriberReadSerializer,
     ResthookSubscriberWriteSerializer,
@@ -2466,69 +2464,6 @@ class MessageActionsEndpoint(BulkWriteAPIMixin, BaseEndpoint):
                 {"name": "action", "required": True, "help": "One of the following strings: " + ", ".join(actions)},
                 {"name": "label", "required": False, "help": "The UUID or name of a message label"},
             ],
-        }
-
-
-class OptInsEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
-    """
-    This endpoint allows you to list the opt-ins in your workspace and create new ones.
-
-    ## Listing Opt-Ins
-
-    A **GET** returns the opt-ins for your organization, most recent first.
-
-     * **uuid** - the UUID of the opt-in (string).
-     * **name** - the name of the opt-in (string).
-     * **created_on** - when this opt-in was created (datetime).
-
-    Example:
-
-        GET /api/v2/optins.json
-
-    Response:
-
-        {
-            "next": null,
-            "previous": null,
-            "results": [
-            {
-                "uuid": "9a8b001e-a913-486c-80f4-1356e23f582e",
-                "name": "Jokes",
-                "created_on": "2013-02-27T09:06:15.456"
-            },
-            ...
-
-    ## Adding a New Opt-In
-
-    By making a `POST` request with a unique name you can create a new opt-in.
-
-     * **name** - the name of the opt-in to create (string)
-
-    Example:
-
-        POST /api/v2/optins.json
-        {
-            "name": "Weather Updates"
-        }
-    """
-
-    model = OptIn
-    serializer_class = OptInReadSerializer
-    write_serializer_class = OptInWriteSerializer
-    pagination_class = CreatedOnCursorPagination
-
-    @classmethod
-    def get_read_explorer(cls):  # pragma: no cover
-        return {"method": "GET", "title": "List Opt-Ins", "url": reverse("api.v2.optins"), "slug": "optin-list"}
-
-    @classmethod
-    def get_write_explorer(cls):  # pragma: no cover
-        return {
-            "method": "POST",
-            "title": "Add New Opt-Ins",
-            "url": reverse("api.v2.optins"),
-            "slug": "optin-write",
-            "fields": [{"name": "name", "required": True, "help": "The name of the opt-in"}],
         }
 
 

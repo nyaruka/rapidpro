@@ -1112,17 +1112,6 @@ class OptIn(LegacyIDMixin, TembaModel):
 
     org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="optins")
 
-    @classmethod
-    def create(cls, org, user, name: str):
-        assert cls.is_valid_name(name), f"'{name}' is not a valid optin name"
-        assert not org.optins.filter(name__iexact=name).exists()
-
-        return org.optins.create(name=name, created_by=user, modified_by=user)
-
-    @classmethod
-    def create_from_import_def(cls, org, user, definition: dict):
-        return cls.create(org, user, definition["name"])
-
     class Meta:
         constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_optin_names")]
 
