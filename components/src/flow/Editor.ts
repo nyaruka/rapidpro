@@ -1657,7 +1657,7 @@ export class Editor extends RapidElement {
     const dialog = document.createElement('temba-dialog') as Dialog;
     dialog.header = 'Action No Longer Supported';
     dialog.primaryButtonName = '';
-    dialog.cancelButtonName = 'Dismiss';
+    dialog.cancelButtonName = 'Ok';
 
     const content = document.createElement('div');
     content.style.cssText = 'padding: 20px; font-size: 14px; line-height: 1.5;';
