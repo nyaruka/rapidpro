@@ -1,7 +1,16 @@
-import { expect } from '@open-wc/testing';
+import '../../temba-modules';
+import { fixture, expect } from '@open-wc/testing';
+import { html } from 'lit-html';
 import { request_optin } from '../../src/flow/actions/request_optin';
-import { RequestOptin } from '../../src/store/flow-definition';
+import { CanvasNode } from '../../src/flow/CanvasNode';
+import { Node, RequestOptin } from '../../src/store/flow-definition';
 import { ActionTest } from '../ActionHelper';
+import { loadStore } from '../utils.test';
+
+const NODE: Node = { uuid: 'test-node', actions: [], exits: [] };
+
+const renderAction = (action: RequestOptin): Promise<HTMLElement> =>
+  fixture<HTMLElement>(html`<div>${request_optin.render(NODE, action)}</div>`);
 
 describe('request_optin action config', () => {
   const helper = new ActionTest(request_optin, 'request_optin');
@@ -13,66 +22,63 @@ describe('request_optin action config', () => {
       expect(request_optin.name).to.equal('Request Opt-In');
     });
 
-    it('uses the opt-ins endpoint in form config', () => {
-      expect((request_optin.form as any).optin.endpoint).to.equal(
-        '/api/v2/optins.json'
-      );
+    it('is not offered for any flow type', () => {
+      expect(request_optin.flowTypes).to.deep.equal([]);
+    });
+
+    it('is not editable', () => {
+      expect(request_optin.form).to.be.undefined;
+      expect(request_optin.toFormData).to.be.undefined;
+      expect(request_optin.fromFormData).to.be.undefined;
     });
   });
 
-  it('converts action to form data correctly', () => {
-    const action: RequestOptin = {
-      uuid: 'action-uuid',
-      type: 'request_optin',
-      optin: { uuid: 'optin-1', name: 'U-Report' }
-    };
+  describe('rendering', () => {
+    it('renders the opt-in from an existing definition', async () => {
+      const host = await renderAction({
+        uuid: 'action-uuid',
+        type: 'request_optin',
+        optin: { uuid: 'optin-1', name: 'U-Report' }
+      });
 
-    const formData = request_optin.toFormData(action);
-
-    expect(formData.uuid).to.equal('action-uuid');
-    expect(formData.optin).to.deep.equal([
-      { uuid: 'optin-1', name: 'U-Report' }
-    ]);
-  });
-
-  it('converts form data back to action and strips metadata', () => {
-    const formData = {
-      uuid: 'action-uuid',
-      optin: [
-        {
-          uuid: 'optin-1',
-          name: 'U-Report',
-          created_on: '2026-02-24T19:08:29.493930Z',
-          is_active: true
-        }
-      ]
-    };
-
-    const action = request_optin.fromFormData(formData) as RequestOptin;
-
-    expect(action).to.deep.equal({
-      uuid: 'action-uuid',
-      type: 'request_optin',
-      optin: { uuid: 'optin-1', name: 'U-Report' }
+      expect(host.textContent).to.contain('U-Report');
     });
-  });
 
-  it('handles options selected via value key', () => {
-    const formData = {
-      uuid: 'action-uuid',
-      optin: [
-        {
-          value: 'optin-2',
-          name: 'Re-Subscribe'
-        }
-      ]
-    };
+    it('renders a placeholder when the opt-in is missing', async () => {
+      const host = await renderAction({
+        uuid: 'action-uuid',
+        type: 'request_optin'
+      } as RequestOptin);
 
-    const action = request_optin.fromFormData(formData) as RequestOptin;
+      expect(host.textContent).to.contain('Unknown opt-in');
+    });
 
-    expect(action.optin).to.deep.equal({
-      uuid: 'optin-2',
-      name: 'Re-Subscribe'
+    // the whole reason this config still exists — a request_optin left
+    // behind in an old definition has to draw on the canvas, not throw
+    it('renders inside a flow node on the canvas', async () => {
+      await loadStore();
+
+      const node = (await fixture(
+        '<temba-flow-node></temba-flow-node>'
+      )) as CanvasNode;
+      (node as any).node = {
+        uuid: 'node-1',
+        actions: [
+          {
+            uuid: 'action-uuid',
+            type: 'request_optin',
+            optin: { uuid: 'optin-1', name: 'U-Report' }
+          }
+        ],
+        exits: [{ uuid: 'exit-1', destination_uuid: null }]
+      };
+      (node as any).ui = {
+        type: 'execute_actions',
+        position: { left: 0, top: 0 }
+      };
+      await node.updateComplete;
+
+      expect(node.textContent).to.contain('U-Report');
     });
   });
 });

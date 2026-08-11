@@ -1,3 +1,15 @@
+v26.3.39 (2026-08-11)
+-------------------------
+ * Flag no-longer-supported actions like flow issues and explain on click
+ * Format large numbers with thousands separators across the product, leaving arbitrary numeric list cells unformatted
+ * Remove opt-in editing and asset resolution from components
+ * Serve components demo through Django in dev, dropping web-dev-server
+ * Don't hard-fail dev page loads when the components bundle isn't built yet
+ * Make code_check.py configurable so projects that build on this one can use it
+ * Add test runner that isolates parallel test workers and enable --parallel in CI
+ * Only run the CI jobs a PR calls for, and cancel superseded runs for the same branch or PR
+ * Update GitHub actions to versions that run on Node.js 24
+
 v26.3.38 (2026-08-06)
 -------------------------
  * Stream the components build during collectstatic, bound it with timeouts and skip puppeteer's Chrome download

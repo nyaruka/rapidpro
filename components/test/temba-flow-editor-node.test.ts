@@ -74,6 +74,49 @@ describe('EditorNode', () => {
       const result = (editorNode as any).renderAction(mockNode, action, 1);
       expect(result).to.exist;
     });
+
+    it('flags unsupported actions the same as flow issues', async () => {
+      const mockNode: Node = {
+        uuid: 'test-node-5',
+        actions: [],
+        exits: []
+      };
+
+      const action: any = {
+        type: 'request_optin',
+        uuid: 'action-1',
+        optin: { uuid: 'optin-1', name: 'U-Report' }
+      };
+
+      const result = (editorNode as any).renderAction(mockNode, action, 0);
+      const container = await fixture(html`<div>${result}</div>`);
+
+      const content = container.querySelector('.action-content');
+      expect(content).to.exist;
+      expect(content.classList.contains('has-issues')).to.be.true;
+    });
+
+    it('does not flag supported actions without issues', async () => {
+      const mockNode: Node = {
+        uuid: 'test-node-6',
+        actions: [],
+        exits: []
+      };
+
+      const action: any = {
+        type: 'send_msg',
+        uuid: 'action-1',
+        text: 'Test message',
+        quick_replies: []
+      };
+
+      const result = (editorNode as any).renderAction(mockNode, action, 0);
+      const container = await fixture(html`<div>${result}</div>`);
+
+      const content = container.querySelector('.action-content');
+      expect(content).to.exist;
+      expect(content.classList.contains('has-issues')).to.be.false;
+    });
   });
 
   describe('renderRouter', () => {

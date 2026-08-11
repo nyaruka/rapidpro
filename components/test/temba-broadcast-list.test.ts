@@ -94,8 +94,7 @@ describe('temba-broadcast-list', () => {
         attachments: [
           { content_type: 'image/jpeg', url: '/test-assets/img/meow.jpg' }
         ],
-        template: { uuid: 'tpl-1', name: 'order_update' },
-        optin: { uuid: 'opt-1', name: 'Market Prices' }
+        template: { uuid: 'tpl-1', name: 'order_update' }
       })
     ]);
 
@@ -105,12 +104,11 @@ describe('temba-broadcast-list', () => {
     );
     expect(cell.querySelectorAll('temba-thumbnail')).to.have.length(1);
 
-    // template and opt-in pills ride the trailing edge of the cell
+    // the template pill rides the trailing edge of the cell
     const pills = cell.querySelectorAll('.cell-pills temba-label');
-    expect(pills).to.have.length(2);
+    expect(pills).to.have.length(1);
     expect(pills[0].textContent.trim()).to.equal('order_update');
     expect(pills[0].getAttribute('icon')).to.equal('channel-whatsapp');
-    expect(pills[1].textContent.trim()).to.equal('Market Prices');
   });
 
   it('renders no text span for a template-only broadcast', async () => {
