@@ -4,6 +4,7 @@ import { Icon } from '../Icons';
 import { CustomEventType, Flow, ObjectReference } from '../interfaces';
 import { getStore, StoreAsset, StoreAssetChangedEvent } from '../store/Store';
 import { RealtimeSubscription } from '../live/Realtime';
+import { formatCount } from '../utils';
 
 /**
  * Flow CRUDL list — drop-in replacement for the rapidpro
@@ -305,11 +306,9 @@ export class FlowList extends ContentList<Flow> {
         </span>`;
       }
       case 'runs':
-        return html`<span class="num"
-          >${(item.runs ?? 0).toLocaleString()}</span
-        >`;
+        return html`<span class="num">${formatCount(item.runs ?? 0)}</span>`;
       case 'ongoing':
-        return html`<span class="num">${item.ongoing ?? 0}</span>`;
+        return html`<span class="num">${formatCount(item.ongoing ?? 0)}</span>`;
       case 'completion':
         return this.renderCompletion(item);
       case 'activity':

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-06 19:35+0000\n"
+"POT-Creation-Date: 2026-08-07 15:29+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -312,7 +312,7 @@ msgid "This field is required."
 msgstr ""
 
 #, python-format
-msgid "Maximum allowed text is %(limit)d characters."
+msgid "Maximum allowed text is %(limit)s characters."
 msgstr ""
 
 #, python-format
@@ -2224,7 +2224,7 @@ msgid "Import file contains duplicated contact URN '%(urn)s' on row %(row)s."
 msgstr ""
 
 #, python-format
-msgid "Import files can contain a maximum of %(max)d records."
+msgid "Import files can contain a maximum of %(max)s records."
 msgstr ""
 
 msgid "Import file doesn't contain any records."

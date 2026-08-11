@@ -3,6 +3,7 @@ import { RapidElement } from '../RapidElement';
 import { splitSMS } from './sms';
 import { property } from 'lit/decorators.js';
 import { messageParser } from '../excellent/helpers';
+import { formatCount } from '../utils';
 
 export const MAX_GSM_SINGLE = 160;
 export const MAX_GSM_MULTI = 153;
@@ -361,7 +362,7 @@ export class CharCount extends RapidElement {
     const summary =
       this.count > 1
         ? html` <div class="summary">
-            This message is <b>${this.count} characters</b>
+            This message is <b>${formatCount(this.count)} characters</b>
             ${segments} ${extended}
             ${hasExpressions
               ? html`
@@ -380,7 +381,7 @@ export class CharCount extends RapidElement {
 
     return html`<div class="counter${
       attention ? ' attention' : ''
-    }" @mouseenter=${this.handleCounterMouseEnter}><div class="counts">${this.count}${
+    }" @mouseenter=${this.handleCounterMouseEnter}><div class="counts">${formatCount(this.count)}${
       this.segments > 1 || hasExpressions
         ? html`<div class="segments">
             &nbsp;/&nbsp;${this.segments}${hasExpressions ? html`+` : null}

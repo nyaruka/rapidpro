@@ -14,6 +14,7 @@ from openpyxl import load_workbook
 from smartmin.models import SmartModel
 
 from django.conf import settings
+from django.contrib.humanize.templatetags.humanize import intcomma
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import models, transaction
@@ -2186,14 +2187,14 @@ class ContactImport(SmartModel):
                 if uuid in seen_uuids:
                     raise ValidationError(
                         _("Import file contains duplicated contact UUID '%(uuid)s' on row %(row)s."),
-                        params={"uuid": uuid, "row": row_num},
+                        params={"uuid": uuid, "row": intcomma(row_num)},
                     )
                 seen_uuids.add(uuid)
             for urn in urns:
                 if urn in seen_urns:
                     raise ValidationError(
                         _("Import file contains duplicated contact URN '%(urn)s' on row %(row)s."),
-                        params={"urn": urn, "row": row_num},
+                        params={"urn": urn, "row": intcomma(row_num)},
                     )
                 seen_urns.add(urn)
 
@@ -2203,8 +2204,8 @@ class ContactImport(SmartModel):
             # check if we exceed record limit
             if num_records > ContactImport.MAX_RECORDS:
                 raise ValidationError(
-                    _("Import files can contain a maximum of %(max)d records."),
-                    params={"max": ContactImport.MAX_RECORDS},
+                    _("Import files can contain a maximum of %(max)s records."),
+                    params={"max": intcomma(ContactImport.MAX_RECORDS)},
                 )
 
         if num_records == 0:
