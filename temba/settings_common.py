@@ -43,7 +43,7 @@ AWS_ACCESS_KEY_ID = "root"
 AWS_SECRET_ACCESS_KEY = "tembatemba"
 AWS_REGION = "us-east-1"
 
-DYNAMO_ENDPOINT_URL = f"http://{_localstack_host}:4566"
+DYNAMO_ENDPOINT_URL = os.environ.get("DYNAMO_ENDPOINT_URL", f"http://{_localstack_host}:4566")
 DYNAMO_TABLE_PREFIX = "Test" if TESTING else "Temba"
 
 ELASTIC_ENDPOINT_URL = "http://elastic:9200"
