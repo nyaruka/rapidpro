@@ -1,3 +1,8 @@
+v26.3.42 (2026-08-11)
+-------------------------
+ * Fix opening webhook and other router node actions in the editor
+ * Drop opt-ins from the realtime asset types docstring
+
 v26.3.41 (2026-08-11)
 -------------------------
  * Drop the OptIn model and the optin columns on broadcasts, messages and channel events
