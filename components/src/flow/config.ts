@@ -71,10 +71,18 @@ export const ACTION_CONFIG: {
  * Whether an action can be opened in the editor. Some action types are
  * retained purely so actions left behind in older flow definitions still
  * render; their config declares no form, so opening the dialog for one
- * would just show an empty editor.
+ * would just show an empty editor. Actions on router nodes (e.g. the
+ * call_webhook action on a split_by_webhook node) have no action config of
+ * their own but are edited through the node's form.
  */
-export function isEditableAction(action?: { type?: string }): boolean {
-  return !!(action?.type && ACTION_CONFIG[action.type]?.form);
+export function isEditableAction(
+  action?: { type?: string },
+  nodeUiType?: string
+): boolean {
+  if (action?.type && ACTION_CONFIG[action.type]?.form) {
+    return true;
+  }
+  return !!(nodeUiType && NODE_CONFIG[nodeUiType]?.form);
 }
 
 /**

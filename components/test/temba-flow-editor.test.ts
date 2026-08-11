@@ -820,12 +820,24 @@ describe('Editor', () => {
       optin: { uuid: 'optin-1', name: 'U-Report' }
     };
 
+    // call_webhook has no action config of its own — it lives on a
+    // split_by_webhook router node and is edited through the node's form
+    const WEBHOOK_ACTION = {
+      uuid: 'action-1',
+      type: 'call_webhook',
+      method: 'GET',
+      url: 'http://example.com'
+    };
+
     const unsupportedDialog = () =>
       [...document.body.querySelectorAll('temba-dialog')].find(
         (d: any) => d.header === 'Unsupported Action'
       ) as any;
 
-    const getEditor = async (action: any): Promise<Editor> => {
+    const getEditor = async (
+      action: any,
+      uiType = 'execute_actions'
+    ): Promise<Editor> => {
       const editor: Editor = await fixture(html`
         <temba-flow-editor>
           <div id="canvas"></div>
@@ -836,7 +848,7 @@ describe('Editor', () => {
         _ui: {
           nodes: {
             'node-1': {
-              type: 'execute_actions',
+              type: uiType,
               position: { left: 50, top: 50 }
             }
           }
@@ -891,6 +903,14 @@ describe('Editor', () => {
         expect(nodeEditor(editor)).to.exist;
       });
 
+      it('opens the editor for a router node action via the node form', async () => {
+        editor = await getEditor(WEBHOOK_ACTION, 'split_by_webhook');
+        await requestEdit(editor, WEBHOOK_ACTION);
+
+        expect((editor as any).editingAction).to.equal(WEBHOOK_ACTION);
+        expect(nodeEditor(editor)).to.exist;
+      });
+
       it('explains unsupported actions instead of opening the editor', async () => {
         editor = await getEditor(FORMLESS_ACTION);
         await requestEdit(editor, FORMLESS_ACTION);
@@ -916,6 +936,14 @@ describe('Editor', () => {
         expect(nodeEditor(editor)).to.exist;
       });
 
+      it('opens the editor for a router node action via the node form', async () => {
+        editor = await getEditor(WEBHOOK_ACTION, 'split_by_webhook');
+        await selectIssue(editor, WEBHOOK_ACTION);
+
+        expect((editor as any).editingAction).to.equal(WEBHOOK_ACTION);
+        expect(nodeEditor(editor)).to.exist;
+      });
+
       it('focuses unsupported actions without a dialog', async () => {
         editor = await getEditor(FORMLESS_ACTION);
         await selectIssue(editor, FORMLESS_ACTION);
@@ -932,6 +960,14 @@ describe('Editor', () => {
         await selectSearchResult(editor, EDITABLE_ACTION);
 
         expect((editor as any).editingAction).to.equal(EDITABLE_ACTION);
+        expect(nodeEditor(editor)).to.exist;
+      });
+
+      it('opens the editor for a router node action via the node form', async () => {
+        editor = await getEditor(WEBHOOK_ACTION, 'split_by_webhook');
+        await selectSearchResult(editor, WEBHOOK_ACTION);
+
+        expect((editor as any).editingAction).to.equal(WEBHOOK_ACTION);
         expect(nodeEditor(editor)).to.exist;
       });
 

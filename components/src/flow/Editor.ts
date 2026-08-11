@@ -3210,7 +3210,13 @@ export class Editor extends RapidElement {
       this.showUnsupportedActionDialog();
       return;
     }
-    if (!isEditableAction(requested)) {
+
+    // Find the node that contains this action
+    const nodeUuid = event.detail.nodeUuid;
+    const node = this.definition.nodes.find((n) => n.uuid === nodeUuid);
+    const nodeUI = node ? this.definition._ui.nodes[nodeUuid] : undefined;
+
+    if (!isEditableAction(requested, nodeUI?.type)) {
       return;
     }
 
@@ -3222,13 +3228,9 @@ export class Editor extends RapidElement {
         ? { x: event.detail.originX, y: event.detail.originY }
         : null;
 
-    // Find the node that contains this action
-    const nodeUuid = event.detail.nodeUuid;
-    const node = this.definition.nodes.find((n) => n.uuid === nodeUuid);
-
     if (node) {
       this.editingNode = node;
-      this.editingNodeUI = this.definition._ui.nodes[nodeUuid];
+      this.editingNodeUI = nodeUI;
     }
   }
 
@@ -3972,10 +3974,11 @@ export class Editor extends RapidElement {
     if (issue.action_uuid) {
       const action = node.actions?.find((a) => a.uuid === issue.action_uuid);
       // non-editable actions are focused on the canvas but have no dialog
-      if (isEditableAction(action)) {
+      const nodeUI = this.definition._ui.nodes[issue.node_uuid];
+      if (isEditableAction(action, nodeUI?.type)) {
         this.editingAction = action;
         this.editingNode = node;
-        this.editingNodeUI = this.definition._ui.nodes[issue.node_uuid];
+        this.editingNodeUI = nodeUI;
       }
     } else {
       this.editingNode = node;
@@ -4232,7 +4235,7 @@ export class Editor extends RapidElement {
 
     // Non-editable actions stay searchable, but there's no dialog to open
     // for them — the focus above is all we do
-    if (result.action && !isEditableAction(result.action)) {
+    if (result.action && !isEditableAction(result.action, nodeUI?.type)) {
       return;
     }
 
