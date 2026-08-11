@@ -229,7 +229,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
                 "delivery_hour": 13,
                 "message_start_mode": "I",
             },
-            form_errors={"compose": "Maximum allowed text is 4096 characters."},
+            form_errors={"compose": "Maximum allowed text is 4,096 characters."},
         )
 
         # can create an event with just a eng translation

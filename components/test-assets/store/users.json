@@ -1,0 +1,41 @@
+{
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "email": "agent1@nyaruka.com",
+            "first_name": "Agnes",
+            "last_name": "McAgent",
+            "role": "agent",
+            "created_on": "2023-01-18T19:33:13.637127Z"
+        },
+        {
+            "email": "surveyor1@nyaruka.com",
+            "first_name": "",
+            "last_name": "",
+            "role": "surveyor",
+            "created_on": "2023-01-18T19:33:13.561413Z"
+        },
+        {
+            "email": "viewer1@nyaruka.com",
+            "first_name": "Veronica",
+            "last_name": "McViews",
+            "role": "agent",
+            "created_on": "2023-01-18T19:33:13.485734Z"
+        },
+        {
+            "email": "editor1@nyaruka.com",
+            "first_name": "Eddy",
+            "last_name": "McEditor",
+            "role": "editor",
+            "created_on": "2023-01-18T19:33:13.410675Z"
+        },
+        {
+            "email": "admin1@nyaruka.com",
+            "first_name": "Adam",
+            "last_name": "McAdmin",
+            "role": "administrator",
+            "created_on": "2023-01-18T19:33:13.336367Z"
+        }
+    ]
+}

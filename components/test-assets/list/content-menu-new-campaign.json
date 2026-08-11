@@ -1,0 +1,15 @@
+{
+    "items": [
+        {
+            "type": "modax",
+            "label": "New Campaign",
+            "url": "/campaign/create/",
+            "modal_id": "event-update",
+            "title": "New Campaign",
+            "on_submit": null,
+            "primary": false,
+            "as_button": true,
+            "disabled": false
+        }
+    ]
+}

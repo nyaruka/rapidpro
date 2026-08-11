@@ -1,0 +1,33 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": "chooser",
+      "avatar": "My Account",
+      "popup": true,
+      "inline": false,
+      "bottom": false,
+      "items": [
+        {
+          "id": "account-other",
+          "avatar": "Other Account",
+          "name": "Other Account"
+        }
+      ]
+    },
+    {
+      "id": "tasks",
+      "name": "Tasks",
+      "icon": "icon.tickets_mine",
+      "endpoint": "/test-assets/menu/menu-tasks.json"
+    },
+    {
+      "id": "schedule",
+      "name": "Schedule",
+      "icon": "icon.triggers",
+      "endpoint": "/test-assets/menu/menu-schedule.json"
+
+    }
+  ]
+}

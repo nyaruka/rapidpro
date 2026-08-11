@@ -374,7 +374,7 @@ class UserCRUDL(SmartCRUDL):
         fields = ("email", "name", "date_joined", "2fa", "verified")
         ordering = ("-date_joined",)
         search_fields = ("email__icontains", "first_name__icontains", "last_name__icontains")
-        filters = (("all", _("All")), ("beta", _("Beta")), ("staff", _("Staff")))
+        filters = (("all", _("All")), ("staff", _("Staff")))
 
         def derive_menu_path(self):
             return f"/staff/users/{self.request.GET.get('filter', 'all')}"
@@ -389,9 +389,7 @@ class UserCRUDL(SmartCRUDL):
             qs = super().derive_queryset(**kwargs).filter(is_active=True)
 
             obj_filter = self.request.GET.get("filter")
-            if obj_filter == "beta":
-                qs = qs.filter(groups__name="Beta")
-            elif obj_filter == "staff":
+            if obj_filter == "staff":
                 qs = qs.filter(is_staff=True)
 
             return qs.prefetch_related(

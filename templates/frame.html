@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-{% load humanize i18n smartmin sms compress static temba %}
+{% load i18n smartmin sms compress static temba %}
 
 {% block html-tag %}
   <html lang="{{ LANGUAGE_CODE }}">
@@ -134,8 +134,10 @@
       <link type="image/ico" rel="shortcut icon" href="{{ STATIC_URL }}images/favicon.ico">
     {% endblock favico %}
     {% block styles %}
+      {# Inter's real italic faces ride along - font-synthesis is off below, so without them emphasis would render #}
+      {# upright everywhere, the article editor included #}
       <link rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+            href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500&display=swap">
       {% compress css %}
         <link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/tailwind.css">
         <link type="text/css" rel="stylesheet" href="{{ STATIC_URL }}css/temba-components.css">
@@ -162,13 +164,11 @@
   </head>
   {% block body %}
     <body class="bg-gradient" id="pageBody">
-      {% if COMPONENTS_DEV_MODE %}
-        <script type="module">
-          import '{{ COMPONENTS_DEV_URL }}/out-tsc/temba-modules.js';
-        </script>
+      {% if COMPONENTS_DEV %}
+        <script type="module" src="{% static 'components-dev/temba-modules.js' %}"></script>
       {% else %}
         {% compress js %}
-          <script src="{% static '@nyaruka/temba-components/dist/temba-components.js' %}"></script>
+          <script src="{% static 'components/temba-components.js' %}"></script>
         {% endcompress %}
       {% endif %}
       {% if user_org %}

@@ -18,7 +18,7 @@
 {% with groups|inactive_count as num_deleted_groups %}
   {% if num_deleted_groups %}
     <div class="item deleted-contacts lbl mr-1 mb-1">
-      {% blocktrans count count=num_deleted_groups %}
+      {% blocktrans with count=num_deleted_groups|intcomma count counter=num_deleted_groups %}
         {{ count }} deleted group
       {% plural %}
         {{ count }} deleted groups
@@ -30,7 +30,7 @@
 {% with contacts|inactive_count as num_deleted_contacts %}
   {% if num_deleted_contacts %}
     <div class="item deleted-contacts lbl mr-1 mb-1">
-      {% blocktrans count count=num_deleted_contacts %}
+      {% blocktrans with count=num_deleted_contacts|intcomma count counter=num_deleted_contacts %}
         {{ count }} deleted contact
       {% plural %}
         {{ count }} deleted contacts

@@ -1,0 +1,56 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "key": "rating",
+      "label": "Rating",
+      "value_type": "text",
+      "featured": true,
+      "usages": { "campaign_events": 0, "flows": 1, "groups": 0 }
+    },
+    {
+      "key": "conversion",
+      "label": "Conversion",
+      "value_type": "text",
+      "usages": { "campaign_events": 0, "flows": 0, "groups": 1 }
+    },
+    {
+      "key": "district",
+      "label": "District",
+      "value_type": "district",
+      "usages": { "campaign_events": 1, "flows": 0, "groups": 0 }
+    },
+    {
+      "key": "ward",
+      "label": "Ward",
+      "value_type": "ward",
+      "featured": true,
+      "usages": { "campaign_events": 0, "flows": 0, "groups": 0 }
+    },
+    {
+      "key": "state",
+      "label": "State",
+      "value_type": "state",
+      "usages": { "campaign_events": 0, "flows": 0, "groups": 0 }
+    },
+    {
+      "key": "joined",
+      "label": "Joined On",
+      "value_type": "datetime",
+      "usages": { "campaign_events": 0, "flows": 0, "groups": 0 }
+    },
+    {
+      "key": "age",
+      "label": "Age",
+      "value_type": "numeric",
+      "usages": { "campaign_events": 0, "flows": 1, "groups": 0 }
+    },
+    {
+      "key": "gender",
+      "label": "Gender",
+      "value_type": "text",
+      "usages": { "campaign_events": 0, "flows": 0, "groups": 0 }
+    }
+  ]
+}

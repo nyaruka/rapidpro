@@ -1,0 +1,13 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "org-1",
+      "name": "Demo Organization",
+      "plan": "pro",
+      "timezone": "America/New_York",
+      "created_on": "2024-01-01T00:00:00Z"
+    }
+  ]
+}

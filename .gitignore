@@ -22,7 +22,7 @@ __pycache__/
 # Project specific
 locale/*/LC_MESSAGES/*.mo
 node_modules
-sitestatic
+/sitestatic
 celerybeat-schedule
 temba/settings.py
 /media/emails/

@@ -1,0 +1,36 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "61cae99b-56e1-4f3e-a2b9-07fb5cf2be9e",
+      "name": "Important",
+      "count": 234
+    },
+    {
+      "uuid": "f80ed7b6-5e6a-49eb-94b6-4631a9677cd8",
+      "name": "Spam",
+      "count": 0
+    },
+    {
+      "uuid": "76e7a094-22ea-441d-91c4-283d8168e8e3",
+      "name": "Follow Up",
+      "count": 128
+    },
+    {
+      "uuid": "66e7a094-22ea-441d-91c4-283d8168e8e4",
+      "name": "Customer Service",
+      "count": 89
+    },
+    {
+      "uuid": "a3f2990b-4096-452e-a586-dc06a9434dde",
+      "name": "Feedback",
+      "count": 42
+    },
+    {
+      "uuid": "6dc62526-c334-4869-84fa-8b2d73b4cdfd",
+      "name": "This is a label",
+      "count": 0
+    }
+  ]
+}

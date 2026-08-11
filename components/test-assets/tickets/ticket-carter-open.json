@@ -1,0 +1,18 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "bc907086-e9e7-4d5c-ba72-ef6a2059b0ae",
+      "contact": {
+        "uuid": "contact-carter-active",
+        "name": "Carter Beauford"
+      },
+      "status": "open",
+      "subject": "Favorites",
+      "body": "A new result: Some Value\nColor: help",
+      "opened_on": "2021-04-02T21:06:59.666960Z",
+      "closed_on": null
+    }
+  ]
+}

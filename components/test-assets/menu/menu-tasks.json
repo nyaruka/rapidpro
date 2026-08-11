@@ -1,0 +1,24 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": "progress",
+      "name": "In Progress",
+      "count": 4,
+      "icon": "zap"
+    },
+    {
+      "id": "todo",
+      "name": "Next Up",
+      "count": 123,
+      "icon": "inbox"
+    },
+    {
+      "id": "completed",
+      "name": "Completed",
+      "count": 8123,
+      "icon": "check"
+    }
+  ]
+}

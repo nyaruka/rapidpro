@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Compose Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Compose Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Basic Compose</h3>
+      <p>A simple compose component with message editor</p>
+      <temba-compose
+        placeholder="Type your message here..."
+      ></temba-compose>
+    </div>
+
+    <div class="example">
+      <h3>Compose with Counter</h3>
+      <p>A compose component with character counting</p>
+      <temba-compose
+        placeholder="Enter your message..."
+        counter
+      >
+      </temba-compose>
+    </div>
+
+    <div class="example">
+      <h3>Compose with Attachments</h3>
+      <p>A compose component that supports file attachments</p>
+      <temba-compose
+        placeholder="Write your message and attach files..."
+        attachments
+      >
+      </temba-compose>
+    </div>
+
+    <div class="example">
+      <h3>Compose with Quick Replies</h3>
+      <p>A compose component with quick reply accordion section</p>
+      <temba-compose
+        placeholder="Write a message with quick replies..."
+        quickReplies
+      >
+      </temba-compose>
+    </div>
+
+    <div class="example">
+      <h3>Compose with Completion</h3>
+      <p>A compose component with expression completion enabled</p>
+      <temba-compose
+        placeholder="Type @ to see completions..."
+        completion
+      >
+      </temba-compose>
+    </div>
+
+    <div class="example">
+      <h3>Compose with Multiple Languages</h3>
+      <p>
+        A compose component showing translation status for each language
+        (Original, translated, untranslated)
+      </p>
+      <temba-compose
+        id="multilang-compose"
+        placeholder="Write a message..."
+        attachments
+        quickReplies
+      >
+      </temba-compose>
+      <script>
+        const el = document.getElementById('multilang-compose');
+        el.languages = [
+          { iso: 'eng', name: 'English' },
+          { iso: 'spa', name: 'Spanish' },
+          { iso: 'fra', name: 'French' },
+          { iso: 'deu', name: 'German' }
+        ];
+        el.value = JSON.stringify({
+          eng: {
+            text: 'Hello there!',
+            attachments: [],
+            quick_replies: ['Yes', 'No']
+          },
+          spa: {
+            text: '¡Hola!',
+            attachments: [],
+            quick_replies: []
+          }
+        });
+      </script>
+    </div>
+
+    <div class="example">
+      <h3>Full Featured Compose</h3>
+      <p>A compose component with attachments, quick replies, counter, and completion</p>
+      <temba-compose
+        placeholder="Full featured compose..."
+        attachments
+        quickReplies
+        counter
+        completion
+        autogrow
+      >
+      </temba-compose>
+    </div>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+    </script>
+  </body>
+</html>

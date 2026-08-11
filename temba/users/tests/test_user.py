@@ -14,8 +14,6 @@ class UserTest(TembaTest):
         self.org2.add_user(user, OrgRole.AGENT)
 
         self.assertEqual("Jim McFlow", user.name)
-        self.assertFalse(user.is_alpha)
-        self.assertFalse(user.is_beta)
         self.assertEqual({"uuid": str(user.uuid), "name": "Jim McFlow"}, user.as_engine_ref())
         self.assertEqual([self.org, self.org2], list(user.get_orgs().order_by("id")))
         self.assertFalse(user.is_verified())

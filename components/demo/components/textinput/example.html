@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Text Input Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <link href="/demo/static/css/prism.css" rel="stylesheet" />
+    <script type="module" src="/demo/static/js/prism-loader.js"></script>
+  </head>
+  <body>
+    <h1>Text Input Examples</h1>
+    <p>
+      <a href="/demo/index.html">← Back to main demo</a> |
+      <a href="completion.html">Completion Examples</a>
+    </p>
+
+    <table class="attr-table">
+      <thead>
+        <tr>
+          <th>Attribute</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>value</td>
+          <td>The current text value of the input</td>
+          <td>''</td>
+        </tr>
+        <tr>
+          <td>placeholder</td>
+          <td>Placeholder text shown when input is empty</td>
+          <td>''</td>
+        </tr>
+        <tr>
+          <td>textarea</td>
+          <td>Renders as a multi-line textarea instead of single-line input</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>password</td>
+          <td>Renders as a password input with hidden text</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>maxlength</td>
+          <td>Maximum number of characters allowed</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <td>clearable</td>
+          <td>Shows a clear button to empty the input</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>autogrow</td>
+          <td>Automatically adjusts textarea height based on content</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>gsm</td>
+          <td>Enables GSM character validation for SMS messages</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>submitOnEnter</td>
+          <td>Whether pressing Enter submits the form</td>
+          <td>true</td>
+        </tr>
+        <tr>
+          <td>type</td>
+          <td>Input type (text, email, number, etc.)</td>
+          <td>'text'</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="example">
+      <h3>Basic Text Input</h3>
+      <p>A simple text input field</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-textinput value="plain text"&gt;&lt;/temba-textinput&gt;</code></pre>
+      <temba-textinput value="plain text"></temba-textinput>
+    </div>
+
+    <div class="example">
+      <h3>Text Input with Label and Help</h3>
+      <p>A text input with label, help text, and placeholder</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-textinput
+    name="start"
+    label="Start Time"
+    help_text="This is something you should think long and hard about"
+    placeholder="Put something down, for real"
+    value="2020-11-28 15:03"
+    clearable
+    datetimepicker
+&gt;&lt;/temba-textinput&gt;</code></pre>
+      <temba-textinput
+        name="start"
+        label="Start Time"
+        help_text="This is something you should think long and hard about"
+        placeholder="Put something down, for real"
+        value="2020-11-28 15:03"
+        clearable
+        datetimepicker
+      ></temba-textinput>
+    </div>
+
+    <div class="example">
+      <h3>Empty Text Input</h3>
+      <p>A text input with just a placeholder</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-textinput placeholder="Enter some text here"&gt;&lt;/temba-textinput&gt;</code></pre>
+      <temba-textinput placeholder="Enter some text here"></temba-textinput>
+    </div>
+
+    <div class="example">
+      <h3>Clearable Text Input</h3>
+      <p>A text input that can be cleared</p>
+      <temba-textinput value="This can be cleared" clearable></temba-textinput>
+    </div>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+    </script>
+  </body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Chart Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <style>
+      .palette {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .palette-label {
+        width: 200px;
+        text-align: right;
+        margin-right: 12px;
+        font-weight: bold;
+        font-size: 14px;
+        color: #333;
+      }
+      .color-box {
+        width: 32px;
+        height: 32px;
+        margin-right: 0px;
+        border-radius: 0px;
+        border: 0px solid #ccc;
+      }
+      .palette-row {
+        display: flex;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <temba-store></temba-store>
+    <h1>Chart Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Summation Chart</h3>
+      <p>A basic chart, summing all datasets</p>
+      <temba-chart
+        url="../data/server/opened-tickets.json"
+        xtype="time"
+      ></temba-chart>
+    </div>
+
+    <div class="example">
+      <h3>Summation Chart</h3>
+      <p>Auto date format, spanning year</p>
+      <temba-chart
+        url="../data/server/opened-tickets-long.json"
+        xtype="time"
+      ></temba-chart>
+    </div>
+
+    <div class="example">
+      <h3>Summation with Splits</h3>
+      <p>Normal summation, but with optional splits in the config options</p>
+      <temba-chart
+        url="../data/server/opened-tickets.json"
+        dataname="Tickets"
+        config
+        legend
+        xtype="time"
+      ></temba-chart>
+    </div>
+
+    <div class="example">
+      <h3>Summation with Configured Splits</h3>
+      <p>Normal summation, but with configured splits</p>
+      <temba-chart
+        url="../data/server/opened-tickets.json"
+        dataname="Tickets"
+        splits="Tracking,Orders"
+        hideother
+        legend
+        xtype="time"
+      ></temba-chart>
+    </div>
+    <div class="example">
+      <h3>Show all</h3>
+      <p>Shows all datasets without config</p>
+      <temba-chart
+        url="../data/server/opened-tickets.json"
+        dataname="Tickets"
+        showall
+        legend
+        xtype="time"
+      ></temba-chart>
+    </div>
+
+    <div class="example">
+      <h3>Duration Formatted Chart</h3>
+      <p>
+        This chart expects series data in seconds and displays them as durations
+        on the y axis and in tooltips.
+      </p>
+      <temba-chart
+        single
+        dataname="Average Response"
+        formatDuration
+        header="Response Time"
+        xtype="time"
+        url="../data/server/response-time.json"
+      ></temba-chart>
+      <p>Here is the same duration chart, but as a line chart</p>
+      <temba-chart
+        style="margin: 2em"
+        chartType="line"
+        single
+        dataName="Average Response"
+        formatDuration
+        xtype="time"
+        url="../data/server/response-time.json"
+      ></temba-chart>
+    </div>
+    <div class="example">
+      <h3>Chart Palette</h3>
+      <p>Charts can be configured with the following palette choices.</p>
+      <div class="palette">
+        <div class="palette-label">qualitative-set1</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #5ea3db"></div>
+          <div class="color-box" style="background: #c186e3"></div>
+          <div class="color-box" style="background: #66c2a5"></div>
+          <div class="color-box" style="background: #fc8d62"></div>
+          <div class="color-box" style="background: #a6d854"></div>
+          <div class="color-box" style="background: #ffd92f"></div>
+          <div class="color-box" style="background: #e5c494"></div>
+          <div class="color-box" style="background: #b3b3b3"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">qualitative-set2</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #377eb8"></div>
+          <div class="color-box" style="background: #984ea3"></div>
+          <div class="color-box" style="background: #4daf4a"></div>
+          <div class="color-box" style="background: #ff7f00"></div>
+          <div class="color-box" style="background: #e41a1c"></div>
+          <div class="color-box" style="background: #a65628"></div>
+          <div class="color-box" style="background: #f781bf"></div>
+          <div class="color-box" style="background: #ffff33"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">qualitative-set3</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #1b9e77"></div>
+          <div class="color-box" style="background: #d95f02"></div>
+          <div class="color-box" style="background: #7570b3"></div>
+          <div class="color-box" style="background: #e7298a"></div>
+          <div class="color-box" style="background: #66a61e"></div>
+          <div class="color-box" style="background: #e6ab02"></div>
+          <div class="color-box" style="background: #a6761d"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">qualitative-paired</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #1f78b4"></div>
+          <div class="color-box" style="background: #a6cee3"></div>
+          <div class="color-box" style="background: #6a3d9a"></div>
+          <div class="color-box" style="background: #cab2d6"></div>
+          <div class="color-box" style="background: #33a02c"></div>
+          <div class="color-box" style="background: #b2df8a"></div>
+          <div class="color-box" style="background: #e31a1c"></div>
+          <div class="color-box" style="background: #fb9a99"></div>
+          <div class="color-box" style="background: #ff7f00"></div>
+          <div class="color-box" style="background: #fdbf6f"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">qualitative-accent</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #7fc97f"></div>
+          <div class="color-box" style="background: #beaed4"></div>
+          <div class="color-box" style="background: #fdc086"></div>
+          <div class="color-box" style="background: #ffff99"></div>
+          <div class="color-box" style="background: #386cb0"></div>
+          <div class="color-box" style="background: #f0027f"></div>
+          <div class="color-box" style="background: #bf5b17"></div>
+          <div class="color-box" style="background: #666666"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">qualitative-pastel1</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #fbb4ae"></div>
+          <div class="color-box" style="background: #b3cde3"></div>
+          <div class="color-box" style="background: #ccebc5"></div>
+          <div class="color-box" style="background: #decbe4"></div>
+          <div class="color-box" style="background: #fed9a6"></div>
+          <div class="color-box" style="background: #ffffcc"></div>
+          <div class="color-box" style="background: #e5d8bd"></div>
+          <div class="color-box" style="background: #fddaec"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">qualitative-pastel2</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #b3e2cd"></div>
+          <div class="color-box" style="background: #fdcdac"></div>
+          <div class="color-box" style="background: #cbd5e8"></div>
+          <div class="color-box" style="background: #f4cae4"></div>
+          <div class="color-box" style="background: #e6f5c9"></div>
+          <div class="color-box" style="background: #fff2ae"></div>
+          <div class="color-box" style="background: #f1e2cc"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">diverging-prgn</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #40004b"></div>
+          <div class="color-box" style="background: #762a83"></div>
+          <div class="color-box" style="background: #9970ab"></div>
+          <div class="color-box" style="background: #c2a5cf"></div>
+          <div class="color-box" style="background: #e7d4e8"></div>
+          <div class="color-box" style="background: #f7f7f7"></div>
+          <div class="color-box" style="background: #d9f0d3"></div>
+          <div class="color-box" style="background: #a6dba0"></div>
+          <div class="color-box" style="background: #5aae61"></div>
+          <div class="color-box" style="background: #1b7837"></div>
+          <div class="color-box" style="background: #00441b"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">diverging-spectral</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #9e0142"></div>
+          <div class="color-box" style="background: #d53e4f"></div>
+          <div class="color-box" style="background: #f46d43"></div>
+          <div class="color-box" style="background: #fdae61"></div>
+          <div class="color-box" style="background: #fee08b"></div>
+          <div class="color-box" style="background: #ffffbf"></div>
+          <div class="color-box" style="background: #e6f598"></div>
+          <div class="color-box" style="background: #abdda4"></div>
+          <div class="color-box" style="background: #66c2a5"></div>
+          <div class="color-box" style="background: #3288bd"></div>
+          <div class="color-box" style="background: #5e4fa2"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">diverging-piyg</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #8e0152"></div>
+          <div class="color-box" style="background: #c51b7d"></div>
+          <div class="color-box" style="background: #de77ae"></div>
+          <div class="color-box" style="background: #f1b6da"></div>
+          <div class="color-box" style="background: #fde0ef"></div>
+          <div class="color-box" style="background: #f7f7f7"></div>
+          <div class="color-box" style="background: #e6f5d0"></div>
+          <div class="color-box" style="background: #b8e186"></div>
+          <div class="color-box" style="background: #7fbc41"></div>
+          <div class="color-box" style="background: #4d9221"></div>
+          <div class="color-box" style="background: #276419"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">diverging-rdylgn</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #a50026"></div>
+          <div class="color-box" style="background: #d73027"></div>
+          <div class="color-box" style="background: #f46d43"></div>
+          <div class="color-box" style="background: #fdae61"></div>
+          <div class="color-box" style="background: #fee08b"></div>
+          <div class="color-box" style="background: #ffffbf"></div>
+          <div class="color-box" style="background: #d9ef8b"></div>
+          <div class="color-box" style="background: #a6d96a"></div>
+          <div class="color-box" style="background: #66bd63"></div>
+          <div class="color-box" style="background: #1a9850"></div>
+          <div class="color-box" style="background: #006837"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">diverging-brbg</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #543005"></div>
+          <div class="color-box" style="background: #8c510a"></div>
+          <div class="color-box" style="background: #bf812d"></div>
+          <div class="color-box" style="background: #dfc27d"></div>
+          <div class="color-box" style="background: #f6e8c3"></div>
+          <div class="color-box" style="background: #f5f5f5"></div>
+          <div class="color-box" style="background: #c7eae5"></div>
+          <div class="color-box" style="background: #80cdc1"></div>
+          <div class="color-box" style="background: #35978f"></div>
+          <div class="color-box" style="background: #01665e"></div>
+          <div class="color-box" style="background: #003c30"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">sequential-blues</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #f7fbff"></div>
+          <div class="color-box" style="background: #deebf7"></div>
+          <div class="color-box" style="background: #c6dbef"></div>
+          <div class="color-box" style="background: #9ecae1"></div>
+          <div class="color-box" style="background: #6baed6"></div>
+          <div class="color-box" style="background: #4292c6"></div>
+          <div class="color-box" style="background: #2171b5"></div>
+          <div class="color-box" style="background: #08519c"></div>
+          <div class="color-box" style="background: #08306b"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">sequential-greens</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #f7fcf5"></div>
+          <div class="color-box" style="background: #e5f5e0"></div>
+          <div class="color-box" style="background: #c7e9c0"></div>
+          <div class="color-box" style="background: #a1d99b"></div>
+          <div class="color-box" style="background: #74c476"></div>
+          <div class="color-box" style="background: #41ab5d"></div>
+          <div class="color-box" style="background: #238b45"></div>
+          <div class="color-box" style="background: #006d2c"></div>
+          <div class="color-box" style="background: #00441b"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">sequential-oranges</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #fff5eb"></div>
+          <div class="color-box" style="background: #fee6ce"></div>
+          <div class="color-box" style="background: #fdd0a2"></div>
+          <div class="color-box" style="background: #fdae6b"></div>
+          <div class="color-box" style="background: #fd8d3c"></div>
+          <div class="color-box" style="background: #f16913"></div>
+          <div class="color-box" style="background: #d94801"></div>
+          <div class="color-box" style="background: #a63603"></div>
+          <div class="color-box" style="background: #7f2704"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">sequential-purples</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #fcfbfd"></div>
+          <div class="color-box" style="background: #efedf5"></div>
+          <div class="color-box" style="background: #dadaeb"></div>
+          <div class="color-box" style="background: #bcbddc"></div>
+          <div class="color-box" style="background: #9e9ac8"></div>
+          <div class="color-box" style="background: #807dba"></div>
+          <div class="color-box" style="background: #6a51a3"></div>
+          <div class="color-box" style="background: #54278f"></div>
+          <div class="color-box" style="background: #3f007d"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">sequential-reds</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #fff5f0"></div>
+          <div class="color-box" style="background: #fee0d2"></div>
+          <div class="color-box" style="background: #fcbba1"></div>
+          <div class="color-box" style="background: #fc9272"></div>
+          <div class="color-box" style="background: #fb6a4a"></div>
+          <div class="color-box" style="background: #ef3b2c"></div>
+          <div class="color-box" style="background: #cb181d"></div>
+          <div class="color-box" style="background: #a50f15"></div>
+          <div class="color-box" style="background: #67000d"></div>
+        </div>
+      </div>
+      <div class="palette">
+        <div class="palette-label">sequential-ylgnbu</div>
+        <div class="palette-row">
+          <div class="color-box" style="background: #ffffd9"></div>
+          <div class="color-box" style="background: #edf8b1"></div>
+          <div class="color-box" style="background: #c7e9b4"></div>
+          <div class="color-box" style="background: #7fcdbb"></div>
+          <div class="color-box" style="background: #41b6c4"></div>
+          <div class="color-box" style="background: #1d91c0"></div>
+          <div class="color-box" style="background: #225ea8"></div>
+          <div class="color-box" style="background: #253494"></div>
+          <div class="color-box" style="background: #081d58"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+    </script>
+  </body>
+</html>

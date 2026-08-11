@@ -9,9 +9,9 @@
     ]
   },
   "dependencies": {
-    "@nyaruka/temba-components": "0.173.1",
     "codemirror": "5.58.2",
     "colorette": "1.2.2",
+    "croppie": "2.6.5",
     "fa-icons": "0.2.0",
     "is-core-module": "2.4.0",
     "less": "2.7.1",

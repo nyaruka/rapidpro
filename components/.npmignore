@@ -1,0 +1,14 @@
+node_modules
+bun.lock
+bunfig.toml
+.vscode/
+.DS_Store
+.devcontainer
+.github
+coverage
+demo
+out-tsc
+screenshots
+test
+test-assets
+

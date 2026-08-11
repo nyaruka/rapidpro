@@ -1,0 +1,42 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "bc907086-e9e7-4d5c-ba72-ef6a2059b0ae",
+      "contact": {
+        "uuid": "c85526ff-d025-474c-a6c6-0ec1089fc3c3",
+        "name": "Enrique"
+      },
+      "status": "open",
+      "subject": "Favorites",
+      "body": "A new result: Some Value\nColor: help",
+      "opened_on": "2021-04-02T21:06:59.666960Z",
+      "closed_on": null
+    },
+    {
+      "uuid": "8c3f31e9-89d4-48d9-a178-a47461d7f1b6",
+      "contact": {
+        "uuid": "c85526ff-d025-474c-a6c6-0ec1089fc3c3",
+        "name": "Enrique"
+      },
+      "status": "open",
+      "subject": "Favorites",
+      "body": "A new result: Some Value\nColor: help",
+      "opened_on": "2021-04-02T17:12:22.633991Z",
+      "closed_on": null
+    },
+    {
+      "uuid": "31e48a8e-ed79-4bf0-9aa7-5f84b92853c7",
+      "contact": {
+        "uuid": "c85526ff-d025-474c-a6c6-0ec1089fc3c3",
+        "name": "Enrique"
+      },
+      "status": "open",
+      "subject": "Favorites",
+      "body": "Color: help",
+      "opened_on": "2021-02-18T00:19:19.895705Z",
+      "closed_on": null
+    }
+  ]
+}

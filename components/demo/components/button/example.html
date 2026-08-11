@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Button Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <link href="/demo/static/css/prism.css" rel="stylesheet" />
+    <script type="module" src="/demo/static/js/prism-loader.js"></script>
+  </head>
+  <body>
+    <h1>Button Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <table class="attr-table">
+      <thead>
+        <tr>
+          <th>Attribute</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>name</td>
+          <td>Text displayed on the button</td>
+          <td>None (required)</td>
+        </tr>
+        <tr>
+          <td>primary</td>
+          <td>Applies primary button styling</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>secondary</td>
+          <td>Applies secondary button styling</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>attention</td>
+          <td>Applies attention-grabbing styling</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>destructive</td>
+          <td>Applies destructive action styling (red)</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>light</td>
+          <td>Applies light button styling</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>disabled</td>
+          <td>Disables the button and prevents interaction</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>submitting</td>
+          <td>Shows loading state during form submission</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>small</td>
+          <td>Applies smaller button size</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>lined</td>
+          <td>Applies outlined button styling</td>
+          <td>false</td>
+        </tr>
+        <tr>
+          <td>href</td>
+          <td>URL to navigate to when clicked (makes button a link)</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <td>icon</td>
+          <td>Icon name to display alongside button text</td>
+          <td>None</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="example">
+      <h3>Basic Button</h3>
+      <p>A simple button component</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-button name="Click Me"&gt;&lt;/temba-button&gt;</code></pre>
+      <temba-button name="Click Me"></temba-button>
+    </div>
+
+    <div class="example">
+      <h3>Primary Button</h3>
+      <p>A primary styled button</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-button primary name="Primary Action"&gt;&lt;/temba-button&gt;</code></pre>
+      <temba-button primary name="Primary Action"></temba-button>
+    </div>
+
+    <div class="example">
+      <h3>Secondary Button</h3>
+      <p>A secondary styled button</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-button secondary name="Secondary Action"&gt;&lt;/temba-button&gt;</code></pre>
+      <temba-button secondary name="Secondary Action"></temba-button>
+    </div>
+
+    <div class="example">
+      <h3>Small Button</h3>
+      <p>A smaller button variant</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-button small name="Small Button"&gt;&lt;/temba-button&gt;</code></pre>
+      <temba-button small name="Small Button"></temba-button>
+    </div>
+
+    <div class="example">
+      <h3>Disabled Button</h3>
+      <p>A button that cannot be clicked</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;temba-button disabled name="Disabled Button"&gt;&lt;/temba-button&gt;</code></pre>
+      <temba-button disabled name="Disabled Button"></temba-button>
+    </div>
+
+    <div class="example">
+      <h3>Multiple Buttons</h3>
+      <p>Several buttons in a row with proper constraints</p>
+      <pre
+        class="example-html"
+      ><code class="language-markup">&lt;div class="button-group"&gt;
+  &lt;div&gt;&lt;temba-button name="Save"&gt;&lt;/temba-button&gt;&lt;/div&gt;
+  &lt;div&gt;&lt;temba-button secondary name="Cancel"&gt;&lt;/temba-button&gt;&lt;/div&gt;
+  &lt;div&gt;&lt;temba-button primary name="Submit"&gt;&lt;/temba-button&gt;&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      <div class="button-group">
+        <div>
+          <temba-button name="Save"></temba-button>
+        </div>
+        <div>
+          <temba-button secondary name="Cancel"></temba-button>
+        </div>
+        <div>
+          <temba-button primary name="Submit"></temba-button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+    </script>
+  </body>
+</html>

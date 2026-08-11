@@ -1,0 +1,16 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "optin-1",
+      "name": "Newsletter Signup",
+      "created_on": "2024-01-01T00:00:00Z"
+    },
+    {
+      "uuid": "optin-2",
+      "name": "Marketing Updates",
+      "created_on": "2024-01-01T00:00:00Z"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "name": "Rating",
+      "text": "How am I doing? Please review me on a scale of 1 to 5."
+    },
+    {
+      "name": "Busy",
+      "text": "Sorry, we are busy right now. We are trying to step up our spotted rabbit breeding program."
+    }
+  ]
+}

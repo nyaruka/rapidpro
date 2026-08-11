@@ -1,5 +1,5 @@
 {% extends "smartmin/read.html" %}
-{% load smartmin temba humanize channels i18n tz %}
+{% load smartmin temba channels i18n tz %}
 
 {% block title %}
   <temba-icon name="{{ object.type.icon }}" class="mr-2">
@@ -191,10 +191,10 @@
         {% for sync_event in latest_sync_events %}
           <tr>
             <td>{{ sync_event.created_on }}</td>
-            <td class="align-center">{{ sync_event.incoming_command_count }}</td>
-            <td class="align-center">{{ sync_event.outgoing_command_count }}</td>
-            <td class="align-center">{{ sync_event.pending_message_count }}</td>
-            <td class="align-center">{{ sync_event.retry_message_count }}</td>
+            <td class="align-center">{{ sync_event.incoming_command_count|intcomma }}</td>
+            <td class="align-center">{{ sync_event.outgoing_command_count|intcomma }}</td>
+            <td class="align-center">{{ sync_event.pending_message_count|intcomma }}</td>
+            <td class="align-center">{{ sync_event.retry_message_count|intcomma }}</td>
             <td class="align-center">
               {% if sync_event.power_status == 'CHA' %}
                 <div class="glyph icon-battery-charging"></div>

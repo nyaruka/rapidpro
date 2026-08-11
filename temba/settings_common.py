@@ -118,6 +118,7 @@ USE_L10N = True
 # various locations.
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
+    "temba.utils.staticfiles.ComponentsFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
     "compressor.finders.CompressorFinder",
 )
@@ -128,10 +129,12 @@ LOCALE_PATHS = (os.path.join(PROJECT_DIR, "../locale"),)
 RESOURCES_DIR = os.path.join(PROJECT_DIR, "../resources")
 FIXTURE_DIRS = (os.path.join(PROJECT_DIR, "../fixtures"),)
 TESTFILES_DIR = os.path.join(PROJECT_DIR, "../testfiles")
+# the components/ project, whose build output is served by temba.utils.staticfiles.ComponentsFinder
+COMPONENTS_DIR = os.path.join(PROJECT_DIR, "../components")
+
 STATICFILES_DIRS = (
     os.path.join(PROJECT_DIR, "../static"),
     os.path.join(PROJECT_DIR, "../media"),
-    os.path.join(PROJECT_DIR, "../node_modules/@nyaruka/temba-components/dist/static"),
     os.path.join(PROJECT_DIR, "../node_modules"),
 )
 STATIC_ROOT = os.path.join(PROJECT_DIR, "../sitestatic")
@@ -165,6 +168,7 @@ TEMPLATES = [
             os.path.join(PROJECT_DIR, "../templates"),
         ],
         "OPTIONS": {
+            "builtins": ["django.contrib.humanize.templatetags.humanize"],
             "context_processors": [
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.debug",
@@ -373,6 +377,7 @@ PERMISSIONS = {
         "workspace",
     ),
     "request_logs.httplog": ("webhooks",),
+    "knowledge.article": ("colors", "publish", "sort", "upload"),
     "knowledge.knowledge": ("menu", "upload"),
     "tickets.ticket": ("assign", "menu", "note", "export", "analytics"),
     "triggers.trigger": ("archived", "type", "menu"),
@@ -381,7 +386,6 @@ PERMISSIONS = {
 
 # assigns the permissions that each group should have
 GROUP_PERMISSIONS = {
-    "Beta": (),
     "Dashboard": ("orgs.org_dashboard",),
     "Granters": ("orgs.org_grant",),
     "Administrators": (
@@ -560,11 +564,14 @@ GROUP_PERMISSIONS = {
         "request_logs.httplog_webhooks",
         "templates.template_list",
         "templates.template_read",
+        "knowledge.article_colors",
         "knowledge.article_create",
         "knowledge.article_delete",
         "knowledge.article_list",
-        "knowledge.article_read",
+        "knowledge.article_publish",
+        "knowledge.article_sort",
         "knowledge.article_update",
+        "knowledge.article_upload",
         "knowledge.knowledge_create",
         "knowledge.knowledge_delete",
         "knowledge.knowledge_menu",

@@ -1,0 +1,131 @@
+{
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "uuid": "6c3156f8-ca00-4f26-b8f7-b5e131e6db7a",
+            "contact": {
+                "uuid": "24d64810-3315-4ff5-be85-48e3fe055bf9",
+                "name": "Eric Newcomer"
+            },
+            "status": "open",
+            "topic": {
+                "uuid": "4bd2ba9c-9442-4237-888c-b5ff396f2422",
+                "name": "General"
+            },
+            "body": "Another ticket",
+            "assignee": {
+                "email": "admin1@nyaruka.com",
+                "name": "Adam McAdmin"
+            },
+            "opened_on": "2023-03-21T20:26:24.522617Z",
+            "opened_by": {
+                "email": "admin1@nyaruka.com",
+                "name": "Adam McAdmin"
+            },
+            "opened_in": null,
+            "modified_on": "2023-04-07T18:21:46.929661Z",
+            "closed_on": null
+        },
+        {
+            "uuid": "37ca10d8-b976-4885-b48c-21d3ec68b743",
+            "contact": {
+                "uuid": "24d64810-3315-4ff5-be85-48e3fe055bf9",
+                "name": "Eric Newcomer"
+            },
+            "status": "open",
+            "topic": {
+                "uuid": "4bd2ba9c-9442-4237-888c-b5ff396f2422",
+                "name": "General"
+            },
+            "body": "Another new ticket",
+            "assignee": {
+                "email": "admin1@nyaruka.com",
+                "name": "Adam McAdmin"
+            },
+            "opened_on": "2023-03-21T22:29:06.849413Z",
+            "opened_by": {
+                "email": "admin1@nyaruka.com",
+                "name": "Adam McAdmin"
+            },
+            "opened_in": null,
+            "modified_on": "2023-04-07T18:21:36.201548Z",
+            "closed_on": null
+        },
+        {
+            "uuid": "a57970e2-79ab-46d4-8761-c7cbc6a380ef",
+            "contact": {
+                "uuid": "24d64810-3315-4ff5-be85-48e3fe055bf9",
+                "name": "Eric Newcomer"
+            },
+            "status": "open",
+            "topic": {
+                "uuid": "4bd2ba9c-9442-4237-888c-b5ff396f2422",
+                "name": "General"
+            },
+            "body": "Another open ticket",
+            "assignee": {
+                "email": "agent1@nyaruka.com",
+                "name": "Agnes McAgent"
+            },
+            "opened_on": "2023-03-02T20:40:47.935785Z",
+            "opened_by": {
+                "email": "admin1@nyaruka.com",
+                "name": "Adam McAdmin"
+            },
+            "opened_in": null,
+            "modified_on": "2023-04-07T18:20:23.248846Z",
+            "closed_on": null
+        },
+        {
+            "uuid": "73de765d-eac6-4c91-b0d3-72fe9471f76f",
+            "contact": {
+                "uuid": "24d64810-3315-4ff5-be85-48e3fe055bf9",
+                "name": "Eric Newcomer"
+            },
+            "status": "open",
+            "topic": {
+                "uuid": "4bd2ba9c-9442-4237-888c-b5ff396f2422",
+                "name": "General"
+            },
+            "body": "",
+            "assignee": {
+                "email": "editor1@nyaruka.com",
+                "name": "Eddy McEditor"
+            },
+            "opened_on": "2023-03-22T19:09:15.059434Z",
+            "opened_by": null,
+            "opened_in": {
+                "uuid": "3bc33ca4-2fc2-4a45-83ea-4ff5bf6ea062",
+                "name": "Open Ticket"
+            },
+            "modified_on": "2023-04-07T18:15:36.242699Z",
+            "closed_on": null
+        },
+        {
+            "uuid": "d69f3568-c300-4470-b0a5-fbadd6bf0f9f",
+            "contact": {
+                "uuid": "24d64810-3315-4ff5-be85-48e3fe055bf9",
+                "name": "Eric Newcomer"
+            },
+            "status": "closed",
+            "topic": {
+                "uuid": "4bd2ba9c-9442-4237-888c-b5ff396f2422",
+                "name": "General"
+            },
+            "body": "A manual ticket",
+            "assignee": {
+                "email": "admin1@nyaruka.com",
+                "name": "Adam McAdmin"
+            },
+            "opened_on": "2023-01-19T21:56:53.700092Z",
+            "opened_by": {
+                "email": "admin1@nyaruka.com",
+                "name": "Adam McAdmin"
+            },
+            "opened_in": null,
+            "modified_on": "2023-04-05T18:53:38.675097Z",
+            "closed_on": "2023-04-05T18:53:38.675097Z"
+        }
+    ]
+}

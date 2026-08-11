@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sortable List Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Sortable List Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <h2>
+      This component relies on a consumer component that manages the actual
+      order of things. So this demo doesn't do anything after you drag items.
+    </h2>
+    <div class="example">
+      <h3>Basic Sortable List</h3>
+      <p>A list where items can be reordered by dragging</p>
+      <temba-sortable-list>
+        <div class="sortable">First Item</div>
+        <div class="sortable">Second Item</div>
+        <div class="sortable">Third Item</div>
+        <div class="sortable">Fourth Item</div>
+      </temba-sortable-list>
+    </div>
+
+    <div class="example">
+      <h3>Sortable List with Complex Items</h3>
+      <p>A sortable list containing more complex content</p>
+      <temba-sortable-list>
+        <div class="sortable">
+          <h4>Task 1</h4>
+          <p>Complete the user interface design</p>
+        </div>
+        <div class="sortable">
+          <h4>Task 2</h4>
+          <p>Implement backend API endpoints</p>
+        </div>
+        <div class="sortable">
+          <h4>Task 3</h4>
+          <p>Write comprehensive tests</p>
+        </div>
+        <div class="sortable">
+          <h4>Task 4</h4>
+          <p>Deploy to production environment</p>
+        </div>
+      </temba-sortable-list>
+    </div>
+
+    <div class="example">
+      <h3>Disabled Sortable List</h3>
+      <p>A list that cannot be reordered</p>
+      <temba-sortable-list disabled>
+        <div class="sortable">Fixed Item 1</div>
+        <div class="sortable">Fixed Item 2</div>
+        <div class="sortable">Fixed Item 3</div>
+      </temba-sortable-list>
+    </div>
+
+    <style>
+      .sortable {
+        padding: 12px;
+        margin: 4px 4px;
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: grab;
+      }
+
+      .sortable:active {
+        cursor: grabbing;
+      }
+
+      .sortable h4 {
+        margin: 0 0 8px 0;
+        color: #333;
+      }
+
+      .sortable p {
+        margin: 0;
+        color: #666;
+        font-size: 0.9em;
+      }
+    </style>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+    </script>
+  </body>
+</html>

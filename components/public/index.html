@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://unpkg.com/@webcomponents/webcomponentsjs@2.3.0/bundles/webcomponents-sd-ce.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.js"></script>
+    <link
+      href="/sitestatic/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+
+    <link
+      href="/sitestatic/css/tailwind.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+
+    <script language="javascript">
+      
+      function handleContactChange(event) {
+        const ticket = event.target.value;
+        const chat = document.querySelector("temba-contact-chat");
+        chat.ticket = ticket;
+      }
+      
+      function handleContactHistoryUpdate(event) {
+        // tell our list to refresh since we know things happened
+        const tickets = document.querySelector("temba-tickets");
+        tickets.refresh();
+      }
+
+      function handleTicketsRefreshed(event) {
+        // tell our chat to refresh since we know things are new in our list
+        const chat = document.querySelector("temba-contact-chat");
+        chat.refresh();
+      }
+
+      function handleFilterChanged(event) {
+        const tickets = document.querySelector("temba-tickets");
+        const chat = document.querySelector("temba-contact-chat");
+
+        // if we have auto selecting, don't clear the chat
+        if (!tickets.nextSelection) {
+          chat.ticket = null;
+        }
+
+        const filter = event.target.values[0].value;
+        if (filter === "O") {
+          tickets.endpoint = "/contact/tickets/?_format=json&folder=open"
+        } else {
+          tickets.endpoint = "/contact/tickets/?_format=json&folder=closed"
+        }
+      }
+
+      function handleTicketChanged(event) {
+        const ticket = event.detail.ticket;
+        const focus = event.detail.focus;
+
+        const filter = document.querySelector('temba-select[name="ticket-filter"]');
+        const tickets = document.querySelector("temba-tickets");
+
+        if (focus) {
+          tickets.setNextSelection(ticket.uuid);
+          filter.setSelection(ticket.status);
+        } else {
+          // no focus, just refresh
+          tickets.refresh();
+        }
+      }
+    
+    </script>
+  
+</head>
+  <body>
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+
+    <style>
+
+      temba-select[name='ticket-filter'] {
+        margin-bottom: 0.5em;
+        margin-top: -0.4em;
+      }
+
+      .example {
+        padding: 20px;
+        border: 1px solid #e6e6e6;
+        margin: 10px;
+        border-radius: 3px;
+      }
+
+      .example-header {
+        padding-bottom: 10px;
+        font-size: 12px;
+      }
+
+      html {
+        --color-text-dark: #555;
+      }
+
+      .ticket-list {
+        flex-basis: 300px; 
+        flex-grow: 0; 
+        flex-shrink: 0;
+        transition: all 200ms ease-in;
+      }
+
+      @media only screen and (max-width: 1024px) {
+        .ticket-list {
+          flex-basis: 200px; 
+        }
+      }
+
+      @media only screen and (max-width: 768px) {
+        .ticket-list {
+          flex-basis: 125px; 
+        }
+      }
+
+    </style>
+    <temba-store
+      completions="/mr/docs/en-us/completion.json"
+      functions="/mr/docs/en-us/functions.json"
+      fields="/api/v2/fields.json"
+      globals="/api/v2/globals.json"
+      groups="/api/v2/groups.json"
+    ></temba-store>
+
+    <div class="flex-col">
+      <div class="flex" style="height:100vh">
+    
+        <div class="ticket-list m-4 mr-2 flex flex-col">
+
+            <temba-select name="ticket-filter" onchange="handleFilterChanged(event)">
+              <temba-option name="Open" value="O" icon="inbox"></temba-option>
+              <temba-option name="Closed" value="C" icon="check"></temba-option>
+            </temba-select>
+
+
+          <div class="flex flex-grow">
+            <temba-tickets endpoint="/contact/tickets/?_format=json&folder=open" @temba-refreshed="handleTicketsRefreshed(event)" onchange="handleContactChange(event)"></temba-tickets>
+          </div>
+
+        </div>
+    
+        <div class="flex-grow flex-col h-full py-4 pb-4 pr-4">
+          <temba-contact-chat @temba-refreshed="handleContactHistoryUpdate(event)" @temba-content-changed="handleTicketChanged(event)"></temba-contact-chat>
+        </div>
+      
+      </div>
+    </div>
+
+    <!--
+    <div class="flex-col">
+      <div class="flex" style="height:100vh">
+        <div style="min-width:250px; max-width:450px" class="m-4 mr-2">
+          <temba-ticket-list endpoint="/api/v2/contacts.json" onchange="handleContactChange(event)"></temba-ticket-list>
+        </div>
+        
+        <div class="flex-grow flex-col h-full py-4 pb-4 pr-4">
+          <temba-contact-chat></temba-contact-chat>
+        </div>
+      
+      </div>
+    </div>
+
+    <div class="example">
+      <temba-completion counter="temba-charcount" value="Some sample text goes here. Let’s go!" gsm textarea></temba-completion>
+      <temba-charcount text='count this text'></temba-charcount>
+    </div>
+
+
+    <div class="example">
+      <temba-textinput value="Some sample text goes here. Let’s go!" gsm></temba-textinput>
+    </div>
+
+    <div class="example">
+      <temba-textinput
+        name="start"
+        label="Start Time"
+        help_text="This is something you should think long and hard about"
+        placeholder="Put something down, for real"
+        value="2020-11-28 15:03"
+        clearable
+        datetimepicker
+      ></temba-textinput>
+    </div>
+
+    <div class="example">
+      <temba-textinput
+        name="start"
+        label="Start Time"
+        help_text="This is something you should think long and hard about"
+        placeholder="Put something down, for real"
+        clearable
+        datetimepicker
+      ></temba-textinput>
+    </div>
+
+    <div class="example">
+      <temba-checkbox
+        name="schedule"
+        label="Schedule for later delivery"
+        help_text="This is something you should think long and hard about"
+      ></temba-checkbox>
+
+      <temba-checkbox
+        name="disabled"
+        label="You can't check this one"
+        help_text="It is disabled, don't click it"
+        disabled
+      ></temba-checkbox>
+    </div>
+
+    <div class="example">
+      <temba-modax
+        header="Save as Group"
+        endpoint='/contactgroup/create/?search=group = "Drivers"'
+        id="create-dynamic"
+      >
+        <div class="button-primary inline-block">Save as Group</div>
+      </temba-modax>
+    </div>
+
+    <div class="example">
+      <temba-modax
+        header="Edit Contact"
+        endpoint="/contact/update/10001/"
+        id="edit-contact"
+      >
+        <div class="button-primary inline-block">Edit Contact</div>
+      </temba-modax>
+    </div>
+
+    <div class="example">
+      <temba-modax
+        header="Edit Label"
+        endpoint="/label/update/102/"
+        id="update-label"
+      >
+        <div class="button-primary inline-block">Edit Label</div>
+      </temba-modax>
+    </div>
+
+    <div class="example">
+      <temba-modax
+        id="edit-group"
+        header="Edit Group"
+        endpoint="/contactgroup/update/139/"
+      >
+        <div class="button-primary inline-block">Edit Group</div>
+      </temba-modax>
+    </div>
+
+    <div class="example">
+      <temba-modax
+        id="send-message"
+        header="Send Message"
+        endpoint="/broadcast/send/"
+      >
+        <div class="button-primary inline-block">Send Message</div>
+      </temba-modax>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Contact Search</div>
+      <temba-contact-search
+        name="contact_query"
+        endpoint="/contact/search/?samples=5&search="
+        placeholder="Enter a query"
+        matches-text="Found ${count} for ${query}"
+      >
+      </temba-contact-search>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Text Inputs</div>
+      <temba-textinput></temba-textinput>
+      <br />
+      <temba-textinput textarea></temba-textinput>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Side by Side</div>
+
+      <div style="display: flex; align-items: center">
+        <temba-select name="start-type" placeholder="Pick some colors" multi>
+          <temba-option value="red" name="Red"></temba-option>
+          <temba-option value="gree" name="Green" selected></temba-option>
+          <temba-option value="blue" name="Blue" selected></temba-option>
+        </temba-select>
+
+        <temba-select name="start-type" placeholder="Choose how to start">
+          <temba-option
+            value="0"
+            name="Choose recipients manually"
+          ></temba-option>
+          <temba-option
+            value="1"
+            name="Search for contacts to start"
+          ></temba-option>
+        </temba-select>
+
+        <temba-select
+          name="start-type"
+          placeholder="Search how to start but make sure you can read this entire message"
+          searchable
+        >
+          <temba-option
+            value="0"
+            name="Choose recipients manually"
+          ></temba-option>
+          <temba-option
+            value="1"
+            name="Search for contacts to start"
+          ></temba-option>
+        </temba-select>
+
+        <temba-textinput></temba-textinput>
+        <temba-textinput placeholder="Hello placeholder"></temba-textinput>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Single</div>
+      <temba-select name="start-type" placeholder="Choose how to start">
+        <temba-option
+          value="0"
+          name="Choose recipients manually"
+        ></temba-option>
+        <temba-option
+          value="1"
+          name="Search for contacts to start"
+        ></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Single Initialized</div>
+      <temba-select name="start-type" placeholder="Choose how to start">
+        <temba-option
+          value="0"
+          name="Choose recipients manually"
+        ></temba-option>
+        <temba-option
+          value="1"
+          name="Search for contacts to start"
+          selected
+        ></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Single Searchable</div>
+      <temba-select
+        name="start-type"
+        placeholder="Search how to start but make sure you can read this entire message"
+        searchable
+      >
+        <temba-option
+          value="0"
+          name="Choose recipients manually"
+        ></temba-option>
+        <temba-option
+          value="1"
+          name="Search for contacts to start"
+        ></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Single Remote</div>
+      <temba-select
+        endpoint="/contact/omnibox/?v=2"
+        queryParam="search"
+        placeholder="Contacts"
+        searchable
+      >
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Single Remote Search Unfiltered</div>
+      <temba-select
+        endpoint="/api/v2/channels.json"
+        placeholder="Channels"
+        valueKey="uuid"
+        searchable
+      >
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Clearable</div>
+      <temba-select name="start-type" placeholder="Select a color" clearable>
+        <temba-option value="red" name="Red"></temba-option>
+        <temba-option value="gree" name="Green"></temba-option>
+        <temba-option value="blue" name="Blue"></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Multi</div>
+      <temba-select name="start-type" placeholder="Pick some colors" multi>
+        <temba-option value="red" name="Red"></temba-option>
+        <temba-option value="gree" name="Green"></temba-option>
+        <temba-option value="blue" name="Blue"></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Multi Initialized</div>
+      <temba-select label="Multi Initialized" name="start-type" placeholder="Pick some colors" multi>
+        <temba-option value="red" name="Red"></temba-option>
+        <temba-option value="gree" name="Green" selected></temba-option>
+        <temba-option value="blue" name="Blue" selected></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Multi Searchable</div>
+      <temba-select
+        name="start-type"
+        placeholder="Pick some colors"
+        multi
+        searchable
+      >
+        <temba-option value="red" name="Red"></temba-option>
+        <temba-option value="green" name="Green"></temba-option>
+        <temba-option value="blue" name="Blue"></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Tags with expressions</div>
+      <temba-select
+        name="tagged"
+        placeholder="Pick some colors"
+        expressions="session"
+        multi
+        searchable
+        tags
+      >
+      </temba-select>
+    </div>
+
+
+
+
+    <div class="example">
+      <div class="example-header">Tags</div>
+      <temba-select
+        name="tagged"
+        placeholder="Pick some colors"
+        multi
+        searchable
+        tags
+        space_select
+      >
+        <temba-option value="red" name="Red"></temba-option>
+        <temba-option value="green" name="Green"></temba-option>
+        <temba-option value="blue" name="Blue"></temba-option>
+      </temba-select>
+    </div>
+      -->
+
+
+
+    <!--
+    <div class="example">
+      <div class="example-header">Tags Initialized</div>
+      <temba-select
+        name="tagged"
+        placeholder="Pick some colors"
+        multi
+        searchable
+        tags
+        space_select
+      >
+        <temba-option value="red" name="Red" selected></temba-option>
+        <temba-option value="green" name="Green" selected></temba-option>
+        <temba-option value="blue" name="Blue"></temba-option>
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Multi Remote</div>
+      <temba-select
+        id="multi-remote"
+        endpoint="/contact/omnibox/?v=2"
+        queryParam="search"
+        placeholder="Contacts"
+        searchable
+        multi
+      >
+      </temba-select>
+
+      <script>
+        window.setTimeout(() => {
+          var multiRemote = document.getElementById("multi-remote");
+          multiRemote.createArbitraryOption = function (input, options) {
+            var existing = options.find(function (option) {
+              return (
+                option.name.toLowerCase().trim() === input.toLowerCase().trim()
+              );
+            });
+            if (!existing) {
+              return {
+                prefix: "Create: ",
+                name: input,
+                id: "created",
+              };
+            }
+          };
+        }, 2000);
+      </script>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Multi Remote with Expressions</div>
+      <temba-select
+        endpoint="/contact/omnibox/?v=2"
+        queryParam="search"
+        placeholder="Contacts"
+        expressions="session"
+        searchable
+        multi
+      >
+      </temba-select>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Omnibox</div>
+      <temba-omnibox
+        endpoint="/contact/omnibox/?v=2"
+        groups
+        contacts
+      ></temba-omnibox>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Omnibox Initialized</div>
+      <temba-omnibox
+        endpoint="/contact/omnibox/?v=2"
+        groups
+        contacts
+        value='[{"id": "f916ebaa-630d-450c-b72c-268822b70a42", "name": "a new", "type": "group", "count": 0}]'
+      ></temba-omnibox>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Completion</div>
+      <temba-completion textarea value="This is just the beginning."></temba-completion>
+    </div>
+
+    <div class="example">
+      <div class="example-header">Completion</div>
+      <temba-completion></temba-completion>
+    </div>
+  -->
+    
+    <!-- 
+      Alias Editor - Deprecated
+      div class="example">
+      <div class="example-header">Alias Editor</div>
+      <alias-editor osmid="192787" endpoint="/adminboundary"></alias-editor>
+    </div -->
+
+    <script type="module" src="../src/temba-components.js"></script>
+  </body>
+</html>

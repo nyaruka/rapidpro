@@ -1,0 +1,80 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "events-dude",
+      "name": "Eddy Events",
+      "status": "active",
+      "language": "eng",
+      "urns": [
+        {
+          "channel": {
+            "uuid": "chan-2",
+            "name": "Telegram Channel"
+          },
+          "scheme": "telegram",
+          "path": "24028613",
+          "display": "dmb4ever"
+        },
+        {
+          "channel": null,
+          "scheme": "facebook",
+          "path": "123123",
+          "display": null
+        },
+        {
+          "channel": null,
+          "scheme": "instagram",
+          "path": "123232",
+          "display": null
+        },
+        {
+          "channel": null,
+          "scheme": "line",
+          "path": "12322",
+          "display": null
+        },
+        {
+          "channel": null,
+          "scheme": "whatsapp",
+          "path": "2342334422",
+          "display": null
+        },
+        {
+          "channel": {
+            "uuid": "chan-3",
+            "name": "SMS Channel"
+          },
+          "scheme": "tel",
+          "path": "+12065553567",
+          "display": null
+        }
+      ],
+      "groups": [
+        {
+          "uuid": "3da236a9-9eed-4db3-a18e-cfb58030c249",
+          "name": "Completed"
+        },
+        {
+          "uuid": "12e583b3-46f5-4d9d-85ca-15fb6153c1a0",
+          "name": "Open Tickets"
+        }
+      ],
+      "fields": {
+        "joined": "2022-07-08T03:04:51.568443+01:00",
+        "age": "30",
+        "gender": "M"
+      },
+      "flow": {
+        "uuid": "d6946f76-dbcd-4c3f-b0e4-2dfe2f04d5fd",
+        "name": "Daily Flow"
+      },
+      "created_on": "2021-06-15T19:16:49.377501Z",
+      "modified_on": "2022-08-11T02:01:09.120952Z",
+      "last_seen_on": "2022-07-08T02:04:51.567474Z",
+      "blocked": false,
+      "stopped": false
+    }
+  ]
+}

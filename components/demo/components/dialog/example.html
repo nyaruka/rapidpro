@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Dialog Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Dialog Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Basic Dialog</h3>
+      <p>A simple dialog component</p>
+      <temba-button
+        onclick="document.querySelector('#basic-dialog').open = true"
+        name="Open Dialog"
+      ></temba-button>
+      <temba-dialog id="basic-dialog">
+        <div slot="header">Basic Dialog</div>
+        <div style="padding: 20px">
+          This is a basic dialog with some content.
+        </div>
+        <div slot="buttons">
+          <temba-button
+            onclick="document.querySelector('#basic-dialog').open = false"
+            >Close</temba-button
+          >
+        </div>
+      </temba-dialog>
+    </div>
+
+    <div class="example">
+      <h3>Confirmation Dialog</h3>
+      <p>A dialog for user confirmation</p>
+      <temba-button
+        onclick="document.querySelector('#confirm-dialog').open = true"
+        name="Delete Item"
+        destructive
+      ></temba-button>
+      <temba-dialog
+        id="confirm-dialog"
+        primaryButtonName="Delete"
+        header="Confirm Deletion"
+        destructive
+      >
+        <div style="padding: 20px">
+          Are you sure you want to delete this item? This action cannot be
+          undone.
+        </div>
+        <div slot="buttons">
+          <temba-button
+            secondary
+            onclick="document.querySelector('#confirm-dialog').open = false"
+            >Cancel</temba-button
+          >
+          <temba-button
+            primary
+            onclick="document.querySelector('#confirm-dialog').open = false"
+            >Delete</temba-button
+          >
+        </div>
+      </temba-dialog>
+    </div>
+
+    <div class="example">
+      <h3>Form Dialog</h3>
+      <p>A dialog containing form elements</p>
+      <temba-button
+        onclick="document.querySelector('#form-dialog').open = true"
+        name="Add User"
+      ></temba-button>
+      <temba-dialog
+        id="form-dialog"
+        primaryButtonName="Add User"
+        header="Add User"
+      >
+        <div style="padding: 20px">
+          <div style="display: flex; flex-direction: column; gap: 15px">
+            <temba-textinput
+              placeholder="Enter name"
+              label="Name"
+            ></temba-textinput>
+            <temba-textinput
+              placeholder="Enter email"
+              label="Email"
+            ></temba-textinput>
+            <temba-checkbox label="Send welcome email"></temba-checkbox>
+          </div>
+        </div>
+      </temba-dialog>
+    </div>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+    </script>
+  </body>
+</html>

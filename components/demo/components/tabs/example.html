@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tabs Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <style>
+      temba-tab > div {
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tabs Examples</h1>
+    <p><a href="/demo/index.html">← Back to main demo</a></p>
+
+    <div class="example">
+      <h3>Basic Tabs</h3>
+      <p>A simple tab component</p>
+      <temba-tabs>
+        <temba-tab name="tab1" label="First Tab">
+          <div>This is the content of the first tab.</div>
+        </temba-tab>
+        <temba-tab name="tab2" label="Second Tab">
+          <div>This is the content of the second tab.</div>
+        </temba-tab>
+        <temba-tab name="tab3" label="Third Tab">
+          <div>This is the content of the third tab.</div>
+        </temba-tab>
+      </temba-tabs>
+    </div>
+
+    <div class="example">
+      <h3>Tabs with Default Selection</h3>
+      <p>Tabs with a pre-selected active tab</p>
+      <temba-tabs index="1">
+        <temba-tab name="overview" label="Overview">
+          <div>Overview content goes here.</div>
+        </temba-tab>
+        <temba-tab name="details" label="Details">
+          <div>Detailed information is displayed in this tab.</div>
+        </temba-tab>
+        <temba-tab name="settings" label="Settings">
+          <div>Configuration settings can be found here.</div>
+        </temba-tab>
+      </temba-tabs>
+    </div>
+
+    <div class="example">
+      <h3>Collapsible Tabs</h3>
+      <p>Tabs that can collapse on smaller screens</p>
+      <temba-tabs collapses>
+        <temba-tab name="info" label="Information">
+          <div>
+            <h4>Information Tab</h4>
+            <p>
+              This tab contains important information about the current item.
+            </p>
+          </div>
+        </temba-tab>
+        <temba-tab name="stats" label="Statistics">
+          <div>
+            <h4>Statistics Tab</h4>
+            <p>Statistical data and charts would be displayed here.</p>
+          </div>
+        </temba-tab>
+        <temba-tab name="history" label="History">
+          <div>
+            <h4>History Tab</h4>
+            <p>
+              Historical records and activity logs are shown in this section.
+            </p>
+          </div>
+        </temba-tab>
+      </temba-tabs>
+    </div>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+    </script>
+  </body>
+</html>

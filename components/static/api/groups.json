@@ -1,0 +1,39 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "a3f2990b-4096-452e-a586-dc06a9434dde",
+      "name": "Empty",
+      "query": null,
+      "status": "ready",
+      "count": 0
+    },
+    {
+      "uuid": "f80ed7b6-5e6a-49eb-94b6-4631a9677cd8",
+      "name": "Reporters",
+      "query": null,
+      "status": "ready",
+      "count": 0
+    },
+    {
+      "uuid": "76e7a094-22ea-441d-91c4-283d8168e8e3",
+      "name": "Some Really Long Group Name",
+      "count": 2028
+    },
+    {
+      "uuid": "66e7a094-22ea-441d-91c4-283d8168e8e4",
+      "name": "The Poots",
+      "query": "name ~ \"poots\" OR name ~ \"dave\"",
+      "status": "ready",
+      "count": 1028
+    },
+    {
+      "uuid": "94e3ff12-9206-4ce8-87ab-934a864a1819",
+      "name": "Youth",
+      "query": "age <= 18",
+      "status": "ready",
+      "count": 174
+    }
+  ]
+}

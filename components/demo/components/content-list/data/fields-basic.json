@@ -1,0 +1,30 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "key": "state",
+      "name": "State",
+      "label": "State",
+      "value_type": "state",
+      "featured": true,
+      "priority": 30
+    },
+    {
+      "key": "age",
+      "name": "Age",
+      "label": "Age",
+      "value_type": "numeric",
+      "featured": true,
+      "priority": 20
+    },
+    {
+      "key": "gender",
+      "name": "Gender",
+      "label": "Gender",
+      "value_type": "text",
+      "featured": true,
+      "priority": 10
+    }
+  ]
+}

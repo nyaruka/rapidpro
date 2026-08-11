@@ -15,7 +15,7 @@
       </div>
     {% endif %}
     <div>
-      <span class="font-medium">{% trans "Pages" %}:</span> {{ object.num_items }}
+      <span class="font-medium">{% trans "Pages" %}:</span> {{ object.num_items|intcomma }}
     </div>
   </div>
 </div>

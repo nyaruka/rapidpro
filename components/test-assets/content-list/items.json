@@ -1,0 +1,10 @@
+{
+  "count": 3,
+  "next": null,
+  "previous": null,
+  "results": [
+    { "uuid": "u-1", "name": "Alpha", "value": 10 },
+    { "uuid": "u-2", "name": "Bravo", "value": 20 },
+    { "uuid": "u-3", "name": "Charlie", "value": 30 }
+  ]
+}

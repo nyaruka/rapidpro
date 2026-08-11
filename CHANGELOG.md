@@ -1,3 +1,31 @@
+v26.3.38 (2026-08-06)
+-------------------------
+ * Stream the components build during collectstatic, bound it with timeouts and skip puppeteer's Chrome download
+
+v26.3.37 (2026-08-06)
+-------------------------
+ * Add Spanish translation for 'No options' in components
+
+v26.3.36 (2026-08-06)
+-------------------------
+ * Add the helpdesk authoring surface for creating and editing articles
+ * Add an internal endpoint serving the helpdesk article tree and render the helpdesk like other component list pages
+ * Read and write articles in a dialog rather than pages of their own, capping nesting at two levels and offering the workspace's languages
+ * Render article markdown with layout tables whose columns carry their own fill, border, padding and text color
+ * Allow left and right image layouts and authored image sizes in article markdown, dropping the floated layouts
+ * Escape raw HTML when rendering articles and drop the article preview endpoint
+ * Harden article reordering and screenshot storage
+ * Load Inter's italic faces so emphasis renders with synthesis disabled
+ * Leave clicks the editor already claimed out of spa link following
+ * Move temba-components into components/ and build it via a staticfiles finder, serving it as live modules in development
+ * Run the components test suite in CI
+ * Remove no longer used Beta auth group and User.is_alpha/is_beta
+
+v26.3.35 (2026-08-05)
+-------------------------
+ * Update temba-components to 0.174.0
+ * Use setUpTestData for shared test fixtures to speed up test suite
+
 v26.3.34 (2026-08-05)
 -------------------------
  * Add management command to convert legacy bsuid URNs to whatsapp

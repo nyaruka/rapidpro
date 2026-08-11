@@ -6,7 +6,6 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import storages
 from django.db import models
 from django.utils import timezone
-from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from temba.utils.fields import UploadToIdPathAndRename
@@ -168,14 +167,6 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         """
 
         self.authenticator_set.all().delete()
-
-    @cached_property
-    def is_alpha(self) -> bool:
-        return self.groups.filter(name="Alpha").exists()
-
-    @cached_property
-    def is_beta(self) -> bool:
-        return self.groups.filter(name="Beta").exists()
 
     def has_org_perm(self, org, permission: str) -> bool:
         """

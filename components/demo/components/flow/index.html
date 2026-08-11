@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Flow Editor Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="../../styles.css" rel="stylesheet" type="text/css" />
+    <style>
+      .flow-list {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
+
+      .flow-card {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.2s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .flow-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .flow-title {
+        font-size: 1.5em;
+        font-weight: 500;
+        color: #2c3e50;
+        margin: 0;
+      }
+
+      .flow-link {
+        display: inline-block;
+        background: #3498db;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: 500;
+        transition: background-color 0.2s ease;
+      }
+
+      .flow-link:hover {
+        background: #2980b9;
+        color: white;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-bottom: 24px;
+        color: #3498db;
+        text-decoration: none;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flow-list">
+      <a href="../../index.html" class="back-link">← Back to Component Demos</a>
+
+      <h1>Flow Editor Examples</h1>
+      <p>
+        Choose a flow to open in the Flow Editor. Each flow demonstrates
+        different features and capabilities.
+      </p>
+
+      <div class="flow-card" style="background: #f0f7ff; border-color: #b3d4fc;">
+        <div>
+          <div class="flow-title">Multi-Flow Demo</div>
+          <div style="color: #666; margin-top: 4px; font-size: 0.9em;">Three editors on the same page</div>
+        </div>
+        <a href="multi.html" class="flow-link" style="background: #2c3e50;">Open Demo</a>
+      </div>
+
+      <div id="flow-cards">
+        <div class="flow-card">
+          <div class="flow-title">Loading flows...</div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      // List the logged-in org's flows from the real API
+      async function loadFlows() {
+        const flowCardsContainer = document.getElementById('flow-cards');
+
+        try {
+          const response = await fetch('/api/v2/flows.json');
+          const data = await response.json();
+          const flows = (data.results || []).map((flow) => ({
+            id: flow.uuid,
+            name: flow.name
+          }));
+
+          displayFlows(flows, flowCardsContainer);
+        } catch (error) {
+          console.warn('Failed to load flows:', error);
+          displayFlows([], flowCardsContainer);
+        }
+      }
+
+      // Function to display flows in the UI
+      function displayFlows(flows, container) {
+        if (flows.length === 0) {
+          container.innerHTML = `
+            <div class="flow-card">
+              <div class="flow-title">No flows found</div>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = flows
+          .map(
+            (flow) => `
+          <div class="flow-card">
+            <div class="flow-title">${escapeHtml(flow.name)}</div>
+            <a href="example.html?flow=${encodeURIComponent(
+              flow.id
+            )}" class="flow-link">
+              Open Flow
+            </a>
+          </div>
+        `
+          )
+          .join('');
+      }
+
+      // Helper function to escape HTML
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Load flows when the page loads
+      loadFlows();
+    </script>
+  </body>
+</html>

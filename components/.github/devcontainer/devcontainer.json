@@ -1,0 +1,10 @@
+{
+  "name": "temba-components-ci",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "components",
+  "workspaceFolder": "/workspaces/temba/components",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "remoteUser": "node"
+}

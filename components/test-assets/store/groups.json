@@ -1,0 +1,29 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "uuid": "512e36c1-9101-4ca2-aceb-e638c520bf0c",
+      "name": "Reminders",
+      "query": null,
+      "status": "ready",
+      "system": false,
+      "count": 0
+    },
+    {
+      "uuid": "12e583b3-46f5-4d9d-85ca-15fb6153c1a0",
+      "name": "Open Tickets",
+      "query": "tickets > 0",
+      "status": "ready",
+      "system": true,
+      "count": 2
+    },
+    {
+      "uuid": "3da236a9-9eed-4db3-a18e-cfb58030c249",
+      "name": "Farmers",
+      "status": "ready",
+      "system": false,
+      "count": 1107
+    }
+  ]
+}

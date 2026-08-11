@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Contact Read</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      .read-page {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        padding: 0 20px 20px;
+        box-sizing: border-box;
+      }
+
+      temba-card-layout {
+        flex-grow: 1;
+        min-height: 0;
+      }
+
+    </style>
+  </head>
+  <body>
+    <temba-store
+      completion="/mr/docs/en-us/editor.json"
+      fields="/api/v2/fields.json"
+      globals="/api/v2/globals.json"
+      groups="/api/v2/groups.json"
+      labels="/api/v2/labels.json"
+      workspace="/api/v2/workspace.json"
+    ></temba-store>
+
+    <div class="read-page">
+      <temba-page-header
+        header-title="Contact"
+        content-menu-endpoint="/demo/components/contact-read/data/contact-menu.json"
+      ></temba-page-header>
+
+      <temba-card-layout id="layout">
+        <temba-contact-chat
+          slot="main"
+          endpoint="/api/v2/contacts.json?uuid="
+        ></temba-contact-chat>
+
+        <temba-card id="card-details" label="Details" icon="info">
+          <temba-contact-details
+            endpoint="/api/v2/contacts.json?uuid="
+            editable
+          ></temba-contact-details>
+        </temba-card>
+        <temba-card id="card-fields" label="Fields" icon="fields">
+          <temba-contact-fields endpoint="/api/v2/contacts.json?uuid=">
+            <div slot="empty">No fields set.</div>
+          </temba-contact-fields>
+        </temba-card>
+        <temba-card id="card-nextup" label="Next Up" icon="schedule">
+          <temba-contact-timeline></temba-contact-timeline>
+        </temba-card>
+        <temba-card id="card-notepad" variant="note" label="Notepad" icon="notes" activity bleed>
+          <temba-contact-notepad
+            endpoint="/api/v2/contacts.json?uuid="
+            autogrow
+          ></temba-contact-notepad>
+        </temba-card>
+      </temba-card-layout>
+    </div>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+
+      // Read page for the org's most recent contact
+      const response = await fetch('/api/v2/contacts.json');
+      const data = await response.json();
+      const contact = (data.results || [])[0];
+      if (contact) {
+        document
+          .querySelector('temba-page-header')
+          .setAttribute('header-title', contact.name || 'Contact');
+        document
+          .querySelectorAll(
+            'temba-contact-chat, temba-contact-details, temba-contact-fields, temba-contact-timeline, temba-contact-notepad'
+          )
+          .forEach((ele) => ele.setAttribute('contact', contact.uuid));
+      }
+
+      document.querySelector('temba-contact-details').schemes = [
+        { value: 'tel', name: 'Phone Number' },
+        { value: 'mailto', name: 'Email Address' },
+        { value: 'telegram', name: 'Telegram Identifier' },
+        { value: 'whatsapp', name: 'WhatsApp Identifier' }
+      ];
+
+      document
+        .querySelector('#layout')
+        .addEventListener('temba-order-changed', (event) => {
+          console.log('order changed', event.detail.ids);
+        });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "type": "export:finished",
+      "created_on": "2021-03-30T23:30:00.000000Z",
+      "url": "/notification/read/3/",
+      "is_seen": false,
+      "export": {
+        "type": "contact",
+        "num_records": 245
+      }
+    },
+    {
+      "type": "import:finished",
+      "created_on": "2021-03-30T20:00:00.000000Z",
+      "url": "/notification/read/2/",
+      "is_seen": true,
+      "import": {
+        "type": "contact",
+        "num_records": 1000
+      }
+    },
+    {
+      "type": "incident:started",
+      "created_on": "2021-03-29T10:00:00.000000Z",
+      "url": "/notification/read/1/",
+      "is_seen": true,
+      "incident": {
+        "type": "webhooks:unhealthy",
+        "started_on": "2021-03-29T10:00:00.000000Z"
+      }
+    }
+  ]
+}

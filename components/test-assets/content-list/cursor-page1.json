@@ -1,0 +1,8 @@
+{
+  "next": "/test-assets/content-list/cursor-page2.json",
+  "previous": null,
+  "results": [
+    { "uuid": "c-1", "name": "Alpha", "value": 10 },
+    { "uuid": "c-2", "name": "Bravo", "value": 20 }
+  ]
+}

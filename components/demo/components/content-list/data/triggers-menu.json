@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "type": "modax",
+      "as_button": true,
+      "primary": true,
+      "label": "New Trigger",
+      "url": "/trigger/create/"
+    },
+    { "type": "divider" },
+    {
+      "type": "link",
+      "as_button": false,
+      "label": "Archived",
+      "url": "/trigger/archived/"
+    }
+  ]
+}

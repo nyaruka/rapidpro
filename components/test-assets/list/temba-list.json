@@ -1,0 +1,22 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "name": "Chicken Nuggets",
+      "id": "chicken"
+    },
+    {
+      "name": "Fish Sticks",
+      "id": "fish"
+    },
+    {
+      "name": "Beef Wellington",
+      "id": "beef"
+    },
+    {
+      "name": "Tofu Steak",
+      "id": "tofu"
+    }
+  ]
+}

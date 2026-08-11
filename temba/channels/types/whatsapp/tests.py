@@ -742,7 +742,7 @@ class WhatsAppTypeTest(TembaTest, CRUDLTestMixin):
 
         channel = Channel.objects.get(id=channel.id)
         self.assertEqual("Another Name", channel.name)
-        self.assertFalse(channel.is_enabled)  # is_enabled should be updated as admin is now a beta user
+        self.assertFalse(channel.is_enabled)
 
         # staff users see extra fields
         self.assertUpdateFetch(

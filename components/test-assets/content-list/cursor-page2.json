@@ -1,0 +1,5 @@
+{
+  "next": null,
+  "previous": "/test-assets/content-list/cursor-page1.json",
+  "results": [{ "uuid": "c-3", "name": "Charlie", "value": 30 }]
+}

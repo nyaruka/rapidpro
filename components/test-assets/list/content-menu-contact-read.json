@@ -1,0 +1,49 @@
+{
+    "items": [
+        {
+            "type": "modax",
+            "label": "Start Flow",
+            "url": "/flow/broadcast/?c=8e4630e9-7cbd-4dce-a2d2-cce2a49e42af",
+            "modal_id": "start-flow",
+            "title": "Start Flow",
+            "on_submit": null,
+            "primary": false,
+            "as_button": true,
+            "disabled": true
+        },
+        {
+            "type": "modax",
+            "label": "Open Ticket",
+            "url": "/contact/open_ticket/10001/",
+            "modal_id": "open-ticket",
+            "title": "Open Ticket",
+            "on_submit": null,
+            "primary": false,
+            "as_button": false,
+            "disabled": false
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "modax",
+            "label": "Edit",
+            "url": "/contact/update/10001/",
+            "modal_id": "edit-contact",
+            "title": "Edit Contact",
+            "on_submit": "contactUpdated()",
+            "primary": false,
+            "as_button": false,
+            "disabled": false
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "url_post",
+            "label": "Service",
+            "url": "/org/service/?organization=1&redirect_url=/contact/read/8e4630e9-7cbd-4dce-a2d2-cce2a49e42af/",
+            "as_button": false
+        }
+    ]
+}

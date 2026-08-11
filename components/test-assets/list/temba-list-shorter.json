@@ -1,0 +1,18 @@
+{
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "name": "Fish Sticks",
+      "id": "fish"
+    },
+    {
+      "name": "Beef Wellington",
+      "id": "beef"
+    },
+    {
+      "name": "Tofu Steak",
+      "id": "tofu"
+    }
+  ]
+}

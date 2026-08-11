@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Content List Examples</title>
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link href="/demo/static/css/styles.css" rel="stylesheet" type="text/css" />
+    <style>
+      /* The lists span the full window width — no max-width cap —
+         so the horizontal-scroll behaviour can be exercised. */
+      body {
+        max-width: none;
+      }
+      /* Demo wrapper for each list — no card chrome, just vertical
+         rhythm. The component renders its own panel; anything
+         outside the <temba-*-list> is demo-only prose. */
+      .demo {
+        margin: 40px 0;
+      }
+      .demo h3 {
+        margin: 0 0 4px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4d5664;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .demo .description {
+        margin: 0 0 16px 0;
+        color: #7b8593;
+        font-size: 13px;
+      }
+      .demo .events {
+        margin-top: 12px;
+        padding: 8px 12px;
+        background: #f8f9fb;
+        border: 1px solid #e6e8ec;
+        border-radius: 6px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        color: #4d5664;
+        min-height: 1.6em;
+        white-space: pre-wrap;
+      }
+      .demo .events .label {
+        color: #a2abb8;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 10px;
+        margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- temba-date (last-seen / joined-on / sent durations) reads
+         locale + relative-time formatting off the store, so the
+         page needs one present for those cells to render. -->
+    <temba-store></temba-store>
+    <h1>Content List Examples</h1>
+    <p><a href="/demo/index.html">&larr; Back to main demo</a></p>
+
+    <p>
+      JSON-driven CRUDL list. Subclasses (<code>temba-msg-list</code>,
+      <code>temba-contact-list</code>, <code>temba-flow-list</code>,
+      <code>temba-campaign-list</code>) define
+      <code>temba-trigger-list</code>) define
+      columns and per-cell rendering; the base
+      <code>temba-content-list</code> handles search, sort, multi-select,
+      pagination, and bulk-action events.
+    </p>
+    <p>
+      <a href="/demo/components/content-list/inbox.html"
+        >Inbox &mdash; full-window list (internal table scroll) &rarr;</a
+      >
+    </p>
+
+    <div class="demo">
+      <h3>Messages</h3>
+      <p class="description">
+        Reverse-chronological message list with attachment, label, flow, and
+        opt-in cell types.
+      </p>
+      <temba-msg-list
+        id="msgs"
+        list-title="Messages"
+        subtitle="Recent messages."
+        endpoint="/demo/components/content-list/data/messages.json"
+        action-endpoint="/demo/components/content-list/list-action"
+        content-menu-endpoint="/demo/components/content-list/data/messages-menu.json"
+      ></temba-msg-list>
+      <div class="events" id="msgs-events">
+        <div class="label">Events</div>
+        (waiting)
+      </div>
+    </div>
+
+    <div class="demo">
+      <h3>Contacts</h3>
+      <p class="description">
+        Sortable contact list with group pills and a leading silhouette icon.
+        Featured contact fields render as content-sized columns; Name and URN
+        stay pinned while the table scrolls horizontally.
+      </p>
+      <temba-contact-list
+        id="contacts"
+        list-title="Contacts"
+        subtitle="People who messaged your workspace."
+        endpoint="/demo/components/content-list/data/contacts.json"
+        fields-endpoint="/demo/components/content-list/data/fields.json"
+        content-menu-endpoint="/demo/components/content-list/data/contacts-menu.json"
+      ></temba-contact-list>
+      <div class="events" id="contacts-events">
+        <div class="label">Events</div>
+        (waiting)
+      </div>
+    </div>
+
+    <div class="demo">
+      <h3>Contacts &mdash; Known Fields</h3>
+      <p class="description">
+        The same contact list scoped to a small, fixed set of featured
+        fields (State, Age, Gender). With fewer columns the table fits
+        without horizontal scroll &mdash; useful for judging the layout of
+        the left-pinned Name/URN and right-pinned Last seen columns when
+        nothing is actually scrolling between them.
+      </p>
+      <temba-contact-list
+        id="contacts-basic"
+        list-title="Contacts"
+        subtitle="People who messaged your workspace."
+        endpoint="/demo/components/content-list/data/contacts.json"
+        fields-endpoint="/demo/components/content-list/data/fields-basic.json"
+        content-menu-endpoint="/demo/components/content-list/data/contacts-menu.json"
+      ></temba-contact-list>
+      <div class="events" id="contacts-basic-events">
+        <div class="label">Events</div>
+        (waiting)
+      </div>
+    </div>
+
+    <div class="demo">
+      <h3>Contacts &mdash; System Fields Only</h3>
+      <p class="description">
+        The contact list with no featured custom fields at all &mdash; just
+        the system columns Name, URN, and Last seen. Shows how the table
+        reads when the left-pinned identity columns sit directly beside the
+        right-pinned Last seen column with nothing in between.
+      </p>
+      <temba-contact-list
+        id="contacts-system"
+        list-title="Contacts"
+        subtitle="People who messaged your workspace."
+        endpoint="/demo/components/content-list/data/contacts.json"
+        fields-endpoint="/demo/components/content-list/data/fields-none.json"
+        content-menu-endpoint="/demo/components/content-list/data/contacts-menu.json"
+      ></temba-contact-list>
+      <div class="events" id="contacts-system-events">
+        <div class="label">Events</div>
+        (waiting)
+      </div>
+    </div>
+
+    <div class="demo">
+      <h3>Flows</h3>
+      <p class="description">
+        Flow list with leading type icons for the unusual flow types, issue
+        indicators, a completion bar, and an activity sparkline.
+      </p>
+      <temba-flow-list
+        id="flows"
+        list-title="Flows"
+        subtitle="The standard CRUDL table."
+        endpoint="/demo/components/content-list/data/flows.json"
+        action-endpoint="/demo/components/content-list/flow-list-action"
+        content-menu-endpoint="/demo/components/content-list/data/flows-menu.json"
+      ></temba-flow-list>
+      <div class="events" id="flows-events">
+        <div class="label">Events</div>
+        (waiting)
+      </div>
+    </div>
+
+    <div class="demo">
+      <h3>Campaigns</h3>
+      <p class="description">
+        Campaign list with a leading campaign icon on every row, the group
+        pill the campaign schedules against, contact / event counts, and
+        the last-updated date.
+      </p>
+      <temba-campaign-list
+        id="campaigns"
+        list-title="Campaigns"
+        subtitle="Scheduled messages and flow starts."
+        endpoint="/demo/components/content-list/data/campaigns.json"
+        action-endpoint="/demo/components/content-list/campaign-list-action"
+        content-menu-endpoint="/demo/components/content-list/data/campaigns-menu.json"
+      ></temba-campaign-list>
+      <div class="events" id="campaigns-events">
+      <h3>Triggers</h3>
+      <p class="description">
+        Trigger list with leading type icons, per-type details (keyword
+        pills, schedules, referrers), group/channel filter pills, and the
+        flow each trigger starts. Rows fire
+        <code>temba-row-click</code> for the host to open the update
+        modal.
+      </p>
+      <temba-trigger-list
+        id="triggers"
+        list-title="Triggers"
+        subtitle="What starts your flows."
+        endpoint="/demo/components/content-list/data/triggers.json"
+        action-endpoint="/demo/components/content-list/trigger-list-action"
+        content-menu-endpoint="/demo/components/content-list/data/triggers-menu.json"
+      ></temba-trigger-list>
+      <div class="events" id="triggers-events">
+        <div class="label">Events</div>
+        (waiting)
+      </div>
+
+      <h3>Broadcasts (sent)</h3>
+      <p class="description">
+        Sent broadcasts, one row each: the message with attachment
+        thumbnails and template / opt-in pills, the recipients, the
+        message count (or in-flight status), and when it was sent.
+        Clicking a row opens the floating detail dialog.
+      </p>
+      <temba-broadcast-list
+        id="broadcasts"
+        list-title="Broadcasts"
+        subtitle="Messages sent to more than one contact."
+        endpoint="/demo/components/content-list/data/broadcasts.json"
+      ></temba-broadcast-list>
+      <div class="events" id="broadcasts-events">
+        <div class="label">Events</div>
+        (waiting)
+      </div>
+
+      <h3>Broadcasts (scheduled)</h3>
+      <p class="description">
+        Scheduled broadcasts with the human repeat and next send time.
+        The detail dialog carries Edit / Delete actions (permission
+        flags set via <code>can-edit</code> / <code>can-delete</code>)
+        that fire <code>temba-selection</code> for the host.
+      </p>
+      <temba-broadcast-list
+        id="broadcasts-scheduled"
+        mode="scheduled"
+        can-edit
+        can-delete
+        list-title="Scheduled Broadcasts"
+        subtitle="Messages that will be sent later."
+        endpoint="/demo/components/content-list/data/broadcasts-scheduled.json"
+      ></temba-broadcast-list>
+      <div class="events" id="broadcasts-scheduled-events">
+        <div class="label">Events</div>
+        (waiting)
+      </div>
+    </div>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+
+      const wire = (listId, logId) => {
+        const list = document.getElementById(listId);
+        const log = document.getElementById(logId);
+        const label = '<div class="label">Events</div>';
+        let lines = [];
+        const append = (msg) => {
+          lines.unshift(msg);
+          lines = lines.slice(0, 6);
+          log.innerHTML = label + lines.join('\n');
+        };
+        list.addEventListener('temba-row-click', (e) =>
+          append('row-click ' + JSON.stringify(e.detail.item).slice(0, 80))
+        );
+        list.addEventListener('temba-selection-change', (e) =>
+          append('selection-change ids=' + JSON.stringify(e.detail.ids))
+        );
+        list.addEventListener('temba-bulk-action', (e) =>
+          append(
+            'bulk-action ' + e.detail.action + ' ' + JSON.stringify(e.detail.ids)
+          )
+        );
+        list.addEventListener('temba-selection', (e) =>
+          append('content-menu ' + (e.detail.item && e.detail.item.label))
+        );
+      };
+
+      wire('msgs', 'msgs-events');
+      wire('contacts', 'contacts-events');
+      wire('contacts-basic', 'contacts-basic-events');
+      wire('contacts-system', 'contacts-system-events');
+      wire('flows', 'flows-events');
+      wire('campaigns', 'campaigns-events');
+      wire('triggers', 'triggers-events');
+      wire('broadcasts', 'broadcasts-events');
+      wire('broadcasts-scheduled', 'broadcasts-scheduled-events');
+
+      // Block real navigation so contact-row hrefs don't take you away
+      document.addEventListener('click', (e) => {
+        const path = e.composedPath();
+        if (path.some((n) => n?.tagName === 'TEMBA-CONTACT-LIST')) {
+          e.preventDefault();
+        }
+      });
+    </script>
+  </body>
+</html>

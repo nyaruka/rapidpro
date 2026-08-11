@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>Flow Editor</title>
+    <link href="/demo/static/css/tailwind.css" rel="stylesheet" />
+    <link
+      href="/static/css/temba-components.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto+Mono:300|Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      temba-store {
+        display: none;
+      }
+      temba-flow-editor {
+        width: 100%;
+        height: 100vh;
+      }
+      temba-store {
+        display: none;
+      }
+      temba-flow-editor {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <temba-store
+      completion="/mr/docs/en-us/editor.json"
+      workspace="/api/v2/workspace.json"
+    >
+    </temba-store>
+    <temba-flow-editor id="flow-editor" features='["ai", "locations"]'></temba-flow-editor>
+
+    <script type="module">
+      import '/static/components-dev/temba-modules.js';
+
+      // The flow parameter is a real flow uuid for the logged-in org — with
+      // none given, send them to the listing to pick one
+      const urlParams = new URLSearchParams(window.location.search);
+      const flowUuid = urlParams.get('flow');
+      if (flowUuid) {
+        document.getElementById('flow-editor').setAttribute('flow', flowUuid);
+      } else {
+        window.location.replace('index.html');
+      }
+    </script>
+  </body>
+</html>
