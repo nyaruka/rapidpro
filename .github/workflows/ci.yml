@@ -123,7 +123,7 @@ jobs:
           apt install -y --no-install-recommends libgdal-dev ffmpeg gettext
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v8.3.2
+        uses: astral-sh/setup-uv@v9.0.0
 
       - name: Install Node
         uses: actions/setup-node@v6
@@ -140,7 +140,6 @@ jobs:
           uv venv
           uv sync --frozen
           bun install --frozen-lockfile
-          npm install -g less@4
           uv run python manage.py compilemessages --ignore='.venv' --ignore='node_modules'
           uv run python manage.py migrate
           uv run python manage.py migrate_dynamo --testing
