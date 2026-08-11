@@ -73,7 +73,7 @@ class BroadcastsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         # `org` is select_related because as_json reads self.org via get_translation (org primary language)
         return (
             qs.order_by(*order, "-id")
-            .select_related("org", "schedule", "optin", "template", "created_by")
+            .select_related("org", "schedule", "template", "created_by")
             .prefetch_related("groups", "contacts")
         )
 
