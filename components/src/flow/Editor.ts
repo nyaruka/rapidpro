@@ -28,7 +28,12 @@ import {
   snapToGrid
 } from './utils';
 import { getLanguageName } from '../languages';
-import { ACTION_CONFIG, NODE_CONFIG, isEditableAction } from './config';
+import {
+  ACTION_CONFIG,
+  NODE_CONFIG,
+  isEditableAction,
+  isUnsupportedAction
+} from './config';
 import { PRIMARY_LANGUAGE_OPTION_VALUE } from './EditorToolbar';
 import {
   buildTranslationBundles,
@@ -1648,6 +1653,26 @@ export class Editor extends RapidElement {
     return `Save failed with status ${response.status}.`;
   }
 
+  private showUnsupportedActionDialog(): void {
+    const dialog = document.createElement('temba-dialog') as Dialog;
+    dialog.header = 'Action No Longer Supported';
+    dialog.primaryButtonName = '';
+    dialog.cancelButtonName = 'Dismiss';
+
+    const content = document.createElement('div');
+    content.style.cssText = 'padding: 20px; font-size: 14px; line-height: 1.5;';
+    content.textContent =
+      'This action is no longer supported and should be removed.';
+    dialog.appendChild(content);
+
+    document.body.appendChild(dialog);
+    dialog.open = true;
+
+    dialog.addEventListener('temba-dialog-hidden', () => {
+      document.body.removeChild(dialog);
+    });
+  }
+
   private showSaveErrorDialog(message: string): void {
     const dialog = document.createElement('temba-dialog') as Dialog;
     dialog.header = 'Save Failed';
@@ -3181,6 +3206,10 @@ export class Editor extends RapidElement {
 
   private handleActionEditRequested(event: CustomEvent): void {
     const requested = event.detail.action;
+    if (isUnsupportedAction(requested)) {
+      this.showUnsupportedActionDialog();
+      return;
+    }
     if (!isEditableAction(requested)) {
       return;
     }

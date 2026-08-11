@@ -812,12 +812,18 @@ describe('Editor', () => {
     };
 
     // request_optin is kept only so old definitions still render — its
-    // config declares no form, so it must never open the editor
+    // config declares no form and it is listed as no longer supported, so
+    // it must never open the editor
     const FORMLESS_ACTION = {
       uuid: 'action-1',
       type: 'request_optin',
       optin: { uuid: 'optin-1', name: 'U-Report' }
     };
+
+    const unsupportedDialog = () =>
+      [...document.body.querySelectorAll('temba-dialog')].find(
+        (d: any) => d.header === 'Action No Longer Supported'
+      ) as any;
 
     const getEditor = async (action: any): Promise<Editor> => {
       const editor: Editor = await fixture(html`
@@ -885,12 +891,19 @@ describe('Editor', () => {
         expect(nodeEditor(editor)).to.exist;
       });
 
-      it('ignores actions whose config has no form', async () => {
+      it('explains unsupported actions instead of opening the editor', async () => {
         editor = await getEditor(FORMLESS_ACTION);
         await requestEdit(editor, FORMLESS_ACTION);
 
         expect((editor as any).editingAction).to.be.null;
         expect(nodeEditor(editor)).to.not.exist;
+
+        const dialog = unsupportedDialog();
+        expect(dialog).to.exist;
+        expect(dialog.textContent).to.contain(
+          'This action is no longer supported and should be removed.'
+        );
+        dialog.remove();
       });
     });
 
@@ -903,12 +916,13 @@ describe('Editor', () => {
         expect(nodeEditor(editor)).to.exist;
       });
 
-      it('ignores actions whose config has no form', async () => {
+      it('focuses unsupported actions without a dialog', async () => {
         editor = await getEditor(FORMLESS_ACTION);
         await selectIssue(editor, FORMLESS_ACTION);
 
         expect((editor as any).editingAction).to.be.null;
         expect(nodeEditor(editor)).to.not.exist;
+        expect(unsupportedDialog()).to.not.exist;
       });
     });
 
@@ -921,12 +935,13 @@ describe('Editor', () => {
         expect(nodeEditor(editor)).to.exist;
       });
 
-      it('ignores actions whose config has no form', async () => {
+      it('focuses unsupported actions without a dialog', async () => {
         editor = await getEditor(FORMLESS_ACTION);
         await selectSearchResult(editor, FORMLESS_ACTION);
 
         expect((editor as any).editingAction).to.be.null;
         expect(nodeEditor(editor)).to.not.exist;
+        expect(unsupportedDialog()).to.not.exist;
       });
     });
   });
