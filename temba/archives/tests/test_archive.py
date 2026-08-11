@@ -2,6 +2,8 @@ import base64
 from datetime import date, datetime, timezone as tzone
 from unittest.mock import ANY, call, patch
 
+from django.conf import settings
+
 from temba.archives.models import Archive
 from temba.tests import TembaTest
 from temba.utils import json, s3
@@ -21,7 +23,7 @@ class ArchiveTest(TembaTest):
     def test_iter_records(self):
         archive = self.create_archive(Archive.TYPE_MSG, "D", date(2024, 8, 14), [{"id": 1}, {"id": 2}, {"id": 3}])
         bucket, key = archive.get_storage_location()
-        self.assertEqual("test-archives", bucket)
+        self.assertEqual(f"{settings.BUCKET_PREFIX}-archives", bucket)
         self.assertEqual(f"{self.org.id}/message_D20240814_{archive.hash}.jsonl.gz", key)
 
         # can fetch records without any filtering
@@ -49,7 +51,7 @@ class ArchiveTest(TembaTest):
             self.assertEqual([{"id": 2}, {"id": 3}], [r for r in records_iter])
 
             mock_select_object_content.assert_called_once_with(
-                Bucket="test-archives",
+                Bucket=f"{settings.BUCKET_PREFIX}-archives",
                 Key=f"{self.org.id}/message_D20240814_477c143c30f72ee7a028c7c9e04992f9.jsonl.gz",
                 ExpressionType="SQL",
                 Expression="SELECT s.* FROM s3object s WHERE s.id > 1",
@@ -68,7 +70,7 @@ class ArchiveTest(TembaTest):
             self.assertEqual([{"id": 1}, {"id": 2}], list(records_iter))
 
             mock_select_object_content.assert_called_once_with(
-                Bucket="test-archives",
+                Bucket=f"{settings.BUCKET_PREFIX}-archives",
                 Key=f"{self.org.id}/message_D20240814_477c143c30f72ee7a028c7c9e04992f9.jsonl.gz",
                 ExpressionType="SQL",
                 Expression="SELECT s.* FROM s3object s WHERE s.id < 3",
@@ -144,7 +146,7 @@ class ArchiveTest(TembaTest):
             self.assertEqual(
                 [
                     call(
-                        Bucket="test-archives",
+                        Bucket=f"{settings.BUCKET_PREFIX}-archives",
                         Key=m20200701.get_storage_location()[1],
                         ExpressionType="SQL",
                         Expression="SELECT s.* FROM s3object s WHERE CAST(s.created_on AS TIMESTAMP) >= CAST('2020-07-30T12:00:00+00:00' AS TIMESTAMP) AND CAST(s.created_on AS TIMESTAMP) <= CAST('2020-08-02T12:00:00+00:00' AS TIMESTAMP)",
@@ -152,7 +154,7 @@ class ArchiveTest(TembaTest):
                         OutputSerialization={"JSON": {"RecordDelimiter": "\n"}},
                     ),
                     call(
-                        Bucket="test-archives",
+                        Bucket=f"{settings.BUCKET_PREFIX}-archives",
                         Key=d20200801.get_storage_location()[1],
                         ExpressionType="SQL",
                         Expression="SELECT s.* FROM s3object s WHERE CAST(s.created_on AS TIMESTAMP) >= CAST('2020-07-30T12:00:00+00:00' AS TIMESTAMP) AND CAST(s.created_on AS TIMESTAMP) <= CAST('2020-08-02T12:00:00+00:00' AS TIMESTAMP)",
@@ -160,7 +162,7 @@ class ArchiveTest(TembaTest):
                         OutputSerialization={"JSON": {"RecordDelimiter": "\n"}},
                     ),
                     call(
-                        Bucket="test-archives",
+                        Bucket=f"{settings.BUCKET_PREFIX}-archives",
                         Key=d20200802.get_storage_location()[1],
                         ExpressionType="SQL",
                         Expression="SELECT s.* FROM s3object s WHERE CAST(s.created_on AS TIMESTAMP) >= CAST('2020-07-30T12:00:00+00:00' AS TIMESTAMP) AND CAST(s.created_on AS TIMESTAMP) <= CAST('2020-08-02T12:00:00+00:00' AS TIMESTAMP)",
@@ -199,19 +201,21 @@ class ArchiveTest(TembaTest):
         archive.refresh_from_db()
 
         new_bucket, new_key = archive.get_storage_location()
-        self.assertEqual("test-archives", new_bucket)
+        self.assertEqual(f"{settings.BUCKET_PREFIX}-archives", new_bucket)
         self.assertNotEqual(key, new_key)
-        self.assertEqual(f"test-archives:{self.org.id}/run_D20200801_{archive.hash}.jsonl.gz", archive.location)
+        self.assertEqual(
+            f"{settings.BUCKET_PREFIX}-archives:{self.org.id}/run_D20200801_{archive.hash}.jsonl.gz", archive.location
+        )
         self.assertEqual("59de3863f44426885fd58660c7ff58a6", archive.hash)
 
         hash_b64 = base64.standard_b64encode(bytes.fromhex(archive.hash)).decode()
 
         self.assertEqual("PutObject", self.s3_calls[-2][0])
-        self.assertEqual("test-archives", self.s3_calls[-2][1]["Bucket"])
+        self.assertEqual(f"{settings.BUCKET_PREFIX}-archives", self.s3_calls[-2][1]["Bucket"])
         self.assertEqual(f"{self.org.id}/run_D20200801_{archive.hash}.jsonl.gz", self.s3_calls[-2][1]["Key"])
         self.assertEqual(hash_b64, self.s3_calls[-2][1]["ContentMD5"])
         self.assertEqual("DeleteObject", self.s3_calls[-1][0])
-        self.assertEqual("test-archives", self.s3_calls[-1][1]["Bucket"])
+        self.assertEqual(f"{settings.BUCKET_PREFIX}-archives", self.s3_calls[-1][1]["Bucket"])
 
         self.s3_calls = []
 
@@ -220,10 +224,12 @@ class ArchiveTest(TembaTest):
         archive.refresh_from_db()
 
         new_bucket, new_key = archive.get_storage_location()
-        self.assertEqual("test-archives", new_bucket)
+        self.assertEqual(f"{settings.BUCKET_PREFIX}-archives", new_bucket)
         self.assertNotEqual(key, new_key)
         self.assertEqual("59de3863f44426885fd58660c7ff58a6", archive.hash)
-        self.assertEqual(f"test-archives:{self.org.id}/run_D20200801_{archive.hash}.jsonl.gz", archive.location)
+        self.assertEqual(
+            f"{settings.BUCKET_PREFIX}-archives:{self.org.id}/run_D20200801_{archive.hash}.jsonl.gz", archive.location
+        )
 
         self.assertEqual(2, len(self.s3_calls))
         self.assertEqual("GetObject", self.s3_calls[0][0])

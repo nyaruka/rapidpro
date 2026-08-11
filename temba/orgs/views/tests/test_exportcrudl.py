@@ -29,7 +29,9 @@ class ExportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIn(f"contacts_{datetime.today().strftime(r'%Y%m%d')}.xlsx", raw_url)
 
         response = self.client.get(download_url + "?raw=1")
-        self.assertRedirect(response, f"/test-default/orgs/{self.org.id}/contact_exports/{export.uuid}.xlsx")
+        self.assertRedirect(
+            response, f"/{settings.BUCKET_PREFIX}-default/orgs/{self.org.id}/contact_exports/{export.uuid}.xlsx"
+        )
 
     def test_download_message_export(self):
         label = self.create_label("Sales")
@@ -50,7 +52,9 @@ class ExportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIn(f"messages_{datetime.today().strftime(r'%Y%m%d')}.xlsx", raw_url)
 
         response = self.client.get(download_url + "?raw=1")
-        self.assertRedirect(response, f"/test-default/orgs/{self.org.id}/message_exports/{export.uuid}.xlsx")
+        self.assertRedirect(
+            response, f"/{settings.BUCKET_PREFIX}-default/orgs/{self.org.id}/message_exports/{export.uuid}.xlsx"
+        )
 
     def test_download_results_export(self):
         flow1 = self.create_flow("Test Flow 1")
@@ -81,7 +85,9 @@ class ExportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIn(f"results_{datetime.today().strftime(r'%Y%m%d')}.xlsx", raw_url)
 
         response = self.client.get(download_url + "?raw=1")
-        self.assertRedirect(response, f"/test-default/orgs/{self.org.id}/results_exports/{export.uuid}.xlsx")
+        self.assertRedirect(
+            response, f"/{settings.BUCKET_PREFIX}-default/orgs/{self.org.id}/results_exports/{export.uuid}.xlsx"
+        )
 
     def test_download_ticket_export(self):
         export = TicketExport.create(
@@ -100,4 +106,6 @@ class ExportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIn(f"tickets_{datetime.today().strftime(r'%Y%m%d')}.xlsx", raw_url)
 
         response = self.client.get(download_url + "?raw=1")
-        self.assertRedirect(response, f"/test-default/orgs/{self.org.id}/ticket_exports/{export.uuid}.xlsx")
+        self.assertRedirect(
+            response, f"/{settings.BUCKET_PREFIX}-default/orgs/{self.org.id}/ticket_exports/{export.uuid}.xlsx"
+        )

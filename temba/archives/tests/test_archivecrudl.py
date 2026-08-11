@@ -37,7 +37,7 @@ class ArchiveCRUDLTest(TembaTest, CRUDLTestMixin):
         archive = self.create_archive(Archive.TYPE_MSG, "D", date(2020, 7, 31), [{"id": 1}, {"id": 2}])
 
         download_url = (
-            f"{settings.AWS_S3_ENDPOINT_URL}/test-archives/{self.org.id}/message_D20200731_{archive.hash}.jsonl.gz?response-con"
+            f"{settings.AWS_S3_ENDPOINT_URL}/{settings.BUCKET_PREFIX}-archives/{self.org.id}/message_D20200731_{archive.hash}.jsonl.gz?response-con"
             f"tent-disposition=attachment%3B&response-content-type=application%2Foctet&response-content-encoding=none"
         )
 
