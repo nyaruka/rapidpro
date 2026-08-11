@@ -218,7 +218,6 @@ class Broadcast(LegacyIDMixin, models.Model):
     # message content
     translations = models.JSONField()  # text, attachments and quick replies by language
     base_language = models.CharField(max_length=3)  # ISO-639-3
-    optin = models.ForeignKey("msgs.OptIn", null=True, on_delete=models.PROTECT)
     template = models.ForeignKey("templates.Template", null=True, on_delete=models.PROTECT)
     template_variables = ArrayField(models.TextField(), null=True)
 
@@ -604,7 +603,6 @@ class Msg(models.Model):
     text = models.TextField()
     attachments = ArrayField(models.URLField(max_length=Attachment.MAX_LEN), null=True)
     quickreplies = models.JSONField(null=True)
-    optin = models.ForeignKey("msgs.OptIn", on_delete=models.DO_NOTHING, null=True, db_index=False, db_constraint=False)
     locale = models.CharField(max_length=6, null=True)  # eng, eng-US, por-BR, und etc
     templating = models.JSONField(null=True)
 
@@ -1103,17 +1101,6 @@ class LabelCount(BaseSquashableCount):
         )
         counts_by_label_id = {c[0]: c[1] for c in counts}
         return {lb: counts_by_label_id.get(lb.id, 0) for lb in labels}
-
-
-class OptIn(LegacyIDMixin, TembaModel):
-    """
-    Contact optin for a particular messaging topic.
-    """
-
-    org = models.ForeignKey(Org, on_delete=models.PROTECT, related_name="optins")
-
-    class Meta:
-        constraints = [models.UniqueConstraint("org", Lower("name"), name="unique_optin_names")]
 
 
 class MsgIterator:

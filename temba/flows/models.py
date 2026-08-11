@@ -25,7 +25,7 @@ from temba.ai.models import LLM
 from temba.channels.models import Channel
 from temba.contacts.models import Contact, ContactField, ContactGroup
 from temba.globals.models import Global
-from temba.msgs.models import Label, OptIn
+from temba.msgs.models import Label
 from temba.orgs.models import DependencyMixin, Export, ExportType, Org
 from temba.orgs.realtime import AssetNameMixin
 from temba.templates.models import Template
@@ -177,9 +177,6 @@ class Flow(AssetNameMixin, LegacyIDMixin, TembaModel, DependencyMixin):
     group_dependencies = models.ManyToManyField(ContactGroup, related_name="dependent_flows")
     label_dependencies = models.ManyToManyField(Label, related_name="dependent_flows")
     llm_dependencies = models.ManyToManyField(LLM, related_name="dependent_flows")
-    # retained only so the table survives a rolling deploy — nothing reads or writes it any more, and it goes
-    # along with the OptIn model itself
-    optin_dependencies = models.ManyToManyField(OptIn, related_name="dependent_flows")
     template_dependencies = models.ManyToManyField(Template, related_name="dependent_flows")
     topic_dependencies = models.ManyToManyField(Topic, related_name="dependent_flows")
     user_dependencies = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="dependent_flows")

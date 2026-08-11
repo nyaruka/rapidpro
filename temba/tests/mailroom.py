@@ -81,7 +81,6 @@ _INSPECT_ACTION_REFS = {
     "flow": "flow",
     "channel": "channel",
     "llm": "llm",
-    "optin": "optin",
     "topic": "topic",
     "template": "template",
 }
