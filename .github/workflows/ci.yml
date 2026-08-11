@@ -51,8 +51,8 @@ jobs:
           echo "components=$components" >> "$GITHUB_OUTPUT"
           echo "temba=$temba" >> "$GITHUB_OUTPUT"
 
-  components:
-    name: Components
+  test-components:
+    name: Test Components
     needs: changes
     if: needs.changes.outputs.components == 'true'
     runs-on: ubuntu-latest
@@ -76,8 +76,8 @@ jobs:
           env: |
             CI=true
 
-  test:
-    name: Django
+  test-django:
+    name: Test Django
     needs: changes
     if: needs.changes.outputs.temba == 'true'
     runs-on: ubuntu-latest
