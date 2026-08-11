@@ -399,7 +399,6 @@ class Broadcast(LegacyIDMixin, models.Model):
             "text": translation["text"],
             "attachments": translation["attachments"],
             "quick_replies": translation["quick_replies"],
-            "optin": {"uuid": str(self.optin.uuid), "name": self.optin.name} if self.optin else None,
             "template": {"uuid": str(self.template.uuid), "name": self.template.name} if self.template else None,
             "groups": [{"uuid": str(g.uuid), "name": g.name} for g in self.groups.all()],
             "contacts": [{"uuid": str(c.uuid), "name": c.name} for c in self.contacts.all()],

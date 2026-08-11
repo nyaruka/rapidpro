@@ -14,7 +14,6 @@ from temba.flows.models import Flow, FlowLabel
 from temba.globals.models import Global
 from temba.knowledge.models import Article, Knowledge
 from temba.locations.models import AdminBoundary
-from temba.msgs.models import OptIn
 from temba.notifications.models import Notification
 from temba.orgs.models import Org
 from temba.templates.models import Template, TemplateTranslation
@@ -192,7 +191,6 @@ class AssetsEndpoint(BaseEndpoint):
         ),
         "label": _asset_by_field(FlowLabel, "uuid"),
         "llm": _asset_by_field(LLM, "uuid"),
-        "optin": _asset_by_field(OptIn, "uuid"),
         "template": _asset_by_field(Template, "uuid"),
         "topic": _asset_by_field(Topic, "uuid"),
         "contact": AssetType("uuid", _fetch_contacts, lambda org, obj: obj.get_display(org=org)),

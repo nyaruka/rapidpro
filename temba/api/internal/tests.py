@@ -14,7 +14,7 @@ from temba.contacts.models import Contact, ContactExport, ContactField, ContactG
 from temba.flows.models import Flow, FlowLabel
 from temba.globals.models import Global
 from temba.knowledge.models import Article, Knowledge
-from temba.msgs.models import Broadcast, Msg, OptIn
+from temba.msgs.models import Broadcast, Msg
 from temba.notifications.types import ExportFinishedNotificationType
 from temba.orgs.models import Org, OrgRole
 from temba.schedules.models import Schedule
@@ -726,7 +726,6 @@ class EndpointsTest(APITestMixin, TembaTest):
         global_ = Global.get_or_create(self.org, self.admin, "company_name", "Company Name", "Acme")
         label = FlowLabel.create(self.org, self.admin, "Important")
         llm = LLM.create(self.org, self.admin, OpenAIType(), "gpt-4o", "GPT-4", {})
-        optin = OptIn.create(self.org, self.admin, "Product Updates")
         template = Template.get_or_create(self.org, "welcome_message")
         topic = Topic.create(self.org, self.admin, "Support")
         other_flow = self.create_flow("Other Org", org=self.org2)
@@ -737,7 +736,6 @@ class EndpointsTest(APITestMixin, TembaTest):
             "group": [str(group.uuid)],
             "label": [str(label.uuid)],
             "llm": [str(llm.uuid)],
-            "optin": [str(optin.uuid)],
             "template": [str(template.uuid)],
             "topic": [str(topic.uuid)],
             "contact": [str(contact.uuid)],
@@ -751,7 +749,6 @@ class EndpointsTest(APITestMixin, TembaTest):
             {"type": "group", "uuid": str(group.uuid), "name": "Customers"},
             {"type": "label", "uuid": str(label.uuid), "name": "Important"},
             {"type": "llm", "uuid": str(llm.uuid), "name": "GPT-4"},
-            {"type": "optin", "uuid": str(optin.uuid), "name": "Product Updates"},
             {"type": "template", "uuid": str(template.uuid), "name": "welcome_message"},
             {"type": "topic", "uuid": str(topic.uuid), "name": "Support"},
             {"type": "contact", "uuid": str(contact.uuid), "name": "Alice"},
