@@ -15,6 +15,7 @@ applications. To see what it can do, signup for a free trial account at [textit.
 - [Centrifugo](https://centrifugal.dev)
 - [S3](https://aws.amazon.com/s3/)
 - [DynamoDB](https://aws.amazon.com/dynamodb/)
+- [Hugging Face](https://github.com/huggingface/text-embeddings-inference)
 - [Cloudwatch](https://aws.amazon.com/cloudwatch/)
 
 ## Snapshots
