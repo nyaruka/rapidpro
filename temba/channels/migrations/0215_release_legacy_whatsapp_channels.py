@@ -57,7 +57,8 @@ def update_base_translation(template):
     candidates = template.translations.all()
 
     # try to find one in the org's primary language, otherwise fallback to the oldest
-    new_base = candidates.filter(locale__startswith=template.org.flow_languages[0]).first()
+    languages = template.org.flow_languages
+    new_base = candidates.filter(locale__startswith=languages[0]).first() if languages else None
     if not new_base:
         new_base = candidates.order_by("id").first()
 

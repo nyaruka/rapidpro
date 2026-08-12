@@ -24,13 +24,13 @@ class ReleaseLegacyWhatsAppChannelsTest(MigrationTest):
         self.wac_incident = self._create_incident(self.wac)
 
         # a template whose base translation is from a legacy channel, and which has a cloud channel translation in the
-        # org's primary language
+        # org's primary language with different variables to its other remaining translation
         self.template1 = self.create_template(
             "greeting",
             [
-                self._create_translation(self.wa, "eng-US"),
+                self._create_translation(self.wa, "eng-US", variables=[{"type": "text"}]),
                 self._create_translation(self.wac, "eng-US"),
-                self._create_translation(self.wac, "fra"),
+                self._create_translation(self.wac, "fra", variables=[{"type": "text"}]),
             ],
         )
         self._set_base(self.template1, self.wa, "eng-US")
@@ -61,7 +61,7 @@ class ReleaseLegacyWhatsAppChannelsTest(MigrationTest):
             org=self.org, incident_type="channel:templates_failed", scope=str(channel.uuid), channel=channel
         )
 
-    def _create_translation(self, channel, locale: str):
+    def _create_translation(self, channel, locale: str, variables: list = None):
         return TemplateTranslation(
             channel=channel,
             locale=locale,
@@ -70,12 +70,15 @@ class ReleaseLegacyWhatsAppChannelsTest(MigrationTest):
             external_locale="en_US",
             namespace="",
             components=[{"name": "body", "type": "body/text", "content": "Hi", "variables": {}}],
-            variables=[],
+            variables=variables or [],
         )
 
     def _set_base(self, template, channel, locale: str):
         template.base_translation = template.translations.get(channel=channel, locale=locale)
         template.save(update_fields=("base_translation",))
+
+        # start with all translations compatible so we can see the migration recalculate them
+        template.translations.update(is_compatible=True)
 
     def test_migration(self):
         self.wa.refresh_from_db()
@@ -108,6 +111,10 @@ class ReleaseLegacyWhatsAppChannelsTest(MigrationTest):
         self.template1.refresh_from_db()
         self.assertEqual(self.wac, self.template1.base_translation.channel)
         self.assertEqual("eng-US", self.template1.base_translation.locale)
+
+        # and its remaining translations have had their compatibility recalculated against that new base
+        self.assertTrue(self.template1.translations.get(locale="eng-US").is_compatible)
+        self.assertFalse(self.template1.translations.get(locale="fra").is_compatible)
 
         # template without one falls back to its oldest remaining translation
         self.template2.refresh_from_db()
