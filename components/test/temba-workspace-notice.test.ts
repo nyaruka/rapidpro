@@ -174,6 +174,13 @@ describe('workspace staleness', () => {
     expect(isWorkspaceStale()).to.equal(false);
   });
 
+  it('is reachable from the page, which fetches outside the components', () => {
+    expect(typeof (window as any).markWorkspaceStale).to.equal('function');
+
+    (window as any).markWorkspaceStale();
+    expect(isWorkspaceStale()).to.equal(true);
+  });
+
   it('notifies listeners once', () => {
     let notified = 0;
     const unsubscribe = onWorkspaceStale(() => notified++);

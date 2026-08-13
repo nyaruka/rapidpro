@@ -289,6 +289,22 @@ function fetchAjax(url, options, fullPage = false) {
 
   return fetch(toFetch, options)
     .then(function (response) {
+      // a refused request naming no workspace is the workspace we asked for
+      // being rejected - it's set on the response only after that check, so
+      // anything else that forbids us comes back carrying it. The page has
+      // been left behind rather than gone wrong, so show the notice and let
+      // the user refresh in their own time.
+      if (
+        response.status === 403 &&
+        response.type !== 'cors' &&
+        !response.headers.get('X-Temba-Workspace') &&
+        options['headers']['X-Temba-Workspace'] &&
+        window.markWorkspaceStale
+      ) {
+        window.markWorkspaceStale();
+        return;
+      }
+
       if (response.status >= 400) {
         showErrorDialog();
         return;
