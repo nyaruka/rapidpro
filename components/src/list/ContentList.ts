@@ -2538,7 +2538,7 @@ export class ContentList<T = any> extends RapidElement {
         </span>
         <div slot="dropdown" class="label-menu">
           ${!labels
-            ? html`<div class="label-menu-empty">Loading&hellip;</div>`
+            ? html`<div class="label-menu-empty">${msg('Loading…')}</div>`
             : labels.length === 0 && !action.allowCreate
               ? html`<div class="label-menu-empty">${msg('No labels')}</div>`
               : labels.map((label) => this.renderLabelOption(label, action))}
@@ -2549,7 +2549,7 @@ export class ContentList<T = any> extends RapidElement {
                   : ''}"
                 @click=${() => this.handleLabelCreate(action)}
               >
-                New Label&hellip;
+                ${msg('New Label…')}
               </div>`
             : null}
         </div>

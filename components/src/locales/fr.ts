@@ -35,6 +35,7 @@
 's3643189d1abbb7f4': `Code`,
 's3cf89cb47fdde7e9': `Lien`,
 's3d2cc8d952adebec': `Petite`,
+'s3d746a7876cfd957': `Nouvelle étiquette…`,
 's3d93f9ea0c5a13fa': `Image`,
 's3eb2567092b4d7c1': `depuis le début`,
 's41f7dca46d3f1b4a': `Valeur`,

@@ -522,6 +522,10 @@
   <source>Opt-Out</source>
   <target>Opt-Out</target>
 </trans-unit>
+<trans-unit id="s3d746a7876cfd957">
+  <source>New Label…</source>
+  <target>Novo rótulo…</target>
+</trans-unit>
 </body>
 </file>
 </xliff>

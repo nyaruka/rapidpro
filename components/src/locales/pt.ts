@@ -35,6 +35,7 @@
 's3643189d1abbb7f4': `Código`,
 's3cf89cb47fdde7e9': `Link`,
 's3d2cc8d952adebec': `Pequeno`,
+'s3d746a7876cfd957': `Novo rótulo…`,
 's3d93f9ea0c5a13fa': `Imagem`,
 's3eb2567092b4d7c1': `desde o início`,
 's41f7dca46d3f1b4a': `Valor`,
