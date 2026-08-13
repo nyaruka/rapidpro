@@ -65,8 +65,7 @@ import { Mask } from './src/layout/Mask';
 import { TembaUser } from './src/display/TembaUser';
 import { TemplateEditor } from './src/form/TemplateEditor';
 import { Toast } from './src/display/Toast';
-import { WorkspaceNotice } from './src/display/WorkspaceNotice';
-import { markWorkspaceStale } from './src/workspace';
+import { confirmWorkspaceStale } from './src/workspace';
 import { Chat } from './src/display/Chat';
 import { MediaPicker } from './src/form/MediaPicker';
 import { MarkdownEditor } from './src/form/MarkdownEditor';
@@ -183,7 +182,6 @@ addCustomElement('temba-mask', Mask);
 addCustomElement('temba-user', TembaUser);
 addCustomElement('temba-template-editor', TemplateEditor);
 addCustomElement('temba-toast', Toast);
-addCustomElement('temba-workspace-notice', WorkspaceNotice);
 addCustomElement('temba-chat', Chat);
 addCustomElement('temba-media-picker', MediaPicker);
 addCustomElement('temba-markdown-edit', MarkdownEditor);
@@ -224,4 +222,4 @@ addCustomElement('temba-auto-translate', AutoTranslate);
 
 // the page's own scripts fetch outside these components (SPA navigation), so
 // they need a way into the same page-level workspace state
-(window as any).markWorkspaceStale = markWorkspaceStale;
+(window as any).confirmWorkspaceStale = confirmWorkspaceStale;

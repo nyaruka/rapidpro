@@ -11,10 +11,7 @@
     export const templates = {
       's06f6c6f99db6b552': `Originale`,
 's3d2cc8d952adebec': `Petite`,
-'s7b7163270e57e8b4': `Actualiser`,
-'s7bb2fb9c9c164d3f': str`Cette page affiche ${0}. Vous avez changé d'espace de travail depuis, actualisez pour voir les données actuelles.`,
 'sac6bdc71f750ac96': `Moyenne`,
-'sbd484060756f38b1': `Cette page affiche un espace de travail que vous avez depuis quitté, actualisez pour voir les données actuelles.`,
 'sc8736ef79380e634': `Grande`,
 's73b4d70c02f4b4e0': `No options`,
 'scf1453991c986b25': `Tab to complete, enter to select`,

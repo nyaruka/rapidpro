@@ -3,15 +3,21 @@
  * who switches workspace elsewhere - another tab, a menu action - leaves this
  * page rendering data it can no longer fetch. The server tells us on every
  * response which workspace the session is actually in, so the page can notice
- * it has been left behind and offer a refresh.
+ * it has been left behind and reload itself into the current one.
  */
 
 export const WORKSPACE_HEADER = 'X-Temba-Workspace';
 
-type StaleListener = () => void;
+// asked without a workspace of our own, so the answer names the session's
+const WORKSPACE_ENDPOINT = '/api/v2/workspace.json';
 
 let stale = false;
-const listeners = new Set<StaleListener>();
+let confirming: Promise<void> = null;
+
+/** Test seam - reloading the page would take the test runner with it. */
+export const pageReloader = {
+  reload: () => window.location.reload()
+};
 
 /** The workspace this page was rendered for, if any. */
 export const getPageWorkspaceUUID = (): string | null =>
@@ -19,29 +25,63 @@ export const getPageWorkspaceUUID = (): string | null =>
 
 export const isWorkspaceStale = (): boolean => stale;
 
+/** Test hook - a page only goes stale once, and then it reloads. */
+export const resetWorkspaceStale = (): void => {
+  stale = false;
+  confirming = null;
+};
+
 /**
- * Records that this page is showing a workspace the user has since left. It's
- * a one-way trip - switching back isn't something this page can observe, and a
- * page that has been denied content is already showing gaps.
+ * Reloads the page into the workspace the session is now in. Unsaved work is
+ * the user's to keep, so this goes through the same dirty check that page
+ * navigation does - the store is asked directly rather than imported, since
+ * everything it imports leads back here.
  */
 export const markWorkspaceStale = (): void => {
   if (stale) {
     return;
   }
   stale = true;
-  listeners.forEach((listener) => listener());
+
+  const store = document.querySelector('temba-store') as any;
+  const unsaved = store?.getDirtyMessage ? store.getDirtyMessage() : null;
+  if (unsaved && !window.confirm(unsaved)) {
+    return;
+  }
+
+  pageReloader.reload();
 };
 
-/** Registers interest in the page going stale, returning an unsubscribe. */
-export const onWorkspaceStale = (listener: StaleListener): (() => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-};
+/**
+ * Asks which workspace the session is in and reloads if it isn't ours. Used
+ * where a response only hints at a switch: being refused without a workspace
+ * names one is how the middleware rejects a request for a workspace we've
+ * left, but it's also what anything in front of the app returns, so the hint
+ * is worth confirming before taking the page out from under someone.
+ */
+export const confirmWorkspaceStale = (): Promise<void> => {
+  if (stale || confirming) {
+    return confirming || Promise.resolve();
+  }
 
-/** Test hook - the page itself never recovers from being stale. */
-export const resetWorkspaceStale = (): void => {
-  stale = false;
-  listeners.clear();
+  confirming = fetch(WORKSPACE_ENDPOINT, {
+    method: 'GET',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+    .then((response) => {
+      const current = response.headers?.get(WORKSPACE_HEADER);
+      if (current && current !== getPageWorkspaceUUID()) {
+        markWorkspaceStale();
+      }
+    })
+    .catch(() => {
+      // couldn't ask, so we don't know - the next response can try again
+    })
+    .finally(() => {
+      confirming = null;
+    });
+
+  return confirming;
 };
 
 interface WorkspaceCheckable {
@@ -51,9 +91,9 @@ interface WorkspaceCheckable {
 }
 
 /**
- * Checks a response against the workspace this page asked for, marking the
- * page stale on a mismatch. Takes the headers we actually sent, since only a
- * request that asserted a workspace can be answered for a different one.
+ * Checks a response against the workspace this page asked for. Takes the
+ * headers we actually sent, since only a request that asserted a workspace can
+ * be answered for a different one.
  */
 export const checkWorkspaceResponse = (
   sentHeaders: { [key: string]: string },
@@ -83,11 +123,8 @@ export const checkWorkspaceResponse = (
     return false;
   }
 
-  // a request for the wrong workspace is rejected before the response header
-  // is set, so a 403 without one is that rejection - anything else that
-  // forbids us is answered by the workspace we asked for and carries it
   if (response.status === 403) {
-    markWorkspaceStale();
+    confirmWorkspaceStale();
     return true;
   }
 
