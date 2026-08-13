@@ -18,6 +18,7 @@ CONFIG_FB_ACCESS_TOKEN = "fb_access_token"
 CONFIG_FB_NAMESPACE = "fb_namespace"
 CONFIG_FB_TEMPLATE_LIST_DOMAIN = "fb_template_list_domain"
 CONFIG_FB_TEMPLATE_API_VERSION = "fb_template_list_domain_api_version"
+CONFIG_WEBHOOK_URL = "webhook_url"
 
 TEMPLATE_LIST_URL = "https://%s/%s/%s/message_templates"
 
@@ -64,7 +65,15 @@ class TurnType(ChannelType):
         if resp.status_code != 200:
             raise ValidationError(_("Unable to register webhooks: %(resp)s"), params={"resp": resp.text})
 
+        channel.config[CONFIG_WEBHOOK_URL] = receive_url
+        channel.save(update_fields=("config",))
+
     def deactivate(self, channel):
+        # only clear the webhook if we're the one that registered it - channels claimed before we did this, or whose
+        # registration failed, may have a webhook the user configured themselves
+        if not channel.config.get(CONFIG_WEBHOOK_URL):
+            return
+
         # resetting the application settings clears the primary webhook
         resp = requests.delete(
             channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application",

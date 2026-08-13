@@ -11,6 +11,7 @@ from temba.channels.types.turn.type import (
     CONFIG_FB_BUSINESS_ID,
     CONFIG_FB_NAMESPACE,
     CONFIG_FB_TEMPLATE_LIST_DOMAIN,
+    CONFIG_WEBHOOK_URL,
 )
 from temba.request_logs.models import HTTPLog
 from temba.templates.models import TemplateTranslation
@@ -88,9 +89,10 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
 
             self.assertEqual(200, response.status_code)
 
-            # once to register the webhooks, then a delete to clear them as the channel is released
+            # we tried to register the webhooks, but because that failed we don't try to clear them as the channel is
+            # released - the user may have a webhook of their own configured
             self.assertEqual(1, mock_patch.call_count)
-            self.assertEqual(1, mock_delete.call_count)
+            self.assertEqual(0, mock_delete.call_count)
 
             self.assertFormError(
                 response.context["form"], None, ['Unable to register webhooks: {"errors": ["invalid"]}']
@@ -129,6 +131,9 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
         self.assertEqual("abc123", channel.config[Channel.CONFIG_AUTH_TOKEN])
         self.assertEqual("https://whatsapp.turn.io", channel.config[Channel.CONFIG_BASE_URL])
 
+        # the registered webhook is recorded so that we know to clear it when the channel is released
+        self.assertEqual(f"https://app.rapidpro.io/c/trn/{channel.uuid}/receive", channel.config[CONFIG_WEBHOOK_URL])
+
         self.assertEqual("+250788123123", channel.address)
         self.assertEqual("RW", channel.country)
         self.assertEqual("TRN", channel.channel_type)
@@ -141,18 +146,17 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
         self.assertRedirects(response, reverse("channels.channel_read", args=[channel.uuid]))
 
     def test_release(self):
-        def create_turn_channel(address):
-            return self.create_channel(
-                "TRN",
-                "Turn: %s" % address,
-                address,
-                config={
-                    Channel.CONFIG_BASE_URL: "https://whatsapp.turn.io",
-                    Channel.CONFIG_USERNAME: "temba",
-                    Channel.CONFIG_PASSWORD: "tembapasswd",
-                    Channel.CONFIG_AUTH_TOKEN: "authtoken123",
-                },
-            )
+        def create_turn_channel(address, webhook_url="https://app.rapidpro.io/c/trn/1234/receive"):
+            config = {
+                Channel.CONFIG_BASE_URL: "https://whatsapp.turn.io",
+                Channel.CONFIG_USERNAME: "temba",
+                Channel.CONFIG_PASSWORD: "tembapasswd",
+                Channel.CONFIG_AUTH_TOKEN: "authtoken123",
+            }
+            if webhook_url:
+                config[CONFIG_WEBHOOK_URL] = webhook_url
+
+            return self.create_channel("TRN", "Turn: %s" % address, address, config=config)
 
         channel = create_turn_channel("1234")
 
@@ -179,6 +183,17 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
             channel.release(self.admin, interrupt=False)
 
         self.assertEqual(1, mock_delete.call_count)
+
+        channel.refresh_from_db()
+        self.assertFalse(channel.is_active)
+
+        # a channel we never registered a webhook for is released without touching the turn.io settings
+        channel = create_turn_channel("1236", webhook_url=None)
+
+        with patch("requests.delete") as mock_delete:
+            channel.release(self.admin, interrupt=False)
+
+        self.assertEqual(0, mock_delete.call_count)
 
         channel.refresh_from_db()
         self.assertFalse(channel.is_active)
