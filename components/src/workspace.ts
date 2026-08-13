@@ -31,11 +31,38 @@ export const resetWorkspaceStale = (): void => {
   confirming = null;
 };
 
+const RELOAD_WARNING =
+  "You've switched workspaces, so this page has to reload. Your unsaved changes will be lost. Continue?";
+
 /**
- * Reloads the page into the workspace the session is now in. Unsaved work is
- * the user's to keep, so this goes through the same dirty check that page
- * navigation does - the store is asked directly rather than imported, since
- * everything it imports leads back here.
+ * Whether anything on the page would lose work if it went away now. The store
+ * tracks what registered with it (a flow mid-save, a contact note), which
+ * leaves out the dialogs - a compose or a form someone is part way through
+ * knows its own edits instead. Dialogs opened through a modax live in its
+ * shadow root, so they can't be reached from the page's own tree.
+ */
+const hasUnsavedWork = (): boolean => {
+  const store = document.querySelector('temba-store') as any;
+  if (store?.getDirtyMessage && store.getDirtyMessage()) {
+    return true;
+  }
+
+  const dialogs: any[] = Array.from(document.querySelectorAll('temba-dialog'));
+  document.querySelectorAll('temba-modax').forEach((modax: any) => {
+    modax.shadowRoot
+      ?.querySelectorAll('temba-dialog')
+      .forEach((dialog: any) => dialogs.push(dialog));
+  });
+
+  return dialogs.some(
+    (dialog) => dialog.open && dialog.hasUnsavedChanges?.() === true
+  );
+};
+
+/**
+ * Reloads the page into the workspace the session is now in, asking first if
+ * that would take unsaved work with it. The store is reached through the DOM
+ * rather than imported, since everything it imports leads back here.
  */
 export const markWorkspaceStale = (): void => {
   if (stale) {
@@ -43,9 +70,7 @@ export const markWorkspaceStale = (): void => {
   }
   stale = true;
 
-  const store = document.querySelector('temba-store') as any;
-  const unsaved = store?.getDirtyMessage ? store.getDirtyMessage() : null;
-  if (unsaved && !window.confirm(unsaved)) {
+  if (hasUnsavedWork() && !window.confirm(RELOAD_WARNING)) {
     return;
   }
 

@@ -41,6 +41,24 @@ const withUnsavedChanges = (message: string) => {
   return () => store.remove();
 };
 
+// a dialog someone is part way through, which the store knows nothing about
+const withOpenDialog = (edited: boolean, insideModax = false) => {
+  const dialog = document.createElement('temba-dialog') as any;
+  dialog.open = true;
+  dialog.hasUnsavedChanges = () => edited;
+
+  if (insideModax) {
+    // a modax keeps its dialog in its own shadow root, out of the page's tree
+    const modax = document.createElement('temba-modax');
+    document.body.appendChild(modax);
+    modax.shadowRoot.appendChild(dialog);
+    return () => modax.remove();
+  }
+
+  document.body.appendChild(dialog);
+  return () => dialog.remove();
+};
+
 describe('workspace staleness', () => {
   let previousWorkspace: any;
   let reload: SinonStub;
@@ -242,6 +260,45 @@ describe('workspace staleness', () => {
 
     confirmed.restore();
     removeStore();
+  });
+
+  it('asks about a dialog someone is part way through', () => {
+    const removeDialog = withOpenDialog(true);
+    const confirmed = stub(window, 'confirm').returns(false);
+
+    markWorkspaceStale();
+
+    expect(confirmed.callCount).to.equal(1);
+    expect(reload.callCount).to.equal(0);
+
+    confirmed.restore();
+    removeDialog();
+  });
+
+  it('asks about a dialog opened through a modax', () => {
+    const removeModax = withOpenDialog(true, true);
+    const confirmed = stub(window, 'confirm').returns(false);
+
+    markWorkspaceStale();
+
+    expect(confirmed.callCount).to.equal(1);
+    expect(reload.callCount).to.equal(0);
+
+    confirmed.restore();
+    removeModax();
+  });
+
+  it('reloads past a dialog nobody has typed in', () => {
+    const removeDialog = withOpenDialog(false);
+    const confirmed = stub(window, 'confirm').returns(false);
+
+    markWorkspaceStale();
+
+    expect(confirmed.callCount).to.equal(0);
+    expect(reload.callCount).to.equal(1);
+
+    confirmed.restore();
+    removeDialog();
   });
 
   it('is reachable from the page, which fetches outside the components', async () => {
