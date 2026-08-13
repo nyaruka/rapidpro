@@ -1365,7 +1365,11 @@ export class ContentList<T = any> extends RapidElement {
 
   /** When true, sort/search/page state is reflected to the URL via
    * `history.pushState` so the page is deep-linkable and back/forward
-   * navigates between list states. Off by default — opt in. */
+   * navigates between list states. This mode has no history stash, so
+   * the URL is its only position store: page-counted lists round-trip
+   * `page=N` (a cursor slice has no page number to round-trip). Off
+   * by default — opt in; mutually exclusive with
+   * {@link historyStateKey}, which keeps position out of the URL. */
   @property({ type: Boolean })
   urlState = false;
 
@@ -1719,7 +1723,7 @@ export class ContentList<T = any> extends RapidElement {
         this.readHistoryState();
         const restore = this.restoreUrl;
         this.restoreUrl = '';
-        this.fetchPage(restore || undefined);
+        this.fetchPage(restore || undefined, !!restore);
       };
       window.addEventListener('popstate', this.popstateHandler);
     }
@@ -1791,7 +1795,7 @@ export class ContentList<T = any> extends RapidElement {
       // Clear it so subsequent fetches use the live state.
       const restore = this.restoreUrl;
       this.restoreUrl = '';
-      this.fetchPage(restore || undefined);
+      this.fetchPage(restore || undefined, !!restore);
     }
     // Pinned-column offsets and the scroll affordances both depend
     // on the freshly-laid-out DOM, so settle them after each render.
@@ -1840,7 +1844,11 @@ export class ContentList<T = any> extends RapidElement {
     if (overflows !== this.bulkCollapsed) this.bulkCollapsed = overflows;
   }
 
-  /** Read sort/page/search from the URL on first load / popstate. */
+  /** Read sort/page/search from the URL on first load / popstate. In
+   * history-state mode the page param is read-only compatibility — we
+   * never write it there (see {@link buildBrowserUrl}), but an old
+   * bookmarked URL may carry one and page-counted endpoints still
+   * honor it. In urlState mode it's the round-tripped position. */
   private readUrlState(): void {
     const params = new URLSearchParams(window.location.search);
     const k = (name: string) =>
@@ -1896,7 +1904,20 @@ export class ContentList<T = any> extends RapidElement {
     };
     setOrDelete(k('search'), this.search);
     setOrDelete(k('sort'), this.sort);
-    setOrDelete(k('page'), this.page > 1 ? String(this.page) : '');
+    // In history-state mode list position never reaches the URL — a
+    // cursor slice has no meaningful page number, and page-counted
+    // lists restore their position from the history stash instead, so
+    // all list pages keep the same clean URL while paging (passing ''
+    // also scrubs a stale page param arriving on an old bookmarked
+    // URL). A pure urlState list is the exception: it has no history
+    // stash — the URL is its only position store — so a page-counted
+    // one keeps round-tripping `page=N` there.
+    setOrDelete(
+      k('page'),
+      this.urlState && !this.cursorMode && this.page > 1
+        ? String(this.page)
+        : ''
+    );
 
     const qs = params.toString();
     return window.location.pathname + (qs ? '?' + qs : '');
@@ -2039,8 +2060,13 @@ export class ContentList<T = any> extends RapidElement {
   /** Fetch a page. With no argument this builds a fresh request from
    * the endpoint + current sort/search/page (resetting a cursor list
    * to its first page); pass an explicit `url` to follow a cursor or
-   * to re-request {@link currentUrl}. */
-  private async fetchPage(url?: string): Promise<void> {
+   * to re-request {@link currentUrl}. `restash` marks a restore fetch
+   * (one following a {@link restoreUrl} out of history state): on
+   * success the list re-bubbles its state with `replace` so the stash
+   * is written back onto the freshly loaded entry — the SPA frame's
+   * history bootstrap rebuilds entry state on every page load, so
+   * without this a stash would only reliably survive one refresh. */
+  private async fetchPage(url?: string, restash = false): Promise<void> {
     if (!this.endpoint) return;
     if (this.pending) this.pending.abort();
     const controller = new AbortController();
@@ -2099,6 +2125,12 @@ export class ContentList<T = any> extends RapidElement {
       if (wasSearch && typeof data.query === 'string') {
         this.search = data.query;
         this.searchDraft = data.query;
+        this.writeUrlState(true);
+      }
+      // A restore fetch re-writes its stash onto the current entry
+      // (replacing, so no new back-history) now that the state it was
+      // restored from is live again.
+      if (restash) {
         this.writeUrlState(true);
       }
     } catch (err) {
@@ -2377,13 +2409,20 @@ export class ContentList<T = any> extends RapidElement {
   }
 
   private handlePage(delta: number): void {
+    // One page step at a time: while a fetch is in flight the buttons
+    // render disabled, but guard here too so a click that lands before
+    // the re-render can't fire a second request — in cursor mode it
+    // would re-follow the same stale next/previous URL and land on the
+    // wrong slice.
+    if (this.loading) return;
     // A cursor list has no page numbers — step by following the
     // opaque next/previous URL the last response handed back. Call
     // fetchPage first so currentUrl is updated synchronously, then
     // bubble state so the saved URL points at the new view. The
-    // synthetic page number is bumped only to give each history entry
-    // a distinct URL; the cursor URL stashed in history.state is what
-    // actually drives restoration.
+    // synthetic page number is bumped only to position the pager's
+    // "N–M of Total" window (it never reaches the URL in cursor
+    // mode); the cursor URL stashed in history.state is what actually
+    // drives restoration.
     if (this.cursorMode) {
       const target = delta > 0 ? this.nextCursor : this.prevCursor;
       if (target) {
@@ -3883,8 +3922,10 @@ export class ContentList<T = any> extends RapidElement {
    * the response carried a count (`hasCount`) — in cursor mode too,
    * using the synthetic page for the range; an uncounted cursor list
    * falls back to chevrons only, gated on whether the last response
-   * handed back a cursor for that direction. Returns nothing when there
-   * is neither a page to move to nor a count worth showing. */
+   * handed back a cursor for that direction. Both buttons disable
+   * while a fetch is in flight so a second step can't fire until the
+   * first comes back (or fails). Returns nothing when there is neither
+   * a page to move to nor a count worth showing. */
   private renderPager(): TemplateResult {
     const lastPage = Math.max(1, Math.ceil(this.total / this.pageSize));
     const first = this.total === 0 ? 0 : (this.page - 1) * this.pageSize + 1;
@@ -3906,7 +3947,7 @@ export class ContentList<T = any> extends RapidElement {
       <div class="pager">
         <span
           class="page-btn"
-          ?disabled=${atStart}
+          ?disabled=${atStart || this.loading}
           @click=${() => this.handlePage(-1)}
           aria-label=${msg('Previous page')}
         >
@@ -3923,7 +3964,7 @@ export class ContentList<T = any> extends RapidElement {
           : null}
         <span
           class="page-btn"
-          ?disabled=${atEnd}
+          ?disabled=${atEnd || this.loading}
           @click=${() => this.handlePage(1)}
           aria-label=${msg('Next page')}
         >
