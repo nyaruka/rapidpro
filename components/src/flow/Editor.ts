@@ -2444,6 +2444,8 @@ export class Editor extends RapidElement {
     dialog.appendChild(content);
 
     dialog.addEventListener('temba-button-clicked', (event: any) => {
+      // matched by name, not the primary flag: on a destructive dialog the
+      // primary button carries destructive instead of primary
       if (event.detail.button.name === deleteName) {
         this.deleteSelectedItems();
         dialog.open = false;
