@@ -1,3 +1,13 @@
+v26.3.43 (2026-08-13)
+-------------------------
+ * Add search button to the tickets menu to surface cross-ticket search
+ * Fix ticket search, key-value editor and notification list not rendering when bundled with class-field define semantics
+ * Route dialog button clicks by button type instead of display name
+ * Localize flow editor, simulator, chat, live, list and label dropdown component strings, with es/fr/pt translations
+ * Keep page= round-tripping in urlState mode and block list paging while a fetch is in flight
+ * Show a centered 'No notifications' message in the notifications popup when the list is empty
+ * Don't tell browsers to retry a websocket connection refused as unauthorized
+
 v26.3.42 (2026-08-11)
 -------------------------
  * Fix opening webhook and other router node actions in the editor
