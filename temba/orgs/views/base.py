@@ -200,6 +200,16 @@ class BaseMenuView(OrgPermsMixin, SmartTemplateView):
 
         return menu_item
 
+    def create_event_button(self, name, event, icon=None):
+        """
+        A button (rendered like a modax button) whose click dispatches the given custom event on the document
+        """
+        menu_item = {"id": slugify(name), "name": name, "type": "button", "event": event}
+        if icon:
+            menu_item["icon"] = icon
+
+        return menu_item
+
     def create_menu_item(
         self,
         menu_id=None,

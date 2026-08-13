@@ -216,6 +216,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                 "All (4)",
                 "Shortcuts (0)",
                 "Analytics",
+                "Search",
                 "Export",
                 "New Topic",
                 ("Topics", ["General (2)", "Sales (2)", "Support (0)"]),
@@ -233,14 +234,23 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                 "All (4)",
                 ("Topics", ["General (2)", "Sales (2)", "Support (0)"]),
                 "Analytics",
+                "Search",
                 "Export",
                 "New Topic",
             ],
         )
+
+        # agent isn't topic restricted so gets search, but no export
         self.assertPageMenu(
             menu_url,
             self.agent,
-            ["My Tickets (0)", "Unassigned (1)", "All (4)", ("Topics", ["General (2)", "Sales (2)", "Support (0)"])],
+            [
+                "My Tickets (0)",
+                "Unassigned (1)",
+                "All (4)",
+                ("Topics", ["General (2)", "Sales (2)", "Support (0)"]),
+                "Search",
+            ],
         )
         self.assertPageMenu(
             menu_url, self.agent2, ["My Tickets (0)", "Unassigned (0)", "All (2)", ("Topics", ["Sales (2)"])]
