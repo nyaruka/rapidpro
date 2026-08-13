@@ -1,5 +1,6 @@
 import { html, TemplateResult } from 'lit-html';
 import { css } from 'lit';
+import { msg } from '@lit/localize';
 import { RapidElement } from '../RapidElement';
 import {
   Action,
@@ -685,7 +686,9 @@ export class MessageTable extends RapidElement {
     }
 
     if (parts.length === 0) {
-      return html`<span style="color: #bbb; font-style: italic;">Empty</span>`;
+      return html`<span style="color: #bbb; font-style: italic;"
+        >${msg('Empty')}</span
+      >`;
     }
 
     return html`${parts}`;
@@ -745,7 +748,7 @@ export class MessageTable extends RapidElement {
     }
 
     if (parts.length === 0) {
-      return html`No translation`;
+      return html`${msg('No translation')}`;
     }
 
     return html`${parts}`;
@@ -874,7 +877,7 @@ export class MessageTable extends RapidElement {
               <div
                 class="message-cell category-message-cell"
                 @click=${handleBaseClick}
-                title="Click to edit"
+                title=${msg('Click to edit')}
               >
                 <div class="category-item category-original-item">
                   <span>${item.original}</span>
@@ -886,7 +889,7 @@ export class MessageTable extends RapidElement {
                   <div
                     class="translation-cell category-translation-cell"
                     @click=${handleTranslationClick}
-                    title="Click to edit translation"
+                    title=${msg('Click to edit translation')}
                   >
                     <div
                       class="category-item category-translation-item ${item.translated !==
@@ -897,7 +900,7 @@ export class MessageTable extends RapidElement {
                       <span
                         >${item.translated !== null
                           ? item.translated
-                          : 'No translation'}</span
+                          : msg('No translation')}</span
                       >
                     </div>
                   </div>
@@ -914,7 +917,7 @@ export class MessageTable extends RapidElement {
 
     if (entries.length === 0) {
       return html`<div class="empty-state">
-        No messages or localizable content in this flow.
+        ${msg('No messages or localizable content in this flow.')}
       </div>`;
     }
 
@@ -924,8 +927,10 @@ export class MessageTable extends RapidElement {
       <table class="message-table">
         <thead>
           <tr>
-            <th>${showTranslation ? 'Original Text' : 'Message Text'}</th>
-            ${showTranslation ? html`<th>Translation</th>` : ''}
+            <th>
+              ${showTranslation ? msg('Original Text') : msg('Message Text')}
+            </th>
+            ${showTranslation ? html`<th>${msg('Translation')}</th>` : ''}
           </tr>
         </thead>
         <tbody>
@@ -978,7 +983,7 @@ export class MessageTable extends RapidElement {
                       true
                     )
                   : html`<span style="color: #bbb; font-style: italic;"
-                      >Empty</span
+                      >${msg('Empty')}</span
                     >`}`,
                 translated:
                   f.translated !== null
@@ -1019,7 +1024,7 @@ export class MessageTable extends RapidElement {
                   <div
                     class="message-cell"
                     @click=${handleBaseClick}
-                    title="Click to edit"
+                    title=${msg('Click to edit')}
                   >
                     ${entry.kind === 'message'
                       ? this.renderOriginalContent(entry)
@@ -1068,11 +1073,11 @@ export class MessageTable extends RapidElement {
                       <div
                         class=${translationCellClass}
                         @click=${handleTranslationClickFn}
-                        title="Click to edit translation"
+                        title=${msg('Click to edit translation')}
                       >
                         ${entry.kind === 'message'
                           ? this.renderTranslatedContent(entry)
-                          : 'No translation'}
+                          : msg('No translation')}
                       </div>
                     </td>`
                   : ''}

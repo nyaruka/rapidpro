@@ -1,5 +1,6 @@
 import { html, TemplateResult } from 'lit-html';
 import { css, PropertyValues } from 'lit';
+import { msg } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { CustomEventType } from '../interfaces';
@@ -100,7 +101,7 @@ export class RevisionsWindow extends RapidElement {
       <temba-floating-window
         id="revisions-window"
         name="revisions"
-        header="Revisions"
+        header=${msg('Revisions')}
         icon="revisions"
         .width=${340}
         .maxHeight=${500}
@@ -159,7 +160,7 @@ export class RevisionsWindow extends RapidElement {
                               class="current-label"
                               style="font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280; background:#e5e7eb; padding:2px 6px; border-radius:10px; letter-spacing:0.5px; flex-shrink:0;"
                             >
-                              Current
+                              ${msg('Current')}
                             </div>`
                           : isSelected
                             ? html`<button
@@ -170,7 +171,7 @@ export class RevisionsWindow extends RapidElement {
                                   this.handleRevertClick();
                                 }}
                               >
-                                Revert
+                                ${msg('Revert')}
                               </button>`
                             : html``}
                       </div>
@@ -195,7 +196,7 @@ export class RevisionsWindow extends RapidElement {
 
   private renderUser(user: Revision['user']): TemplateResult | string {
     if (user?.email === 'system') {
-      return html`<em>System update</em>`;
+      return html`<em>${msg('System update')}</em>`;
     }
     return user?.name || user?.username || '';
   }

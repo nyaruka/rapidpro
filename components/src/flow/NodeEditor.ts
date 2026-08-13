@@ -1,4 +1,5 @@
 import { html, TemplateResult, css, PropertyValues } from 'lit';
+import { msg, str } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { Node, NodeUI, Action, FlowDefinition } from '../store/flow-definition';
@@ -980,9 +981,9 @@ export class NodeEditor extends RapidElement {
   private handleDialogButtonClick(event: CustomEvent): void {
     const button = event.detail.button;
 
-    if (button.name === 'Save') {
+    if (button.name === msg('Save')) {
       this.handleSave();
-    } else if (button.name === 'Cancel') {
+    } else if (button.name === msg('Cancel')) {
       this.handleCancel();
     }
   }
@@ -1231,8 +1232,9 @@ export class NodeEditor extends RapidElement {
               : null;
 
             if (selected && selected.arbitrary) {
-              errors[fieldName] =
-                'There was an error creating' + ' "' + selected.name + '"';
+              errors[fieldName] = msg(
+                str`There was an error creating "${selected.name}"`
+              );
             }
           }
 
@@ -1247,9 +1249,9 @@ export class NodeEditor extends RapidElement {
               (typeof value === 'string' && value.trim() === '') ||
               (Array.isArray(value) && value.length === 0))
           ) {
-            errors[fieldName] = `${
-              (fieldConfig as any).label || fieldName
-            } is required.`;
+            errors[fieldName] = msg(
+              str`${(fieldConfig as any).label || fieldName} is required.`
+            );
           }
 
           // Check minLength for text fields
@@ -1258,9 +1260,11 @@ export class NodeEditor extends RapidElement {
             (fieldConfig as any).minLength &&
             value.length < (fieldConfig as any).minLength
           ) {
-            errors[fieldName] = `${
-              (fieldConfig as any).label || fieldName
-            } must be at least ${(fieldConfig as any).minLength} characters`;
+            errors[fieldName] = msg(
+              str`${(fieldConfig as any).label || fieldName} must be at least ${
+                (fieldConfig as any).minLength
+              } characters`
+            );
           }
 
           // Check maxLength for text fields, as well as for the values of select/tag
@@ -1285,9 +1289,11 @@ export class NodeEditor extends RapidElement {
               : itemLength(value) > maxLength;
 
             if (exceedsMax) {
-              errors[fieldName] = `${
-                (fieldConfig as any).label || fieldName
-              } must be no more than ${maxLength} characters`;
+              errors[fieldName] = msg(
+                str`${
+                  (fieldConfig as any).label || fieldName
+                } must be no more than ${maxLength} characters`
+              );
             }
           }
 
@@ -1321,9 +1327,11 @@ export class NodeEditor extends RapidElement {
                     : itemLength(subValue) > subMaxLength;
                 });
                 if (exceeds) {
-                  errors[fieldName] = `${
-                    (subFieldConfig as any).label || subFieldName
-                  } must be no more than ${subMaxLength} characters`;
+                  errors[fieldName] = msg(
+                    str`${
+                      (subFieldConfig as any).label || subFieldName
+                    } must be no more than ${subMaxLength} characters`
+                  );
                 }
               }
             );
@@ -1339,8 +1347,9 @@ export class NodeEditor extends RapidElement {
             );
             const label = (fieldConfig as any).label || fieldName;
             if (fieldConfig.maxItems && rows.length > fieldConfig.maxItems) {
-              errors[fieldName] =
-                `${label} can have no more than ${fieldConfig.maxItems} entries`;
+              errors[fieldName] = msg(
+                str`${label} can have no more than ${fieldConfig.maxItems} entries`
+              );
             } else if (
               fieldConfig.keyMaxLength &&
               rows.some(
@@ -1348,9 +1357,11 @@ export class NodeEditor extends RapidElement {
                   (item.key || '').length > fieldConfig.keyMaxLength
               )
             ) {
-              errors[fieldName] = `${
-                fieldConfig.keyPlaceholder || 'Key'
-              } must be no more than ${fieldConfig.keyMaxLength} characters`;
+              errors[fieldName] = msg(
+                str`${
+                  fieldConfig.keyPlaceholder || msg('Key')
+                } must be no more than ${fieldConfig.keyMaxLength} characters`
+              );
             } else if (
               fieldConfig.valueMaxLength &&
               rows.some(
@@ -1358,9 +1369,11 @@ export class NodeEditor extends RapidElement {
                   (item.value || '').length > fieldConfig.valueMaxLength
               )
             ) {
-              errors[fieldName] = `${
-                fieldConfig.valuePlaceholder || 'Value'
-              } must be no more than ${fieldConfig.valueMaxLength} characters`;
+              errors[fieldName] = msg(
+                str`${
+                  fieldConfig.valuePlaceholder || msg('Value')
+                } must be no more than ${fieldConfig.valueMaxLength} characters`
+              );
             }
           }
         });
@@ -1430,7 +1443,9 @@ export class NodeEditor extends RapidElement {
         }
 
         if (hasValidationErrors) {
-          errors[fieldName] = `Please resolve validation errors to continue`;
+          errors[fieldName] = msg(
+            'Please resolve validation errors to continue'
+          );
         }
       }
     });
@@ -1823,14 +1838,14 @@ export class NodeEditor extends RapidElement {
     const categoryEntries = Object.entries(categories);
 
     if (ruleEntries.length === 0 && categoryEntries.length === 0) {
-      return html`<div>No content to localize</div>`;
+      return html`<div>${msg('No content to localize')}</div>`;
     }
 
     return html`
       <div class="category-localization-table">
         ${ruleEntries.length > 0
           ? html`
-              <div class="localization-section-label">Rules</div>
+              <div class="localization-section-label">${msg('Rules')}</div>
               ${ruleEntries.map(
                 ([caseUuid, ruleData]: [string, any]) => html`
                   ${(ruleData.originalArguments || []).map(
@@ -1868,7 +1883,7 @@ export class NodeEditor extends RapidElement {
           : ''}
         ${categoryEntries.length > 0
           ? html`
-              <div class="localization-section-label">Categories</div>
+              <div class="localization-section-label">${msg('Categories')}</div>
               ${categoryEntries.map(
                 ([categoryUuid, categoryData]: [string, any]) => html`
                   <div class="category-localization-row">
@@ -2640,7 +2655,7 @@ export class NodeEditor extends RapidElement {
   private renderFields(): TemplateResult {
     const config = this.getConfig();
     if (!config) {
-      return html` <div>No configuration available</div> `;
+      return html` <div>${msg('No configuration available')}</div> `;
     }
 
     // Special rendering for category/rule localization
@@ -2718,9 +2733,13 @@ export class NodeEditor extends RapidElement {
 
     // Fallback for configs without form configuration
     if (this.action) {
-      return html` <div>No form configuration available for this action</div> `;
+      return html`
+        <div>${msg('No form configuration available for this action')}</div>
+      `;
     } else {
-      return html` <div>No form configuration available for this node</div> `;
+      return html`
+        <div>${msg('No form configuration available for this node')}</div>
+      `;
     }
   }
 
@@ -2760,10 +2779,10 @@ export class NodeEditor extends RapidElement {
 
       return html`
         <div class="action-section">
-          <h3>Action Configuration</h3>
+          <h3>${msg('Action Configuration')}</h3>
           <div class="action-preview">
-            <p><strong>Type:</strong> ${action.type}</p>
-            <p><em>Action details will be editable here</em></p>
+            <p><strong>${msg('Type:')}</strong> ${action.type}</p>
+            <p><em>${msg('Action details will be editable here')}</em></p>
           </div>
         </div>
       `;
@@ -2781,10 +2800,10 @@ export class NodeEditor extends RapidElement {
 
     return html`
       <div class="router-section">
-        <h3>Router Configuration</h3>
+        <h3>${msg('Router Configuration')}</h3>
         ${nodeConfig?.router
           ? this.renderRouterConfig()
-          : html`<p>Basic router (no advanced configuration)</p>`}
+          : html`<p>${msg('Basic router (no advanced configuration)')}</p>`}
       </div>
     `;
   }
@@ -2797,13 +2816,13 @@ export class NodeEditor extends RapidElement {
     // This is where you'd render rule and category editors
     return html`
       <div class="router-config">
-        <p><strong>Type:</strong> ${nodeConfig.router.type}</p>
+        <p><strong>${msg('Type:')}</strong> ${nodeConfig.router.type}</p>
         ${nodeConfig.router.rules
           ? html`
               <div class="rules-section">
-                <h4>Rules</h4>
+                <h4>${msg('Rules')}</h4>
                 <!-- Future: Render rule editor based on nodeConfig.router.rules -->
-                <p><em>Rule editing will be implemented here</em></p>
+                <p><em>${msg('Rule editing will be implemented here')}</em></p>
               </div>
             `
           : ''}
@@ -2859,9 +2878,9 @@ export class NodeEditor extends RapidElement {
       ? getLanguageName(this.languageCode)
       : '';
 
-    let header = config?.name || 'Edit';
+    let header = config?.name || msg('Edit');
     if (this.isTranslating) {
-      header = languageName ? `${languageName} - ${header}` : header;
+      header = languageName ? msg(str`${languageName} - ${header}`) : header;
     }
 
     return html`
@@ -2872,8 +2891,8 @@ export class NodeEditor extends RapidElement {
         .originY=${this.dialogOrigin?.y ?? null}
         .checkForChanges=${() => this.hasUnsavedChanges()}
         @temba-button-clicked=${this.handleDialogButtonClick}
-        primaryButtonName="Save"
-        cancelButtonName="Cancel"
+        primaryButtonName="${msg('Save')}"
+        cancelButtonName="${msg('Cancel')}"
         style="--header-bg: ${headerColor}; --header-text: ${headerTextColor};"
         size="${dialogSize}"
       >

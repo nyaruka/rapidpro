@@ -1,4 +1,5 @@
 import { css, html, PropertyValueMap, TemplateResult } from 'lit';
+import { msg, str } from '@lit/localize';
 import { repeat } from 'lit/directives/repeat.js';
 import {
   ACTION_CONFIG,
@@ -1717,14 +1718,14 @@ export class CanvasNode extends RapidElement {
             ></temba-icon>`
           : html`<div class="title-spacer"></div>`}
 
-      <div class="name">${isRemoving ? 'Remove?' : config.name}</div>
+      <div class="name">${isRemoving ? msg('Remove?') : config.name}</div>
       <div
         class="remove-button ${isTerminal || this.isReadOnly()
           ? 'read-only-hidden'
           : ''}"
         @click=${(e: MouseEvent) =>
           this.handleActionRemoveClick(e, action, index)}
-        title="Remove action"
+        title=${msg('Remove action')}
       >
         ✕
       </div>
@@ -1750,7 +1751,7 @@ export class CanvasNode extends RapidElement {
       <div class="title-spacer"></div>
       <div class="name">
         ${isRemoving
-          ? 'Remove?'
+          ? msg('Remove?')
           : config.renderTitle
             ? config.renderTitle(node, ui)
             : html`${config.name}`}
@@ -1758,7 +1759,7 @@ export class CanvasNode extends RapidElement {
       <div
         class="remove-button ${this.isReadOnly() ? 'read-only-hidden' : ''}"
         @click=${(e: MouseEvent) => this.handleNodeRemoveClick(e)}
-        title="Remove node"
+        title=${msg('Remove node')}
       >
         ✕
       </div>
@@ -1855,7 +1856,7 @@ export class CanvasNode extends RapidElement {
         class="remove-button"
         @click=${(e: MouseEvent) =>
           this.handleActionRemoveClick(e, action, index)}
-        title="Remove action"
+        title=${msg('Remove action')}
       >
         ✕
       </div>
@@ -1917,9 +1918,11 @@ export class CanvasNode extends RapidElement {
               style="cursor: pointer;"
             >
               ${renderClamped(
-                html`Save as
-                  <span class="result-name">${router.result_name}</span>`,
-                `Save as ${router.result_name}`
+                msg(
+                  html`Save as
+                    <span class="result-name">${router.result_name}</span>`
+                ),
+                msg(str`Save as ${router.result_name}`)
               )}
             </div>`
           : null}
@@ -2022,7 +2025,7 @@ export class CanvasNode extends RapidElement {
 
   public render() {
     if (!this.node || !this.ui) {
-      return html`<div class="node">Loading...</div>`;
+      return html`<div class="node">${msg('Loading...')}</div>`;
     }
 
     const nodeConfig = NODE_CONFIG[this.ui.type];
@@ -2138,7 +2141,7 @@ export class CanvasNode extends RapidElement {
           ? html`<div
               class="add-action-button"
               @click=${(e: MouseEvent) => this.handleAddActionClick(e)}
-              title="Add action"
+              title=${msg('Add action')}
             >
               <temba-icon name="add"></temba-icon>
             </div>`

@@ -1,4 +1,5 @@
 import { css, html, PropertyValueMap, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { CustomEventType } from '../interfaces';
@@ -222,7 +223,7 @@ export class CanvasMenu extends RapidElement {
           @click=${() => this.handleMenuItemClick('other')}
         >
           <temba-icon name="plus" size="1.25"></temba-icon>
-          <div class="menu-item-title">Add Other</div>
+          <div class="menu-item-title">${msg('Add Other')}</div>
         </div>
 
         ${this.showStickyNote
@@ -234,7 +235,7 @@ export class CanvasMenu extends RapidElement {
                 @click=${() => this.handleMenuItemClick('sticky')}
               >
                 <temba-icon name="note" size="1.25"></temba-icon>
-                <div class="menu-item-title">Add Sticky Note</div>
+                <div class="menu-item-title">${msg('Add Sticky Note')}</div>
               </div>
             `
           : ''}
@@ -247,7 +248,7 @@ export class CanvasMenu extends RapidElement {
                 @click=${() => this.handleMenuItemClick('reflow')}
               >
                 <temba-icon name="flow" size="1.25"></temba-icon>
-                <div class="menu-item-title">Reflow</div>
+                <div class="menu-item-title">${msg('Reflow')}</div>
               </div>
             `
           : ''}
