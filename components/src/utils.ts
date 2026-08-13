@@ -348,10 +348,17 @@ export const postJSON = (url: string, payload: any): Promise<WebResponse> => {
 
 export const deleteRequest = (url: string): Promise<Response> => {
   const headers = getHeaders();
-  return fetch(url, { method: 'DELETE', headers }).then((response) => {
-    checkWorkspaceResponse(headers, response);
-    return response;
-  });
+  const request = fetch(url, { method: 'DELETE', headers });
+
+  // watch the response rather than chaining onto it, so callers still receive
+  // the fetch promise itself and settle in the same turn they always have
+  request
+    .then((response) => checkWorkspaceResponse(headers, response))
+    .catch(() => {
+      // the caller owns the failure, we're only here for the workspace
+    });
+
+  return request;
 };
 
 export const postFormData = (
