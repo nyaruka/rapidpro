@@ -3,10 +3,12 @@ import logging
 
 import requests
 
+from django.forms import ValidationError
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from temba.channels.models import Channel, ChannelType, ConfigUI
+from temba.channels.models import Channel, ChannelType
 from temba.channels.types.turn.views import ClaimView
 from temba.contacts.models import URN
 from temba.request_logs.models import HTTPLog
@@ -16,6 +18,7 @@ CONFIG_FB_ACCESS_TOKEN = "fb_access_token"
 CONFIG_FB_NAMESPACE = "fb_namespace"
 CONFIG_FB_TEMPLATE_LIST_DOMAIN = "fb_template_list_domain"
 CONFIG_FB_TEMPLATE_API_VERSION = "fb_template_list_domain_api_version"
+CONFIG_WEBHOOK_URL = "webhook_url"
 
 TEMPLATE_LIST_URL = "https://%s/%s/%s/message_templates"
 
@@ -35,6 +38,7 @@ class TurnType(ChannelType):
 
     courier_url = r"^trn/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.WHATSAPP_SCHEME]
+    async_activation = False
     template_type = "whatsapp"
 
     claim_blurb = _(
@@ -42,16 +46,42 @@ class TurnType(ChannelType):
     )
     claim_view = ClaimView
 
-    config_ui = ConfigUI(
-        blurb=_("To finish configuring this channel, you'll need Turn.io to use the following callback URL."),
-        endpoints=[
-            ConfigUI.Endpoint(
-                courier="receive",
-                label=_("Receive URL"),
-                help=_("This URL should be called by Turn.io when new messages are received."),
-            ),
-        ],
-    )
+    def get_headers(self, channel):
+        return {
+            "Authorization": "Bearer %s" % channel.config[Channel.CONFIG_AUTH_TOKEN],
+            "Content-Type": "application/json",
+        }
+
+    def activate(self, channel):
+        domain = channel.org.get_brand_domain()
+        receive_url = "https://" + domain + reverse("courier.trn", args=[channel.uuid, "receive"])
+
+        resp = requests.patch(
+            channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application",
+            json={"webhooks": {"url": receive_url}},
+            headers=self.get_headers(channel),
+        )
+
+        if resp.status_code != 200:
+            raise ValidationError(_("Unable to register webhooks: %(resp)s"), params={"resp": resp.text})
+
+        channel.config[CONFIG_WEBHOOK_URL] = receive_url
+        channel.save(update_fields=("config",))
+
+    def deactivate(self, channel):
+        # only clear the webhook if we're the one that registered it - channels claimed before we did this, or whose
+        # registration failed, may have a webhook the user configured themselves
+        if not channel.config.get(CONFIG_WEBHOOK_URL):
+            return
+
+        # resetting the application settings clears the primary webhook
+        resp = requests.delete(
+            channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application",
+            headers=self.get_headers(channel),
+        )
+
+        if resp.status_code != 200:
+            raise ValidationError(_("Unable to remove webhooks: %(resp)s"), params={"resp": resp.text})
 
     def fetch_templates(self, channel) -> list:
         # Retrieve the template domain, fallback to the default for channels that have been setup earlier for backwards
