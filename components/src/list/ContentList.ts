@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg, str } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { Icon } from '../Icons';
@@ -1408,9 +1409,18 @@ export class ContentList<T = any> extends RapidElement {
   /** Debounce window for settings saves. Public so tests can shorten it. */
   saveDelay = 500;
 
-  /** Placeholder for the search input. */
+  /** Placeholder for the search input. When unset, falls back to
+   * {@link defaultSearchPlaceholder}. */
   @property({ type: String })
-  searchPlaceholder = 'Search';
+  searchPlaceholder: string = null;
+
+  /** Default search placeholder, resolved at render time so it reflects
+   * the locale, which is only known once the store has loaded. Subclasses
+   * override this rather than assigning {@link searchPlaceholder} in their
+   * constructors, which would freeze the source-locale string. */
+  protected defaultSearchPlaceholder(): string {
+    return msg('Search');
+  }
 
   /** Page-level title rendered above the panel. Either set this or
    * slot custom content via `<div slot="title">…</div>`. */
@@ -1421,9 +1431,18 @@ export class ContentList<T = any> extends RapidElement {
   @property({ type: String })
   subtitle = '';
 
-  /** Message shown when the list is empty. */
+  /** Message shown when the list is empty. When unset, falls back to
+   * {@link defaultEmptyMessage}. */
   @property({ type: String, attribute: 'empty-message' })
-  emptyMessage = 'Nothing to show';
+  emptyMessage: string = null;
+
+  /** Default empty message, resolved at render time so it reflects the
+   * locale, which is only known once the store has loaded. Subclasses
+   * override this rather than assigning {@link emptyMessage} in their
+   * constructors, which would freeze the source-locale string. */
+  protected defaultEmptyMessage(): string {
+    return msg('Nothing to show');
+  }
 
   /** Bump to force a refetch — useful after a bulk action so the host
    * can re-pull from the server. */
@@ -2418,7 +2437,8 @@ export class ContentList<T = any> extends RapidElement {
             <div class="searchbar">
               <input
                 type="text"
-                placeholder=${this.searchPlaceholder}
+                placeholder=${this.searchPlaceholder ??
+                this.defaultSearchPlaceholder()}
                 .value=${this.searchDraft}
                 ?disabled=${this.searching}
                 @input=${this.handleSearchInput}
@@ -2427,15 +2447,15 @@ export class ContentList<T = any> extends RapidElement {
               ${!this.searching && this.searchDraft !== this.search
                 ? html`
                     <span class="search-hint">
-                      <span class="enter-key">↵</span> to search
+                      <span class="enter-key">↵</span> ${msg('to search')}
                     </span>
                     <temba-icon
                       class="search-go"
                       name=${Icon.search}
                       size="1.1"
                       clickable
-                      title="Search"
-                      aria-label="Run search"
+                      title=${msg('Search')}
+                      aria-label=${msg('Run search')}
                       @click=${() => this.commitSearch()}
                     ></temba-icon>
                   `
@@ -2445,8 +2465,8 @@ export class ContentList<T = any> extends RapidElement {
                 name=${Icon.close}
                 size="1.1"
                 clickable
-                title="Cancel search"
-                aria-label="Cancel search"
+                title=${msg('Cancel search')}
+                aria-label=${msg('Cancel search')}
                 @click=${() => this.toggleSearch()}
               ></temba-icon>
             </div>
@@ -2520,7 +2540,7 @@ export class ContentList<T = any> extends RapidElement {
           ${!labels
             ? html`<div class="label-menu-empty">Loading&hellip;</div>`
             : labels.length === 0 && !action.allowCreate
-              ? html`<div class="label-menu-empty">No labels</div>`
+              ? html`<div class="label-menu-empty">${msg('No labels')}</div>`
               : labels.map((label) => this.renderLabelOption(label, action))}
           ${labels && action.allowCreate
             ? html`<div
@@ -3673,7 +3693,7 @@ export class ContentList<T = any> extends RapidElement {
         : ''} ${this.columnResize?.key === column.key ? 'resizing' : ''}"
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize ${column.label ?? column.key} column"
+      aria-label=${msg(str`Resize ${column.label ?? column.key} column`)}
       aria-valuemin=${this.minimumColumnWidth(column)}
       aria-valuemax=${ContentList.MAX_COLUMN_WIDTH}
       aria-valuenow=${this.effectiveColumnWidth(column)}
@@ -3888,21 +3908,24 @@ export class ContentList<T = any> extends RapidElement {
           class="page-btn"
           ?disabled=${atStart}
           @click=${() => this.handlePage(-1)}
-          aria-label="Previous page"
+          aria-label=${msg('Previous page')}
         >
           <temba-icon name=${Icon.arrow_left} size="1"></temba-icon>
         </span>
         ${this.hasCount
           ? html`<span class="pager-status"
-              >${formatCount(first)}&ndash;${formatCount(last)} of
-              ${formatCount(this.total)}</span
+              >${msg(
+                str`${formatCount(first)}–${formatCount(last)} of ${formatCount(
+                  this.total
+                )}`
+              )}</span
             >`
           : null}
         <span
           class="page-btn"
           ?disabled=${atEnd}
           @click=${() => this.handlePage(1)}
-          aria-label="Next page"
+          aria-label=${msg('Next page')}
         >
           <temba-icon name=${Icon.arrow_right} size="1"></temba-icon>
         </span>
@@ -3921,13 +3944,13 @@ export class ContentList<T = any> extends RapidElement {
     // error styling) in place of the plain "nothing to show" copy.
     const stateError = !this.searching && !this.loading && !!this.searchError;
     const stateMessage = this.searching
-      ? 'Searching…'
+      ? msg('Searching…')
       : this.loading && this.items.length === 0
-        ? 'Loading…'
+        ? msg('Loading…')
         : stateError
           ? this.searchError
           : this.items.length === 0
-            ? this.emptyMessage
+            ? (this.emptyMessage ?? this.defaultEmptyMessage())
             : null;
     return html`
       <div class="panel">

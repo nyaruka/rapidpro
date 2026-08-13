@@ -1,4 +1,5 @@
 import { css, html, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { ContentList, ContentListColumn } from './ContentList';
 import { Icon } from '../Icons';
 import { Campaign, CustomEventType, ObjectReference } from '../interfaces';
@@ -29,11 +30,17 @@ export class CampaignList extends ContentList<Campaign> {
     `;
   }
 
+  protected defaultEmptyMessage(): string {
+    return msg('No campaigns');
+  }
+
+  protected defaultSearchPlaceholder(): string {
+    return msg('Search campaigns');
+  }
+
   constructor() {
     super();
     this.valueKey = 'uuid';
-    this.emptyMessage = 'No campaigns';
-    this.searchPlaceholder = 'Search campaigns';
     this.columns = [
       {
         key: 'name',

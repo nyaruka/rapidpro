@@ -4,84 +4,111 @@
 <body>
 <trans-unit id="scf1453991c986b25">
   <source>Tab to complete, enter to select</source>
+  <target>Tab para completar, Enter para selecionar</target>
 </trans-unit>
 <trans-unit id="s638236250662c6b3">
   <source>Have sent a message in the last</source>
+  <target>Enviaram uma mensagem nos últimos</target>
 </trans-unit>
 <trans-unit id="s8f02e3a18ffc083a">
   <source>Are not currently in a flow</source>
+  <target>Não estão atualmente em um fluxo</target>
 </trans-unit>
 <trans-unit id="s4788ee206c4570c7">
   <source>Have not started this flow in the last 90 days</source>
+  <target>Não iniciaram este fluxo nos últimos 90 dias</target>
 </trans-unit>
 <trans-unit id="s73b4d70c02f4b4e0">
   <source>No options</source>
+  <target>Sem opções</target>
 </trans-unit>
 <trans-unit id="sbc913d7dc0f33877">
   <source>to add</source>
+  <target>para adicionar</target>
 </trans-unit>
 <trans-unit id="sea4f08110bb8f15d">
   <source>Remove</source>
+  <target>Remover</target>
 </trans-unit>
 <trans-unit id="s122d4de68bcfcdf4">
   <source>It's okay to restart</source>
+  <target>Não há problema em reiniciar</target>
 </trans-unit>
 <trans-unit id="s3eb2567092b4d7c1">
   <source>from the beginning</source>
+  <target>desde o início</target>
 </trans-unit>
 <trans-unit id="s28f37776b3901438">
   <source>It's okay to interrupt</source>
+  <target>Não há problema em interromper</target>
 </trans-unit>
 <trans-unit id="s6838d20b10f7512a">
   <source>and start this one</source>
+  <target>e iniciar este</target>
 </trans-unit>
 <trans-unit id="s22965bb9808befb0">
   <source>Interrupt</source>
+  <target>Interromper</target>
 </trans-unit>
 <trans-unit id="s7722a91d3a512442">
   <source>Last seen <x id="0" equiv-text="${lastSeen.duration}"/></source>
+  <target>Visto pela última vez <x id="0" equiv-text="${lastSeen.duration}"/></target>
 </trans-unit>
 <trans-unit id="s6dbbe2646b239ca5">
   <source>Closed</source>
+  <target>Fechado</target>
 </trans-unit>
 <trans-unit id="sf7c0eba7c822e3d6">
   <source>Bold</source>
+  <target>Negrito</target>
 </trans-unit>
 <trans-unit id="s523eb9043213ff0d">
   <source>Italic</source>
+  <target>Itálico</target>
 </trans-unit>
 <trans-unit id="s3cf89cb47fdde7e9">
   <source>Link</source>
+  <target>Link</target>
 </trans-unit>
 <trans-unit id="s3643189d1abbb7f4">
   <source>Code</source>
+  <target>Código</target>
 </trans-unit>
 <trans-unit id="s78beeb359125557c">
   <source>Unable to upload file.</source>
+  <target>Não foi possível enviar o arquivo.</target>
 </trans-unit>
 <trans-unit id="sbc5f2f81604bb81a">
   <source>Heading 1</source>
+  <target>Título 1</target>
 </trans-unit>
 <trans-unit id="sbc5f2e81604bb667">
   <source>Heading 2</source>
+  <target>Título 2</target>
 </trans-unit>
 <trans-unit id="sbc5f2d81604bb4b4">
   <source>Heading 3</source>
+  <target>Título 3</target>
 </trans-unit>
 <trans-unit id="sc3ff8a955b9b8518">
   <source>Bulleted list</source>
+  <target>Lista com marcadores</target>
 </trans-unit>
 <trans-unit id="sa1cc184ce2a00abb">
   <source>Numbered list</source>
+  <target>Lista numerada</target>
 </trans-unit>
 <trans-unit id="s70a5d875c5467e57">
   <source>Quote</source>
+  <target>Citação</target>
 </trans-unit>
 <trans-unit id="s0bb51791194b4414">
   <source>code</source>
+  <target>código</target>
 </trans-unit>
 <trans-unit id="sbf4b9bad694f4809">
   <source>link</source>
+  <target>link</target>
 </trans-unit>
 <trans-unit id="s06f6c6f99db6b552">
   <source>Original</source>
@@ -101,42 +128,399 @@
 </trans-unit>
 <trans-unit id="s7411fe5ea8b707ad">
   <source>Side by side columns</source>
+  <target>Colunas lado a lado</target>
 </trans-unit>
 <trans-unit id="s4616fdc48b092f86">
   <source>Divider</source>
+  <target>Divisor</target>
 </trans-unit>
 <trans-unit id="s180090175fe1115d">
   <source>Less padding</source>
+  <target>Menos preenchimento</target>
 </trans-unit>
 <trans-unit id="s8ed1cc564f1dc4f7">
   <source>Normal padding</source>
+  <target>Preenchimento normal</target>
 </trans-unit>
 <trans-unit id="saae778d2f46ba3a5">
   <source>More padding</source>
+  <target>Mais preenchimento</target>
 </trans-unit>
 <trans-unit id="s3d93f9ea0c5a13fa">
   <source>Image</source>
+  <target>Imagem</target>
 </trans-unit>
 <trans-unit id="sa959476877a85349">
   <source>Style text</source>
+  <target>Estilizar texto</target>
 </trans-unit>
 <trans-unit id="s7dd0d53a22ca1b62">
   <source>New color</source>
+  <target>Nova cor</target>
 </trans-unit>
 <trans-unit id="saa8f64ba8b9a3042">
   <source>Remove this color everywhere it is used</source>
+  <target>Remover esta cor de todos os lugares onde é usada</target>
 </trans-unit>
 <trans-unit id="s06c4d89f9e3480b3">
   <source>Remove styling</source>
+  <target>Remover estilo</target>
 </trans-unit>
 <trans-unit id="sf6e9d280a30dcf25">
   <source>Border drawn from the background color</source>
+  <target>Borda derivada da cor de fundo</target>
 </trans-unit>
 <trans-unit id="sd6ef5031fb7d3991">
   <source>No color</source>
+  <target>Sem cor</target>
 </trans-unit>
 <trans-unit id="sab266951af1dc761">
   <source>Markdown source</source>
+  <target>Código Markdown</target>
+</trans-unit>
+<trans-unit id="se222e6ada35017b5">
+  <source>No articles</source>
+  <target>Nenhum artigo</target>
+</trans-unit>
+<trans-unit id="s4fa8414c37c75316">
+  <source>No broadcasts</source>
+  <target>Nenhuma transmissão</target>
+</trans-unit>
+<trans-unit id="sff18240c8caabe4b">
+  <source>Search broadcasts</source>
+  <target>Pesquisar transmissões</target>
+</trans-unit>
+<trans-unit id="s44c11cb1fc7fca39">
+  <source>starting</source>
+  <target>a partir de</target>
+</trans-unit>
+<trans-unit id="sd9463462c8544291">
+  <source>Recipients</source>
+  <target>Destinatários</target>
+</trans-unit>
+<trans-unit id="s0b074c4a4f07bcf5">
+  <source>No campaigns</source>
+  <target>Nenhuma campanha</target>
+</trans-unit>
+<trans-unit id="s09b314f1a3141742">
+  <source>Search campaigns</source>
+  <target>Pesquisar campanhas</target>
+</trans-unit>
+<trans-unit id="s186066d1d89ad7d7">
+  <source>No contacts</source>
+  <target>Nenhum contato</target>
+</trans-unit>
+<trans-unit id="sf34bb5d5516e2b7a">
+  <source>Search contacts</source>
+  <target>Pesquisar contatos</target>
+</trans-unit>
+<trans-unit id="s5d929ff1619ac0c9">
+  <source>Search</source>
+  <target>Pesquisar</target>
+</trans-unit>
+<trans-unit id="s71704a43c5050ac0">
+  <source>Nothing to show</source>
+  <target>Nada para mostrar</target>
+</trans-unit>
+<trans-unit id="sf07e54100da8a3f0">
+  <source>to search</source>
+  <target>para pesquisar</target>
+</trans-unit>
+<trans-unit id="s00937cb65263f8ce">
+  <source>Run search</source>
+  <target>Executar pesquisa</target>
+</trans-unit>
+<trans-unit id="s684e37d8a771d85d">
+  <source>Cancel search</source>
+  <target>Cancelar pesquisa</target>
+</trans-unit>
+<trans-unit id="s1ec7158e4eb46615">
+  <source>No labels</source>
+  <target>Nenhum rótulo</target>
+</trans-unit>
+<trans-unit id="sa51039f6f02f3777">
+  <source>Resize <x id="0" equiv-text="${column.label ?? column.key}"/> column</source>
+  <target>Redimensionar a coluna <x id="0" equiv-text="${column.label ?? column.key}"/></target>
+</trans-unit>
+<trans-unit id="s5b6a1140834aa043">
+  <source>Previous page</source>
+  <target>Página anterior</target>
+</trans-unit>
+<trans-unit id="s5373e0bf1dfbbdbf">
+  <source><x id="0" equiv-text="${formatCount(first)}"/>–<x id="1" equiv-text="${formatCount(last)}"/> of <x id="2" equiv-text="${formatCount(this.total)}"/></source>
+  <target><x id="0" equiv-text="${formatCount(first)}"/>–<x id="1" equiv-text="${formatCount(last)}"/> de <x id="2" equiv-text="${formatCount(this.total)}"/></target>
+</trans-unit>
+<trans-unit id="s542ffff558768ea3">
+  <source>Next page</source>
+  <target>Próxima página</target>
+</trans-unit>
+<trans-unit id="s9cfa7823fc62aba3">
+  <source>Searching…</source>
+  <target>Pesquisando…</target>
+</trans-unit>
+<trans-unit id="s6ebc9bd6feae62a3">
+  <source>Loading…</source>
+  <target>Carregando…</target>
+</trans-unit>
+<trans-unit id="s2492f5fb1b05b45e">
+  <source>Text</source>
+  <target>Texto</target>
+</trans-unit>
+<trans-unit id="sbbb97b1c63507dc0">
+  <source>Number</source>
+  <target>Número</target>
+</trans-unit>
+<trans-unit id="s9bae45e308549364">
+  <source>Date &amp; Time</source>
+  <target>Data e hora</target>
+</trans-unit>
+<trans-unit id="sae239213b7c70376">
+  <source>State</source>
+  <target>Estado</target>
+</trans-unit>
+<trans-unit id="s88c798022d5a9113">
+  <source>Ward</source>
+  <target>Divisão</target>
+</trans-unit>
+<trans-unit id="s88d4b07d95a0d6af">
+  <source>District</source>
+  <target>Distrito</target>
+</trans-unit>
+<trans-unit id="s54736f6e634ea6f2">
+  <source>Search fields</source>
+  <target>Pesquisar campos</target>
+</trans-unit>
+<trans-unit id="s6a0bcbce56a9c0fb">
+  <source>Featured</source>
+  <target>Destacado</target>
+</trans-unit>
+<trans-unit id="s85f7b9714ee6310c">
+  <source>Not featured</source>
+  <target>Não destacado</target>
+</trans-unit>
+<trans-unit id="sd66a7814be13d3be">
+  <source>Unfeature <x id="0" equiv-text="${field.label}"/></source>
+  <target>Remover destaque de <x id="0" equiv-text="${field.label}"/></target>
+</trans-unit>
+<trans-unit id="sdcb3749d43375ffb">
+  <source>Feature <x id="0" equiv-text="${field.label}"/></source>
+  <target>Destacar <x id="0" equiv-text="${field.label}"/></target>
+</trans-unit>
+<trans-unit id="s28d7266643f5992f">
+  <source>No matches</source>
+  <target>Nenhuma correspondência</target>
+</trans-unit>
+<trans-unit id="seffd6502226bf97b">
+  <source>Star a field to feature it on contact pages</source>
+  <target>Marque um campo com uma estrela para destacá-lo nas páginas de contato</target>
+</trans-unit>
+<trans-unit id="sae8ca57ec7594506">
+  <source>Other Fields</source>
+  <target>Outros campos</target>
+</trans-unit>
+<trans-unit id="s19a54bc0fb92638b">
+  <source>No fields</source>
+  <target>Nenhum campo</target>
+</trans-unit>
+<trans-unit id="s4c2251760c5d2c55">
+  <source>and <x id="0" equiv-text="${formatCount(total - items.length)}"/> more</source>
+  <target>e mais <x id="0" equiv-text="${formatCount(total - items.length)}"/></target>
+</trans-unit>
+<trans-unit id="s9efeafb0d612eab0">
+  <source>Campaign Events</source>
+  <target>Eventos de campanha</target>
+</trans-unit>
+<trans-unit id="sb69a4b0acd0895f2">
+  <source>Flows</source>
+  <target>Fluxos</target>
+</trans-unit>
+<trans-unit id="s9f26843287bb592d">
+  <source>Groups</source>
+  <target>Grupos</target>
+</trans-unit>
+<trans-unit id="s5e8250fb85d64c23">
+  <source>Close</source>
+  <target>Fechar</target>
+</trans-unit>
+<trans-unit id="s217dce3286f9a22b">
+  <source>No flows</source>
+  <target>Nenhum fluxo</target>
+</trans-unit>
+<trans-unit id="s93e58eaf7cbfbd5c">
+  <source>Search flows</source>
+  <target>Pesquisar fluxos</target>
+</trans-unit>
+<trans-unit id="sce15a6ce2f2e0ffa">
+  <source>No messages</source>
+  <target>Nenhuma mensagem</target>
+</trans-unit>
+<trans-unit id="sc8e2c91325d8ad73">
+  <source>Search messages</source>
+  <target>Pesquisar mensagens</target>
+</trans-unit>
+<trans-unit id="s88f171391e8d15c2">
+  <source>No notifications</source>
+  <target>Nenhuma notificação</target>
+</trans-unit>
+<trans-unit id="s2b8c3c32964c67ac">
+  <source>Your workspace was flagged, please contact support for assistance.</source>
+  <target>Sua área de trabalho foi sinalizada, entre em contato com o suporte para obter ajuda.</target>
+</trans-unit>
+<trans-unit id="sd78bda51c42187f3">
+  <source>Your workspace was suspended, please contact support for assistance.</source>
+  <target>Sua área de trabalho foi suspensa, entre em contato com o suporte para obter ajuda.</target>
+</trans-unit>
+<trans-unit id="s4da18bec52bf5648">
+  <source>Your android channel is not connected</source>
+  <target>Seu canal Android não está conectado</target>
+</trans-unit>
+<trans-unit id="s358edca3fc337c88">
+  <source>Your WhatsApp channel templates failed syncing</source>
+  <target>A sincronização dos modelos do seu canal WhatsApp falhou</target>
+</trans-unit>
+<trans-unit id="se815ea098ec82f9b">
+  <source>Your webhook calls are not working properly.</source>
+  <target>Suas chamadas de webhook não estão funcionando corretamente.</target>
+</trans-unit>
+<trans-unit id="sfb28d7a6e8c7b0a4">
+  <source>Imported <x id="0" equiv-text="${formatCount(notification.import.num_records)}"/> contacts</source>
+  <target><x id="0" equiv-text="${formatCount(notification.import.num_records)}"/> contatos importados</target>
+</trans-unit>
+<trans-unit id="scee7ecbfc5bbfda5">
+  <source>Exported <x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> contacts</source>
+  <target><x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> contatos exportados</target>
+</trans-unit>
+<trans-unit id="s76993e441effaf64">
+  <source>Exported <x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> messages</source>
+  <target><x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> mensagens exportadas</target>
+</trans-unit>
+<trans-unit id="s43033460216332b4">
+  <source>Exported flow results</source>
+  <target>Resultados do fluxo exportados</target>
+</trans-unit>
+<trans-unit id="s87f37130677faedd">
+  <source>Exported <x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> tickets</source>
+  <target><x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> tickets exportados</target>
+</trans-unit>
+<trans-unit id="s6ba0a92432b96654">
+  <source>Exported definitions</source>
+  <target>Definições exportadas</target>
+</trans-unit>
+<trans-unit id="sed92cc7a20b1b0e0">
+  <source>New ticket activity</source>
+  <target>Nova atividade de tickets</target>
+</trans-unit>
+<trans-unit id="sdfd2710adec3eaa0">
+  <source>New unassigned ticket</source>
+  <target>Novo ticket não atribuído</target>
+</trans-unit>
+<trans-unit id="s5be3c6d61cd9182f">
+  <source>Notifications</source>
+  <target>Notificações</target>
+</trans-unit>
+<trans-unit id="s890e983a7be64da4">
+  <source>Result</source>
+  <target>Resultado</target>
+</trans-unit>
+<trans-unit id="s079a052719914d71">
+  <source>Category</source>
+  <target>Categoria</target>
+</trans-unit>
+<trans-unit id="s41f7dca46d3f1b4a">
+  <source>Value</source>
+  <target>Valor</target>
+</trans-unit>
+<trans-unit id="s8a0e76d7fdbc5981">
+  <source>No shortcuts</source>
+  <target>Nenhum atalho</target>
+</trans-unit>
+<trans-unit id="sd79037cc4394d23e">
+  <source>Search shortcuts</source>
+  <target>Pesquisar atalhos</target>
+</trans-unit>
+<trans-unit id="sa58a43eaa517ec9e">
+  <source>Response</source>
+  <target>Resposta</target>
+</trans-unit>
+<trans-unit id="sddfc86d2b1251528">
+  <source>Attachment</source>
+  <target>Anexo</target>
+</trans-unit>
+<trans-unit id="sbf9cbc97c892cf87">
+  <source>Unsupported Message</source>
+  <target>Mensagem não suportada</target>
+</trans-unit>
+<trans-unit id="s17dc87128ab9477f">
+  <source>No triggers</source>
+  <target>Nenhum disparador</target>
+</trans-unit>
+<trans-unit id="se3aaff3ba4f883f2">
+  <source>Search triggers</source>
+  <target>Pesquisar disparadores</target>
+</trans-unit>
+<trans-unit id="s79e8cc71a5975b04">
+  <source>Message</source>
+  <target>Mensagem</target>
+</trans-unit>
+<trans-unit id="sd266428256b0620e">
+  <source>matches</source>
+  <target>corresponde a</target>
+</trans-unit>
+<trans-unit id="seb9c440de1ce6044">
+  <source>starts with</source>
+  <target>começa com</target>
+</trans-unit>
+<trans-unit id="sf2d5ffb20d61fcf8">
+  <source>Scheduled</source>
+  <target>Agendado</target>
+</trans-unit>
+<trans-unit id="s1ebe5d04ca8de6fd">
+  <source>Not scheduled</source>
+  <target>Não agendado</target>
+</trans-unit>
+<trans-unit id="s5ef0302366de6780">
+  <source>Referral</source>
+  <target>Referência</target>
+</trans-unit>
+<trans-unit id="s7f845078d7a5c0b5">
+  <source>from</source>
+  <target>de</target>
+</trans-unit>
+<trans-unit id="s105481c8262fdb04">
+  <source>Keyword</source>
+  <target>Palavra-chave</target>
+</trans-unit>
+<trans-unit id="sd69f5a46ba60e09f">
+  <source>Catch All</source>
+  <target>Pegar tudo</target>
+</trans-unit>
+<trans-unit id="s9b8dccb514a0e34c">
+  <source>Schedule</source>
+  <target>Agendar</target>
+</trans-unit>
+<trans-unit id="s0b7c0b00085b4ba6">
+  <source>Inbound Call</source>
+  <target>Chamada recebida</target>
+</trans-unit>
+<trans-unit id="s70e1a6820a26f810">
+  <source>Missed Call</source>
+  <target>Chamada perdida</target>
+</trans-unit>
+<trans-unit id="sf5af49563512943c">
+  <source>New Conversation</source>
+  <target>Nova conversa</target>
+</trans-unit>
+<trans-unit id="sb3e440b8c29e54bf">
+  <source>Closed Ticket</source>
+  <target>Ticket fechado</target>
+</trans-unit>
+<trans-unit id="s94bcc88130496a4e">
+  <source>Opt-In</source>
+  <target>Opt-In</target>
+</trans-unit>
+<trans-unit id="sf41e8985024b696f">
+  <source>Opt-Out</source>
+  <target>Opt-Out</target>
 </trans-unit>
 </body>
 </file>
