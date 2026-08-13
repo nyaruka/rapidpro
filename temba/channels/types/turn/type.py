@@ -51,24 +51,25 @@ class TurnType(ChannelType):
             "Content-Type": "application/json",
         }
 
-    def _set_webhook_url(self, channel, url: str):
-        return requests.patch(
-            channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application",
-            json={"webhooks": {"url": url}},
-            headers=self.get_headers(channel),
-        )
-
     def activate(self, channel):
         domain = channel.org.get_brand_domain()
         receive_url = "https://" + domain + reverse("courier.trn", args=[channel.uuid, "receive"])
 
-        resp = self._set_webhook_url(channel, receive_url)
+        resp = requests.patch(
+            channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application",
+            json={"webhooks": {"url": receive_url}},
+            headers=self.get_headers(channel),
+        )
 
         if resp.status_code != 200:
             raise ValidationError(_("Unable to register webhooks: %(resp)s"), params={"resp": resp.text})
 
     def deactivate(self, channel):
-        resp = self._set_webhook_url(channel, "")
+        # resetting the application settings clears the primary webhook
+        resp = requests.delete(
+            channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application",
+            headers=self.get_headers(channel),
+        )
 
         if resp.status_code != 200:
             raise ValidationError(_("Unable to remove webhooks: %(resp)s"), params={"resp": resp.text})

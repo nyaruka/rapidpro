@@ -77,17 +77,20 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
             patch("requests.post") as mock_post,
             patch("requests.get") as mock_get,
             patch("requests.patch") as mock_patch,
+            patch("requests.delete") as mock_delete,
         ):
             mock_post.return_value = MockResponse(200, '{"users": [{"token": "abc123"}]}')
             mock_get.return_value = MockResponse(200, '{"data": []}')
             mock_patch.return_value = MockResponse(400, '{"errors": ["invalid"]}')
+            mock_delete.return_value = MockResponse(200, "{}")
 
             response = self.client.post(url, post_data)
 
             self.assertEqual(200, response.status_code)
 
-            # once to register the webhooks, then again to clear them as the channel is released
-            self.assertEqual(2, mock_patch.call_count)
+            # once to register the webhooks, then a delete to clear them as the channel is released
+            self.assertEqual(1, mock_patch.call_count)
+            self.assertEqual(1, mock_delete.call_count)
 
             self.assertFormError(
                 response.context["form"], None, ['Unable to register webhooks: {"errors": ["invalid"]}']
@@ -153,15 +156,14 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
 
         channel = create_turn_channel("1234")
 
-        # releasing the channel clears the webhooks
-        with patch("requests.patch") as mock_patch:
-            mock_patch.return_value = MockResponse(200, '{"webhooks": []}')
+        # releasing the channel clears the webhooks by resetting the application settings
+        with patch("requests.delete") as mock_delete:
+            mock_delete.return_value = MockResponse(200, "{}")
 
             channel.release(self.admin, interrupt=False)
 
-        mock_patch.assert_called_once_with(
+        mock_delete.assert_called_once_with(
             "https://whatsapp.turn.io/v1/settings/application",
-            json={"webhooks": {"url": ""}},
             headers={"Authorization": "Bearer authtoken123", "Content-Type": "application/json"},
         )
 
@@ -171,12 +173,12 @@ class TurnTypeTest(CRUDLTestMixin, TembaTest):
         # a failure to clear the webhooks doesn't prevent the channel being released
         channel = create_turn_channel("1235")
 
-        with patch("requests.patch") as mock_patch:
-            mock_patch.return_value = MockResponse(400, '{"errors": ["invalid"]}')
+        with patch("requests.delete") as mock_delete:
+            mock_delete.return_value = MockResponse(400, '{"errors": ["invalid"]}')
 
             channel.release(self.admin, interrupt=False)
 
-        self.assertEqual(1, mock_patch.call_count)
+        self.assertEqual(1, mock_delete.call_count)
 
         channel.refresh_from_db()
         self.assertFalse(channel.is_active)

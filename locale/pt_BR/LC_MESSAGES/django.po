@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-07 15:29+0000\n"
+"POT-Creation-Date: 2026-08-13 20:46+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -1667,11 +1667,13 @@ msgstr "Número de telefone inválido, por favor inclua o código do país. Ex: 
 msgid "If you have an enterprise Turn.io WhatsApp account, you can connect it to communicate with your contacts"
 msgstr "Se você tem uma conta corporativa do WhatsApp na Turn.io, você pode conectá-la para se comunicar com os seus contatos"
 
-msgid "To finish configuring this channel, you'll need Turn.io to use the following callback URL."
-msgstr "Para concluir a configuração deste canal, você precisará que a Turn.io use a seguinte URL de retorno de chamada."
+#, python-format
+msgid "Unable to register webhooks: %(resp)s"
+msgstr "Não foi possível registrar os webhooks: %(resp)s"
 
-msgid "This URL should be called by Turn.io when new messages are received."
-msgstr "Esta URL deve ser chamada pela Turn.io quando novas mensagens forem recebidas."
+#, python-format
+msgid "Unable to remove webhooks: %(resp)s"
+msgstr "Não foi possível remover os webhooks: %(resp)s"
 
 msgid "Your enterprise Turn.io WhatsApp number"
 msgstr "O número do WhatsApp corporativo da sua Turn.io"
