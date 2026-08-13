@@ -646,9 +646,10 @@
       }
     }
 
-    // cmd/ctrl+F opens ticket search while this page is loaded (the handler is
-    // stored on window so SPA navigations back here don't stack up listeners).
-    // it's a no-op for users without search - the modal isn't mounted for them
+    // cmd/ctrl+F and the menu's search button (see TicketCRUDL.Menu) open
+    // ticket search while this page is loaded (the handlers are stored on
+    // window so SPA navigations back here don't stack up listeners).
+    // they're no-ops for users without search - the modal isn't mounted for them
     if (window.handleTicketSearchHotkey) {
       document.removeEventListener("keydown", window.handleTicketSearchHotkey);
     }
@@ -663,6 +664,17 @@
       }
     };
     document.addEventListener("keydown", window.handleTicketSearchHotkey);
+
+    if (window.handleTicketSearchShow) {
+      document.removeEventListener("temba-ticket-search-show", window.handleTicketSearchShow);
+    }
+    window.handleTicketSearchShow = function() {
+      const search = document.querySelector("temba-ticket-search");
+      if (search) {
+        search.show();
+      }
+    };
+    document.addEventListener("temba-ticket-search-show", window.handleTicketSearchShow);
 
     onSpload(function() {
       const details = document.querySelector("temba-contact-details");

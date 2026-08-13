@@ -2157,7 +2157,10 @@ describe('Localization Editing', () => {
       const dialog = document.body.querySelector('temba-dialog') as any;
       dialog.dispatchEvent(
         new CustomEvent('temba-button-clicked', {
-          detail: { button: { name: 'Update' } }
+          detail: {
+            button: { name: 'Update' },
+            detail: { name: 'Update', type: 'primary' }
+          }
         })
       );
       await aTimeout(10);
@@ -2267,7 +2270,10 @@ describe('Localization Editing', () => {
       const dialog = document.body.querySelector('temba-dialog') as any;
       dialog.dispatchEvent(
         new CustomEvent('temba-button-clicked', {
-          detail: { button: { name: 'Update' } }
+          detail: {
+            button: { name: 'Update' },
+            detail: { name: 'Update', type: 'primary' }
+          }
         })
       );
       await aTimeout(0);
@@ -2277,7 +2283,10 @@ describe('Localization Editing', () => {
       expect(dialog.cancelButtonName).to.equal('');
       dialog.dispatchEvent(
         new CustomEvent('temba-button-clicked', {
-          detail: { button: { name: 'Cancel' } }
+          detail: {
+            button: { name: 'Cancel' },
+            detail: { name: 'Cancel', type: 'secondary', closes: true }
+          }
         })
       );
       await aTimeout(0);

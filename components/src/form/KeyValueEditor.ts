@@ -24,12 +24,13 @@ export class KeyValueEditor extends BaseListEditor<KeyValueItem> {
   @state()
   private keyErrors: { [index: number]: string } = {};
 
-  // Configure to maintain empty items
-  maintainEmptyItem = true;
-
   constructor() {
     super();
     this._items = [];
+    // maintain an empty item. Set in the constructor, not as a class field - a field
+    // would shadow the reactive accessor under define semantics (see lit
+    // class-field-shadowing)
+    this.maintainEmptyItem = true;
   }
 
   // External API uses array format to preserve duplicate keys

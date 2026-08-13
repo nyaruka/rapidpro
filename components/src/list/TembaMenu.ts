@@ -1025,7 +1025,7 @@ export class TembaMenu extends ResizeElement {
       return;
     }
 
-    if (menuItem.type === 'modax-button') {
+    if (menuItem.type === 'modax-button' || menuItem.type === 'button') {
       this.fireCustomEvent(CustomEventType.ButtonClicked, {
         item: menuItem,
         selection: this.getSelection(),
@@ -1275,7 +1275,7 @@ export class TembaMenu extends ResizeElement {
       return html`<div class="sub-section">${menuItem.name}</div>`;
     }
 
-    if (menuItem.type === 'modax-button') {
+    if (menuItem.type === 'modax-button' || menuItem.type === 'button') {
       return html`<temba-button
         name=${menuItem.name}
         lined

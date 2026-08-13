@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-13 20:46+0000\n"
+"POT-Creation-Date: 2026-08-13 22:26+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -1665,11 +1665,11 @@ msgstr "Si tiene una cuenta de WhatsApp empresarial de Turn.io, puede conectarla
 
 #, python-format
 msgid "Unable to register webhooks: %(resp)s"
-msgstr "No se pudieron registrar los webhooks: %(resp)s"
+msgstr "No se pueden registrar los webhooks: %(resp)s"
 
 #, python-format
 msgid "Unable to remove webhooks: %(resp)s"
-msgstr "No se pudieron eliminar los webhooks: %(resp)s"
+msgstr "No se pueden eliminar los webhooks: %(resp)s"
 
 msgid "Your enterprise Turn.io WhatsApp number"
 msgstr "Su número de WhatsApp empresarial de Turn.io"
@@ -3727,6 +3727,9 @@ msgstr "Temas"
 msgid "Analytics"
 msgstr "Analítica"
 
+msgid "Search"
+msgstr "Buscar"
+
 msgid "New Topic"
 msgstr "Nuevo tema"
 
@@ -4356,9 +4359,6 @@ msgstr "Una vez que conecte un número, inmediatamente podrá enviar y recibir m
 
 msgid "Pattern"
 msgstr "Patrón"
-
-msgid "Search"
-msgstr "Buscar"
 
 msgid "Existing Numbers"
 msgstr "Números existentes"
