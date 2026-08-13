@@ -214,6 +214,8 @@
           {% endblock error-dialog %}
           <temba-toast duration="5000" error-sticky>
           </temba-toast>
+          <temba-workspace-notice>
+          </temba-workspace-notice>
           {% pop_session "sso_login_warning" as sso_login_warning %}
           {% if sso_login_warning %}
             {% if sso_login_warning.provider %}

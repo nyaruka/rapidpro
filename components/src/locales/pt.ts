@@ -11,7 +11,10 @@
     export const templates = {
       's06f6c6f99db6b552': `Original`,
 's3d2cc8d952adebec': `Pequeno`,
+'s7b7163270e57e8b4': `Atualizar`,
+'s7bb2fb9c9c164d3f': str`Esta página está mostrando ${0}. Você mudou de área de trabalho desde então, atualize para ver os dados atuais.`,
 'sac6bdc71f750ac96': `Médio`,
+'sbd484060756f38b1': `Esta página está mostrando uma área de trabalho que você já deixou, atualize para ver os dados atuais.`,
 'sc8736ef79380e634': `Grande`,
 's73b4d70c02f4b4e0': `No options`,
 'scf1453991c986b25': `Tab to complete, enter to select`,

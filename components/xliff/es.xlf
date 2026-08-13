@@ -140,6 +140,18 @@
 <trans-unit id="sab266951af1dc761">
   <source>Markdown source</source>
 </trans-unit>
+<trans-unit id="s7bb2fb9c9c164d3f">
+  <source>This page is showing <x id="0" equiv-text="${name}"/>. You've since switched workspaces, so refresh to catch up.</source>
+  <target>Esta página muestra <x id="0" equiv-text="${name}"/>. Desde entonces has cambiado de workspace, así que actualiza para ver los datos actuales.</target>
+</trans-unit>
+<trans-unit id="sbd484060756f38b1">
+  <source>This page is showing a workspace you've since switched away from, so refresh to catch up.</source>
+  <target>Esta página muestra un workspace que ya has dejado, así que actualiza para ver los datos actuales.</target>
+</trans-unit>
+<trans-unit id="s7b7163270e57e8b4">
+  <source>Refresh</source>
+  <target>Actualizar</target>
+</trans-unit>
 </body>
 </file>
 </xliff>
