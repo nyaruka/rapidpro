@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import { property } from 'lit/decorators.js';
 import {
   FlowDefinition,
@@ -297,7 +298,7 @@ function getTypeName(
 ): string {
   if (actionConfig?.name) return actionConfig.name;
   if (nodeConfig?.name) return nodeConfig.name;
-  return 'Unknown';
+  return msg('Unknown');
 }
 
 /**
@@ -352,7 +353,9 @@ export class FlowSearch extends SearchModal<SearchResult> {
   includeCategories = false;
 
   protected getSearchLabel(): string {
-    return this.scope === 'table' ? 'Search this table' : 'Search this flow';
+    return this.scope === 'table'
+      ? msg('Search this table')
+      : msg('Search this flow');
   }
 
   protected performSearch(rawQuery: string): SearchResult[] {
@@ -500,7 +503,7 @@ export class FlowSearch extends SearchModal<SearchResult> {
           results.push({
             nodeUuid: uuid,
             action: null,
-            typeName: 'Sticky Note',
+            typeName: msg('Sticky Note'),
             color: colors.fill,
             borderColor: colors.border,
             textColor: colors.text,

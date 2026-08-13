@@ -1,5 +1,6 @@
 import { html, TemplateResult } from 'lit-html';
 import { css } from 'lit';
+import { msg } from '@lit/localize';
 import { property } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { CustomEventType } from '../interfaces';
@@ -44,7 +45,7 @@ export class IssuesWindow extends RapidElement {
       <temba-floating-window
         id="issues-window"
         name="issues"
-        header="Flow Issues"
+        header=${msg('Flow Issues')}
         icon="alert_warning"
         .width=${360}
         .maxHeight=${600}

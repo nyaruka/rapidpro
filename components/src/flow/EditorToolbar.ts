@@ -1,4 +1,5 @@
 import { css, html, TemplateResult } from 'lit';
+import { msg, str } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { CustomEventType } from '../interfaces';
@@ -348,7 +349,7 @@ export class EditorToolbar extends RapidElement {
           <span>${option.name}</span>
           <span
             style="display:inline-flex; align-items:center; border-radius:999px; background:rgba(47, 63, 82, 0.12); color:#2f3f52; font-size:10px; font-weight:700; line-height:1; padding:3px 7px;"
-            >Original</span
+            >${msg('Original')}</span
           >
         </div>
       `;
@@ -388,32 +389,34 @@ export class EditorToolbar extends RapidElement {
 
   public render(): TemplateResult {
     const showLanguageControls = this.languageOptions.length > 1;
-    const searchTargetLabel = this.messageView ? 'Search table' : 'Search flow';
+    const searchTargetLabel = this.messageView
+      ? msg('Search table')
+      : msg('Search flow');
 
     return html`
       <div class="editor-toolbar">
         <div class="toolbar-left">
           ${this.renderTip(
-            'Flow View',
+            msg('Flow View'),
             html`
               <button
                 class="toolbar-btn ${!this.messageView ? 'active' : ''}"
                 @click=${() =>
                   this.fireToolbarAction('view-change', { view: 'flow' })}
-                aria-label="Flow View"
+                aria-label=${msg('Flow View')}
               >
                 <temba-icon name="flow" size="1"></temba-icon>
               </button>
             `
           )}
           ${this.renderTip(
-            'Table View',
+            msg('Table View'),
             html`
               <button
                 class="toolbar-btn ${this.messageView ? 'active' : ''}"
                 @click=${() =>
                   this.fireToolbarAction('view-change', { view: 'table' })}
-                aria-label="Table View"
+                aria-label=${msg('Table View')}
               >
                 <temba-icon name=${Icon.quick_replies} size="1"></temba-icon>
               </button>
@@ -425,7 +428,7 @@ export class EditorToolbar extends RapidElement {
                 <div class="toolbar-language-group">
                   <div class="toolbar-language">
                     ${this.renderTip(
-                      'Change language',
+                      msg('Change language'),
                       html`
                         <button
                           class="language-pill ${this.isBaseLanguage
@@ -435,7 +438,7 @@ export class EditorToolbar extends RapidElement {
                               : ''}"
                           id="language-btn"
                           @click=${this.handleLanguageIconClick}
-                          aria-label="Change language"
+                          aria-label=${msg('Change language')}
                         >
                           <temba-icon name=${Icon.language}></temba-icon>
                           <span>${this.currentLanguageName}</span>
@@ -477,13 +480,13 @@ export class EditorToolbar extends RapidElement {
           ${!this.messageView
             ? html`
                 ${this.renderTip(
-                  'Zoom to fit',
+                  msg('Zoom to fit'),
                   html`
                     <button
                       class="toolbar-btn"
                       @click=${() => this.fireToolbarAction('zoom-to-fit')}
                       ?disabled=${!this.zoomInitialized || this.zoomFitted}
-                      aria-label="Zoom to fit"
+                      aria-label=${msg('Zoom to fit')}
                     >
                       <temba-icon name=${Icon.zoom_fit} size="1"></temba-icon>
                     </button>
@@ -491,13 +494,13 @@ export class EditorToolbar extends RapidElement {
                 )}
                 <div class="toolbar-divider"></div>
                 ${this.renderTip(
-                  'Zoom out',
+                  msg('Zoom out'),
                   html`
                     <button
                       class="toolbar-btn"
                       @click=${() => this.fireToolbarAction('zoom-out')}
                       ?disabled=${!this.zoomInitialized || this.zoom <= 0.3}
-                      aria-label="Zoom out"
+                      aria-label=${msg('Zoom out')}
                     >
                       −
                     </button>
@@ -509,13 +512,13 @@ export class EditorToolbar extends RapidElement {
                     : ''}</span
                 >
                 ${this.renderTip(
-                  'Zoom in',
+                  msg('Zoom in'),
                   html`
                     <button
                       class="toolbar-btn"
                       @click=${() => this.fireToolbarAction('zoom-in')}
                       ?disabled=${!this.zoomInitialized || this.zoom >= 1.0}
-                      aria-label="Zoom in"
+                      aria-label=${msg('Zoom in')}
                     >
                       +
                     </button>
@@ -523,13 +526,13 @@ export class EditorToolbar extends RapidElement {
                 )}
                 <div class="toolbar-divider"></div>
                 ${this.renderTip(
-                  'Zoom to 100%',
+                  msg('Zoom to 100%'),
                   html`
                     <button
                       class="toolbar-btn"
                       @click=${() => this.fireToolbarAction('zoom-to-full')}
                       ?disabled=${!this.zoomInitialized || this.zoom >= 1.0}
-                      aria-label="Zoom to 100%"
+                      aria-label=${msg('Zoom to 100%')}
                     >
                       <temba-icon name=${Icon.zoom_in} size="1"></temba-icon>
                     </button>
@@ -539,12 +542,12 @@ export class EditorToolbar extends RapidElement {
               `
             : ''}
           ${this.renderTip(
-            'Revisions',
+            msg('Revisions'),
             html`
               <button
                 class="toolbar-btn ${this.revisionsActive ? 'active' : ''}"
                 @click=${() => this.fireToolbarAction('revisions')}
-                aria-label="Revisions"
+                aria-label=${msg('Revisions')}
               >
                 <temba-icon
                   name=${this.isSaving ? 'progress_spinner' : 'revisions'}
@@ -578,12 +581,12 @@ export class EditorToolbar extends RapidElement {
 
   private renderMakeDefaultButton(): TemplateResult {
     return this.renderTip(
-      `Make ${this.currentLanguageName} the default`,
+      msg(str`Make ${this.currentLanguageName} the default`),
       html`
         <button
           class="toolbar-btn language-tool make-default"
           @click=${() => this.fireToolbarAction('make-default-language')}
-          aria-label="Make default language"
+          aria-label=${msg('Make default language')}
         >
           <temba-icon name=${Icon.language_default} size="1"></temba-icon>
         </button>
@@ -596,8 +599,8 @@ export class EditorToolbar extends RapidElement {
       return html``;
     }
     const label = this.autoTranslating
-      ? 'Stop auto translate'
-      : 'Auto translate';
+      ? msg('Stop auto translate')
+      : msg('Auto translate');
     return html`
       <div class="toolbar-translation">
         ${this.renderTip(

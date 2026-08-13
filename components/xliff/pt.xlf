@@ -1197,6 +1197,251 @@
   <source>from</source>
   <target>de</target>
 </trans-unit>
+<trans-unit id="sfbc096f9704a01ae">
+  <source>Add Other</source>
+  <target>Adicionar outro</target>
+</trans-unit>
+<trans-unit id="sf32e724b8cf1fba5">
+  <source>Add Sticky Note</source>
+  <target>Adicionar nota adesiva</target>
+</trans-unit>
+<trans-unit id="sc0483ed5ad001a78">
+  <source>Reflow</source>
+  <target>Reorganizar</target>
+</trans-unit>
+<trans-unit id="sdd3c16f6eb422986">
+  <source>Remove?</source>
+  <target>Remover?</target>
+</trans-unit>
+<trans-unit id="sa31ffdf65f98d07d">
+  <source>Remove action</source>
+  <target>Remover ação</target>
+</trans-unit>
+<trans-unit id="sffd4b3e04453c6a7">
+  <source>Remove node</source>
+  <target>Remover nó</target>
+</trans-unit>
+<trans-unit id="h50d0cc2064746057">
+  <source>Save as
+                    <x id="0" equiv-text="&lt;span class=&quot;result-name&quot;&gt;${router.result_name}&lt;/span&gt;"/></source>
+  <target>Salvar como <x id="0" equiv-text="&lt;span class=&quot;result-name&quot;&gt;${router.result_name}&lt;/span&gt;"/></target>
+</trans-unit>
+<trans-unit id="sd4c339bae7188bc2">
+  <source>Save as <x id="0" equiv-text="${router.result_name}"/></source>
+  <target>Salvar como <x id="0" equiv-text="${router.result_name}"/></target>
+</trans-unit>
+<trans-unit id="s49730f3d5751a433">
+  <source>Loading...</source>
+  <target>Carregando...</target>
+</trans-unit>
+<trans-unit id="s3e8db0148732afae">
+  <source>Add action</source>
+  <target>Adicionar ação</target>
+</trans-unit>
+<trans-unit id="scfe20e6b9fcd18ad">
+  <source>Search table</source>
+  <target>Pesquisar na tabela</target>
+</trans-unit>
+<trans-unit id="s0a7ebee263be8747">
+  <source>Search flow</source>
+  <target>Pesquisar no fluxo</target>
+</trans-unit>
+<trans-unit id="s92ed1baf6195d99a">
+  <source>Flow View</source>
+  <target>Visualização de fluxo</target>
+</trans-unit>
+<trans-unit id="s3d9ff57b4e7cc370">
+  <source>Table View</source>
+  <target>Visualização de tabela</target>
+</trans-unit>
+<trans-unit id="s424c654650973289">
+  <source>Change language</source>
+  <target>Alterar idioma</target>
+</trans-unit>
+<trans-unit id="sb82ed45e21870e80">
+  <source>Zoom to fit</source>
+  <target>Ajustar à tela</target>
+</trans-unit>
+<trans-unit id="sc65ea2cf2f21a13a">
+  <source>Zoom out</source>
+  <target>Diminuir zoom</target>
+</trans-unit>
+<trans-unit id="s236ae937cbcd6a39">
+  <source>Zoom in</source>
+  <target>Aumentar zoom</target>
+</trans-unit>
+<trans-unit id="s9a85751f13df203f">
+  <source>Zoom to 100%</source>
+  <target>Zoom de 100%</target>
+</trans-unit>
+<trans-unit id="sf1fcb96dfef54e71">
+  <source>Revisions</source>
+  <target>Revisões</target>
+</trans-unit>
+<trans-unit id="s67c244e3529cdf67">
+  <source>Make <x id="0" equiv-text="${this.currentLanguageName}"/> the default</source>
+  <target>Definir <x id="0" equiv-text="${this.currentLanguageName}"/> como idioma padrão</target>
+</trans-unit>
+<trans-unit id="s3db2761a6f679ab0">
+  <source>Make default language</source>
+  <target>Definir como idioma padrão</target>
+</trans-unit>
+<trans-unit id="s7997911038b74e3a">
+  <source>Stop auto translate</source>
+  <target>Parar tradução automática</target>
+</trans-unit>
+<trans-unit id="sbfc20dc7d7512580">
+  <source>Auto translate</source>
+  <target>Tradução automática</target>
+</trans-unit>
+<trans-unit id="sf44427091e0a7393">
+  <source>Search this table</source>
+  <target>Pesquisar nesta tabela</target>
+</trans-unit>
+<trans-unit id="sf8885e73b1348559">
+  <source>Search this flow</source>
+  <target>Pesquisar neste fluxo</target>
+</trans-unit>
+<trans-unit id="s53436d2659b83f4a">
+  <source>Sticky Note</source>
+  <target>Nota adesiva</target>
+</trans-unit>
+<trans-unit id="s500fd71a4232050e">
+  <source>Empty</source>
+  <target>Vazio</target>
+</trans-unit>
+<trans-unit id="sa22dc7260b514e31">
+  <source>No translation</source>
+  <target>Sem tradução</target>
+</trans-unit>
+<trans-unit id="s5dfd80e4749404c0">
+  <source>Click to edit</source>
+  <target>Clique para editar</target>
+</trans-unit>
+<trans-unit id="sde1bcddb875f6ad3">
+  <source>Click to edit translation</source>
+  <target>Clique para editar a tradução</target>
+</trans-unit>
+<trans-unit id="s6132fb73eb6ee7c1">
+  <source>No messages or localizable content in this flow.</source>
+  <target>Não há mensagens nem conteúdo localizável neste fluxo.</target>
+</trans-unit>
+<trans-unit id="s5bf80ef4e691ade5">
+  <source>Original Text</source>
+  <target>Texto original</target>
+</trans-unit>
+<trans-unit id="s8d10b51943dc326b">
+  <source>Message Text</source>
+  <target>Texto da mensagem</target>
+</trans-unit>
+<trans-unit id="sbef9e1084e69480c">
+  <source>Translation</source>
+  <target>Tradução</target>
+</trans-unit>
+<trans-unit id="s6d759c001df1f87a">
+  <source>There was an error creating "<x id="0" equiv-text="${selected.name}"/>"</source>
+  <target>Ocorreu um erro ao criar "<x id="0" equiv-text="${selected.name}"/>"</target>
+</trans-unit>
+<trans-unit id="s07ab0462c1b126aa">
+  <source><x id="0" equiv-text="${(fieldConfig as any).label || fieldName}"/> is required.</source>
+  <target><x id="0" equiv-text="${(fieldConfig as any).label || fieldName}"/> é obrigatório.</target>
+</trans-unit>
+<trans-unit id="s80ac6a66a8c3b775">
+  <source><x id="0" equiv-text="${(fieldConfig as any).label || fieldName}"/> must be at least <x id="1" equiv-text="${(fieldConfig as any).minLength}"/> characters</source>
+  <target><x id="0" equiv-text="${(fieldConfig as any).label || fieldName}"/> deve ter pelo menos <x id="1" equiv-text="${(fieldConfig as any).minLength}"/> caracteres</target>
+</trans-unit>
+<trans-unit id="s636b885f46bb3d08">
+  <source><x id="0" equiv-text="${(fieldConfig as any).label || fieldName}"/> must be no more than <x id="1" equiv-text="${maxLength}"/> characters</source>
+  <target><x id="0" equiv-text="${(fieldConfig as any).label || fieldName}"/> não deve ter mais de <x id="1" equiv-text="${maxLength}"/> caracteres</target>
+</trans-unit>
+<trans-unit id="s30083f7b07180d34">
+  <source><x id="0" equiv-text="${label}"/> can have no more than <x id="1" equiv-text="${fieldConfig.maxItems}"/> entries</source>
+  <target><x id="0" equiv-text="${label}"/> não pode ter mais de <x id="1" equiv-text="${fieldConfig.maxItems}"/> entradas</target>
+</trans-unit>
+<trans-unit id="s506b6a19d12f414c">
+  <source>Key</source>
+  <target>Chave</target>
+</trans-unit>
+<trans-unit id="s1b2dc9d3ddad76c3">
+  <source>Please resolve validation errors to continue</source>
+  <target>Resolva os erros de validação para continuar</target>
+</trans-unit>
+<trans-unit id="s4a9945053f7eb147">
+  <source>No content to localize</source>
+  <target>Não há conteúdo para localizar</target>
+</trans-unit>
+<trans-unit id="s26d236d09a66a620">
+  <source>Rules</source>
+  <target>Regras</target>
+</trans-unit>
+<trans-unit id="s2cc7cd11d9b856cd">
+  <source>Categories</source>
+  <target>Categorias</target>
+</trans-unit>
+<trans-unit id="sb552876d696b434f">
+  <source>No configuration available</source>
+  <target>Nenhuma configuração disponível</target>
+</trans-unit>
+<trans-unit id="seed9112899e8c0b0">
+  <source>No form configuration available for this action</source>
+  <target>Nenhuma configuração de formulário disponível para esta ação</target>
+</trans-unit>
+<trans-unit id="s0b39a64d20eca15e">
+  <source>No form configuration available for this node</source>
+  <target>Nenhuma configuração de formulário disponível para este nó</target>
+</trans-unit>
+<trans-unit id="s458903864dc2a251">
+  <source>Action Configuration</source>
+  <target>Configuração da ação</target>
+</trans-unit>
+<trans-unit id="s7b3a70561cec8d75">
+  <source>Type:</source>
+  <target>Tipo:</target>
+</trans-unit>
+<trans-unit id="sd673178f22dbf9de">
+  <source>Action details will be editable here</source>
+  <target>Os detalhes da ação poderão ser editados aqui</target>
+</trans-unit>
+<trans-unit id="s86a88d0911024fe6">
+  <source>Router Configuration</source>
+  <target>Configuração do roteador</target>
+</trans-unit>
+<trans-unit id="s9293ece891c0b3fa">
+  <source>Basic router (no advanced configuration)</source>
+  <target>Roteador básico (sem configuração avançada)</target>
+</trans-unit>
+<trans-unit id="sf8c06fb4c62cb69c">
+  <source>Rule editing will be implemented here</source>
+  <target>A edição de regras será implementada aqui</target>
+</trans-unit>
+<trans-unit id="s64ef2a6c2dd1d3d1">
+  <source>Edit</source>
+  <target>Editar</target>
+</trans-unit>
+<trans-unit id="s6ffdc18b840acf30">
+  <source><x id="0" equiv-text="${languageName}"/> - <x id="1" equiv-text="${header}"/></source>
+  <target><x id="0" equiv-text="${languageName}"/> - <x id="1" equiv-text="${header}"/></target>
+</trans-unit>
+<trans-unit id="sab8b4cbbb1fa71fa">
+  <source>Current</source>
+  <target>Atual</target>
+</trans-unit>
+<trans-unit id="sd89a2e529b31ef43">
+  <source>Revert</source>
+  <target>Reverter</target>
+</trans-unit>
+<trans-unit id="s5ea1fba1d6aba195">
+  <source>System update</source>
+  <target>Atualização do sistema</target>
+</trans-unit>
+<trans-unit id="s000b93e04482d2b7">
+  <source>Remove note</source>
+  <target>Remover nota</target>
+</trans-unit>
+<trans-unit id="s4427af0a03bcc823">
+  <source>Edit note</source>
+  <target>Editar nota</target>
+</trans-unit>
 </body>
 </file>
 </xliff>

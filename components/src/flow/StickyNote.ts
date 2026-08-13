@@ -1,4 +1,5 @@
 import { css, html, PropertyValueMap, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { CustomEventType } from '../interfaces';
@@ -812,7 +813,7 @@ export class StickyNote extends RapidElement {
             @keydown="${this.handleTitleKeyDown}"
             @mousedown="${this.handleContentMouseDown}"
             @touchend="${this.handleContentTap}"
-            .textContent="${this.removing ? 'Remove?' : this.data.title}"
+            .textContent="${this.removing ? msg('Remove?') : this.data.title}"
           ></div>
           ${!this.isTranslating
             ? html`<div
@@ -822,7 +823,7 @@ export class StickyNote extends RapidElement {
                 @click=${this.handleRemoveClick}
                 @mousedown=${(e: MouseEvent) => e.stopPropagation()}
                 @touchstart=${(e: TouchEvent) => e.stopPropagation()}
-                title="Remove note"
+                title="${msg('Remove note')}"
               >
                 ✕
               </div>`
@@ -839,7 +840,7 @@ export class StickyNote extends RapidElement {
             .textContent="${this.data.body}"
           ></div>
           ${!this.isTranslating
-            ? html`<div class="edit-icon" title="Edit note"></div>`
+            ? html`<div class="edit-icon" title="${msg('Edit note')}"></div>`
             : ''}
 
           <!-- Color picker -->
