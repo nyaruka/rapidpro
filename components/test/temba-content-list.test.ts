@@ -1563,6 +1563,145 @@ describe('temba-content-list', () => {
     expect(next2.hasAttribute('disabled')).to.equal(true);
   });
 
+  it('blocks paging while a page fetch is in flight', async () => {
+    clearMockGets();
+    // a counted cursor endpoint (like the messages API)
+    mockGET(/\/msgs\.json\?cursor=abc/, {
+      next: null,
+      previous: '/msgs.json?cursor=xyz',
+      count: 4,
+      results: [
+        { uuid: 'm-3', name: 'Charlie' },
+        { uuid: 'm-4', name: 'Delta' }
+      ]
+    });
+    mockGET(/\/msgs\.json$/, {
+      next: '/msgs.json?cursor=abc',
+      previous: null,
+      count: 4,
+      results: [
+        { uuid: 'm-1', name: 'Alpha' },
+        { uuid: 'm-2', name: 'Bravo' }
+      ]
+    });
+
+    const list = (await getList({
+      endpoint: '/msgs.json'
+    })) as ContentList;
+    list.columns = [{ key: 'name', label: 'Name' }];
+    await list.updateComplete;
+
+    const fetchStub = window.fetch as any;
+    const countCursorFetches = () =>
+      fetchStub
+        .getCalls()
+        .filter((c: any) => String(c.args[0]).includes('cursor=abc')).length;
+
+    const onPage2 = new Promise<void>((resolve) => {
+      list.addEventListener(CustomEventType.FetchComplete, () => resolve(), {
+        once: true
+      });
+    });
+    const [, next] = list.shadowRoot!.querySelectorAll('.page-btn');
+    (next as HTMLElement).click();
+
+    // while the request is in flight further paging is blocked — a
+    // repeat click can't fire a second fetch (in cursor mode it would
+    // re-follow the same stale next URL and land on the wrong slice)
+    expect((list as any).loading).to.equal(true);
+    (next as HTMLElement).click();
+    expect(countCursorFetches()).to.equal(1);
+
+    await onPage2;
+    await list.updateComplete;
+    expect((list as any).items[0].name).to.equal('Charlie');
+
+    // and the buttons themselves render disabled while loading
+    (list as any).loading = true;
+    await list.updateComplete;
+    list.shadowRoot!.querySelectorAll('.page-btn').forEach((btn) => {
+      expect(btn.hasAttribute('disabled')).to.equal(true);
+    });
+    (list as any).loading = false;
+    await list.updateComplete;
+  });
+
+  it('keeps position out of the URL for page-counted lists too', async () => {
+    const list = (await getList({
+      endpoint: '/test-assets/content-list/items.json'
+    })) as ContentList;
+    // a page-counted list several pages in still bubbles a clean URL —
+    // position restores from the history stash, not the query string
+    (list as any).page = 3;
+    expect((list as any).cursorMode).to.equal(false);
+    expect((list as any).buildBrowserUrl()).to.not.contain('page=');
+  });
+
+  it('re-stashes its state onto the history entry after restoring from it', async () => {
+    clearMockGets();
+    mockGET(/\/msgs\.json\?cursor=abc/, {
+      next: null,
+      previous: '/msgs.json?cursor=xyz',
+      count: 4,
+      results: [
+        { uuid: 'm-3', name: 'Charlie' },
+        { uuid: 'm-4', name: 'Delta' }
+      ]
+    });
+    mockGET(/\/msgs\.json$/, {
+      next: '/msgs.json?cursor=abc',
+      previous: null,
+      count: 4,
+      results: [
+        { uuid: 'm-1', name: 'Alpha' },
+        { uuid: 'm-2', name: 'Bravo' }
+      ]
+    });
+
+    const list = (await getList({
+      endpoint: '/msgs.json',
+      'history-state-key': 'msgs'
+    })) as ContentList;
+    list.columns = [{ key: 'name', label: 'Name' }];
+    await list.updateComplete;
+
+    try {
+      // return to an entry whose stash points at the second slice (as
+      // after a refresh, where the SPA frame's history bootstrap has
+      // rebuilt the entry state around the preserved stash)
+      history.replaceState(
+        {
+          msgs: { page: 2, sort: '', search: '', url: '/msgs.json?cursor=abc' }
+        },
+        ''
+      );
+
+      const events: any[] = [];
+      list.addEventListener(CustomEventType.HistoryChange, (e: any) =>
+        events.push(e.detail)
+      );
+      const onRestore = new Promise<void>((resolve) => {
+        list.addEventListener(CustomEventType.FetchComplete, () => resolve(), {
+          once: true
+        });
+      });
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      await onRestore;
+
+      // the restore followed the stashed cursor URL to the saved slice
+      expect((list as any).items[0].name).to.equal('Charlie');
+
+      // and re-bubbled a replacing stash so the entry carries the
+      // state again — this is what lets the next refresh restore too
+      const restash = events.find((e) => e.replace && e.state?.url);
+      assert.exists(restash, 'restore should re-bubble a replacing stash');
+      expect(restash.state.url).to.equal('/msgs.json?cursor=abc');
+      expect(restash.state.page).to.equal(2);
+    } finally {
+      history.replaceState({}, '');
+    }
+  });
+
   it('shows the run-search icon and its hint only while a pending draft is uncommitted', async () => {
     const list = (await getList({
       endpoint: '/test-assets/content-list/items.json'
@@ -1898,6 +2037,9 @@ describe('temba-content-list', () => {
     expect(pageEvent.key).to.equal('msgs');
     expect(pageEvent.replace).to.equal(false);
     expect(pageEvent.state.page).to.equal(2);
+    // list position stays out of the address-bar URL — it restores
+    // from the history stash instead
+    expect(pageEvent.url).to.not.contain('page=');
 
     // committed search — also pushes a new entry
     events.length = 0;

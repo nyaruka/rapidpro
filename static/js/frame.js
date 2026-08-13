@@ -667,9 +667,16 @@ document.addEventListener('DOMContentLoaded', function () {
   if (container) {
     container.classList.remove('initial-load');
 
-    // set initial history state so back button works for the first page
+    // set initial history state so back button works for the first page —
+    // merged into whatever state the entry already carries rather than
+    // overwriting it: components stash their own restorable state on the
+    // entry (e.g. a list's page/sort/search, via temba-history-change) and
+    // browsers preserve history.state across reloads, so clobbering it here
+    // would make that stash survive only a single refresh
     window.history.replaceState(
-      { url: document.location.href },
+      Object.assign({}, window.history.state, {
+        url: document.location.href
+      }),
       '',
       document.location.href
     );
