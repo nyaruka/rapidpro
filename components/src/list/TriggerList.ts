@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { state } from 'lit/decorators.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { ContentList, ContentListColumn } from './ContentList';
@@ -43,19 +44,21 @@ interface FilterPill {
 /** Human name for each trigger type slug — mirrors the type names in
  * rapidpro's `triggers/types.py`. Rendered in the trigger cell only
  * for types whose leading icon doesn't say it all (no per-type
- * details of their own). */
-const TYPE_NAMES: { [slug: string]: string } = {
-  keyword: 'Keyword',
-  catch_all: 'Catch All',
-  schedule: 'Schedule',
-  inbound_call: 'Inbound Call',
-  missed_call: 'Missed Call',
-  new_conversation: 'New Conversation',
-  referral: 'Referral',
-  closed_ticket: 'Closed Ticket',
-  opt_in: 'Opt-In',
-  opt_out: 'Opt-Out'
-};
+ * details of their own). Resolved per call rather than held in a
+ * module-level map so the names reflect the locale, which is only
+ * known once the store has loaded. */
+const TYPE_NAMES = (): { [slug: string]: string } => ({
+  keyword: msg('Keyword'),
+  catch_all: msg('Catch All'),
+  schedule: msg('Schedule'),
+  inbound_call: msg('Inbound Call'),
+  missed_call: msg('Missed Call'),
+  new_conversation: msg('New Conversation'),
+  referral: msg('Referral'),
+  closed_ticket: msg('Closed Ticket'),
+  opt_in: msg('Opt-In'),
+  opt_out: msg('Opt-Out')
+});
 
 /**
  * Trigger CRUDL list — drop-in replacement for the rapidpro
@@ -161,11 +164,17 @@ export class TriggerList extends ContentList<Trigger> {
     `;
   }
 
+  protected defaultEmptyMessage(): string {
+    return msg('No triggers');
+  }
+
+  protected defaultSearchPlaceholder(): string {
+    return msg('Search triggers');
+  }
+
   constructor() {
     super();
     this.valueKey = 'id';
-    this.emptyMessage = 'No triggers';
-    this.searchPlaceholder = 'Search triggers';
     this.columns = [
       { key: 'trigger', label: 'Trigger', grow: true, minWidth: '260px' },
       {
@@ -413,9 +422,11 @@ export class TriggerList extends ContentList<Trigger> {
         const budget = this.pillBudget(item, 'keywords');
         const visible = keywords.slice(0, budget);
         return html`<span class="details">
-          <span class="type-name">Message</span>
+          <span class="type-name">${msg('Message')}</span>
           <span class="lead-in"
-            >${item.match_type === 'O' ? 'matches' : 'starts with'}</span
+            >${item.match_type === 'O'
+              ? msg('matches')
+              : msg('starts with')}</span
           >
           <span class="pills" data-fit="${this.rowId(item)}:keywords">
             ${visible.map(
@@ -435,20 +446,20 @@ export class TriggerList extends ContentList<Trigger> {
         // the legacy list's "is not scheduled" copy
         return item.schedule?.next_fire && item.schedule?.display
           ? html`<span class="details">
-              <span class="type-name">Scheduled</span>
+              <span class="type-name">${msg('Scheduled')}</span>
               <span class="lead-in">${item.schedule.display}</span>
             </span>`
-          : html`<span class="type-name">Not scheduled</span>`;
+          : html`<span class="type-name">${msg('Not scheduled')}</span>`;
       case 'referral':
         if (!item.referrer_id) break;
         return html`<span class="details">
-          <span class="type-name">Referral</span>
-          <span class="lead-in">from</span>
+          <span class="type-name">${msg('Referral')}</span>
+          <span class="lead-in">${msg('from')}</span>
           <span class="detail-text">${item.referrer_id}</span>
         </span>`;
     }
     return html`<span class="type-name"
-      >${TYPE_NAMES[item.type] || item.type || EMPTY}</span
+      >${TYPE_NAMES()[item.type] || item.type || EMPTY}</span
     >`;
   }
 

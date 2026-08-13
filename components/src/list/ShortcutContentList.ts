@@ -1,4 +1,5 @@
 import { css, html, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { Icon } from '../Icons';
 import { CustomEventType, Shortcut } from '../interfaces';
@@ -181,11 +182,17 @@ export class ShortcutContentList extends ContentList<Shortcut> {
   @state()
   private detailShortcut: Shortcut = null;
 
+  protected defaultEmptyMessage(): string {
+    return msg('No shortcuts');
+  }
+
+  protected defaultSearchPlaceholder(): string {
+    return msg('Search shortcuts');
+  }
+
   constructor() {
     super();
     this.valueKey = 'uuid';
-    this.emptyMessage = 'No shortcuts';
-    this.searchPlaceholder = 'Search shortcuts';
     this.columns = [
       {
         key: 'name',
@@ -330,7 +337,7 @@ export class ShortcutContentList extends ContentList<Shortcut> {
                 </div>
                 <div class="detail-body">
                   <div class="detail-response">
-                    <div class="detail-section-title">Response</div>
+                    <div class="detail-section-title">${msg('Response')}</div>
                     <div class="detail-text">${shortcut.text}</div>
                   </div>
                 </div>
