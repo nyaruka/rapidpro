@@ -21,7 +21,7 @@ import {
   SPLIT_GROUP_METADATA
 } from './types';
 import { CustomEventType } from '../interfaces';
-import { Dialog } from '../layout/Dialog';
+import { ButtonType, Dialog } from '../layout/Dialog';
 import { formatCount, generateUUID } from '../utils';
 import {
   formatIssueMessage,
@@ -979,11 +979,11 @@ export class NodeEditor extends RapidElement {
   }
 
   private handleDialogButtonClick(event: CustomEvent): void {
-    const button = event.detail.button;
+    const button = event.detail.detail;
 
-    if (button.name === msg('Save')) {
+    if (button.type === ButtonType.PRIMARY) {
       this.handleSave();
-    } else if (button.name === msg('Cancel')) {
+    } else if (button.type === ButtonType.SECONDARY) {
       this.handleCancel();
     }
   }

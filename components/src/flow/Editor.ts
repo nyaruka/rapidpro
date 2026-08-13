@@ -59,7 +59,7 @@ import {
 import { CanvasNode } from './CanvasNode';
 import { DragManager } from './DragManager';
 import { ZoomManager } from './ZoomManager';
-import { Dialog } from '../layout/Dialog';
+import { ButtonType, Dialog } from '../layout/Dialog';
 
 import { CanvasMenu, CanvasMenuSelection } from './CanvasMenu';
 import { NodeTypeSelector, NodeTypeSelection } from './NodeTypeSelector';
@@ -1964,7 +1964,7 @@ export class Editor extends RapidElement {
       // Cancel/Escape route through this same event; tear the dialog down.
       // Ignore cancel while a swap is in flight — the request can't be recalled,
       // so closing here would let the change land after an apparent cancel.
-      if (event.detail.button.name !== updateName) {
+      if (event.detail.detail.type !== ButtonType.PRIMARY) {
         if (submitting) {
           return;
         }
@@ -2444,9 +2444,10 @@ export class Editor extends RapidElement {
     dialog.appendChild(content);
 
     dialog.addEventListener('temba-button-clicked', (event: any) => {
-      // matched by name, not the primary flag: on a destructive dialog the
-      // primary button carries destructive instead of primary
-      if (event.detail.button.name === deleteName) {
+      // matched by DialogButton type, not the element's primary flag: on a
+      // destructive dialog the rendered button carries destructive instead of
+      // primary, but its type stays primary
+      if (event.detail.detail.type === ButtonType.PRIMARY) {
         this.deleteSelectedItems();
         dialog.open = false;
       }

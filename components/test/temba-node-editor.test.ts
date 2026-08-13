@@ -246,7 +246,10 @@ describe('temba-node-editor', () => {
 
     // Test Save button by dispatching event on the dialog
     const saveEvent = new CustomEvent('temba-button-clicked', {
-      detail: { button: { name: 'Save' } },
+      detail: {
+        button: { name: 'Save' },
+        detail: { name: 'Save', type: 'primary' }
+      },
       bubbles: true
     });
     dialog!.dispatchEvent(saveEvent);
@@ -257,7 +260,10 @@ describe('temba-node-editor', () => {
 
     // Test Cancel button
     const cancelEvent = new CustomEvent('temba-button-clicked', {
-      detail: { button: { name: 'Cancel' } },
+      detail: {
+        button: { name: 'Cancel' },
+        detail: { name: 'Cancel', type: 'secondary', closes: true }
+      },
       bubbles: true
     });
     dialog!.dispatchEvent(cancelEvent);
@@ -341,7 +347,10 @@ describe('temba-node-editor', () => {
     const dialog = el.shadowRoot!.querySelector('temba-dialog');
     dialog!.dispatchEvent(
       new CustomEvent('temba-button-clicked', {
-        detail: { button: { name: 'Save' } },
+        detail: {
+          button: { name: 'Save' },
+          detail: { name: 'Save', type: 'primary' }
+        },
         bubbles: true
       })
     );
@@ -429,7 +438,10 @@ describe('temba-node-editor', () => {
     const dialog = el.shadowRoot!.querySelector('temba-dialog');
     dialog!.dispatchEvent(
       new CustomEvent('temba-button-clicked', {
-        detail: { button: { name: 'Save' } },
+        detail: {
+          button: { name: 'Save' },
+          detail: { name: 'Save', type: 'primary' }
+        },
         bubbles: true
       })
     );
