@@ -1,3 +1,4 @@
+import { msg, str } from '@lit/localize';
 import {
   FormData,
   TextFieldConfig,
@@ -43,9 +44,13 @@ export const localizeCategoriesField: CheckboxFieldConfig = {
     const name = formData.result_name?.trim();
     if (name) {
       const key = name.toLowerCase().replace(/\s+/g, '_');
-      return `Only enable if you plan to use @results.${key}.category_localized`;
+      return msg(
+        str`Only enable if you plan to use @results.${key}.category_localized`
+      );
     }
-    return 'Only enable if you plan to use category_localized in your expressions for this result';
+    return msg(
+      'Only enable if you plan to use category_localized in your expressions for this result'
+    );
   },
   conditions: {
     visible: (formData: FormData) => !!formData.result_name

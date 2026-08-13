@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property } from 'lit/decorators.js';
 import { ContactField, CustomEventType } from '../interfaces';
 
@@ -6,14 +7,25 @@ import { SortableList } from '../list/SortableList';
 import { EndpointMonitorElement } from '../store/EndpointMonitorElement';
 import { postJSON } from '../utils';
 
-const TYPE_NAMES = {
-  text: 'Text',
-  numeric: 'Number',
-  number: 'Number',
-  datetime: 'Date & Time',
-  state: 'State',
-  ward: 'Ward',
-  district: 'District'
+// resolved lazily so the type names pick up the active locale
+const getTypeName = (type: string): string => {
+  switch (type) {
+    case 'text':
+      return msg('Text');
+    case 'numeric':
+    case 'number':
+      return msg('Number');
+    case 'datetime':
+      return msg('Date & Time');
+    case 'state':
+      return msg('State');
+    case 'ward':
+      return msg('Ward');
+    case 'district':
+      return msg('District');
+    default:
+      return type;
+  }
 };
 
 const matches = (field: ContactField, query: string): boolean => {
@@ -23,7 +35,7 @@ const matches = (field: ContactField, query: string): boolean => {
   const search = (
     field.label +
     field.key +
-    TYPE_NAMES[field.value_type]
+    getTypeName(field.value_type)
   ).toLowerCase();
   if (search.toLowerCase().indexOf(query) > -1) {
     return true;
@@ -275,7 +287,7 @@ export class FieldManager extends EndpointMonitorElement {
         >
           @fields.${field.key}
         </div>
-        <div>${TYPE_NAMES[field.value_type]}</div>
+        <div>${getTypeName(field.value_type)}</div>
         <temba-icon
           style="pointer-events:none;color:#ccc;margin-left:0.3em;margin-right:-0.5em;opacity:0"
           name="delete_small"
@@ -295,7 +307,7 @@ export class FieldManager extends EndpointMonitorElement {
     return html`
       <temba-textinput
         id="search"
-        placeholder="Search"
+        placeholder=${msg('Search')}
         @change=${this.handleSearch}
         clearable
         value=${this.query}
@@ -306,7 +318,7 @@ export class FieldManager extends EndpointMonitorElement {
             <div class="featured">
               <div class="header">
                 <temba-icon name="featured"></temba-icon>
-                <div class="label">Featured</div>
+                <div class="label">${msg('Featured')}</div>
               </div>
               ${this.query
                 ? html`
@@ -332,7 +344,7 @@ export class FieldManager extends EndpointMonitorElement {
       <div class="other-fields">
         <div class="header">
           <temba-icon name="fields"></temba-icon>
-          <div class="label">Everything Else</div>
+          <div class="label">${msg('Everything Else')}</div>
         </div>
         <div class="scroll-box">
           ${this.otherFieldKeys.map((field) =>

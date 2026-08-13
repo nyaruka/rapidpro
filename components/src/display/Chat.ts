@@ -1,4 +1,5 @@
 import { TemplateResult, html, nothing, PropertyValueMap, css } from 'lit';
+import { msg, str } from '@lit/localize';
 import { property } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { RapidElement } from '../RapidElement';
@@ -19,32 +20,32 @@ const TYPING_TIMEOUT = 10 * 1000;
 const getUnsendableReasonMessage = (reason: string): string => {
   switch (reason) {
     case 'no_route':
-      return 'No channel available to send message';
+      return msg('No channel available to send message');
     case 'contact_blocked':
-      return 'Contact has been blocked';
+      return msg('Contact has been blocked');
     case 'contact_stopped':
-      return 'Contact has been stopped';
+      return msg('Contact has been stopped');
     case 'contact_archived':
-      return 'Contact is archived';
+      return msg('Contact is archived');
     case 'org_suspended':
-      return 'Workspace is suspended';
+      return msg('Workspace is suspended');
     case 'looping':
-      return 'Message loop detected';
+      return msg('Message loop detected');
     default:
-      return 'Unable to send message';
+      return msg('Unable to send message');
   }
 };
 
 const getStatusReasonMessage = (reason: string): string => {
   switch (reason) {
     case 'error_limit':
-      return 'Error limit reached';
+      return msg('Error limit reached');
     case 'too_old':
-      return 'Message is too old to send';
+      return msg('Message is too old to send');
     case 'channel_removed':
-      return 'Channel was removed';
+      return msg('Channel was removed');
     default:
-      return 'Message failed to send';
+      return msg('Message failed to send');
   }
 };
 
@@ -201,12 +202,12 @@ const getDayKey = (date: Date): string =>
 const getDayLabel = (date: Date): string => {
   const today = DateTime.now().toJSDate();
   if (getDayKey(date) === getDayKey(today)) {
-    return 'Today';
+    return msg('Today');
   }
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
   if (getDayKey(date) === getDayKey(yesterday)) {
-    return 'Yesterday';
+    return msg('Yesterday');
   }
   if (date.getFullYear() === today.getFullYear()) {
     return date.toLocaleDateString(undefined, {
@@ -1851,7 +1852,7 @@ export class Chat extends RapidElement {
                       <div class="run">
                         <div
                           class="collapse-rail"
-                          title="Collapse"
+                          title=${msg('Collapse')}
                           @click=${() => {
                             if (collapsing) {
                               return;
@@ -2006,8 +2007,8 @@ export class Chat extends RapidElement {
     const isDeleted = message._deleted;
     const deletedByText = isDeleted
       ? message._deleted.by_contact
-        ? 'contact'
-        : message._deleted.user?.name || 'user'
+        ? msg('contact')
+        : message._deleted.user?.name || msg('user')
       : null;
 
     // messages with no text and no attachments get a muted placeholder
@@ -2060,13 +2061,13 @@ export class Chat extends RapidElement {
           ? html`<div class="bubble">
               ${name ? html`<div class="name">${name}</div>` : null}
               <div class="message-deleted">
-                Message deleted by ${deletedByText}
+                ${msg(str`Message deleted by ${deletedByText}`)}
               </div>
             </div>`
           : isEmpty
             ? html`<div class="bubble">
                 ${name ? html`<div class="name">${name}</div>` : null}
-                <div class="message-empty">Empty Message</div>
+                <div class="message-empty">${msg('Empty Message')}</div>
               </div>`
             : message.msg.text && !textIsCoordinates
               ? html`<div class="bubble">

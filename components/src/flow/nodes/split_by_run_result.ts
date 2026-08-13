@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import { SPLIT_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { Node } from '../../store/flow-definition';
 import { createRulesRouter } from '../../utils';
@@ -126,7 +127,7 @@ export const split_by_run_result: NodeConfig = {
   ],
   validate: validateWith((formData, errors) => {
     if (!formData.result || formData.result.length === 0) {
-      errors.result = 'A flow result is required';
+      errors.result = msg('A flow result is required');
     }
   }),
   toFormData: (node: Node, nodeUI?: any) => {

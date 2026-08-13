@@ -1,4 +1,5 @@
 import { html, css, CSSResultGroup, TemplateResult } from 'lit';
+import { msg, str } from '@lit/localize';
 import { property, state, query } from 'lit/decorators.js';
 import { styleMap } from 'lit/directives/style-map.js';
 import { Icon } from '../Icons';
@@ -462,7 +463,7 @@ export abstract class SearchModal<
    * can override to explain why the result set came back empty.
    */
   protected getNoResultsMessage(): string {
-    return 'No matches found';
+    return msg('No matches found');
   }
 
   /**
@@ -470,8 +471,10 @@ export abstract class SearchModal<
    */
   protected renderHint(): TemplateResult {
     return html`<div class="hint">
-      <kbd>↑</kbd> <kbd>↓</kbd> to navigate &nbsp; <kbd>Enter</kbd> to open
-      &nbsp; <kbd>Esc</kbd> to close
+      ${msg(
+        html`<kbd>↑</kbd> <kbd>↓</kbd> to navigate &nbsp; <kbd>Enter</kbd> to
+          open &nbsp; <kbd>Esc</kbd> to close`
+      )}
     </div>`;
   }
 
@@ -483,11 +486,15 @@ export abstract class SearchModal<
     // a failed search leaves the query dirty so Enter retries it, so the
     // failure has to be reported ahead of the "Enter to search" hint
     if (this.error) {
-      return html`<div class="no-results">Search failed - try again</div>`;
+      return html`<div class="no-results">
+        ${msg('Search failed - try again')}
+      </div>`;
     }
 
     if (this.searchOnEnter && this.dirty) {
-      return html`<div class="hint"><kbd>Enter</kbd> to search</div>`;
+      return html`<div class="hint">
+        ${msg(html`<kbd>Enter</kbd> to search`)}
+      </div>`;
     }
 
     if (this.loading) {
@@ -519,8 +526,9 @@ export abstract class SearchModal<
         )}
       </div>
       <div class="result-count">
-        ${formatCount(this.results.length) +
-        (this.results.length !== 1 ? ' results' : ' result')}
+        ${this.results.length !== 1
+          ? msg(str`${formatCount(this.results.length)} results`)
+          : msg(str`${formatCount(this.results.length)} result`)}
       </div>
     `;
   }

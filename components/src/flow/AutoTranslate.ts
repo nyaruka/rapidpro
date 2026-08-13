@@ -1,5 +1,6 @@
 import { html, TemplateResult } from 'lit-html';
 import { css, PropertyValues } from 'lit';
+import { msg, str } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { getStore } from '../store/Store';
@@ -220,7 +221,7 @@ export class AutoTranslate extends RapidElement {
     } catch (err) {
       console.error('Failed to load AI models', err);
       this.models = [];
-      this.error = 'Unable to load AI models.';
+      this.error = msg('Unable to load AI models.');
     } finally {
       this.modelsLoading = false;
     }
@@ -244,7 +245,7 @@ export class AutoTranslate extends RapidElement {
     this.dialogOpen = false;
     this.runAutoTranslation().catch((err) => {
       console.error('Auto translation failed', err);
-      this.error = 'Auto translation failed. Please try again.';
+      this.error = msg('Auto translation failed. Please try again.');
       this.running = false;
     });
   }
@@ -487,12 +488,12 @@ export class AutoTranslate extends RapidElement {
         } else {
           this.error =
             response.json?.error ||
-            `Translate request failed (${response.status}).`;
+            msg(str`Translate request failed (${response.status}).`);
           break;
         }
       } catch (err) {
         console.error('Translate request failed', err);
-        this.error = 'Translate request failed.';
+        this.error = msg('Translate request failed.');
         break;
       }
 
@@ -600,7 +601,6 @@ export class AutoTranslate extends RapidElement {
   }
 
   private handleDialogButton(event: CustomEvent): void {
-    const name = event.detail?.button?.name;
     if (this.error) {
       // only the Dismiss button shows in the error state
       this.dismissError();
@@ -613,7 +613,8 @@ export class AutoTranslate extends RapidElement {
       }
       return;
     }
-    if (name === 'Translate') {
+    // in the picker state the primary button is Translate
+    if (event.detail?.button?.primary) {
       this.confirmTranslate();
     } else {
       this.cancelDialog();
@@ -634,7 +635,7 @@ export class AutoTranslate extends RapidElement {
       this.everOpened = true;
     }
 
-    let header = 'Auto Translation';
+    let header = msg('Auto Translation');
     let body: TemplateResult = html``;
     let gutter: TemplateResult | string = '';
     let primary = '';
@@ -642,21 +643,21 @@ export class AutoTranslate extends RapidElement {
     let disabled = false;
 
     if (this.error) {
-      header = 'Problem with AI Model';
+      header = msg('Problem with AI Model');
       body = this.renderErrorBody();
-      cancel = 'Dismiss';
+      cancel = msg('Dismiss');
     } else if (this.running) {
       body = this.renderRunningBody();
       gutter = this.renderRunningGutter();
       // Stop is the primary so the dialog does NOT auto-close on click;
       // we close it ourselves once the in-flight batch returns
-      primary = 'Stop';
+      primary = msg('Stop');
       disabled = this.interrupt;
     } else if (showPicker) {
       const noModels = !this.modelsLoading && this.models.length === 0;
       body = this.renderPickerBody();
-      cancel = noModels ? 'Close' : 'Cancel';
-      primary = noModels ? '' : 'Translate';
+      cancel = noModels ? msg('Close') : msg('Cancel');
+      primary = noModels ? '' : msg('Translate');
       disabled = this.modelsLoading || noModels || !this.selectedModel;
     }
 
@@ -691,10 +692,12 @@ export class AutoTranslate extends RapidElement {
     if (this.models.length === 0) {
       return html`
         <div class="auto-translate-empty">
-          <p>You need to add an AI model before you can auto translate.</p>
+          <p>
+            ${msg('You need to add an AI model before you can auto translate.')}
+          </p>
           <p>
             <a href="${ADD_MODEL_URL}" target="_blank" rel="noopener"
-              >Manage AI models</a
+              >${msg('Manage AI models')}</a
             >
           </p>
         </div>
@@ -704,14 +707,18 @@ export class AutoTranslate extends RapidElement {
     const selected = this.selectedModel ? [this.selectedModel] : [];
     const languageName = getLanguageName(this.languageCode);
     const aiClause = this.brand
-      ? html`${this.brand} uses AI for automatic translation, which can make
-        mistakes,`
-      : html`Automatic translation uses AI, which can make mistakes,`;
+      ? msg(
+          html`${this.brand} uses AI for automatic translation, which can make
+          mistakes,`
+        )
+      : msg(html`Automatic translation uses AI, which can make mistakes,`);
     return html`
       <p>
-        All remaining text for <strong>${languageName}</strong> will be
-        translated automatically. ${aiClause} so it is important to review all
-        of your translations to verify they are correct.
+        ${msg(
+          html`All remaining text for <strong>${languageName}</strong> will be
+            translated automatically. ${aiClause} so it is important to review
+            all of your translations to verify they are correct.`
+        )}
       </p>
       ${this.models.length > 1
         ? html`<temba-select
@@ -722,13 +729,13 @@ export class AutoTranslate extends RapidElement {
             .shouldExclude=${(option: LLMModel) =>
               !hasLLMRole(option, 'editing')}
             ?searchable=${true}
-            placeholder="Select an AI model"
+            placeholder=${msg('Select an AI model')}
             @change=${this.handleModelChange}
           ></temba-select>`
         : ''}
       <temba-checkbox
         class="auto-translate-update-existing"
-        label="Update existing translations"
+        label=${msg('Update existing translations')}
         ?checked=${this.updateExisting}
         @change=${this.handleUpdateExistingChange}
       ></temba-checkbox>
@@ -755,10 +762,14 @@ export class AutoTranslate extends RapidElement {
     // 0, so we display "1 of N"
     const currentBatch = Math.min(done + 1, total);
     const statusText = this.interrupt
-      ? 'Stopping...'
+      ? msg('Stopping...')
       : total > 1
-        ? `Translating ${formatCount(currentBatch)} of ${formatCount(total)}`
-        : 'Translating';
+        ? msg(
+            str`Translating ${formatCount(currentBatch)} of ${formatCount(
+              total
+            )}`
+          )
+        : msg('Translating');
 
     return html`
       <div class="auto-translate-status">
@@ -777,8 +788,9 @@ export class AutoTranslate extends RapidElement {
     return html`
       <div class="auto-translate-error-block">
         <p class="auto-translate-error-help">
-          Any translations already applied have been kept. You can try again, or
-          check the AI model's settings if the problem persists.
+          ${msg(
+            "Any translations already applied have been kept. You can try again, or check the AI model's settings if the problem persists."
+          )}
         </p>
         ${this.errorExpanded
           ? html`<pre class="auto-translate-error-details">${this.error}</pre>`
@@ -787,7 +799,7 @@ export class AutoTranslate extends RapidElement {
               type="button"
               @click=${() => (this.errorExpanded = true)}
             >
-              Show details
+              ${msg('Show details')}
             </button>`}
       </div>
     `;

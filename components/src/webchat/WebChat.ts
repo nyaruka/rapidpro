@@ -8,6 +8,7 @@ import {
   PropertyValueMap
 } from 'lit';
 import { property } from 'lit/decorators.js';
+import { msg } from '@lit/localize';
 import { generateUUIDv7, getCookie, setCookie } from '../utils';
 import { DEFAULT_AVATAR } from './assets';
 import { Chat, MsgEvent } from '../display/Chat';
@@ -637,7 +638,7 @@ export class WebChat extends LitElement {
     return html`
       <div class="chat ${this.status} ${this.open ? 'open' : ''}">
         <div class="header">
-          <slot name="header">${this.urn ? this.urn : 'Chat'}</slot>
+          <slot name="header">${this.urn ? this.urn : msg('Chat')}</slot>
           <temba-icon
             name="close"
             size="1.3"
@@ -653,16 +654,16 @@ export class WebChat extends LitElement {
 
         ${this.status === ChatStatus.DISCONNECTED
           ? html`<div class="notice">
-              <div>This chat is not currently connected.</div>
+              <div>${msg('This chat is not currently connected.')}</div>
               <div class="reconnect" @click=${this.handleReconnect}>
-                Click here to reconnect
+                ${msg('Click here to reconnect')}
                 <div></div>
               </div>
             </div>`
           : null}
         ${this.status === ChatStatus.CONNECTING
           ? html`<div class="notice">
-              <div>Connecting</div>
+              <div>${msg('Connecting')}</div>
               <temba-icon name="progress_spinner" spin></temba-icon>
             </div>`
           : null}
@@ -677,7 +678,7 @@ export class WebChat extends LitElement {
                     ? 'active'
                     : 'inactive'}"
                   type="text"
-                  placeholder="Message.."
+                  placeholder=${msg('Message..')}
                   ?disabled=${this.status !== ChatStatus.CONNECTED}
                   @keydown=${this.handleKeyUp}
                 />

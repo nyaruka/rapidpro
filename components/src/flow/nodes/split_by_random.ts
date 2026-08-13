@@ -1,3 +1,4 @@
+import { msg, str } from '@lit/localize';
 import { SPLIT_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { Node } from '../../store/flow-definition.d';
 import { validateWith } from '../utils';
@@ -39,7 +40,9 @@ export const split_by_random: NodeConfig = {
     );
 
     if (categories.length < 2) {
-      errors.categories = 'At least 2 buckets are required for random split';
+      errors.categories = msg(
+        'At least 2 buckets are required for random split'
+      );
     }
 
     const duplicateCategories: string[] = [];
@@ -61,9 +64,9 @@ export const split_by_random: NodeConfig = {
 
     if (duplicateCategories.length > 0) {
       const uniqueDuplicates = [...new Set(duplicateCategories)];
-      errors.categories = `Duplicate bucket names found: ${uniqueDuplicates.join(
-        ', '
-      )}`;
+      errors.categories = msg(
+        str`Duplicate bucket names found: ${uniqueDuplicates.join(', ')}`
+      );
     }
   }),
   toFormData: (node: Node) => {

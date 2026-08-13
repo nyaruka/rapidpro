@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg, str } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { Icon } from '../Icons';
 import { Contact, CustomEventType, Group, URN } from '../interfaces';
@@ -15,11 +16,12 @@ interface Option {
   value: string;
 }
 
-const STATUS_OPTIONS: Option[] = [
-  { value: 'active', name: 'Active' },
-  { value: 'blocked', name: 'Blocked' },
-  { value: 'stopped', name: 'Stopped' },
-  { value: 'archived', name: 'Archived' }
+// resolved lazily so the option names pick up the active locale
+const getStatusOptions = (): Option[] => [
+  { value: 'active', name: msg('Active') },
+  { value: 'blocked', name: msg('Blocked') },
+  { value: 'stopped', name: msg('Stopped') },
+  { value: 'archived', name: msg('Archived') }
 ];
 
 export class ContactDetails extends ContactStoreElement {
@@ -345,7 +347,7 @@ export class ContactDetails extends ContactStoreElement {
       codes.unshift(this.data.language);
     }
     return [
-      { value: 'none', name: 'No Preference' },
+      { value: 'none', name: msg('No Preference') },
       ...codes.map((code) => ({ value: code, name: getLanguageName(code) }))
     ];
   }
@@ -532,7 +534,7 @@ export class ContactDetails extends ContactStoreElement {
 
   public async handleUrnDialogButton(event: CustomEvent) {
     event.stopImmediatePropagation();
-    if (event.detail?.button?.name === 'Save') {
+    if (event.detail?.button?.primary) {
       const response = await this.save('urn-dialog', {
         urns: this.draftUrns
           .filter((urn) => urn.path.trim())
@@ -671,7 +673,7 @@ export class ContactDetails extends ContactStoreElement {
 
   private renderFailure(key: string): TemplateResult {
     return this.failed.has(key)
-      ? html`<temba-tip class="error" text="Failed to save changes.">
+      ? html`<temba-tip class="error" text=${msg('Failed to save changes.')}>
           <temba-icon name=${Icon.alert_warning}></temba-icon>
         </temba-tip>`
       : null;
@@ -712,8 +714,8 @@ export class ContactDetails extends ContactStoreElement {
     if (!groups.length) return null;
     return html`<div class="smart-groups ${editable ? 'editable-row' : 'row'}">
       ${editable
-        ? html`<label>Smart Groups</label>`
-        : html`<div class="label">Smart Groups</div>`}
+        ? html`<label>${msg('Smart Groups')}</label>`
+        : html`<div class="label">${msg('Smart Groups')}</div>`}
       <div class=${editable ? 'dynamic-groups' : 'value'}>
         ${groups.map(
           (group) =>
@@ -738,17 +740,19 @@ export class ContactDetails extends ContactStoreElement {
     const unsendable = urn?.channel === null;
     return html`<temba-contact-field
       class=${className}
-      name=${urn ? this.getSchemeName(urn.scheme) : 'URN'}
-      value=${urn ? urn.display || urn.path : 'No URNs'}
+      name=${urn ? this.getSchemeName(urn.scheme) : msg('URN')}
+      value=${urn ? urn.display || urn.path : msg('No URNs')}
       valueIcon=${unsendable ? Icon.contact_stopped : ''}
-      valueIconLabel=${unsendable ? 'Not sendable: no channel available' : ''}
+      valueIconLabel=${unsendable
+        ? msg('Not sendable: no channel available')
+        : ''}
       disabled
     ></temba-contact-field>`;
   }
 
   private renderUrnSendability(urn: URN): TemplateResult {
     if (urn.channel !== null) return null;
-    const label = 'Not sendable: no channel available';
+    const label = msg('Not sendable: no channel available');
     return html`<temba-tip
       class="urn-sendability unsendable"
       text=${label}
@@ -762,10 +766,10 @@ export class ContactDetails extends ContactStoreElement {
   private renderUrnDialog(): TemplateResult {
     const selectedScheme = this.newScheme || this.schemes[0]?.value || '';
     return html`<temba-dialog
-      header="Edit URNs"
+      header=${msg('Edit URNs')}
       size="medium"
-      primaryButtonName="Save"
-      cancelButtonName="Cancel"
+      primaryButtonName=${msg('Save')}
+      cancelButtonName=${msg('Cancel')}
       .open=${this.urnDialogOpen}
       ?disabled=${this.saving.has('urn-dialog')}
       ?submitting=${this.saving.has('urn-dialog')}
@@ -792,10 +796,12 @@ export class ContactDetails extends ContactStoreElement {
                     ? html`<temba-icon
                         class="drag-handle"
                         name=${Icon.drag}
-                        title="Drag to reorder"
-                        aria-label="Reorder ${this.getSchemeName(
-                          urn.scheme
-                        )} URN. Use the up and down arrow keys to move it."
+                        title=${msg('Drag to reorder')}
+                        aria-label=${msg(
+                          str`Reorder ${this.getSchemeName(
+                            urn.scheme
+                          )} URN. Use the up and down arrow keys to move it.`
+                        )}
                         role="button"
                         tabindex="0"
                         @keydown=${(event: KeyboardEvent) =>
@@ -816,13 +822,13 @@ export class ContactDetails extends ContactStoreElement {
                   ${this.renderUrnSendability(urn)}
                   <temba-tip
                     class="urn-delete-action"
-                    text="Delete URN"
+                    text=${msg('Delete URN')}
                     position="top"
                   >
                     <temba-icon
                       class="urn-delete-icon"
                       name=${Icon.delete}
-                      aria-label="Delete URN"
+                      aria-label=${msg('Delete URN')}
                       role="button"
                       tabindex="0"
                       @click=${(event: Event) =>
@@ -838,13 +844,13 @@ export class ContactDetails extends ContactStoreElement {
         </temba-sortable-list>
         ${this.failed.has('urn-dialog')
           ? html`<div class="add-urn-error">
-              Failed to save URNs. Check the addresses and try again.
+              ${msg('Failed to save URNs. Check the addresses and try again.')}
             </div>`
           : null}
         ${this.schemes.length
           ? html`<div class="add-urn-fields">
               <div>
-                <label>URN Type</label>
+                <label>${msg('URN Type')}</label>
                 <temba-select
                   valueKey="value"
                   .values=${this.schemes.filter(
@@ -863,13 +869,13 @@ export class ContactDetails extends ContactStoreElement {
               </div>
               <temba-textinput
                 name="urn"
-                label="Address"
+                label=${msg('Address')}
                 .value=${this.newUrn}
                 @input=${this.handleNewUrnChanged}
               ></temba-textinput>
               <div class="add-urn-button">
                 <temba-button
-                  name="Add"
+                  name=${msg('Add')}
                   icon=${Icon.add}
                   light
                   ?disabled=${!this.newUrn.trim()}
@@ -894,25 +900,25 @@ export class ContactDetails extends ContactStoreElement {
           ? 'editable'
           : ''} ${onlyUnsendable ? 'only-unsendable' : ''}"
         aria-label=${noUrns
-          ? 'This contact has no URNs'
+          ? msg('This contact has no URNs')
           : onlyUnsendable
-            ? 'This contact has no sendable URNs'
-            : 'Contact URN'}
+            ? msg('This contact has no sendable URNs')
+            : msg('Contact URN')}
       >
         ${this.renderDisplayedUrn(displayedUrn, 'primary-urn')}
         ${editable && additional
           ? html`<span
               class="urn-more-count"
-              aria-label="${additional} additional URNs"
-              >+${additional} more</span
+              aria-label=${msg(str`${additional} additional URNs`)}
+              >${msg(str`+${additional} more`)}</span
             >`
           : null}
         ${editable
           ? html`<temba-icon
               class="urn-edit-icon"
               name=${Icon.edit}
-              title="Edit URNs"
-              aria-label="Edit URNs"
+              title=${msg('Edit URNs')}
+              aria-label=${msg('Edit URNs')}
               role="button"
               tabindex="0"
               @click=${this.showUrnDialog}
@@ -929,14 +935,14 @@ export class ContactDetails extends ContactStoreElement {
       ${this.renderPrimaryUrn(true)}
       <temba-contact-field
         key="name"
-        name="Name"
+        name=${msg('Name')}
         value=${this.data.name || ''}
         @change=${this.handleTextChanged}
         @temba-button-clicked=${this.handleSearch}
       ></temba-contact-field>
       ${this.anon && this.data.ref
         ? html`<temba-contact-field
-            name="Ref"
+            name=${msg('Ref')}
             value=${this.data.ref}
             disabled
           ></temba-contact-field>`
@@ -947,7 +953,7 @@ export class ContactDetails extends ContactStoreElement {
               ? 'saving'
               : ''} ${this.failed.has('groups') ? 'failed' : ''}"
           >
-            <label>Groups</label>
+            <label>${msg('Groups')}</label>
             ${this.renderFailure('groups')}
             <temba-select
               endpoint="/api/v2/groups.json?manual_only=1"
@@ -963,14 +969,14 @@ export class ContactDetails extends ContactStoreElement {
       ${this.renderDynamicGroups(true)}
       ${this.renderEditableSelect(
         'status',
-        'Status',
-        STATUS_OPTIONS,
+        msg('Status'),
+        getStatusOptions(),
         this.data.status,
         this.handleStatusChanged
       )}
       ${this.renderEditableSelect(
         'language',
-        'Language',
+        msg('Language'),
         this.getLanguageOptions(),
         this.data.language || 'none',
         this.handleLanguageChanged
@@ -985,7 +991,7 @@ export class ContactDetails extends ContactStoreElement {
       ${this.renderPrimaryUrn(false)}
       ${manualGroups.length
         ? html`<div class="row">
-            <div class="label">Groups</div>
+            <div class="label">${msg('Groups')}</div>
             <div class="value">
               ${manualGroups.map(
                 (group) =>
@@ -1005,21 +1011,21 @@ export class ContactDetails extends ContactStoreElement {
       ${this.renderDynamicGroups(false)}
       ${this.data.ref
         ? html`<temba-contact-field
-            name="Ref"
+            name=${msg('Ref')}
             value=${this.data.ref}
             disabled
           ></temba-contact-field>`
         : null}
       <temba-contact-field
-        name="Status"
-        value=${STATUS_OPTIONS.find(
+        name=${msg('Status')}
+        value=${getStatusOptions().find(
           (option) => option.value === this.data.status
         )?.name || capitalize(this.data.status)}
         disabled
       ></temba-contact-field>
       ${lang
         ? html`<temba-contact-field
-            name="Language"
+            name=${msg('Language')}
             value=${lang}
             disabled
           ></temba-contact-field>`
@@ -1033,14 +1039,14 @@ export class ContactDetails extends ContactStoreElement {
     return html`<div class="wrapper">
       ${this.editable ? this.renderEditable() : this.renderReadonly()}
       <temba-contact-field
-        name="Created"
+        name=${msg('Created')}
         value=${this.data.created_on}
         type="datetime"
         disabled
       ></temba-contact-field>
       <temba-contact-field
         class="last-field"
-        name="Last Seen"
+        name=${msg('Last Seen')}
         value=${this.data.last_seen_on}
         type="datetime"
         disabled

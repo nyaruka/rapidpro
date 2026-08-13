@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import { SPLIT_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { Node, Case } from '../../store/flow-definition.d';
 import { SCHEMES, validateWith } from '../utils';
@@ -44,7 +45,7 @@ export const split_by_scheme: NodeConfig = {
       !Array.isArray(formData.schemes) ||
       formData.schemes.length === 0
     ) {
-      errors.schemes = 'At least one channel type is required';
+      errors.schemes = msg('At least one channel type is required');
     }
   }),
   toFormData: (node: Node) => {
