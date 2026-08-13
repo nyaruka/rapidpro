@@ -1,3 +1,7 @@
+v26.3.44 (2026-08-13)
+-------------------------
+ * Configure Turn.io webhooks automatically on channel claim and release
+
 v26.3.43 (2026-08-13)
 -------------------------
  * Add search button to the tickets menu to surface cross-ticket search
