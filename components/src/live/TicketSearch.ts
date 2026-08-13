@@ -77,13 +77,18 @@ export class TicketSearch extends SearchModal<TicketSearchResult> {
   @property({ type: String })
   endpoint = '/ticket/search/';
 
-  // searching hits an endpoint, so wait for Enter
-  searchOnEnter = true;
-
   // how many matches the last search found in tickets this user can't access,
   // so an empty result set can say why it's empty
   @state()
   private dropped = 0;
+
+  constructor() {
+    super();
+    // searching hits an endpoint, so wait for Enter. Set in the constructor, not as a
+    // class field - a field would shadow the reactive accessor under define semantics
+    // (see lit class-field-shadowing)
+    this.searchOnEnter = true;
+  }
 
   // the in-flight request, aborted when it's superseded or the modal closes
   private abortController: AbortController = null;

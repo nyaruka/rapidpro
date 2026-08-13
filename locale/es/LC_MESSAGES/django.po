@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-07 15:29+0000\n"
+"POT-Creation-Date: 2026-08-13 19:39+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -3725,6 +3725,9 @@ msgstr "Temas"
 msgid "Analytics"
 msgstr "Analítica"
 
+msgid "Search"
+msgstr "Buscar"
+
 msgid "New Topic"
 msgstr "Nuevo tema"
 
@@ -4354,9 +4357,6 @@ msgstr "Una vez que conecte un número, inmediatamente podrá enviar y recibir m
 
 msgid "Pattern"
 msgstr "Patrón"
-
-msgid "Search"
-msgstr "Buscar"
 
 msgid "Existing Numbers"
 msgstr "Números existentes"

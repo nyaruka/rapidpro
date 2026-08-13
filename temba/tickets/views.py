@@ -270,6 +270,11 @@ class TicketCRUDL(SmartCRUDL):
                 )
 
             menu.append(self.create_space())
+
+            # cross-ticket search is only available to users who can access all topics (see TicketCRUDL.Search)
+            if self.has_org_perm("tickets.ticket_list") and Topic.get_restriction(org, user) is None:
+                menu.append(self.create_event_button(_("Search"), "temba-ticket-search-show", icon="search"))
+
             menu.append(self.create_modax_button(_("Export"), "tickets.ticket_export", icon="export"))
             if not Topic.is_limit_reached(org):
                 menu.append(
