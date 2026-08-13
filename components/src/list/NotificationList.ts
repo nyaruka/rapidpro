@@ -26,6 +26,7 @@ export class NotificationList extends TembaList {
     return css`
       :host {
         --option-hover-bg: #f9f9f9;
+        --options-empty-message-align: center;
       }
 
       .header {

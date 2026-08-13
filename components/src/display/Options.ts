@@ -240,8 +240,11 @@ export class Options extends RapidElement {
         --icon-color: var(--accent-700);
       }
 
+      /* options are flex rows, so the empty message aligns via
+         justify-content rather than text-align */
       .option.no-options {
         pointer-events: none;
+        justify-content: var(--options-empty-message-align, flex-start);
       }
 
       .option.no-options:hover {
