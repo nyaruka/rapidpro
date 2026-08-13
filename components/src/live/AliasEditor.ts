@@ -2,6 +2,7 @@ import { css, html, LitElement, TemplateResult } from 'lit';
 import { FeatureProperties } from '../interfaces';
 import { getUrl, postJSON, WebResponse } from '../utils';
 import { TextInput } from '../form/TextInput';
+import { ButtonType } from '../layout/Dialog';
 import { styleMap } from 'lit-html/directives/style-map.js';
 import { Icon } from '../Icons';
 
@@ -317,8 +318,8 @@ export class AliasEditor extends LitElement {
   }
 
   private handleDialogClick(evt: CustomEvent) {
-    const button = evt.detail.button;
-    if (button.name === 'Save') {
+    const button = evt.detail.detail;
+    if (button.type === ButtonType.PRIMARY) {
       const textarea = this.shadowRoot.getElementById(
         this.editFeature.osm_id
       ) as TextInput;
@@ -332,7 +333,7 @@ export class AliasEditor extends LitElement {
       });
     }
 
-    if (button.name === 'Cancel') {
+    if (button.type === ButtonType.SECONDARY) {
       this.hideAliasDialog();
     }
   }
