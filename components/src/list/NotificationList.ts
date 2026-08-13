@@ -56,6 +56,7 @@ export class NotificationList extends TembaList {
   constructor() {
     super();
     this.valueKey = 'url';
+    this.emptyMessage = 'No notifications';
     this.renderOption = (notification: Notification): TemplateResult => {
       let icon = null;
       let body = null;
