@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import { SPLIT_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { Node } from '../../store/flow-definition';
 import { createRulesRouter } from '../../utils';
@@ -46,7 +47,7 @@ export const split_by_expression: NodeConfig = {
   layout: ['operand', 'rules', nodeOptionsAccordion],
   validate: validateWith((formData, errors) => {
     if (!formData.operand || formData.operand.trim() === '') {
-      errors.operand = 'Expression is required';
+      errors.operand = msg('Expression is required');
     }
   }),
   toFormData: (node: Node, nodeUI?: any) => {

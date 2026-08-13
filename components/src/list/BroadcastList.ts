@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { ContentList, ContentListColumn } from './ContentList';
 import { Icon } from '../Icons';
@@ -350,11 +351,17 @@ export class BroadcastList extends ContentList<Broadcast> {
   @state()
   private detailBroadcast: Broadcast = null;
 
+  protected defaultEmptyMessage(): string {
+    return msg('No broadcasts');
+  }
+
+  protected defaultSearchPlaceholder(): string {
+    return msg('Search broadcasts');
+  }
+
   constructor() {
     super();
     this.valueKey = 'id';
-    this.emptyMessage = 'No broadcasts';
-    this.searchPlaceholder = 'Search broadcasts';
     this.syncColumns();
   }
 
@@ -650,7 +657,7 @@ export class BroadcastList extends ContentList<Broadcast> {
    * schedule is exhausted or paused. */
   private renderSchedule(item: Broadcast): TemplateResult | string {
     if (!item.schedule?.next_fire) {
-      return html`<span class="muted">Not scheduled</span>`;
+      return html`<span class="muted">${msg('Not scheduled')}</span>`;
     }
     return item.schedule.display || EMPTY;
   }
@@ -699,13 +706,13 @@ export class BroadcastList extends ContentList<Broadcast> {
                 ${broadcast.schedule.display
                   ? html`<span>${broadcast.schedule.display}</span>`
                   : null}
-                <span>starting</span>
+                <span>${msg('starting')}</span>
                 <temba-date
                   value=${broadcast.schedule.next_fire}
                   display="datetime"
                 ></temba-date>
               `
-            : html`<span>Not scheduled</span>`}
+            : html`<span>${msg('Not scheduled')}</span>`}
         </div>
       `;
     }
@@ -849,7 +856,7 @@ export class BroadcastList extends ContentList<Broadcast> {
                     : null}
 
                   <div class="detail-message">
-                    <div class="detail-section-title">Message</div>
+                    <div class="detail-section-title">${msg('Message')}</div>
                     ${broadcast.text
                       ? html`<temba-expression-highlight
                           >${broadcast.text}</temba-expression-highlight
@@ -886,7 +893,9 @@ export class BroadcastList extends ContentList<Broadcast> {
                   broadcast.msg_count != null
                     ? html`
                         <div class="detail-section-row">
-                          <div class="detail-section-title">Recipients</div>
+                          <div class="detail-section-title">
+                            ${msg('Recipients')}
+                          </div>
                           ${this.renderDetailCount(broadcast)}
                         </div>
                         <div class="detail-pills">${pills}</div>

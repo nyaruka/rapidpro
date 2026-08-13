@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import { ACTION_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { Node, OpenTicket } from '../../store/flow-definition';
 import { generateUUID, createSuccessFailureRouter } from '../../utils';
@@ -54,7 +55,7 @@ export const split_by_ticket: NodeConfig = {
     ) as OpenTicket;
     return html`
       <div class="body">
-        ${openTicketAction?.topic?.name || 'Configure ticket'}
+        ${openTicketAction?.topic?.name || msg('Configure ticket')}
       </div>
     `;
   },

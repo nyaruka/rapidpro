@@ -39,7 +39,8 @@ describe('temba-shortcut-list', () => {
       'name',
       'text'
     ]);
-    expect(list.searchPlaceholder).to.equal('Search shortcuts');
+    // the default placeholder resolves at render time so it localizes
+    expect(list['defaultSearchPlaceholder']()).to.equal('Search shortcuts');
   });
 
   it('renders shortcut names and text', async () => {

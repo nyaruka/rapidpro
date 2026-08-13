@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { Icon } from '../Icons';
 import { Article } from '../interfaces';
@@ -425,10 +426,13 @@ export class ArticleList extends ContentList<ArticleRow> {
   private dragStartX = 0;
   private clickBlocker: (event: MouseEvent) => void = null;
 
+  protected defaultEmptyMessage(): string {
+    return msg('No articles');
+  }
+
   constructor() {
     super();
     this.valueKey = 'uuid';
-    this.emptyMessage = 'No articles';
     // the tree is the order, so there's nothing to sort or search by
     this.searchable = false;
     this.selectable = false;

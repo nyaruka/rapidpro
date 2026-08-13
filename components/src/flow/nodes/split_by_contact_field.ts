@@ -1,3 +1,4 @@
+import { msg, str } from '@lit/localize';
 import { SPLIT_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { Node } from '../../store/flow-definition';
 import { createRulesRouter } from '../../utils';
@@ -89,7 +90,7 @@ export const split_by_contact_field: NodeConfig = {
   layout: ['field', 'rules', nodeOptionsAccordion],
   validate: validateWith((formData, errors) => {
     if (!formData.field || formData.field.length === 0) {
-      errors.field = 'A field is required';
+      errors.field = msg('A field is required');
     }
   }),
   toFormData: (node: Node, nodeUI?: any) => {
@@ -203,7 +204,7 @@ export const split_by_contact_field: NodeConfig = {
     return config;
   },
   renderTitle: (node: Node, nodeUI?: any) => {
-    return html`<div>Split by ${nodeUI.config.operand.name}</div>`;
+    return html`<div>${msg(str`Split by ${nodeUI.config.operand.name}`)}</div>`;
   },
 
   // Localization support for categories

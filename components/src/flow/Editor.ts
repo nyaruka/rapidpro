@@ -1,5 +1,6 @@
-import { html, TemplateResult } from 'lit-html';
+import { html, render, TemplateResult } from 'lit-html';
 import { css, PropertyValueMap, PropertyValues, unsafeCSS } from 'lit';
+import { msg, str } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import {
   FlowDefinition,
@@ -137,7 +138,7 @@ class PendingChangesTimer {
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
-    public readonly label: string,
+    public readonly label: () => string,
     private readonly delay: number,
     private readonly host: { requestUpdate(): void },
     private readonly onExpire: () => void
@@ -325,7 +326,7 @@ export class Editor extends RapidElement {
   // --- Pending-changes timer (shared by reflow + copy) ---
 
   public pendingTimer = new PendingChangesTimer(
-    'Unsaved Changes',
+    () => msg('Unsaved Changes'),
     PENDING_SAVE_DELAY,
     this,
     () => {
@@ -363,8 +364,11 @@ export class Editor extends RapidElement {
   public deleteDialog: Dialog | null = null;
 
   private dirtyAdapter: DirtyTrackable = {
-    dirtyMessage:
-      'Your flow is still saving. If you leave now, your latest changes may be lost.',
+    get dirtyMessage() {
+      return msg(
+        'Your flow is still saving. If you leave now, your latest changes may be lost.'
+      );
+    },
     markClean: () => {
       // no-op — the editor manages its own save lifecycle
     }
@@ -1623,10 +1627,13 @@ export class Editor extends RapidElement {
       .catch((error) => {
         console.error('Failed to save flow:', error);
         if (error instanceof Response) {
-          this.saveError = `Server error (${error.status}). Your changes have not been saved.`;
+          this.saveError = msg(
+            str`Server error (${error.status}). Your changes have not been saved.`
+          );
         } else {
-          this.saveError =
-            'Unable to reach the server. Please check your connection and try again.';
+          this.saveError = msg(
+            'Unable to reach the server. Please check your connection and try again.'
+          );
         }
       })
       .finally(() => {
@@ -1650,19 +1657,20 @@ export class Editor extends RapidElement {
         return response.json.description;
       }
     }
-    return `Save failed with status ${response.status}.`;
+    return msg(str`Save failed with status ${response.status}.`);
   }
 
   private showUnsupportedActionDialog(): void {
     const dialog = document.createElement('temba-dialog') as Dialog;
-    dialog.header = 'Unsupported Action';
+    dialog.header = msg('Unsupported Action');
     dialog.primaryButtonName = '';
-    dialog.cancelButtonName = 'Ok';
+    dialog.cancelButtonName = msg('Ok');
 
     const content = document.createElement('div');
     content.style.cssText = 'padding: 20px; font-size: 14px; line-height: 1.5;';
-    content.textContent =
-      'This action is no longer supported and should be removed.';
+    content.textContent = msg(
+      'This action is no longer supported and should be removed.'
+    );
     dialog.appendChild(content);
 
     document.body.appendChild(dialog);
@@ -1675,9 +1683,9 @@ export class Editor extends RapidElement {
 
   private showSaveErrorDialog(message: string): void {
     const dialog = document.createElement('temba-dialog') as Dialog;
-    dialog.header = 'Save Failed';
+    dialog.header = msg('Save Failed');
     dialog.primaryButtonName = '';
-    dialog.cancelButtonName = 'Dismiss';
+    dialog.cancelButtonName = msg('Dismiss');
 
     const content = document.createElement('div');
     content.style.cssText = 'padding: 20px; font-size: 14px; line-height: 1.5;';
@@ -1884,21 +1892,18 @@ export class Editor extends RapidElement {
     newLanguage: string,
     currentLanguage: string
   ): HTMLElement {
-    // Build with textContent rather than innerHTML: language names fall back to
-    // the raw, server-derived language code when Intl/ADDITIONAL_LANGUAGE_NAMES
-    // can't resolve them, so they must never be interpolated into markup.
+    // Rendered as a lit template: language names fall back to the raw,
+    // server-derived language code when Intl/ADDITIONAL_LANGUAGE_NAMES can't
+    // resolve them, so they must only ever be bound as text expressions,
+    // never interpolated into markup.
     const body = document.createElement('div');
     body.style.cssText = 'padding: 20px; line-height: 1.5;';
-    const newName = document.createElement('b');
-    newName.textContent = newLanguage;
-    const currentName = document.createElement('b');
-    currentName.textContent = currentLanguage;
-    body.append(
-      'Make ',
-      newName,
-      ' the default language for this flow? ',
-      currentName,
-      ' will be kept as a translation.'
+    render(
+      msg(
+        html`Make <b>${newLanguage}</b> the default language for this flow?
+          <b>${currentLanguage}</b> will be kept as a translation.`
+      ),
+      body
     );
     return body;
   }
@@ -1924,10 +1929,11 @@ export class Editor extends RapidElement {
 
     const dialog = document.createElement('temba-dialog') as Dialog;
     dialog.setAttribute('data-make-default', '');
-    dialog.header = 'Change Default Language';
-    dialog.primaryButtonName = 'Update';
-    dialog.cancelButtonName = 'Cancel';
-    dialog.submittingName = 'Updating';
+    const updateName = msg('Update');
+    dialog.header = msg('Change Default Language');
+    dialog.primaryButtonName = updateName;
+    dialog.cancelButtonName = msg('Cancel');
+    dialog.submittingName = msg('Updating');
     dialog.appendChild(
       this.buildMakeDefaultBody(newLanguageName, currentLanguageName)
     );
@@ -1958,7 +1964,7 @@ export class Editor extends RapidElement {
       // Cancel/Escape route through this same event; tear the dialog down.
       // Ignore cancel while a swap is in flight — the request can't be recalled,
       // so closing here would let the change land after an apparent cancel.
-      if (event.detail.button.name !== 'Update') {
+      if (event.detail.button.name !== updateName) {
         if (submitting) {
           return;
         }
@@ -1985,7 +1991,7 @@ export class Editor extends RapidElement {
       submitting = false;
       dialog.submitting = false;
       dialog.disabled = false;
-      dialog.cancelButtonName = 'Cancel';
+      dialog.cancelButtonName = msg('Cancel');
 
       if (flushFailed) {
         // flushSave already surfaced its own "Save Failed" dialog via the
@@ -2059,7 +2065,7 @@ export class Editor extends RapidElement {
     } catch (error) {
       console.error('Failed to change default language:', error);
       return {
-        error: 'Unable to change the default language. Please try again.',
+        error: msg('Unable to change the default language. Please try again.'),
         flushFailed: false
       };
     }
@@ -2417,21 +2423,30 @@ export class Editor extends RapidElement {
 
   private showDeleteConfirmation(): void {
     const itemCount = this.selectedItems.size;
-    const itemType = itemCount === 1 ? 'item' : 'items';
 
     // Create and show confirmation dialog
     // Don't open a second dialog if one is already showing
     if (this.deleteDialog?.open) return;
 
+    const deleteName = msg('Delete');
     const dialog = document.createElement('temba-dialog') as Dialog;
-    dialog.header = 'Delete Items';
-    dialog.primaryButtonName = 'Delete';
-    dialog.cancelButtonName = 'Cancel';
+    dialog.header = msg('Delete Items');
+    dialog.primaryButtonName = deleteName;
+    dialog.cancelButtonName = msg('Cancel');
     dialog.destructive = true;
-    dialog.innerHTML = `<div style="padding: 20px;">Are you sure you want to delete ${itemCount} ${itemType}?</div>`;
+
+    const content = document.createElement('div');
+    content.style.cssText = 'padding: 20px;';
+    content.textContent =
+      itemCount === 1
+        ? msg('Are you sure you want to delete this item?')
+        : msg(str`Are you sure you want to delete ${itemCount} items?`);
+    dialog.appendChild(content);
 
     dialog.addEventListener('temba-button-clicked', (event: any) => {
-      if (event.detail.button.name === 'Delete') {
+      // matched by name, not the primary flag: on a destructive dialog the
+      // primary button carries destructive instead of primary
+      if (event.detail.button.name === deleteName) {
         this.deleteSelectedItems();
         dialog.open = false;
       }
@@ -2614,9 +2629,9 @@ export class Editor extends RapidElement {
     const anim = `pc-${this.pendingTimer.resetCount}`;
     return html`<div class="reflow-card">
       <div class="reflow-top">
-        <span class="reflow-label">${this.pendingTimer.label}</span>
+        <span class="reflow-label">${this.pendingTimer.label()}</span>
         <button class="reflow-discard" @click=${this.handlePendingDiscard}>
-          Discard
+          ${msg('Discard')}
         </button>
       </div>
       <div class="reflow-meter">
@@ -4029,7 +4044,7 @@ export class Editor extends RapidElement {
     const baseLanguageName =
       availableLanguages.find((lang) => lang.code === baseLanguage)?.name ||
       (baseLanguage ? getLanguageName(baseLanguage) : '') ||
-      'Primary language';
+      msg('Primary language');
     const isBaseSelected =
       !this.languageCode ||
       this.languageCode === baseLanguage ||
@@ -4346,13 +4361,12 @@ export class Editor extends RapidElement {
                   ? html`<div class="empty-flow">
                       <div class="empty-flow-content">
                         <div class="empty-flow-title">
-                          Unable to display this flow
+                          ${msg('Unable to display this flow')}
                         </div>
                         <div class="empty-flow-description">
-                          This flow's layout data does not match its nodes. It
-                          may have been corrupted during an export or migration.
-                          Please re-export the flow from the original workspace
-                          and try importing it again.
+                          ${msg(
+                            "This flow's layout data does not match its nodes. It may have been corrupted during an export or migration. Please re-export the flow from the original workspace and try importing it again."
+                          )}
                         </div>
                       </div>
                     </div>`
@@ -4361,16 +4375,19 @@ export class Editor extends RapidElement {
                       !this.isReadOnly()
                     ? html`<div class="empty-flow">
                         <div class="empty-flow-content">
-                          <div class="empty-flow-title">This flow is empty</div>
+                          <div class="empty-flow-title">
+                            ${msg('This flow is empty')}
+                          </div>
                           <div class="empty-flow-description">
-                            Get started by adding your first action or split to
-                            define how this flow will work.
+                            ${msg(
+                              'Get started by adding your first action or split to define how this flow will work.'
+                            )}
                           </div>
                           <button
                             class="empty-flow-button"
                             @click=${this.handleEmptyFlowClick}
                           >
-                            Add first step
+                            ${msg('Add first step')}
                           </button>
                         </div>
                       </div>`
@@ -4476,7 +4493,9 @@ export class Editor extends RapidElement {
               `}
         </div>
         ${this.renderPendingCard()}
-        <div class="drag-hint" id="drag-hint">Hold ⇧ to duplicate</div>
+        <div class="drag-hint" id="drag-hint">
+          ${msg('Hold ⇧ to duplicate')}
+        </div>
       </div>
       <div class="loupe" id="loupe">
         <div class="loupe-content" id="loupe-content"></div>
@@ -4517,7 +4536,7 @@ export class Editor extends RapidElement {
             <temba-floating-tab
               id="issues-tab"
               icon="alert_warning"
-              label="Flow Issues"
+              label=${msg('Flow Issues')}
               color="tomato"
               order="2"
               .active=${!this.issuesWindowHidden}

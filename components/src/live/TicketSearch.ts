@@ -1,4 +1,5 @@
 import { css, html, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { ModalSearchResult, SearchModal } from '../layout/SearchModal';
 import { getUrl } from '../utils';
@@ -100,12 +101,12 @@ export class TicketSearch extends SearchModal<TicketSearchResult> {
   }
 
   protected getSearchLabel(): string {
-    return 'Search tickets';
+    return msg('Search tickets');
   }
 
   protected renderHint(): TemplateResult {
     return html`<div class="hint">
-      <kbd>Enter</kbd> to search &nbsp; <kbd>Esc</kbd> to close
+      ${msg(html`<kbd>Enter</kbd> to search &nbsp; <kbd>Esc</kbd> to close`)}
     </div>`;
   }
 
@@ -116,7 +117,7 @@ export class TicketSearch extends SearchModal<TicketSearchResult> {
    */
   protected getNoResultsMessage(): string {
     return this.dropped > 0
-      ? 'No matches in tickets you can access'
+      ? msg('No matches in tickets you can access')
       : super.getNoResultsMessage();
   }
 
@@ -220,7 +221,7 @@ export class TicketSearch extends SearchModal<TicketSearchResult> {
     }
 
     return {
-      typeName: result.contact?.name || 'Unknown',
+      typeName: result.contact?.name || msg('Unknown'),
       color: BADGE_COLOR,
       fullText: text,
       matchStart,

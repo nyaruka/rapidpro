@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import { ACTION_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { CallLLM, Node } from '../../store/flow-definition';
 import { generateUUID, createSuccessFailureRouter } from '../../utils';
@@ -21,7 +22,7 @@ export const split_by_llm: NodeConfig = {
       (action) => action.type === 'call_llm'
     ) as CallLLM;
     const instructions =
-      callLlmAction?.instructions || 'Configure AI instructions';
+      callLlmAction?.instructions || msg('Configure AI instructions');
     const llmName = callLlmAction?.llm?.name;
     return html`
       ${llmName

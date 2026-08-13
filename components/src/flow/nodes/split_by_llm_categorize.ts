@@ -2,6 +2,7 @@ import { FormData, NodeConfig, ACTION_GROUPS, FlowTypes } from '../types';
 import { CallLLM, Node } from '../../store/flow-definition';
 import { generateUUID, createMultiCategoryRouter } from '../../utils';
 import { html } from 'lit';
+import { msg, str } from '@lit/localize';
 import { validateWith } from '../utils';
 import { LLMModel, hasLLMRole } from '../flow-utils';
 import {
@@ -86,9 +87,9 @@ export const split_by_llm_categorize: NodeConfig = {
 
     if (duplicateCategories.length > 0) {
       const uniqueDuplicates = [...new Set(duplicateCategories)];
-      errors.categories = `Duplicate category names found: ${uniqueDuplicates.join(
-        ', '
-      )}`;
+      errors.categories = msg(
+        str`Duplicate category names found: ${uniqueDuplicates.join(', ')}`
+      );
     }
   }),
   render: (node: Node) => {
@@ -96,7 +97,9 @@ export const split_by_llm_categorize: NodeConfig = {
       (action) => action.type === 'call_llm'
     ) as CallLLM;
     return html`
-      <div class="body">Categorize with ${callLlmAction.llm.name}</div>
+      <div class="body">
+        ${msg(str`Categorize with ${callLlmAction.llm.name}`)}
+      </div>
     `;
   },
   toFormData: (node: Node, nodeUI?: any) => {

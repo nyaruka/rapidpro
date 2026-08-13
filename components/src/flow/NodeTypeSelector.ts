@@ -1,4 +1,5 @@
 import { css, html, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { RapidElement } from '../RapidElement';
 import { CustomEventType } from '../interfaces';
@@ -585,7 +586,7 @@ export class NodeTypeSelector extends RapidElement {
           <input
             class="search-input"
             type="text"
-            placeholder="Search..."
+            placeholder=${msg('Search...')}
             .value=${this.searchQuery}
             @input=${this.handleSearchInput}
             @keydown=${this.handleKeyDown}
@@ -617,12 +618,14 @@ export class NodeTypeSelector extends RapidElement {
             `
           )}
           ${!hasResults
-            ? html`<div class="no-results">No matching items found</div>`
+            ? html`<div class="no-results">
+                ${msg('No matching items found')}
+              </div>`
             : ''}
         </div>
         <div class="footer">
           <temba-button
-            name="Cancel"
+            name=${msg('Cancel')}
             @click=${this.close}
             secondary
           ></temba-button>

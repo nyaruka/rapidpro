@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { ContentList, ContentListColumn } from './ContentList';
 import { Icon } from '../Icons';
@@ -86,11 +87,17 @@ export class ContactList extends ContentList<Contact> {
 
   private pendingFieldsController?: AbortController;
 
+  protected defaultEmptyMessage(): string {
+    return msg('No contacts');
+  }
+
+  protected defaultSearchPlaceholder(): string {
+    return msg('Search contacts');
+  }
+
   constructor() {
     super();
     this.valueKey = 'uuid';
-    this.emptyMessage = 'No contacts';
-    this.searchPlaceholder = 'Search contacts';
     this.columns = this.buildColumns();
     this.bulkActions = [
       { key: 'send', label: 'Send', icon: Icon.compose },

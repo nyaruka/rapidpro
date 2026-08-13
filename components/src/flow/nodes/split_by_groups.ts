@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import { SPLIT_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { Node, Case } from '../../store/flow-definition.d';
 import { generateUUID } from '../../utils';
@@ -53,7 +54,7 @@ export const split_by_groups: NodeConfig = {
       !Array.isArray(formData.groups) ||
       formData.groups.length === 0
     ) {
-      errors.groups = 'At least one group is required';
+      errors.groups = msg('At least one group is required');
     }
   }),
   toFormData: (node: Node) => {

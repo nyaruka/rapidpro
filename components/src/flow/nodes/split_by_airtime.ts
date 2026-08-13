@@ -9,6 +9,7 @@ import { TransferAirtime, Node } from '../../store/flow-definition';
 import { generateUUID, createSuccessFailureRouter } from '../../utils';
 import { validateWith } from '../utils';
 import { html } from 'lit';
+import { msg, str } from '@lit/localize';
 import { CURRENCY_OPTIONS, CURRENCIES } from '../currencies';
 import { resultNameField } from './shared';
 
@@ -54,7 +55,7 @@ export const split_by_airtime: NodeConfig = {
   layout: ['amounts', 'result_name'],
   validate: validateWith((formData, errors) => {
     if (!formData.amounts || !Array.isArray(formData.amounts)) {
-      errors.amounts = 'At least one currency and amount is required';
+      errors.amounts = msg('At least one currency and amount is required');
       return;
     }
 
@@ -63,7 +64,7 @@ export const split_by_airtime: NodeConfig = {
     );
 
     if (validAmounts.length === 0) {
-      errors.amounts = 'At least one currency and amount is required';
+      errors.amounts = msg('At least one currency and amount is required');
       return;
     }
 
@@ -86,19 +87,21 @@ export const split_by_airtime: NodeConfig = {
     });
 
     if (duplicates.length > 0) {
-      errors.amounts = `Duplicate currencies found: ${duplicates.join(', ')}`;
+      errors.amounts = msg(
+        str`Duplicate currencies found: ${duplicates.join(', ')}`
+      );
       return;
     }
 
     for (const item of validAmounts) {
       const amount = item.amount.trim();
       if (isNaN(Number(amount)) || Number(amount) <= 0) {
-        errors.amounts = 'All amounts must be valid positive numbers';
+        errors.amounts = msg('All amounts must be valid positive numbers');
         return;
       }
       // the engine caps amounts at 1e15
       if (Number(amount) > 1e15) {
-        errors.amounts = 'Amounts must be 1,000,000,000,000,000 or less';
+        errors.amounts = msg('Amounts must be 1,000,000,000,000,000 or less');
         return;
       }
     }
@@ -109,14 +112,14 @@ export const split_by_airtime: NodeConfig = {
     ) as TransferAirtime;
 
     if (!transferAirtimeAction || !transferAirtimeAction.amounts) {
-      return html`<div class="body">Configure airtime transfer</div>`;
+      return html`<div class="body">${msg('Configure airtime transfer')}</div>`;
     }
 
     const amounts = transferAirtimeAction.amounts;
     const currencies = Object.keys(amounts);
 
     if (currencies.length === 0) {
-      return html`<div class="body">Configure airtime transfer</div>`;
+      return html`<div class="body">${msg('Configure airtime transfer')}</div>`;
     }
 
     // Display the first currency amount, with indicator if there are more
@@ -128,7 +131,9 @@ export const split_by_airtime: NodeConfig = {
       <div class="body">
         ${firstCurrency}
         ${firstAmount}${moreCount > 0
-          ? html` <span style="color: #999;">+${moreCount} more</span>`
+          ? html` <span style="color: #999;"
+              >${msg(str`+${moreCount} more`)}</span
+            >`
           : ''}
       </div>
     `;

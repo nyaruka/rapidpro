@@ -51,6 +51,14 @@ export class TembaList extends RapidElement {
   @property({ type: String })
   emptyMessage: string = null;
 
+  // default empty message, resolved at render time so it reflects the
+  // locale, which is only known once the store has loaded - subclasses
+  // override this rather than assigning emptyMessage in their
+  // constructors, which would freeze the source-locale string
+  protected defaultEmptyMessage(): string {
+    return null;
+  }
+
   @property({ attribute: false })
   getNextRefresh: (firstOption: any) => any;
 
@@ -573,6 +581,7 @@ export class TembaList extends RapidElement {
   }
 
   public render(): TemplateResult {
+    const emptyMessage = this.emptyMessage ?? this.defaultEmptyMessage();
     return html`
       ${this.renderHeader()}
       <temba-options
@@ -584,8 +593,8 @@ export class TembaList extends RapidElement {
         ?collapsed=${this.collapsed}
         ?loading=${this.loading}
         ?internalFocusDisabled=${this.internalFocusDisabled}
-        ?showEmptyMessage=${!!this.emptyMessage && !this.loading}
-        .emptyMessage=${this.emptyMessage}
+        ?showEmptyMessage=${!!emptyMessage && !this.loading}
+        .emptyMessage=${emptyMessage}
         .renderOption=${this.renderOption}
         .renderDivider=${this.renderDivider}
         .renderOptionDetail=${this.renderOptionDetail}
