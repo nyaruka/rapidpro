@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import { ACTION_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { CallWebhook, Node } from '../../store/flow-definition';
 import { generateUUID, createSuccessFailureRouter } from '../../utils';
@@ -186,7 +187,7 @@ export const split_by_webhook: NodeConfig = {
     const callWebhookAction = node.actions?.find(
       (action) => action.type === 'call_webhook'
     ) as CallWebhook;
-    const url = callWebhookAction?.url || 'Configure webhook';
+    const url = callWebhookAction?.url || msg('Configure webhook');
     return html` <div class="body">
       ${renderClamped(renderHighlightedText(url, true), url)}
     </div>`;

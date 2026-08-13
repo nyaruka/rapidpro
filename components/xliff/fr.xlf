@@ -4,84 +4,111 @@
 <body>
 <trans-unit id="scf1453991c986b25">
   <source>Tab to complete, enter to select</source>
+  <target>Tab pour compléter, Entrée pour sélectionner</target>
 </trans-unit>
 <trans-unit id="s638236250662c6b3">
   <source>Have sent a message in the last</source>
+  <target>Ont envoyé un message au cours des derniers</target>
 </trans-unit>
 <trans-unit id="s8f02e3a18ffc083a">
   <source>Are not currently in a flow</source>
+  <target>Ne sont pas actuellement dans un flux</target>
 </trans-unit>
 <trans-unit id="s4788ee206c4570c7">
   <source>Have not started this flow in the last 90 days</source>
+  <target>N'ont pas démarré ce flux au cours des 90 derniers jours</target>
 </trans-unit>
 <trans-unit id="s73b4d70c02f4b4e0">
   <source>No options</source>
+  <target>Aucune option</target>
 </trans-unit>
 <trans-unit id="sbc913d7dc0f33877">
   <source>to add</source>
+  <target>pour ajouter</target>
 </trans-unit>
 <trans-unit id="sea4f08110bb8f15d">
   <source>Remove</source>
+  <target>Retirer</target>
 </trans-unit>
 <trans-unit id="s122d4de68bcfcdf4">
   <source>It's okay to restart</source>
+  <target>Il est acceptable de redémarrer</target>
 </trans-unit>
 <trans-unit id="s3eb2567092b4d7c1">
   <source>from the beginning</source>
+  <target>depuis le début</target>
 </trans-unit>
 <trans-unit id="s28f37776b3901438">
   <source>It's okay to interrupt</source>
+  <target>Il est acceptable d'interrompre</target>
 </trans-unit>
 <trans-unit id="s6838d20b10f7512a">
   <source>and start this one</source>
+  <target>et démarrer celui-ci</target>
 </trans-unit>
 <trans-unit id="s22965bb9808befb0">
   <source>Interrupt</source>
+  <target>Interrompre</target>
 </trans-unit>
 <trans-unit id="s7722a91d3a512442">
   <source>Last seen <x id="0" equiv-text="${lastSeen.duration}"/></source>
+  <target>Vu pour la dernière fois <x id="0" equiv-text="${lastSeen.duration}"/></target>
 </trans-unit>
 <trans-unit id="s6dbbe2646b239ca5">
   <source>Closed</source>
+  <target>Fermé</target>
 </trans-unit>
 <trans-unit id="sf7c0eba7c822e3d6">
   <source>Bold</source>
+  <target>Gras</target>
 </trans-unit>
 <trans-unit id="s523eb9043213ff0d">
   <source>Italic</source>
+  <target>Italique</target>
 </trans-unit>
 <trans-unit id="s3cf89cb47fdde7e9">
   <source>Link</source>
+  <target>Lien</target>
 </trans-unit>
 <trans-unit id="s3643189d1abbb7f4">
   <source>Code</source>
+  <target>Code</target>
 </trans-unit>
 <trans-unit id="s78beeb359125557c">
   <source>Unable to upload file.</source>
+  <target>Impossible de téléverser le fichier.</target>
 </trans-unit>
 <trans-unit id="sbc5f2f81604bb81a">
   <source>Heading 1</source>
+  <target>Titre 1</target>
 </trans-unit>
 <trans-unit id="sbc5f2e81604bb667">
   <source>Heading 2</source>
+  <target>Titre 2</target>
 </trans-unit>
 <trans-unit id="sbc5f2d81604bb4b4">
   <source>Heading 3</source>
+  <target>Titre 3</target>
 </trans-unit>
 <trans-unit id="sc3ff8a955b9b8518">
   <source>Bulleted list</source>
+  <target>Liste à puces</target>
 </trans-unit>
 <trans-unit id="sa1cc184ce2a00abb">
   <source>Numbered list</source>
+  <target>Liste numérotée</target>
 </trans-unit>
 <trans-unit id="s70a5d875c5467e57">
   <source>Quote</source>
+  <target>Citation</target>
 </trans-unit>
 <trans-unit id="s0bb51791194b4414">
   <source>code</source>
+  <target>code</target>
 </trans-unit>
 <trans-unit id="sbf4b9bad694f4809">
   <source>link</source>
+  <target>lien</target>
 </trans-unit>
 <trans-unit id="s06f6c6f99db6b552">
   <source>Original</source>
@@ -101,42 +128,770 @@
 </trans-unit>
 <trans-unit id="s7411fe5ea8b707ad">
   <source>Side by side columns</source>
+  <target>Colonnes côte à côte</target>
 </trans-unit>
 <trans-unit id="s4616fdc48b092f86">
   <source>Divider</source>
+  <target>Séparateur</target>
 </trans-unit>
 <trans-unit id="s180090175fe1115d">
   <source>Less padding</source>
+  <target>Moins de marge intérieure</target>
 </trans-unit>
 <trans-unit id="s8ed1cc564f1dc4f7">
   <source>Normal padding</source>
+  <target>Marge intérieure normale</target>
 </trans-unit>
 <trans-unit id="saae778d2f46ba3a5">
   <source>More padding</source>
+  <target>Plus de marge intérieure</target>
 </trans-unit>
 <trans-unit id="s3d93f9ea0c5a13fa">
   <source>Image</source>
+  <target>Image</target>
 </trans-unit>
 <trans-unit id="sa959476877a85349">
   <source>Style text</source>
+  <target>Styliser le texte</target>
 </trans-unit>
 <trans-unit id="s7dd0d53a22ca1b62">
   <source>New color</source>
+  <target>Nouvelle couleur</target>
 </trans-unit>
 <trans-unit id="saa8f64ba8b9a3042">
   <source>Remove this color everywhere it is used</source>
+  <target>Supprimer cette couleur partout où elle est utilisée</target>
 </trans-unit>
 <trans-unit id="s06c4d89f9e3480b3">
   <source>Remove styling</source>
+  <target>Supprimer le style</target>
 </trans-unit>
 <trans-unit id="sf6e9d280a30dcf25">
   <source>Border drawn from the background color</source>
+  <target>Bordure dérivée de la couleur de fond</target>
 </trans-unit>
 <trans-unit id="sd6ef5031fb7d3991">
   <source>No color</source>
+  <target>Aucune couleur</target>
 </trans-unit>
 <trans-unit id="sab266951af1dc761">
   <source>Markdown source</source>
+  <target>Source Markdown</target>
+</trans-unit>
+<trans-unit id="sc4d21c4d2106a8f0">
+  <source>No channel available to send message</source>
+  <target>Aucun canal disponible pour envoyer le message</target>
+</trans-unit>
+<trans-unit id="s0ae3f2ac7da7eac7">
+  <source>Contact has been blocked</source>
+  <target>Le contact a été bloqué</target>
+</trans-unit>
+<trans-unit id="s1d1ae511405549b2">
+  <source>Contact has been stopped</source>
+  <target>Le contact a été arrêté</target>
+</trans-unit>
+<trans-unit id="s5b07009034bc96a5">
+  <source>Contact is archived</source>
+  <target>Le contact est archivé</target>
+</trans-unit>
+<trans-unit id="sc42dc229e1e68adf">
+  <source>Workspace is suspended</source>
+  <target>L'espace de travail est suspendu</target>
+</trans-unit>
+<trans-unit id="s005554fb10ca7208">
+  <source>Message loop detected</source>
+  <target>Boucle de messages détectée</target>
+</trans-unit>
+<trans-unit id="sfacbd7af9763a244">
+  <source>Unable to send message</source>
+  <target>Impossible d'envoyer le message</target>
+</trans-unit>
+<trans-unit id="s88f8905774d02568">
+  <source>Error limit reached</source>
+  <target>Limite d'erreurs atteinte</target>
+</trans-unit>
+<trans-unit id="sbe063a8b2d720432">
+  <source>Message is too old to send</source>
+  <target>Le message est trop ancien pour être envoyé</target>
+</trans-unit>
+<trans-unit id="s4067b5e5f52b3a89">
+  <source>Channel was removed</source>
+  <target>Le canal a été supprimé</target>
+</trans-unit>
+<trans-unit id="sa65e8f90436e1ef8">
+  <source>Message failed to send</source>
+  <target>L'envoi du message a échoué</target>
+</trans-unit>
+<trans-unit id="s63d040e37887f17e">
+  <source>Today</source>
+  <target>Aujourd'hui</target>
+</trans-unit>
+<trans-unit id="s5b4abc92ede53bc7">
+  <source>Yesterday</source>
+  <target>Hier</target>
+</trans-unit>
+<trans-unit id="s4993444bfd3f3e5e">
+  <source>Collapse</source>
+  <target>Réduire</target>
+</trans-unit>
+<trans-unit id="s623617b538360a63">
+  <source>contact</source>
+  <target>le contact</target>
+</trans-unit>
+<trans-unit id="s7d6780e4032b48f2">
+  <source>user</source>
+  <target>l'utilisateur</target>
+</trans-unit>
+<trans-unit id="s54889a6ea45ef924">
+  <source>Message deleted by <x id="0" equiv-text="${deletedByText}"/></source>
+  <target>Message supprimé par <x id="0" equiv-text="${deletedByText}"/></target>
+</trans-unit>
+<trans-unit id="seca4c83e205cd1d1">
+  <source>Empty Message</source>
+  <target>Message vide</target>
+</trans-unit>
+<trans-unit id="sc3a20324d6aa6081">
+  <source>Unable to load AI models.</source>
+  <target>Impossible de charger les modèles d'IA.</target>
+</trans-unit>
+<trans-unit id="s9bd9d85967b4f4cb">
+  <source>Auto translation failed. Please try again.</source>
+  <target>La traduction automatique a échoué. Veuillez réessayer.</target>
+</trans-unit>
+<trans-unit id="s64a9e9e9f4e5fdf2">
+  <source>Translate request failed (<x id="0" equiv-text="${response.status}"/>).</source>
+  <target>La demande de traduction a échoué (<x id="0" equiv-text="${response.status}"/>).</target>
+</trans-unit>
+<trans-unit id="sdb246bd5678f5651">
+  <source>Translate request failed.</source>
+  <target>La demande de traduction a échoué.</target>
+</trans-unit>
+<trans-unit id="s0e0dc6592c73670d">
+  <source>Auto Translation</source>
+  <target>Traduction automatique</target>
+</trans-unit>
+<trans-unit id="s294f3769892246d3">
+  <source>Problem with AI Model</source>
+  <target>Problème avec le modèle d'IA</target>
+</trans-unit>
+<trans-unit id="sd9ad53251f2330a5">
+  <source>Stop</source>
+  <target>Arrêter</target>
+</trans-unit>
+<trans-unit id="sfa847f22cbd9bff5">
+  <source>Translate</source>
+  <target>Traduire</target>
+</trans-unit>
+<trans-unit id="se71c71be18050537">
+  <source>You need to add an AI model before you can auto translate.</source>
+  <target>Vous devez ajouter un modèle d'IA avant de pouvoir traduire automatiquement.</target>
+</trans-unit>
+<trans-unit id="s927c3609a7642c6a">
+  <source>Manage AI models</source>
+  <target>Gérer les modèles d'IA</target>
+</trans-unit>
+<trans-unit id="he300070d2bbe90b2">
+  <source><x id="0" equiv-text="${this.brand}"/> uses AI for automatic translation, which can make
+          mistakes,</source>
+  <target><x id="0" equiv-text="${this.brand}"/> utilise l'IA pour la traduction automatique, qui peut faire des erreurs,</target>
+</trans-unit>
+<trans-unit id="hdecb189d6744e811">
+  <source>Automatic translation uses AI, which can make mistakes,</source>
+  <target>La traduction automatique utilise l'IA, qui peut faire des erreurs,</target>
+</trans-unit>
+<trans-unit id="hca6320b0951b742e">
+  <source>All remaining text for <x id="0" equiv-text="&lt;strong&gt;${languageName}&lt;/strong&gt;"/> will be
+            translated automatically. <x id="1" equiv-text="${aiClause}"/> so it is important to review
+            all of your translations to verify they are correct.</source>
+  <target>Tout le texte restant pour <x id="0" equiv-text="&lt;strong&gt;${languageName}&lt;/strong&gt;"/> sera traduit automatiquement. <x id="1" equiv-text="${aiClause}"/> il est donc important de relire toutes vos traductions pour vérifier qu'elles sont correctes.</target>
+</trans-unit>
+<trans-unit id="s41a09142cb4913db">
+  <source>Select an AI model</source>
+  <target>Sélectionnez un modèle d'IA</target>
+</trans-unit>
+<trans-unit id="sb13c61f759781b53">
+  <source>Update existing translations</source>
+  <target>Mettre à jour les traductions existantes</target>
+</trans-unit>
+<trans-unit id="sbf6d4594588d54ed">
+  <source>Stopping...</source>
+  <target>Arrêt en cours...</target>
+</trans-unit>
+<trans-unit id="s56db1f8aa4c11bd3">
+  <source>Translating <x id="0" equiv-text="${formatCount(currentBatch)}"/> of <x id="1" equiv-text="${formatCount(total)}"/></source>
+  <target>Traduction de <x id="0" equiv-text="${formatCount(currentBatch)}"/> sur <x id="1" equiv-text="${formatCount(total)}"/></target>
+</trans-unit>
+<trans-unit id="sbefd0a084e6bc38e">
+  <source>Translating</source>
+  <target>Traduction en cours</target>
+</trans-unit>
+<trans-unit id="s49829339c070725a">
+  <source>Any translations already applied have been kept. You can try again, or check the AI model's settings if the problem persists.</source>
+  <target>Les traductions déjà appliquées ont été conservées. Vous pouvez réessayer ou vérifier les paramètres du modèle d'IA si le problème persiste.</target>
+</trans-unit>
+<trans-unit id="s3b3c333481944862">
+  <source>Show details</source>
+  <target>Afficher les détails</target>
+</trans-unit>
+<trans-unit id="sdf4db55aad7f2064">
+  <source>Unsaved Changes</source>
+  <target>Modifications non enregistrées</target>
+</trans-unit>
+<trans-unit id="s05272aaac85d2bbc">
+  <source>Your flow is still saving. If you leave now, your latest changes may be lost.</source>
+  <target>Votre flux est encore en cours d'enregistrement. Si vous quittez maintenant, vos dernières modifications pourraient être perdues.</target>
+</trans-unit>
+<trans-unit id="s76a498a0889de049">
+  <source>Server error (<x id="0" equiv-text="${error.status}"/>). Your changes have not been saved.</source>
+  <target>Erreur du serveur (<x id="0" equiv-text="${error.status}"/>). Vos modifications n'ont pas été enregistrées.</target>
+</trans-unit>
+<trans-unit id="s3de19d833fee981b">
+  <source>Unable to reach the server. Please check your connection and try again.</source>
+  <target>Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.</target>
+</trans-unit>
+<trans-unit id="sf2d68e9b8b450ead">
+  <source>Save failed with status <x id="0" equiv-text="${response.status}"/>.</source>
+  <target>L'enregistrement a échoué avec le statut <x id="0" equiv-text="${response.status}"/>.</target>
+</trans-unit>
+<trans-unit id="s404c31a0bbcad5ea">
+  <source>Unsupported Action</source>
+  <target>Action non prise en charge</target>
+</trans-unit>
+<trans-unit id="s091d5d07b5b33dcf">
+  <source>Ok</source>
+  <target>OK</target>
+</trans-unit>
+<trans-unit id="s6ecaa347faaca2fe">
+  <source>This action is no longer supported and should be removed.</source>
+  <target>Cette action n'est plus prise en charge et doit être supprimée.</target>
+</trans-unit>
+<trans-unit id="s9d65377afdfb1d2d">
+  <source>Save Failed</source>
+  <target>Échec de l'enregistrement</target>
+</trans-unit>
+<trans-unit id="s12d6dde9b30c3093">
+  <source>Dismiss</source>
+  <target>Ignorer</target>
+</trans-unit>
+<trans-unit id="hcfbbcde7201230d4">
+  <source>Make <x id="0" equiv-text="&lt;b&gt;${newLanguage}&lt;/b&gt;"/> the default language for this flow?
+          <x id="1" equiv-text="&lt;b&gt;${currentLanguage}&lt;/b&gt;"/> will be kept as a translation.</source>
+  <target>Faire de <x id="0" equiv-text="&lt;b&gt;${newLanguage}&lt;/b&gt;"/> la langue par défaut de ce flux ? <x id="1" equiv-text="&lt;b&gt;${currentLanguage}&lt;/b&gt;"/> sera conservée comme traduction.</target>
+</trans-unit>
+<trans-unit id="s8b0432eecbd8b034">
+  <source>Update</source>
+  <target>Mettre à jour</target>
+</trans-unit>
+<trans-unit id="s9ec59bb1a9d19c9a">
+  <source>Change Default Language</source>
+  <target>Changer la langue par défaut</target>
+</trans-unit>
+<trans-unit id="s615529b0ef463a27">
+  <source>Updating</source>
+  <target>Mise à jour</target>
+</trans-unit>
+<trans-unit id="s99d8478382aa0164">
+  <source>Unable to change the default language. Please try again.</source>
+  <target>Impossible de changer la langue par défaut. Veuillez réessayer.</target>
+</trans-unit>
+<trans-unit id="sdc673e73b5c13aea">
+  <source>Delete</source>
+  <target>Supprimer</target>
+</trans-unit>
+<trans-unit id="s08913cf86da3f2ca">
+  <source>Delete Items</source>
+  <target>Supprimer les éléments</target>
+</trans-unit>
+<trans-unit id="sb5ceccad457e8cae">
+  <source>Are you sure you want to delete this item?</source>
+  <target>Voulez-vous vraiment supprimer cet élément ?</target>
+</trans-unit>
+<trans-unit id="sdcce2388893ac83d">
+  <source>Are you sure you want to delete <x id="0" equiv-text="${itemCount}"/> items?</source>
+  <target>Voulez-vous vraiment supprimer <x id="0" equiv-text="${itemCount}"/> éléments ?</target>
+</trans-unit>
+<trans-unit id="sc00a88b90cd60661">
+  <source>Discard</source>
+  <target>Abandonner</target>
+</trans-unit>
+<trans-unit id="saf2ce337f357966d">
+  <source>Primary language</source>
+  <target>Langue principale</target>
+</trans-unit>
+<trans-unit id="sbd015b6becc6ad55">
+  <source>Unable to display this flow</source>
+  <target>Impossible d'afficher ce flux</target>
+</trans-unit>
+<trans-unit id="sca6e637a4400a738">
+  <source>This flow's layout data does not match its nodes. It may have been corrupted during an export or migration. Please re-export the flow from the original workspace and try importing it again.</source>
+  <target>Les données de mise en page de ce flux ne correspondent pas à ses nœuds. Il a peut-être été corrompu lors d'une exportation ou d'une migration. Veuillez réexporter le flux depuis l'espace de travail d'origine et réessayer de l'importer.</target>
+</trans-unit>
+<trans-unit id="sb2a94edac8ddd254">
+  <source>This flow is empty</source>
+  <target>Ce flux est vide</target>
+</trans-unit>
+<trans-unit id="s6464c0bc813fd76d">
+  <source>Get started by adding your first action or split to define how this flow will work.</source>
+  <target>Commencez par ajouter votre première action ou division pour définir le fonctionnement de ce flux.</target>
+</trans-unit>
+<trans-unit id="sec6a5e8226138ce4">
+  <source>Add first step</source>
+  <target>Ajouter la première étape</target>
+</trans-unit>
+<trans-unit id="s72bcfc63eed434d7">
+  <source>Hold ⇧ to duplicate</source>
+  <target>Maintenez ⇧ pour dupliquer</target>
+</trans-unit>
+<trans-unit id="sf79dc5fee7f47e17">
+  <source>Flow Issues</source>
+  <target>Problèmes du flux</target>
+</trans-unit>
+<trans-unit id="sf56ef287cc7daf3b">
+  <source>Only enable if you plan to use @results.<x id="0" equiv-text="${key}"/>.category_localized</source>
+  <target>Activez uniquement si vous prévoyez d'utiliser @results.<x id="0" equiv-text="${key}"/>.category_localized</target>
+</trans-unit>
+<trans-unit id="s555b86db4eb91a66">
+  <source>Only enable if you plan to use category_localized in your expressions for this result</source>
+  <target>Activez uniquement si vous prévoyez d'utiliser category_localized dans vos expressions pour ce résultat</target>
+</trans-unit>
+<trans-unit id="s002055c0e8aaaefa">
+  <source>At least one currency and amount is required</source>
+  <target>Au moins une devise et un montant sont requis</target>
+</trans-unit>
+<trans-unit id="sdd441fa6cdaae34f">
+  <source>Duplicate currencies found: <x id="0" equiv-text="${duplicates.join(', ')}"/></source>
+  <target>Devises en double trouvées : <x id="0" equiv-text="${duplicates.join(', ')}"/></target>
+</trans-unit>
+<trans-unit id="scdda9a7e65a1f21e">
+  <source>All amounts must be valid positive numbers</source>
+  <target>Tous les montants doivent être des nombres positifs valides</target>
+</trans-unit>
+<trans-unit id="s0068e61bb56640ed">
+  <source>Amounts must be 1,000,000,000,000,000 or less</source>
+  <target>Les montants doivent être de 1 000 000 000 000 000 ou moins</target>
+</trans-unit>
+<trans-unit id="s872537911915496d">
+  <source>Configure airtime transfer</source>
+  <target>Configurer le transfert de crédit</target>
+</trans-unit>
+<trans-unit id="sd84623714eddc9e9">
+  <source>A field is required</source>
+  <target>Un champ est requis</target>
+</trans-unit>
+<trans-unit id="sa6b487784a771fb2">
+  <source>Split by <x id="0" equiv-text="${nodeUI.config.operand.name}"/></source>
+  <target>Diviser par <x id="0" equiv-text="${nodeUI.config.operand.name}"/></target>
+</trans-unit>
+<trans-unit id="sa6c2a3309400062e">
+  <source>Expression is required</source>
+  <target>Une expression est requise</target>
+</trans-unit>
+<trans-unit id="s3f8466d9eabd13e7">
+  <source>At least one group is required</source>
+  <target>Au moins un groupe est requis</target>
+</trans-unit>
+<trans-unit id="s747f2353f55641aa">
+  <source>Duplicate category names found: <x id="0" equiv-text="${uniqueDuplicates.join(', ')}"/></source>
+  <target>Noms de catégorie en double trouvés : <x id="0" equiv-text="${uniqueDuplicates.join(', ')}"/></target>
+</trans-unit>
+<trans-unit id="s3ce63bb0b028cfde">
+  <source>Categorize with <x id="0" equiv-text="${callLlmAction.llm.name}"/></source>
+  <target>Catégoriser avec <x id="0" equiv-text="${callLlmAction.llm.name}"/></target>
+</trans-unit>
+<trans-unit id="se1650831e07202d0">
+  <source>Configure AI instructions</source>
+  <target>Configurer les instructions de l'IA</target>
+</trans-unit>
+<trans-unit id="s36aa0b4519551ac3">
+  <source>At least 2 buckets are required for random split</source>
+  <target>Au moins 2 groupes sont requis pour la division aléatoire</target>
+</trans-unit>
+<trans-unit id="sd3a75c42aea8d5f4">
+  <source>Duplicate bucket names found: <x id="0" equiv-text="${uniqueDuplicates.join(', ')}"/></source>
+  <target>Noms de groupe en double trouvés : <x id="0" equiv-text="${uniqueDuplicates.join(', ')}"/></target>
+</trans-unit>
+<trans-unit id="s141fd2b7cb111fbc">
+  <source>A resthook is required</source>
+  <target>Un resthook est requis</target>
+</trans-unit>
+<trans-unit id="s9d0fca17d22fa20c">
+  <source>Configure resthook</source>
+  <target>Configurer le resthook</target>
+</trans-unit>
+<trans-unit id="sd98e0deb21af8eec">
+  <source>A flow result is required</source>
+  <target>Un résultat de flux est requis</target>
+</trans-unit>
+<trans-unit id="s0c93985e8cedb07b">
+  <source>At least one channel type is required</source>
+  <target>Au moins un type de canal est requis</target>
+</trans-unit>
+<trans-unit id="s753cd71abb8d9bd9">
+  <source>Configure ticket</source>
+  <target>Configurer le ticket</target>
+</trans-unit>
+<trans-unit id="sa0456e412a42071a">
+  <source>Configure webhook</source>
+  <target>Configurer le webhook</target>
+</trans-unit>
+<trans-unit id="sffa721bb6aa3128d">
+  <source>Search...</source>
+  <target>Rechercher...</target>
+</trans-unit>
+<trans-unit id="s8f0021151a4ccc11">
+  <source>No matching items found</source>
+  <target>Aucun élément correspondant trouvé</target>
+</trans-unit>
+<trans-unit id="s03fa2132ef5d6d07">
+  <source>No matches found</source>
+  <target>Aucune correspondance trouvée</target>
+</trans-unit>
+<trans-unit id="h4558eb1782d4b8c4">
+  <source><x id="0" equiv-text="&lt;kbd&gt;"/>↑<x id="1" equiv-text="&lt;/kbd&gt; &lt;kbd&gt;"/>↓<x id="2" equiv-text="&lt;/kbd&gt;"/> to navigate   <x id="3" equiv-text="&lt;kbd&gt;"/>Enter<x id="4" equiv-text="&lt;/kbd&gt;"/> to
+          open   <x id="5" equiv-text="&lt;kbd&gt;"/>Esc<x id="6" equiv-text="&lt;/kbd&gt;"/> to close</source>
+  <target><x id="0" equiv-text="&lt;kbd&gt;"/>↑<x id="1" equiv-text="&lt;/kbd&gt; &lt;kbd&gt;"/>↓<x id="2" equiv-text="&lt;/kbd&gt;"/> pour naviguer   <x id="3" equiv-text="&lt;kbd&gt;"/>Entrée<x id="4" equiv-text="&lt;/kbd&gt;"/> pour ouvrir   <x id="5" equiv-text="&lt;kbd&gt;"/>Échap<x id="6" equiv-text="&lt;/kbd&gt;"/> pour fermer</target>
+</trans-unit>
+<trans-unit id="s36d13fa8abfc1504">
+  <source>Search failed - try again</source>
+  <target>La recherche a échoué - réessayez</target>
+</trans-unit>
+<trans-unit id="h7476e5219a8bbf1b">
+  <source><x id="0" equiv-text="&lt;kbd&gt;"/>Enter<x id="1" equiv-text="&lt;/kbd&gt;"/> to search</source>
+  <target><x id="0" equiv-text="&lt;kbd&gt;"/>Entrée<x id="1" equiv-text="&lt;/kbd&gt;"/> pour rechercher</target>
+</trans-unit>
+<trans-unit id="s387a4a41718122cb">
+  <source><x id="0" equiv-text="${formatCount(this.results.length)}"/> results</source>
+  <target><x id="0" equiv-text="${formatCount(this.results.length)}"/> résultats</target>
+</trans-unit>
+<trans-unit id="s1228605ee65ddefa">
+  <source><x id="0" equiv-text="${formatCount(this.results.length)}"/> result</source>
+  <target><x id="0" equiv-text="${formatCount(this.results.length)}"/> résultat</target>
+</trans-unit>
+<trans-unit id="sa45a194b58837e4f">
+  <source>Active</source>
+  <target>Actif</target>
+</trans-unit>
+<trans-unit id="sf59d9197d2e50c93">
+  <source>Blocked</source>
+  <target>Bloqué</target>
+</trans-unit>
+<trans-unit id="sc5fcb9351a03ab2e">
+  <source>Stopped</source>
+  <target>Arrêté</target>
+</trans-unit>
+<trans-unit id="s4bfc4d609ee1ab33">
+  <source>Archived</source>
+  <target>Archivé</target>
+</trans-unit>
+<trans-unit id="s3dfd1ef0584dda6f">
+  <source>No Preference</source>
+  <target>Aucune préférence</target>
+</trans-unit>
+<trans-unit id="s6dbbfbc812e1513f">
+  <source>Failed to save changes.</source>
+  <target>Échec de l'enregistrement des modifications.</target>
+</trans-unit>
+<trans-unit id="sb8028bba546ef44e">
+  <source>Smart Groups</source>
+  <target>Groupes intelligents</target>
+</trans-unit>
+<trans-unit id="s61eac919db252bf8">
+  <source>URN</source>
+  <target>URN</target>
+</trans-unit>
+<trans-unit id="s363a9cc509be1902">
+  <source>No URNs</source>
+  <target>Aucun URN</target>
+</trans-unit>
+<trans-unit id="s80dc442e6343c969">
+  <source>Not sendable: no channel available</source>
+  <target>Envoi impossible : aucun canal disponible</target>
+</trans-unit>
+<trans-unit id="s6838274b1fd05d4b">
+  <source>Edit URNs</source>
+  <target>Modifier les URN</target>
+</trans-unit>
+<trans-unit id="s33f85f24c0f5f008">
+  <source>Save</source>
+  <target>Enregistrer</target>
+</trans-unit>
+<trans-unit id="s2ceb11be2290bb1b">
+  <source>Cancel</source>
+  <target>Annuler</target>
+</trans-unit>
+<trans-unit id="sc448d806d9fce5b3">
+  <source>Drag to reorder</source>
+  <target>Faites glisser pour réorganiser</target>
+</trans-unit>
+<trans-unit id="s0ff529341df3ab4f">
+  <source>Reorder <x id="0" equiv-text="${this.getSchemeName(urn.scheme)}"/> URN. Use the up and down arrow keys to move it.</source>
+  <target>Réorganiser l'URN <x id="0" equiv-text="${this.getSchemeName(urn.scheme)}"/>. Utilisez les flèches haut et bas pour le déplacer.</target>
+</trans-unit>
+<trans-unit id="s5aea3b15bd579b55">
+  <source>Delete URN</source>
+  <target>Supprimer l'URN</target>
+</trans-unit>
+<trans-unit id="s4898bc1c0d434913">
+  <source>Failed to save URNs. Check the addresses and try again.</source>
+  <target>Échec de l'enregistrement des URN. Vérifiez les adresses et réessayez.</target>
+</trans-unit>
+<trans-unit id="sc5c7aac9ac356a80">
+  <source>URN Type</source>
+  <target>Type d'URN</target>
+</trans-unit>
+<trans-unit id="sfcdd8e672c75b713">
+  <source>Address</source>
+  <target>Adresse</target>
+</trans-unit>
+<trans-unit id="sf9aee319a006c9b4">
+  <source>Add</source>
+  <target>Ajouter</target>
+</trans-unit>
+<trans-unit id="seca6c51fc719978c">
+  <source>This contact has no URNs</source>
+  <target>Ce contact n'a aucun URN</target>
+</trans-unit>
+<trans-unit id="sabc8eb8debb2fd2e">
+  <source>This contact has no sendable URNs</source>
+  <target>Ce contact n'a aucun URN utilisable pour l'envoi</target>
+</trans-unit>
+<trans-unit id="s0fa87039d1b9e384">
+  <source>Contact URN</source>
+  <target>URN du contact</target>
+</trans-unit>
+<trans-unit id="sc2c0593729c7a31a">
+  <source><x id="0" equiv-text="${additional}"/> additional URNs</source>
+  <target><x id="0" equiv-text="${additional}"/> URN supplémentaires</target>
+</trans-unit>
+<trans-unit id="se70d78a0b6cb01fd">
+  <source>+<x id="0" equiv-text="${additional}"/> more</source>
+  <target>+<x id="0" equiv-text="${additional}"/> de plus</target>
+</trans-unit>
+<trans-unit id="sef49aec68fd1dc66">
+  <source>Name</source>
+  <target>Nom</target>
+</trans-unit>
+<trans-unit id="s9ff1e019feac1ee2">
+  <source>Ref</source>
+  <target>Réf</target>
+</trans-unit>
+<trans-unit id="s9f26843287bb592d">
+  <source>Groups</source>
+  <target>Groupes</target>
+</trans-unit>
+<trans-unit id="sad3e3c8146fc920f">
+  <source>Status</source>
+  <target>Statut</target>
+</trans-unit>
+<trans-unit id="sefcf950b3cc4fc3b">
+  <source>Language</source>
+  <target>Langue</target>
+</trans-unit>
+<trans-unit id="sb41b2cfbbc52565b">
+  <source>Created</source>
+  <target>Créé</target>
+</trans-unit>
+<trans-unit id="s2b9c3ab3a2193878">
+  <source>Last Seen</source>
+  <target>Vu pour la dernière fois</target>
+</trans-unit>
+<trans-unit id="s2492f5fb1b05b45e">
+  <source>Text</source>
+  <target>Texte</target>
+</trans-unit>
+<trans-unit id="sbbb97b1c63507dc0">
+  <source>Number</source>
+  <target>Nombre</target>
+</trans-unit>
+<trans-unit id="s9bae45e308549364">
+  <source>Date &amp; Time</source>
+  <target>Date et heure</target>
+</trans-unit>
+<trans-unit id="sae239213b7c70376">
+  <source>State</source>
+  <target>État</target>
+</trans-unit>
+<trans-unit id="s88c798022d5a9113">
+  <source>Ward</source>
+  <target>Quartier</target>
+</trans-unit>
+<trans-unit id="s88d4b07d95a0d6af">
+  <source>District</source>
+  <target>District</target>
+</trans-unit>
+<trans-unit id="s5d929ff1619ac0c9">
+  <source>Search</source>
+  <target>Rechercher</target>
+</trans-unit>
+<trans-unit id="s6a0bcbce56a9c0fb">
+  <source>Featured</source>
+  <target>En vedette</target>
+</trans-unit>
+<trans-unit id="sfa7fe0d8c2046111">
+  <source>Everything Else</source>
+  <target>Tout le reste</target>
+</trans-unit>
+<trans-unit id="scd576e61f93828d0">
+  <source>Search tickets</source>
+  <target>Rechercher des tickets</target>
+</trans-unit>
+<trans-unit id="h2da96fcf527a792c">
+  <source><x id="0" equiv-text="&lt;kbd&gt;"/>Enter<x id="1" equiv-text="&lt;/kbd&gt;"/> to search   <x id="2" equiv-text="&lt;kbd&gt;"/>Esc<x id="3" equiv-text="&lt;/kbd&gt;"/> to close</source>
+  <target><x id="0" equiv-text="&lt;kbd&gt;"/>Entrée<x id="1" equiv-text="&lt;/kbd&gt;"/> pour rechercher   <x id="2" equiv-text="&lt;kbd&gt;"/>Échap<x id="3" equiv-text="&lt;/kbd&gt;"/> pour fermer</target>
+</trans-unit>
+<trans-unit id="s9f64df2dd77b849c">
+  <source>No matches in tickets you can access</source>
+  <target>Aucune correspondance dans les tickets auxquels vous avez accès</target>
+</trans-unit>
+<trans-unit id="sc592307ea80f16b9">
+  <source>Unknown</source>
+  <target>Inconnu</target>
+</trans-unit>
+<trans-unit id="sfd2f0eff00a2081c">
+  <source>Failed to start simulation</source>
+  <target>Échec du démarrage de la simulation</target>
+</trans-unit>
+<trans-unit id="s7ee026ad3881de20">
+  <source>Called</source>
+  <target>Appel de</target>
+</trans-unit>
+<trans-unit id="sa1c60cc834b82b19">
+  <source>View webhook call details</source>
+  <target>Voir les détails de l'appel webhook</target>
+</trans-unit>
+<trans-unit id="sc6e897469beb03e5">
+  <source>Showing all keys</source>
+  <target>Affichage de toutes les clés</target>
+</trans-unit>
+<trans-unit id="sa51dbe6efdffb027">
+  <source>Filtering out keys without values</source>
+  <target>Masquage des clés sans valeur</target>
+</trans-unit>
+<trans-unit id="s77b86547b97187c9">
+  <source>No request body</source>
+  <target>Aucun corps de requête</target>
+</trans-unit>
+<trans-unit id="sb82eeccd34ceb7eb">
+  <source>No response body</source>
+  <target>Aucun corps de réponse</target>
+</trans-unit>
+<trans-unit id="s3c6de3f257e0c912">
+  <source>Request</source>
+  <target>Requête</target>
+</trans-unit>
+<trans-unit id="sa58a43eaa517ec9e">
+  <source>Response</source>
+  <target>Réponse</target>
+</trans-unit>
+<trans-unit id="s9fa8d55c564c8ba0">
+  <source>Webhook Call Details</source>
+  <target>Détails de l'appel webhook</target>
+</trans-unit>
+<trans-unit id="s5e8250fb85d64c23">
+  <source>Close</source>
+  <target>Fermer</target>
+</trans-unit>
+<trans-unit id="sba78a907c239f8ab">
+  <source>No call details available.</source>
+  <target>Aucun détail d'appel disponible.</target>
+</trans-unit>
+<trans-unit id="h73c8b185fc25e721">
+  <source><x id="0" equiv-text="&lt;strong&gt;${attempts}&lt;/strong&gt;"/> attempt</source>
+  <target><x id="0" equiv-text="&lt;strong&gt;${attempts}&lt;/strong&gt;"/> tentative</target>
+</trans-unit>
+<trans-unit id="he3ecf8ab74681056">
+  <source><x id="0" equiv-text="&lt;strong&gt;${attempts}&lt;/strong&gt;"/> attempts</source>
+  <target><x id="0" equiv-text="&lt;strong&gt;${attempts}&lt;/strong&gt;"/> tentatives</target>
+</trans-unit>
+<trans-unit id="h268605e00d2a0e86">
+  <source><x id="0" equiv-text="&lt;strong&gt;${elapsedLabel}&lt;/strong&gt;"/> total elapsed</source>
+  <target><x id="0" equiv-text="&lt;strong&gt;${elapsedLabel}&lt;/strong&gt;"/> écoulé au total</target>
+</trans-unit>
+<trans-unit id="se7102b7d5942a59c">
+  <source>Attempt <x id="0" equiv-text="${index + 1}"/></source>
+  <target>Tentative <x id="0" equiv-text="${index + 1}"/></target>
+</trans-unit>
+<trans-unit id="s7233f091eb0bbcd2">
+  <source>Failed to send message</source>
+  <target>Échec de l'envoi du message</target>
+</trans-unit>
+<trans-unit id="sf05a496c5095ee72">
+  <source>No context available</source>
+  <target>Aucun contexte disponible</target>
+</trans-unit>
+<trans-unit id="s468200eff304c47c">
+  <source>Show keys with values only</source>
+  <target>Afficher uniquement les clés avec valeur</target>
+</trans-unit>
+<trans-unit id="sf8931a7ca1a32865">
+  <source>Show all keys</source>
+  <target>Afficher toutes les clés</target>
+</trans-unit>
+<trans-unit id="h5371085a2e3ecbbd">
+  <source>Copied
+                      <x id="0" equiv-text="&lt;span class=&quot;expression&quot;&gt;${this.copiedExpression}&lt;/span&gt;"/>
+                      to the clipboard</source>
+  <target><x id="0" equiv-text="&lt;span class=&quot;expression&quot;&gt;${this.copiedExpression}&lt;/span&gt;"/> copié dans le presse-papiers</target>
+</trans-unit>
+<trans-unit id="sb7e900a66adf31b6">
+  <source>Enter Message</source>
+  <target>Saisissez un message</target>
+</trans-unit>
+<trans-unit id="s85186a61e0d55bac">
+  <source>Video</source>
+  <target>Vidéo</target>
+</trans-unit>
+<trans-unit id="s08e6bd98452e6bb9">
+  <source>Audio</source>
+  <target>Audio</target>
+</trans-unit>
+<trans-unit id="see2fcaedf9743ec6">
+  <source>Location</source>
+  <target>Position</target>
+</trans-unit>
+<trans-unit id="see408bd5cd983758">
+  <source>Following</source>
+  <target>Suivi activé</target>
+</trans-unit>
+<trans-unit id="s4fd78d90908a11f0">
+  <source>Follow</source>
+  <target>Suivre</target>
+</trans-unit>
+<trans-unit id="sbf6b460a5f745d3b">
+  <source>Context Explorer</source>
+  <target>Explorateur de contexte</target>
+</trans-unit>
+<trans-unit id="sb35998a72121d0b8">
+  <source>Size: <x id="0" equiv-text="${this.size}"/></source>
+  <target>Taille : <x id="0" equiv-text="${this.size}"/></target>
+</trans-unit>
+<trans-unit id="s255857544a9d5ec0">
+  <source>Reset</source>
+  <target>Réinitialiser</target>
+</trans-unit>
+<trans-unit id="sae7ad1bf50e75b75">
+  <source>Phone Simulator</source>
+  <target>Simulateur de téléphone</target>
+</trans-unit>
+<trans-unit id="s1d318e9d0ccba86b">
+  <source>Chat</source>
+  <target>Chat</target>
+</trans-unit>
+<trans-unit id="sd5116418e3e4905f">
+  <source>This chat is not currently connected.</source>
+  <target>Ce chat n'est pas connecté actuellement.</target>
+</trans-unit>
+<trans-unit id="s07c6ef114873e1c5">
+  <source>Click here to reconnect</source>
+  <target>Cliquez ici pour vous reconnecter</target>
+</trans-unit>
+<trans-unit id="s4b052cb287d81da7">
+  <source>Connecting</source>
+  <target>Connexion en cours</target>
+</trans-unit>
+<trans-unit id="sec459d377167f650">
+  <source>Message..</source>
+  <target>Message..</target>
 </trans-unit>
 </body>
 </file>

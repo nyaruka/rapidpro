@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import { ACTION_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { CallResthook, Node } from '../../store/flow-definition';
 import { generateUUID, createSuccessFailureRouter } from '../../utils';
@@ -29,14 +30,14 @@ export const split_by_resthook: NodeConfig = {
   layout: ['resthook', 'result_name'],
   validate: validateWith((formData, errors) => {
     if (!formData.resthook || formData.resthook.length === 0) {
-      errors.resthook = 'A resthook is required';
+      errors.resthook = msg('A resthook is required');
     }
   }),
   render: (node: Node) => {
     const callResthookAction = node.actions?.find(
       (action) => action.type === 'call_resthook'
     ) as CallResthook;
-    const resthook = callResthookAction?.resthook || 'Configure resthook';
+    const resthook = callResthookAction?.resthook || msg('Configure resthook');
     return html` <div class="body">${renderClamped(resthook, resthook)}</div> `;
   },
   toFormData: (node: Node) => {

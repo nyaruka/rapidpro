@@ -1,3 +1,4 @@
+import { msg } from '@lit/localize';
 import {
   getOperatorConfig,
   getWaitForResponseOperators,
@@ -134,7 +135,7 @@ export const value2VisibilityCondition = (formData: Record<string, any>) => {
 const value1Placeholder = (formData: Record<string, any>): string => {
   const operatorValue = getOperatorValue(formData.operator);
   if (operatorValue === 'has_district' || operatorValue === 'has_ward') {
-    return 'State';
+    return msg('State');
   }
   return '';
 };
@@ -146,7 +147,7 @@ const value1Placeholder = (formData: Record<string, any>): string => {
 const value2Placeholder = (formData: Record<string, any>): string => {
   const operatorValue = getOperatorValue(formData.operator);
   if (operatorValue === 'has_ward') {
-    return 'District';
+    return msg('District');
   }
   return '';
 };

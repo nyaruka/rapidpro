@@ -1,4 +1,5 @@
 import { html, TemplateResult } from 'lit-html';
+import { msg, str } from '@lit/localize';
 import { RapidElement } from '../RapidElement';
 import { FloatingWindow } from '../layout/FloatingWindow';
 import { css, PropertyValueMap, PropertyValues } from 'lit';
@@ -1251,7 +1252,7 @@ export class Simulator extends RapidElement {
         type: 'error',
         created_on: new Date(now),
         _rendered: {
-          html: html`<p>Failed to start simulation</p>`,
+          html: html`<p>${msg('Failed to start simulation')}</p>`,
           type: MessageType.Error
         }
       } as ContactEvent;
@@ -1510,12 +1511,12 @@ export class Simulator extends RapidElement {
         event.type === Events.WEBHOOK_CALLED && this.hasWebhookDetails(event)
           ? html`<div class="webhook-event">
               <div class="webhook-event-text">
-                Called
+                ${msg('Called')}
                 <a
                   href="#"
                   class="webhook-event-url"
                   data-webhook-details="true"
-                  title="View webhook call details"
+                  title=${msg('View webhook call details')}
                   @click=${(clickEvent: MouseEvent) => {
                     clickEvent.preventDefault();
                     this.handleWebhookDetailsClick(event, clickEvent);
@@ -1686,8 +1687,8 @@ export class Simulator extends RapidElement {
   private handleToggleShowAllKeys() {
     this.showAllKeys = !this.showAllKeys;
     this.toastMessage = this.showAllKeys
-      ? 'Showing all keys'
-      : 'Filtering out keys without values';
+      ? msg('Showing all keys')
+      : msg('Filtering out keys without values');
     // clear the toast after 2 seconds
     setTimeout(() => {
       this.toastMessage = '';
@@ -1988,9 +1989,10 @@ export class Simulator extends RapidElement {
       log: WebhookLog,
       singleAttempt = false
     ) => {
-      const request = this.formatWebhookValue(log.request) || 'No request body';
+      const request =
+        this.formatWebhookValue(log.request) || msg('No request body');
       const response =
-        this.formatWebhookValue(log.response) || 'No response body';
+        this.formatWebhookValue(log.response) || msg('No response body');
 
       return html`
         <div
@@ -1999,11 +2001,11 @@ export class Simulator extends RapidElement {
             : ''}"
         >
           <div class="webhook-log-section">
-            <h4>Request</h4>
+            <h4>${msg('Request')}</h4>
             <pre>${request}</pre>
           </div>
           <div class="webhook-log-section">
-            <h4>Response</h4>
+            <h4>${msg('Response')}</h4>
             <pre>${response}</pre>
           </div>
         </div>
@@ -2013,9 +2015,9 @@ export class Simulator extends RapidElement {
     return html`
       <temba-dialog
         .open=${this.webhookDetailsOpen}
-        header="Webhook Call Details"
+        header=${msg('Webhook Call Details')}
         size="large"
-        cancelButtonName="Close"
+        cancelButtonName=${msg('Close')}
         primaryButtonName=""
         ?hideOnClick=${true}
         @temba-button-clicked=${this.handleWebhookDialogClose}
@@ -2023,22 +2025,28 @@ export class Simulator extends RapidElement {
       >
         <div class="webhook-details">
           ${logs.length === 0
-            ? html`<div class="webhook-empty">No call details available.</div>`
+            ? html`<div class="webhook-empty">
+                ${msg('No call details available.')}
+              </div>`
             : html`<div class="webhook-summary">
                   <span
-                    ><strong>${attempts}</strong> ${attempts === 1
-                      ? 'attempt'
-                      : 'attempts'}</span
+                    >${attempts === 1
+                      ? msg(html`<strong>${attempts}</strong> attempt`)
+                      : msg(html`<strong>${attempts}</strong> attempts`)}</span
                   >
                   <span>&middot;</span>
-                  <span><strong>${elapsedLabel}</strong> total elapsed</span>
+                  <span
+                    >${msg(
+                      html`<strong>${elapsedLabel}</strong> total elapsed`
+                    )}</span
+                  >
                 </div>
                 ${attempts > 1
                   ? logs.map(
                       (log, index) => html`
                         <div class="webhook-log">
                           <div class="webhook-log-header">
-                            Attempt ${index + 1}
+                            ${msg(str`Attempt ${index + 1}`)}
                           </div>
                           ${renderWebhookLogContent(log)}
                         </div>
@@ -2134,7 +2142,7 @@ export class Simulator extends RapidElement {
         type: 'error',
         created_on: new Date(now),
         _rendered: {
-          html: html`<p>Failed to send message</p>`,
+          html: html`<p>${msg('Failed to send message')}</p>`,
           type: MessageType.Error
         }
       } as ContactEvent;
@@ -2286,7 +2294,7 @@ export class Simulator extends RapidElement {
                 : html`<div
                     style="color: #9ca3af; padding: 8px; text-align: center;"
                   >
-                    No context available
+                    ${msg('No context available')}
                   </div>`}
             </div>
             <div class="context-gutter">
@@ -2294,8 +2302,8 @@ export class Simulator extends RapidElement {
                 class="context-gutter-btn ${this.showAllKeys ? '' : 'active'}"
                 @click=${this.handleToggleShowAllKeys}
                 title="${this.showAllKeys
-                  ? 'Show keys with values only'
-                  : 'Show all keys'}"
+                  ? msg('Show keys with values only')
+                  : msg('Show all keys')}"
               >
                 <temba-icon
                   name="${this.showAllKeys ? 'filter' : 'filter'}"
@@ -2306,16 +2314,18 @@ export class Simulator extends RapidElement {
               <div
                 class="context-gutter-btn"
                 @click=${this.handleToggleContextExplorer}
-                title="Close"
+                title=${msg('Close')}
               >
                 <temba-icon name="x" size="1"></temba-icon>
               </div>
             </div>
             ${this.copiedExpression
               ? html`<div class="context-toast">
-                  Copied
-                  <span class="expression">${this.copiedExpression}</span>
-                  to the clipboard
+                  ${msg(
+                    html`Copied
+                      <span class="expression">${this.copiedExpression}</span>
+                      to the clipboard`
+                  )}
                 </div>`
               : this.toastMessage
                 ? html`<div class="context-toast">${this.toastMessage}</div>`
@@ -2363,7 +2373,7 @@ export class Simulator extends RapidElement {
                 </button>
                 <input
                   type="text"
-                  placeholder="Enter Message"
+                  placeholder=${msg('Enter Message')}
                   .value=${this.inputValue}
                   @input=${this.handleInput}
                   @keyup=${this.handleKeyUp}
@@ -2379,21 +2389,21 @@ export class Simulator extends RapidElement {
                     @click=${() => this.handleSendAttachment('image')}
                   >
                     <temba-icon name="attachment_image" size="1.2"></temba-icon>
-                    <span>Image</span>
+                    <span>${msg('Image')}</span>
                   </div>
                   <div
                     class="attachment-menu-item"
                     @click=${() => this.handleSendAttachment('video')}
                   >
                     <temba-icon name="attachment_video" size="1.2"></temba-icon>
-                    <span>Video</span>
+                    <span>${msg('Video')}</span>
                   </div>
                   <div
                     class="attachment-menu-item"
                     @click=${() => this.handleSendAttachment('audio')}
                   >
                     <temba-icon name="attachment_audio" size="1.2"></temba-icon>
-                    <span>Audio</span>
+                    <span>${msg('Audio')}</span>
                   </div>
                   <div
                     class="attachment-menu-item"
@@ -2403,7 +2413,7 @@ export class Simulator extends RapidElement {
                       name="attachment_location"
                       size="1.2"
                     ></temba-icon>
-                    <span>Location</span>
+                    <span>${msg('Location')}</span>
                   </div>
                 </div>
               </div>
@@ -2413,13 +2423,17 @@ export class Simulator extends RapidElement {
             class="option-pane"
             style="pointer-events:${this.isVisible ? 'all' : 'none'}"
           >
-            <button class="option-btn" @click=${this.handleClose} title="Close">
+            <button
+              class="option-btn"
+              @click=${this.handleClose}
+              title=${msg('Close')}
+            >
               <temba-icon name="x" size="1.5"></temba-icon>
             </button>
             <button
               class="option-btn ${this.following ? 'active' : ''}"
               @click=${this.handleToggleFollow}
-              title="${this.following ? 'Following' : 'Follow'}"
+              title="${this.following ? msg('Following') : msg('Follow')}"
             >
               <temba-icon name="follow" size="1.5"></temba-icon>
             </button>
@@ -2427,7 +2441,7 @@ export class Simulator extends RapidElement {
             <button
               class="option-btn ${this.contextExplorerOpen ? 'active' : ''}"
               @click=${this.handleToggleContextExplorer}
-              title="Context Explorer"
+              title=${msg('Context Explorer')}
             >
               <temba-icon name="expressions" size="1.5"></temba-icon>
             </button>
@@ -2435,7 +2449,7 @@ export class Simulator extends RapidElement {
             <button
               class="option-btn"
               @click=${this.handleCycleSize}
-              title="Size: ${this.size}"
+              title=${msg(str`Size: ${this.size}`)}
             >
               ${this.size === 'small'
                 ? 'S'
@@ -2444,7 +2458,11 @@ export class Simulator extends RapidElement {
                   : 'L'}
             </button>
 
-            <button class="option-btn" @click=${this.handleReset} title="Reset">
+            <button
+              class="option-btn"
+              @click=${this.handleReset}
+              title=${msg('Reset')}
+            >
               <temba-icon name="reset" size="1.5"></temba-icon>
             </button>
           </div>
@@ -2456,7 +2474,7 @@ export class Simulator extends RapidElement {
       <temba-floating-tab
         id="phone-tab"
         icon="simulator"
-        label="Phone Simulator"
+        label=${msg('Phone Simulator')}
         color="#666"
         order="1"
         .active=${this.isVisible}
