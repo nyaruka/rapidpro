@@ -1635,6 +1635,12 @@ describe('temba-content-list', () => {
     (list as any).page = 3;
     expect((list as any).cursorMode).to.equal(false);
     expect((list as any).buildBrowserUrl()).to.not.contain('page=');
+
+    // except in urlState mode, which has no history stash — there the
+    // URL is the only position store, so page keeps round-tripping
+    list.urlState = true;
+    expect((list as any).buildBrowserUrl()).to.contain('page=3');
+    list.urlState = false;
   });
 
   it('re-stashes its state onto the history entry after restoring from it', async () => {
@@ -2093,8 +2099,10 @@ describe('temba-content-list', () => {
     expect((list as any).sort).to.equal('-name');
     expect((list as any).search).to.equal('b');
 
-    // Simulate browser back to an entry with different list state.
-    history.replaceState({ msgs: { page: 1, sort: 'name', search: '' } }, '');
+    // Simulate browser back to an entry with different list state —
+    // several pages in, as a page-counted list's stash would be after
+    // paging (this is the only position store; the URL carries none).
+    history.replaceState({ msgs: { page: 3, sort: 'name', search: '' } }, '');
     const onFetch = new Promise<void>((resolve) => {
       list.addEventListener(CustomEventType.FetchComplete, () => resolve(), {
         once: true
@@ -2105,6 +2113,9 @@ describe('temba-content-list', () => {
 
     expect((list as any).sort).to.equal('name');
     expect((list as any).search).to.equal('');
+    // the page came back from the stash and was re-sent to the endpoint
+    expect((list as any).page).to.equal(3);
+    expect((list as any).currentUrl).to.contain('page=3');
   });
 
   it('falls back to URL params when history has no stash for the key', async () => {

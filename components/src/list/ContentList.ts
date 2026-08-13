@@ -1362,11 +1362,13 @@ export class ContentList<T = any> extends RapidElement {
   @property({ type: Boolean, attribute: 'fill-window' })
   fillWindow = false;
 
-  /** When true, sort/search state is reflected to the URL via
+  /** When true, sort/search/page state is reflected to the URL via
    * `history.pushState` so the page is deep-linkable and back/forward
-   * navigates between list states. List position stays out of the URL
-   * (it restores from history state instead); a `page` param is still
-   * read on load for old bookmarked URLs. Off by default — opt in. */
+   * navigates between list states. This mode has no history stash, so
+   * the URL is its only position store: page-counted lists round-trip
+   * `page=N` (a cursor slice has no page number to round-trip). Off
+   * by default — opt in; mutually exclusive with
+   * {@link historyStateKey}, which keeps position out of the URL. */
   @property({ type: Boolean })
   urlState = false;
 
@@ -1823,10 +1825,11 @@ export class ContentList<T = any> extends RapidElement {
     if (overflows !== this.bulkCollapsed) this.bulkCollapsed = overflows;
   }
 
-  /** Read sort/page/search from the URL on first load / popstate. The
-   * page param is read-only compatibility — we never write it (see
-   * {@link buildBrowserUrl}), but an old bookmarked URL may carry one
-   * and page-counted endpoints still honor it. */
+  /** Read sort/page/search from the URL on first load / popstate. In
+   * history-state mode the page param is read-only compatibility — we
+   * never write it there (see {@link buildBrowserUrl}), but an old
+   * bookmarked URL may carry one and page-counted endpoints still
+   * honor it. In urlState mode it's the round-tripped position. */
   private readUrlState(): void {
     const params = new URLSearchParams(window.location.search);
     const k = (name: string) =>
@@ -1882,12 +1885,20 @@ export class ContentList<T = any> extends RapidElement {
     };
     setOrDelete(k('search'), this.search);
     setOrDelete(k('sort'), this.sort);
-    // List position never reaches the URL — a cursor slice has no
-    // meaningful page number, and page-counted lists restore their
-    // position from the history stash instead, so all list pages keep
-    // the same clean URL while paging. Passing '' also scrubs a stale
-    // page param arriving on an old bookmarked URL.
-    setOrDelete(k('page'), '');
+    // In history-state mode list position never reaches the URL — a
+    // cursor slice has no meaningful page number, and page-counted
+    // lists restore their position from the history stash instead, so
+    // all list pages keep the same clean URL while paging (passing ''
+    // also scrubs a stale page param arriving on an old bookmarked
+    // URL). A pure urlState list is the exception: it has no history
+    // stash — the URL is its only position store — so a page-counted
+    // one keeps round-tripping `page=N` there.
+    setOrDelete(
+      k('page'),
+      this.urlState && !this.cursorMode && this.page > 1
+        ? String(this.page)
+        : ''
+    );
 
     const qs = params.toString();
     return window.location.pathname + (qs ? '?' + qs : '');
