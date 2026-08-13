@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg, str } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
 import { ContactField, CustomEventType } from '../interfaces';
 import { EndpointMonitorElement } from '../store/EndpointMonitorElement';
@@ -6,20 +7,22 @@ import { Icon } from '../Icons';
 import { designTokens } from '../styles/designTokens';
 import { formatCount, postJSON } from '../utils';
 
-const TYPE_NAMES = {
-  text: 'Text',
-  numeric: 'Number',
-  number: 'Number',
-  datetime: 'Date & Time',
-  state: 'State',
-  ward: 'Ward',
-  district: 'District'
-};
+// resolved per call rather than held in a module-level map so the names
+// reflect the locale, which is only known once the store has loaded
+const TYPE_NAMES = (): { [type: string]: string } => ({
+  text: msg('Text'),
+  numeric: msg('Number'),
+  number: msg('Number'),
+  datetime: msg('Date & Time'),
+  state: msg('State'),
+  ward: msg('Ward'),
+  district: msg('District')
+});
 
 // display name for a field's value type, falling back to the raw type
 // rather than rendering "undefined" for an unmapped type
 const typeName = (field: ContactField): string =>
-  TYPE_NAMES[field.value_type] || field.value_type || '';
+  TYPE_NAMES()[field.value_type] || field.value_type || '';
 
 const matches = (field: ContactField, query: string): boolean => {
   if (!query) {
@@ -709,7 +712,7 @@ export class FieldList extends EndpointMonitorElement {
               <div class="searchbar">
                 <input
                   type="text"
-                  placeholder="Search fields"
+                  placeholder=${msg('Search fields')}
                   .value=${this.query}
                   @input=${this.handleSearchInput}
                   @keydown=${(e: KeyboardEvent) => {
@@ -723,8 +726,8 @@ export class FieldList extends EndpointMonitorElement {
                   name=${Icon.close}
                   size="1.1"
                   clickable
-                  title="Cancel search"
-                  aria-label="Cancel search"
+                  title=${msg('Cancel search')}
+                  aria-label=${msg('Cancel search')}
                   @click=${() => this.toggleSearch()}
                 ></temba-icon>
               </div>
@@ -744,10 +747,10 @@ export class FieldList extends EndpointMonitorElement {
         clickable
         role="button"
         tabindex="0"
-        title=${featured ? 'Featured' : 'Not featured'}
+        title=${featured ? msg('Featured') : msg('Not featured')}
         aria-label=${featured
-          ? `Unfeature ${field.label}`
-          : `Feature ${field.label}`}
+          ? msg(str`Unfeature ${field.label}`)
+          : msg(str`Feature ${field.label}`)}
         @click=${(e: MouseEvent) => this.handleStarClicked(e, field)}
         @keydown=${(e: KeyboardEvent) => this.handleStarKeydown(e, field)}
       ></temba-icon>
@@ -786,8 +789,8 @@ export class FieldList extends EndpointMonitorElement {
       body = html`
         <div class="empty-note">
           ${this.query
-            ? 'No matches'
-            : 'Star a field to feature it on contact pages'}
+            ? msg('No matches')
+            : msg('Star a field to feature it on contact pages')}
         </div>
       `;
     } else if (this.query) {
@@ -815,7 +818,7 @@ export class FieldList extends EndpointMonitorElement {
       <div class="panel" id="featured-panel">
         <div class="section-header">
           <temba-icon name=${Icon.featured_filled}></temba-icon>
-          <div>Featured</div>
+          <div>${msg('Featured')}</div>
         </div>
         ${body}
       </div>
@@ -827,11 +830,11 @@ export class FieldList extends EndpointMonitorElement {
       <div class="panel" id="other-panel">
         <div class="section-header">
           <temba-icon name=${Icon.fields}></temba-icon>
-          <div>Other Fields</div>
+          <div>${msg('Other Fields')}</div>
         </div>
         ${this.otherFieldKeys.length === 0
           ? html`<div class="empty-note">
-              ${this.query ? 'No matches' : 'No fields'}
+              ${this.query ? msg('No matches') : msg('No fields')}
             </div>`
           : html`<div class="rows">
               ${this.otherFieldKeys.map((key) =>
@@ -867,7 +870,7 @@ export class FieldList extends EndpointMonitorElement {
           )}
           ${total > items.length
             ? html`<div class="usage-more">
-                and ${formatCount(total - items.length)} more
+                ${msg(str`and ${formatCount(total - items.length)} more`)}
               </div>`
             : null}
         </div>
@@ -883,7 +886,7 @@ export class FieldList extends EndpointMonitorElement {
     const total = this.detail.counts?.campaign_events || events.length;
     return html`
       <div>
-        <div class="detail-section-title">Campaign Events</div>
+        <div class="detail-section-title">${msg('Campaign Events')}</div>
         <div class="usage-rows">
           ${events.map(
             (event) => html`
@@ -904,7 +907,7 @@ export class FieldList extends EndpointMonitorElement {
           )}
           ${total > events.length
             ? html`<div class="usage-more">
-                and ${formatCount(total - events.length)} more
+                ${msg(str`and ${formatCount(total - events.length)} more`)}
               </div>`
             : null}
         </div>
@@ -941,9 +944,14 @@ export class FieldList extends EndpointMonitorElement {
     }
 
     return html`
-      ${this.renderUsageSection('Flows', 'flow', usages.flows, counts.flows)}
       ${this.renderUsageSection(
-        'Groups',
+        msg('Flows'),
+        'flow',
+        usages.flows,
+        counts.flows
+      )}
+      ${this.renderUsageSection(
+        msg('Groups'),
         'group',
         usages.groups,
         counts.groups
@@ -992,10 +1000,12 @@ export class FieldList extends EndpointMonitorElement {
                               clickable
                               role="button"
                               tabindex="0"
-                              title=${featured ? 'Featured' : 'Not featured'}
+                              title=${featured
+                                ? msg('Featured')
+                                : msg('Not featured')}
                               aria-label=${featured
-                                ? `Unfeature ${field.label}`
-                                : `Feature ${field.label}`}
+                                ? msg(str`Unfeature ${field.label}`)
+                                : msg(str`Feature ${field.label}`)}
                               @click=${this.handleToggleFeatured}
                               @keydown=${(e: KeyboardEvent) =>
                                 this.handleActivationKey(e, () =>
@@ -1025,7 +1035,7 @@ export class FieldList extends EndpointMonitorElement {
                     class="detail-close"
                     role="button"
                     tabindex="0"
-                    aria-label="Close"
+                    aria-label=${msg('Close')}
                     @click=${this.handleDetailClosed}
                     @keydown=${(e: KeyboardEvent) =>
                       this.handleActivationKey(e, this.handleDetailClosed)}

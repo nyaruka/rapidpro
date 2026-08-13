@@ -1,4 +1,5 @@
 import { css, html, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { ContentList, ContentListColumn } from './ContentList';
 import { Icon } from '../Icons';
 import { Msg } from '../interfaces';
@@ -94,11 +95,17 @@ export class MsgList extends ContentList<Msg> {
     `;
   }
 
+  protected defaultEmptyMessage(): string {
+    return msg('No messages');
+  }
+
+  protected defaultSearchPlaceholder(): string {
+    return msg('Search messages');
+  }
+
   constructor() {
     super();
     this.valueKey = 'id';
-    this.emptyMessage = 'No messages';
-    this.searchPlaceholder = 'Search messages';
     // Messages page 100 at a time, matching rapidpro's msg list.
     this.pageSize = 100;
     // Auto layout so the Contact / Sent columns size to their content

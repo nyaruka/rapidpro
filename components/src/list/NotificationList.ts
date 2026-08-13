@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg, str } from '@lit/localize';
 import { TembaList } from './TembaList';
 import { Options } from '../display/Options';
 import { Icon } from '../Icons';
@@ -53,10 +54,13 @@ export class NotificationList extends TembaList {
     `;
   }
 
+  protected defaultEmptyMessage(): string {
+    return msg('No notifications');
+  }
+
   constructor() {
     super();
     this.valueKey = 'url';
-    this.emptyMessage = 'No notifications';
     // set in the constructor, not as a class field - a field would shadow the
     // reactive accessor under define semantics (see lit class-field-shadowing)
     this.internalFocusDisabled = true;
@@ -68,50 +72,60 @@ export class NotificationList extends TembaList {
       if (notification.type === 'incident:started') {
         if (notification.incident.type === 'org:flagged') {
           icon = Icon.incidents;
-          body =
-            'Your workspace was flagged, please contact support for assistance.';
+          body = msg(
+            'Your workspace was flagged, please contact support for assistance.'
+          );
         } else if (notification.incident.type === 'org:suspended') {
           icon = Icon.incidents;
-          body =
-            'Your workspace was suspended, please contact support for assistance.';
+          body = msg(
+            'Your workspace was suspended, please contact support for assistance.'
+          );
         } else if (notification.incident.type === 'channel:disconnected') {
           icon = Icon.channel;
-          body = 'Your android channel is not connected';
+          body = msg('Your android channel is not connected');
         } else if (notification.incident.type === 'channel:templates_failed') {
           icon = Icon.channel;
-          body = 'Your WhatsApp channel templates failed syncing';
+          body = msg('Your WhatsApp channel templates failed syncing');
         } else if (notification.incident.type === 'webhooks:unhealthy') {
           icon = Icon.webhook;
-          body = 'Your webhook calls are not working properly.';
+          body = msg('Your webhook calls are not working properly.');
         }
       } else if (notification.type === 'import:finished') {
         if (notification.import.type === 'contact') {
           icon = Icon.contact_import;
-          body = `Imported ${formatCount(notification.import.num_records)} contacts`;
+          body = msg(
+            str`Imported ${formatCount(notification.import.num_records)} contacts`
+          );
         }
       } else if (notification.type === 'export:finished') {
         if (notification.export.type === 'contact') {
           icon = Icon.contact_export;
-          body = `Exported ${formatCount(notification.export.num_records)} contacts`;
+          body = msg(
+            str`Exported ${formatCount(notification.export.num_records)} contacts`
+          );
         } else if (notification.export.type === 'message') {
           icon = Icon.message_export;
-          body = `Exported ${formatCount(notification.export.num_records)} messages`;
+          body = msg(
+            str`Exported ${formatCount(notification.export.num_records)} messages`
+          );
         } else if (notification.export.type === 'results') {
           icon = Icon.results_export;
-          body = 'Exported flow results';
+          body = msg('Exported flow results');
         } else if (notification.export.type === 'ticket') {
           icon = Icon.tickets_export;
-          body = `Exported ${formatCount(notification.export.num_records)} tickets`;
+          body = msg(
+            str`Exported ${formatCount(notification.export.num_records)} tickets`
+          );
         } else if (notification.export.type === 'definition') {
           icon = Icon.definitions_export;
-          body = 'Exported definitions';
+          body = msg('Exported definitions');
         }
       } else if (notification.type === 'tickets:activity') {
         icon = Icon.tickets;
-        body = 'New ticket activity';
+        body = msg('New ticket activity');
       } else if (notification.type === 'tickets:opened') {
         icon = Icon.tickets;
-        body = 'New unassigned ticket';
+        body = msg('New unassigned ticket');
       }
       return html`<div
         style="color:${color};display:flex;align-items:flex-start;flex-direction:row;font-weight:${notification.is_seen
@@ -251,7 +265,7 @@ export class NotificationList extends TembaList {
   public renderHeader(): TemplateResult {
     return html`<div class="header">
       <temba-icon name="notification"></temba-icon>
-      <div class="title">Notifications</div>
+      <div class="title">${msg('Notifications')}</div>
     </div>`;
   }
 

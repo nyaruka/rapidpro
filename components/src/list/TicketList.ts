@@ -143,11 +143,11 @@ export class TicketList extends TembaList {
                                     name="${Icon.attachment}"
                                   ></temba-icon>
                                   <div style="flex-grow:1;margin-left:0.2em">
-                                    Attachment
+                                    ${msg('Attachment')}
                                   </div>
                                 </div>
                               </div>`
-                            : 'Unsupported Message'
+                            : msg('Unsupported Message')
                       }
                     </div></div>
                   `

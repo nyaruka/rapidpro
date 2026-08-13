@@ -1,4 +1,5 @@
 import { LitElement, PropertyValueMap } from 'lit';
+import { updateWhenLocaleChanges } from '@lit/localize';
 import { CustomEventType } from './interfaces';
 import { Color, log } from './utils';
 import { property } from 'lit/decorators.js';
@@ -72,6 +73,14 @@ export class RapidElement extends LitElement {
   DEBUG = false;
   DEBUG_UPDATES = false;
   DEBUG_EVENTS = false;
+
+  constructor() {
+    super();
+    // the workspace locale is only known once the store has fetched it, well
+    // after elements have rendered - re-render so msg() strings resolved
+    // during render pick up the new locale
+    updateWhenLocaleChanges(this);
+  }
 
   @property({ type: String })
   service: string;

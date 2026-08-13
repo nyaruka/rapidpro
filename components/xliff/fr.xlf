@@ -375,7 +375,7 @@
 </trans-unit>
 <trans-unit id="hcfbbcde7201230d4">
   <source>Make <x id="0" equiv-text="&lt;b&gt;${newLanguage}&lt;/b&gt;"/> the default language for this flow?
-          <x id="1" equiv-text="&lt;b&gt;${currentLanguage}&lt;/b&gt;"/> will be kept as a translation.</source>
+          <x id="1" equiv-text="&lt;b&gt;${currentLanguage}&lt;/b&gt;"/> will be kept as a translation.</source>
   <target>Faire de <x id="0" equiv-text="&lt;b&gt;${newLanguage}&lt;/b&gt;"/> la langue par défaut de ce flux ? <x id="1" equiv-text="&lt;b&gt;${currentLanguage}&lt;/b&gt;"/> sera conservée comme traduction.</target>
 </trans-unit>
 <trans-unit id="s8b0432eecbd8b034">
@@ -829,7 +829,7 @@
 </trans-unit>
 <trans-unit id="h5371085a2e3ecbbd">
   <source>Copied
-                      <x id="0" equiv-text="&lt;span class=&quot;expression&quot;&gt;${this.copiedExpression}&lt;/span&gt;"/>
+                      <x id="0" equiv-text="&lt;span class=&quot;expression&quot;&gt;${this.copiedExpression}&lt;/span&gt;"/>
                       to the clipboard</source>
   <target><x id="0" equiv-text="&lt;span class=&quot;expression&quot;&gt;${this.copiedExpression}&lt;/span&gt;"/> copié dans le presse-papiers</target>
 </trans-unit>
@@ -892,6 +892,310 @@
 <trans-unit id="sec459d377167f650">
   <source>Message..</source>
   <target>Message..</target>
+</trans-unit>
+<trans-unit id="se222e6ada35017b5">
+  <source>No articles</source>
+  <target>Aucun article</target>
+</trans-unit>
+<trans-unit id="s4fa8414c37c75316">
+  <source>No broadcasts</source>
+  <target>Aucune diffusion</target>
+</trans-unit>
+<trans-unit id="sff18240c8caabe4b">
+  <source>Search broadcasts</source>
+  <target>Rechercher des diffusions</target>
+</trans-unit>
+<trans-unit id="s44c11cb1fc7fca39">
+  <source>starting</source>
+  <target>à partir du</target>
+</trans-unit>
+<trans-unit id="sd9463462c8544291">
+  <source>Recipients</source>
+  <target>Destinataires</target>
+</trans-unit>
+<trans-unit id="s0b074c4a4f07bcf5">
+  <source>No campaigns</source>
+  <target>Aucune campagne</target>
+</trans-unit>
+<trans-unit id="s09b314f1a3141742">
+  <source>Search campaigns</source>
+  <target>Rechercher des campagnes</target>
+</trans-unit>
+<trans-unit id="s186066d1d89ad7d7">
+  <source>No contacts</source>
+  <target>Aucun contact</target>
+</trans-unit>
+<trans-unit id="sf34bb5d5516e2b7a">
+  <source>Search contacts</source>
+  <target>Rechercher des contacts</target>
+</trans-unit>
+<trans-unit id="s71704a43c5050ac0">
+  <source>Nothing to show</source>
+  <target>Rien à afficher</target>
+</trans-unit>
+<trans-unit id="sf07e54100da8a3f0">
+  <source>to search</source>
+  <target>pour rechercher</target>
+</trans-unit>
+<trans-unit id="s00937cb65263f8ce">
+  <source>Run search</source>
+  <target>Lancer la recherche</target>
+</trans-unit>
+<trans-unit id="s684e37d8a771d85d">
+  <source>Cancel search</source>
+  <target>Annuler la recherche</target>
+</trans-unit>
+<trans-unit id="s6ebc9bd6feae62a3">
+  <source>Loading…</source>
+  <target>Chargement…</target>
+</trans-unit>
+<trans-unit id="s1ec7158e4eb46615">
+  <source>No labels</source>
+  <target>Aucune étiquette</target>
+</trans-unit>
+<trans-unit id="s3d746a7876cfd957">
+  <source>New Label…</source>
+  <target>Nouvelle étiquette…</target>
+</trans-unit>
+<trans-unit id="sa51039f6f02f3777">
+  <source>Resize <x id="0" equiv-text="${column.label ?? column.key}"/> column</source>
+  <target>Redimensionner la colonne <x id="0" equiv-text="${column.label ?? column.key}"/></target>
+</trans-unit>
+<trans-unit id="s5b6a1140834aa043">
+  <source>Previous page</source>
+  <target>Page précédente</target>
+</trans-unit>
+<trans-unit id="s5373e0bf1dfbbdbf">
+  <source><x id="0" equiv-text="${formatCount(first)}"/>–<x id="1" equiv-text="${formatCount(last)}"/> of <x id="2" equiv-text="${formatCount(this.total)}"/></source>
+  <target><x id="0" equiv-text="${formatCount(first)}"/>–<x id="1" equiv-text="${formatCount(last)}"/> sur <x id="2" equiv-text="${formatCount(this.total)}"/></target>
+</trans-unit>
+<trans-unit id="s542ffff558768ea3">
+  <source>Next page</source>
+  <target>Page suivante</target>
+</trans-unit>
+<trans-unit id="s9cfa7823fc62aba3">
+  <source>Searching…</source>
+  <target>Recherche…</target>
+</trans-unit>
+<trans-unit id="s54736f6e634ea6f2">
+  <source>Search fields</source>
+  <target>Rechercher des champs</target>
+</trans-unit>
+<trans-unit id="s85f7b9714ee6310c">
+  <source>Not featured</source>
+  <target>Pas en vedette</target>
+</trans-unit>
+<trans-unit id="sd66a7814be13d3be">
+  <source>Unfeature <x id="0" equiv-text="${field.label}"/></source>
+  <target>Retirer <x id="0" equiv-text="${field.label}"/> de la vedette</target>
+</trans-unit>
+<trans-unit id="sdcb3749d43375ffb">
+  <source>Feature <x id="0" equiv-text="${field.label}"/></source>
+  <target>Mettre <x id="0" equiv-text="${field.label}"/> en vedette</target>
+</trans-unit>
+<trans-unit id="s28d7266643f5992f">
+  <source>No matches</source>
+  <target>Aucun résultat</target>
+</trans-unit>
+<trans-unit id="seffd6502226bf97b">
+  <source>Star a field to feature it on contact pages</source>
+  <target>Marquez un champ d'une étoile pour le mettre en vedette sur les pages de contact</target>
+</trans-unit>
+<trans-unit id="sae8ca57ec7594506">
+  <source>Other Fields</source>
+  <target>Autres champs</target>
+</trans-unit>
+<trans-unit id="s19a54bc0fb92638b">
+  <source>No fields</source>
+  <target>Aucun champ</target>
+</trans-unit>
+<trans-unit id="s4c2251760c5d2c55">
+  <source>and <x id="0" equiv-text="${formatCount(total - items.length)}"/> more</source>
+  <target>et <x id="0" equiv-text="${formatCount(total - items.length)}"/> de plus</target>
+</trans-unit>
+<trans-unit id="s9efeafb0d612eab0">
+  <source>Campaign Events</source>
+  <target>Événements de campagne</target>
+</trans-unit>
+<trans-unit id="sb69a4b0acd0895f2">
+  <source>Flows</source>
+  <target>Flux</target>
+</trans-unit>
+<trans-unit id="s217dce3286f9a22b">
+  <source>No flows</source>
+  <target>Aucun flux</target>
+</trans-unit>
+<trans-unit id="s93e58eaf7cbfbd5c">
+  <source>Search flows</source>
+  <target>Rechercher des flux</target>
+</trans-unit>
+<trans-unit id="sce15a6ce2f2e0ffa">
+  <source>No messages</source>
+  <target>Aucun message</target>
+</trans-unit>
+<trans-unit id="sc8e2c91325d8ad73">
+  <source>Search messages</source>
+  <target>Rechercher des messages</target>
+</trans-unit>
+<trans-unit id="s88f171391e8d15c2">
+  <source>No notifications</source>
+  <target>Aucune notification</target>
+</trans-unit>
+<trans-unit id="s2b8c3c32964c67ac">
+  <source>Your workspace was flagged, please contact support for assistance.</source>
+  <target>Votre espace de travail a été signalé, veuillez contacter l'assistance pour obtenir de l'aide.</target>
+</trans-unit>
+<trans-unit id="sd78bda51c42187f3">
+  <source>Your workspace was suspended, please contact support for assistance.</source>
+  <target>Votre espace de travail a été suspendu, veuillez contacter l'assistance pour obtenir de l'aide.</target>
+</trans-unit>
+<trans-unit id="s4da18bec52bf5648">
+  <source>Your android channel is not connected</source>
+  <target>Votre canal Android n'est pas connecté</target>
+</trans-unit>
+<trans-unit id="s358edca3fc337c88">
+  <source>Your WhatsApp channel templates failed syncing</source>
+  <target>La synchronisation des modèles de votre canal WhatsApp a échoué</target>
+</trans-unit>
+<trans-unit id="se815ea098ec82f9b">
+  <source>Your webhook calls are not working properly.</source>
+  <target>Vos appels de webhook ne fonctionnent pas correctement.</target>
+</trans-unit>
+<trans-unit id="sfb28d7a6e8c7b0a4">
+  <source>Imported <x id="0" equiv-text="${formatCount(notification.import.num_records)}"/> contacts</source>
+  <target><x id="0" equiv-text="${formatCount(notification.import.num_records)}"/> contacts importés</target>
+</trans-unit>
+<trans-unit id="scee7ecbfc5bbfda5">
+  <source>Exported <x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> contacts</source>
+  <target><x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> contacts exportés</target>
+</trans-unit>
+<trans-unit id="s76993e441effaf64">
+  <source>Exported <x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> messages</source>
+  <target><x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> messages exportés</target>
+</trans-unit>
+<trans-unit id="s43033460216332b4">
+  <source>Exported flow results</source>
+  <target>Résultats de flux exportés</target>
+</trans-unit>
+<trans-unit id="s87f37130677faedd">
+  <source>Exported <x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> tickets</source>
+  <target><x id="0" equiv-text="${formatCount(notification.export.num_records)}"/> billets exportés</target>
+</trans-unit>
+<trans-unit id="s6ba0a92432b96654">
+  <source>Exported definitions</source>
+  <target>Définitions exportées</target>
+</trans-unit>
+<trans-unit id="sed92cc7a20b1b0e0">
+  <source>New ticket activity</source>
+  <target>Nouvelle activité de billets</target>
+</trans-unit>
+<trans-unit id="sdfd2710adec3eaa0">
+  <source>New unassigned ticket</source>
+  <target>Nouveau billet non attribué</target>
+</trans-unit>
+<trans-unit id="s5be3c6d61cd9182f">
+  <source>Notifications</source>
+  <target>Notifications</target>
+</trans-unit>
+<trans-unit id="s890e983a7be64da4">
+  <source>Result</source>
+  <target>Résultat</target>
+</trans-unit>
+<trans-unit id="s079a052719914d71">
+  <source>Category</source>
+  <target>Catégorie</target>
+</trans-unit>
+<trans-unit id="s41f7dca46d3f1b4a">
+  <source>Value</source>
+  <target>Valeur</target>
+</trans-unit>
+<trans-unit id="s8a0e76d7fdbc5981">
+  <source>No shortcuts</source>
+  <target>Aucun raccourci</target>
+</trans-unit>
+<trans-unit id="sd79037cc4394d23e">
+  <source>Search shortcuts</source>
+  <target>Rechercher des raccourcis</target>
+</trans-unit>
+<trans-unit id="sddfc86d2b1251528">
+  <source>Attachment</source>
+  <target>Pièce jointe</target>
+</trans-unit>
+<trans-unit id="sbf9cbc97c892cf87">
+  <source>Unsupported Message</source>
+  <target>Message non pris en charge</target>
+</trans-unit>
+<trans-unit id="s105481c8262fdb04">
+  <source>Keyword</source>
+  <target>Mot-clé</target>
+</trans-unit>
+<trans-unit id="sd69f5a46ba60e09f">
+  <source>Catch All</source>
+  <target>Capturer tout</target>
+</trans-unit>
+<trans-unit id="s9b8dccb514a0e34c">
+  <source>Schedule</source>
+  <target>Planning</target>
+</trans-unit>
+<trans-unit id="s0b7c0b00085b4ba6">
+  <source>Inbound Call</source>
+  <target>Appel entrant</target>
+</trans-unit>
+<trans-unit id="s70e1a6820a26f810">
+  <source>Missed Call</source>
+  <target>Appel manqué</target>
+</trans-unit>
+<trans-unit id="sf5af49563512943c">
+  <source>New Conversation</source>
+  <target>Nouvelle conversation</target>
+</trans-unit>
+<trans-unit id="s5ef0302366de6780">
+  <source>Referral</source>
+  <target>Référence</target>
+</trans-unit>
+<trans-unit id="sb3e440b8c29e54bf">
+  <source>Closed Ticket</source>
+  <target>Billet fermé</target>
+</trans-unit>
+<trans-unit id="s94bcc88130496a4e">
+  <source>Opt-In</source>
+  <target>Opt-In</target>
+</trans-unit>
+<trans-unit id="sf41e8985024b696f">
+  <source>Opt-Out</source>
+  <target>Opt-Out</target>
+</trans-unit>
+<trans-unit id="s17dc87128ab9477f">
+  <source>No triggers</source>
+  <target>Aucun déclencheur</target>
+</trans-unit>
+<trans-unit id="se3aaff3ba4f883f2">
+  <source>Search triggers</source>
+  <target>Rechercher des déclencheurs</target>
+</trans-unit>
+<trans-unit id="s79e8cc71a5975b04">
+  <source>Message</source>
+  <target>Message</target>
+</trans-unit>
+<trans-unit id="sd266428256b0620e">
+  <source>matches</source>
+  <target>correspond à</target>
+</trans-unit>
+<trans-unit id="seb9c440de1ce6044">
+  <source>starts with</source>
+  <target>commence par</target>
+</trans-unit>
+<trans-unit id="sf2d5ffb20d61fcf8">
+  <source>Scheduled</source>
+  <target>Planifié</target>
+</trans-unit>
+<trans-unit id="s1ebe5d04ca8de6fd">
+  <source>Not scheduled</source>
+  <target>Non planifié</target>
+</trans-unit>
+<trans-unit id="s7f845078d7a5c0b5">
+  <source>from</source>
+  <target>de</target>
 </trans-unit>
 </body>
 </file>

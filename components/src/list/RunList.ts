@@ -1,4 +1,5 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { property } from 'lit/decorators.js';
 import { Checkbox } from '../form/Checkbox';
 import { Select } from '../form/select/Select';
@@ -349,9 +350,13 @@ export class RunList extends TembaList {
 
                 <table width="100%">
                   <tr>
-                    <th style="text-align:left" width="25%">Result</th>
-                    <th style="text-align:left" width="25%">Category</th>
-                    <th style="text-align:left">Value</th>
+                    <th style="text-align:left" width="25%">
+                      ${msg('Result')}
+                    </th>
+                    <th style="text-align:left" width="25%">
+                      ${msg('Category')}
+                    </th>
+                    <th style="text-align:left">${msg('Value')}</th>
                   </tr>
 
                   ${Object.keys(this.selectedRun.values).map((key: string) => {

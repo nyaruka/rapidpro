@@ -1,4 +1,5 @@
 import { css, html, TemplateResult } from 'lit';
+import { msg } from '@lit/localize';
 import { ContentList, ContentListColumn } from './ContentList';
 import { Icon } from '../Icons';
 import { CustomEventType, Flow, ObjectReference } from '../interfaces';
@@ -99,11 +100,17 @@ export class FlowList extends ContentList<Flow> {
     `;
   }
 
+  protected defaultEmptyMessage(): string {
+    return msg('No flows');
+  }
+
+  protected defaultSearchPlaceholder(): string {
+    return msg('Search flows');
+  }
+
   constructor() {
     super();
     this.valueKey = 'uuid';
-    this.emptyMessage = 'No flows';
-    this.searchPlaceholder = 'Search flows';
     // The name column is a `grow` column — it pools the table's
     // leftover width so long names (and their label chips) get all
     // available space before truncating, instead of clipping against
