@@ -240,8 +240,11 @@ export class Options extends RapidElement {
         --icon-color: var(--accent-700);
       }
 
+      /* options are flex rows, so the empty message aligns via
+         justify-content rather than text-align */
       .option.no-options {
         pointer-events: none;
+        justify-content: var(--options-empty-message-align, flex-start);
       }
 
       .option.no-options:hover {
@@ -359,6 +362,9 @@ export class Options extends RapidElement {
 
   @property({ type: Boolean })
   showEmptyMessage = false;
+
+  @property({ type: String })
+  emptyMessage: string = null;
 
   scrollParent: HTMLElement = null;
 
@@ -849,7 +855,7 @@ export class Options extends RapidElement {
                     class="option no-options"
                     style="color: var(--color-text-dark-secondary); cursor: default;"
                   >
-                    ${msg('No options')}
+                    ${this.emptyMessage || msg('No options')}
                   </div>`
                 : null}
             ${this.block ? html`<div style="height:0.1em"></div>` : null}

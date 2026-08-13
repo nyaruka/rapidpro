@@ -47,6 +47,10 @@ export class TembaList extends RapidElement {
   @property({ type: Boolean })
   internalFocusDisabled = false;
 
+  // when set, shown in place of the list when it loads empty
+  @property({ type: String })
+  emptyMessage: string = null;
+
   @property({ attribute: false })
   getNextRefresh: (firstOption: any) => any;
 
@@ -580,6 +584,8 @@ export class TembaList extends RapidElement {
         ?collapsed=${this.collapsed}
         ?loading=${this.loading}
         ?internalFocusDisabled=${this.internalFocusDisabled}
+        ?showEmptyMessage=${!!this.emptyMessage && !this.loading}
+        .emptyMessage=${this.emptyMessage}
         .renderOption=${this.renderOption}
         .renderDivider=${this.renderDivider}
         .renderOptionDetail=${this.renderOptionDetail}

@@ -26,7 +26,7 @@ const createList = async (attrs: any = {}) => {
 };
 
 const getList = async (attrs: any = {}) => {
-  attrs['endpoint'] = ENDPOINT;
+  attrs['endpoint'] = attrs['endpoint'] || ENDPOINT;
   const list = await createList(attrs);
   await new Promise<void>((resolve) => {
     list.addEventListener(
@@ -73,6 +73,19 @@ describe('temba-notification-list', () => {
     const list = await getList();
     expect(list.items.length).to.equal(3);
     await assertScreenshot('list/notifications', getClip(list));
+  });
+
+  it('shows an empty message when there are no notifications', async () => {
+    const list = await getList({
+      endpoint: '/test-assets/list/notifications-empty.json'
+    });
+    expect(list.items.length).to.equal(0);
+
+    const options = list.shadowRoot.querySelector('temba-options');
+    await (options as any).updateComplete;
+    const empty = options.shadowRoot.querySelector('.no-options');
+    expect(empty.textContent.trim()).to.equal('No notifications');
+    await assertScreenshot('list/notifications-empty', getClip(list));
   });
 
   it('subscribes to the notifications channel', async () => {

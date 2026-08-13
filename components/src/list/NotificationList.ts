@@ -11,7 +11,6 @@ import { deleteRequest, formatCount } from '../utils';
 
 export class NotificationList extends TembaList {
   reverseRefresh = false;
-  internalFocusDisabled = true;
 
   // fed by socket publications instead of interval polling
   protected pollingEnabled = false;
@@ -27,6 +26,7 @@ export class NotificationList extends TembaList {
     return css`
       :host {
         --option-hover-bg: #f9f9f9;
+        --options-empty-message-align: center;
       }
 
       .header {
@@ -56,6 +56,10 @@ export class NotificationList extends TembaList {
   constructor() {
     super();
     this.valueKey = 'url';
+    this.emptyMessage = 'No notifications';
+    // set in the constructor, not as a class field - a field would shadow the
+    // reactive accessor under define semantics (see lit class-field-shadowing)
+    this.internalFocusDisabled = true;
     this.renderOption = (notification: Notification): TemplateResult => {
       let icon = null;
       let body = null;
