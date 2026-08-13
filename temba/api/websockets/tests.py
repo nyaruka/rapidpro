@@ -73,13 +73,13 @@ class EndpointsTest(APITestMixin, TembaTest):
         session.save()
         response = self.post("api.websockets.connect")
         self.assertEqual(200, response.status_code)
-        self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
+        self.assertEqual({"disconnect": {"code": 4501, "reason": "unauthorized"}}, response.json())
 
         # an unauthenticated request is told to disconnect
         self.client.logout()
         response = self.post("api.websockets.connect")
         self.assertEqual(200, response.status_code)
-        self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
+        self.assertEqual({"disconnect": {"code": 4501, "reason": "unauthorized"}}, response.json())
 
         # because it's a server-to-server POST with no CSRF token, it still works when CSRF checks are enforced
         csrf_client = self.client_class(enforce_csrf_checks=True)
@@ -183,7 +183,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.client.logout()
         response = subscribe(f"history:{contact.uuid}")
         self.assertEqual(200, response.status_code)
-        self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
+        self.assertEqual({"disconnect": {"code": 4501, "reason": "unauthorized"}}, response.json())
 
     def test_subscribe_notifications(self):
         def subscribe(socket, client="conn-1"):
@@ -434,7 +434,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.client.logout()
         response = self.post("api.websockets.connect")
         self.assertEqual(200, response.status_code)
-        self.assertEqual({"disconnect": {"code": 4401, "reason": "unauthorized"}}, response.json())
+        self.assertEqual({"disconnect": {"code": 4501, "reason": "unauthorized"}}, response.json())
 
     @override_settings(WEBSOCKETS_AUTH_SECRET=None)
     def test_secret_required(self):
