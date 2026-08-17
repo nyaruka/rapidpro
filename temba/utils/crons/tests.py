@@ -9,9 +9,8 @@ from . import cron_task
 
 class CronsTest(TembaTest):
     @patch("valkey.client.StrictValkey.lock")
-    @patch("valkey.client.StrictValkey.get")
-    def test_cron_task(self, mock_valkey_get, mock_valkey_lock):
-        mock_valkey_get.return_value = None
+    def test_cron_task(self, mock_valkey_lock):
+        mock_valkey_lock.return_value.acquire.return_value = True
         task_calls = []
 
         @cron_task()
@@ -40,24 +39,19 @@ class CronsTest(TembaTest):
         test_task2(21, bar=22)
         test_task3(foo=31, bar=32)
 
-        mock_valkey_get.assert_any_call("celery-task-lock:test_task1")
-        mock_valkey_get.assert_any_call("celery-task-lock:task2")
-        mock_valkey_get.assert_any_call("celery-task-lock:task3")
-        mock_valkey_lock.assert_any_call("celery-task-lock:test_task1", timeout=900)
-        mock_valkey_lock.assert_any_call("celery-task-lock:task2", timeout=100)
-        mock_valkey_lock.assert_any_call("celery-task-lock:task3", timeout=55)
+        mock_valkey_lock.assert_any_call("celery-task-lock:test_task1", timeout=900, blocking=False)
+        mock_valkey_lock.assert_any_call("celery-task-lock:task2", timeout=100, blocking=False)
+        mock_valkey_lock.assert_any_call("celery-task-lock:task3", timeout=55, blocking=False)
 
         self.assertEqual(task_calls, ["1-11-12", "2-21-22", "3-31-32"])
 
-        # simulate task being already running
-        mock_valkey_get.reset_mock()
-        mock_valkey_get.return_value = "xyz"
+        # simulate task being already running so the lock can't be acquired
         mock_valkey_lock.reset_mock()
+        mock_valkey_lock.return_value.acquire.return_value = False
 
         # try to run again
         test_task1(13, 14)
 
         # check that task is skipped
-        mock_valkey_get.assert_called_once_with("celery-task-lock:test_task1")
-        self.assertEqual(mock_valkey_lock.call_count, 0)
+        mock_valkey_lock.assert_called_once_with("celery-task-lock:test_task1", timeout=900, blocking=False)
         self.assertEqual(task_calls, ["1-11-12", "2-21-22", "3-31-32"])

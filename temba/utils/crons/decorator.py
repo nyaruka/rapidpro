@@ -32,16 +32,18 @@ def cron_task(*task_args, **task_kwargs):
             start = timezone.now()
             result = None
 
-            if r.get(lock_key):
-                result = {"skipped": True}
-            else:
+            # non-blocking acquire so that a duplicate invocation is skipped rather than waiting to run again
+            lock = r.lock(lock_key, timeout=lock_timeout, blocking=False)
+            if lock.acquire():
                 try:
-                    with r.lock(lock_key, timeout=lock_timeout):
-                        result = task_func(*exec_args, **exec_kwargs)
+                    result = task_func(*exec_args, **exec_kwargs)
                 finally:
                     post_cron_exec.send(
                         sender=cron_task, task_name=task_name, started=start, ended=timezone.now(), result=result
                     )
+                    lock.release()
+            else:
+                result = {"skipped": True}
 
             return result
 
