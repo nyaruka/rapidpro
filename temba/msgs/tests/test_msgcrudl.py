@@ -60,10 +60,10 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(inbox_url, [None, self.agent])
         response = self.assertListFetch(inbox_url, [self.editor, self.admin])
         self.assertContains(response, "temba-msg-list")
-        self.assertEqual("/api/internal/messages.json?folder=inbox", response.context["new_list_endpoint"])
+        self.assertEqual("/api/internal/messages.json?folder=inbox", response.context["list_url"])
 
         # the label bulk action carries the create affordance for viewers who can create labels
-        new_actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
+        new_actions = {a["key"]: a for a in response.context["list_bulk_actions"]}
         self.assertTrue(new_actions["label"]["allowCreate"])
 
         # check that we have the appropriate bulk actions
@@ -264,7 +264,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org.suspend()
 
         response = self.client.get(failed_url)
-        self.assertNotIn("resend", [a["key"] for a in response.context["new_list_bulk_actions"]])
+        self.assertNotIn("resend", [a["key"] for a in response.context["list_bulk_actions"]])
 
     def test_filter(self):
         flow = self.create_flow("Flow")
@@ -308,8 +308,8 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         # the filter view exposes a label-scoped endpoint and a label-name subtitle
         new_response = self.client.get(label1_url)
         self.assertContains(new_response, "temba-msg-list")
-        self.assertEqual(f"/api/internal/messages.json?label={label1.uuid}", new_response.context["new_list_endpoint"])
-        self.assertIn("label1", new_response.context["new_list_subtitle"])
+        self.assertEqual(f"/api/internal/messages.json?label={label1.uuid}", new_response.context["list_url"])
+        self.assertIn("label1", new_response.context["list_subtitle"])
 
     def test_export(self):
         export_url = reverse("msgs.msg_export")

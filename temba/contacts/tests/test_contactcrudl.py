@@ -200,13 +200,11 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertContains(response, "temba-contact-list")
         self.assertContains(response, 'column-width-settings="{&quot;contacts&quot;: {&quot;name&quot;: 240}}"')
         self.assertContains(response, f'settings-endpoint="{reverse("users.user_settings")}"')
-        self.assertEqual(
-            f"{reverse('api.internal.contacts')}.json?folder=active", response.context["new_list_endpoint"]
-        )
+        self.assertEqual(f"{reverse('api.internal.contacts')}.json?folder=active", response.context["list_url"])
 
         # send / start-flow are clientOnly (they open a modal); the group dropdown carries a labelsEndpoint of the
         # workspace's static groups; the rest post to the action endpoint
-        actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
+        actions = {a["key"]: a for a in response.context["list_bulk_actions"]}
         self.assertEqual(["label", "block", "send", "start-flow", "archive"], list(actions.keys()))
         self.assertTrue(actions["send"]["clientOnly"])
         self.assertTrue(actions["start-flow"]["clientOnly"])
@@ -215,16 +213,14 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # a user group is selected by uuid rather than a status folder
         response = self.client.get(group_url)
-        self.assertEqual(
-            f"{reverse('api.internal.contacts')}.json?group={group.uuid}", response.context["new_list_endpoint"]
-        )
+        self.assertEqual(f"{reverse('api.internal.contacts')}.json?group={group.uuid}", response.context["list_url"])
         # a manual group has no subtitle
-        self.assertEqual("", response.context["new_list_subtitle"])
+        self.assertEqual("", response.context["list_subtitle"])
 
         # a smart (dynamic) group surfaces its query as the list subtitle
         smart = self.create_group("Females", query="gender = F")
         response = self.client.get(reverse("contacts.contact_group", args=[smart.uuid]))
-        self.assertEqual(smart.query, response.context["new_list_subtitle"])
+        self.assertEqual(smart.query, response.context["list_subtitle"])
 
         # the component posts contact uuids in `objects`; the view translates them to ids so the bulk action applies
         self.client.post(list_url, {"action": "archive", "objects": str(joe.uuid)})
@@ -390,7 +386,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.assertReadFetch(group1_url, [self.editor, self.admin])
 
         self.assertBulkActions(response, ["unlabel", "block", "send", "start-flow"])
-        self.assertEqual(f"/api/internal/contacts.json?group={group1.uuid}", response.context["new_list_endpoint"])
+        self.assertEqual(f"/api/internal/contacts.json?group={group1.uuid}", response.context["list_url"])
 
         self.assertContentMenu(
             group1_url,

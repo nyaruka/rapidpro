@@ -991,28 +991,22 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         # the temba-trigger-list component is pointed at the internal triggers api
         response = self.client.get(list_url)
         self.assertContains(response, "temba-trigger-list")
-        self.assertEqual(
-            f"{reverse('api.internal.triggers')}.json?folder=active", response.context["new_list_endpoint"]
-        )
+        self.assertEqual(f"{reverse('api.internal.triggers')}.json?folder=active", response.context["list_url"])
 
-        actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
+        actions = {a["key"]: a for a in response.context["list_bulk_actions"]}
         self.assertEqual(["archive"], list(actions.keys()))
 
         # the archived view selects the archived folder and offers restore/delete (delete needs confirmation)
         response = self.client.get(reverse("triggers.trigger_archived"))
-        self.assertEqual(
-            f"{reverse('api.internal.triggers')}.json?folder=archived", response.context["new_list_endpoint"]
-        )
-        actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
+        self.assertEqual(f"{reverse('api.internal.triggers')}.json?folder=archived", response.context["list_url"])
+        actions = {a["key"]: a for a in response.context["list_bulk_actions"]}
         self.assertEqual(["restore", "delete"], list(actions.keys()))
         self.assertTrue(actions["delete"]["destructive"])
         self.assertIn("confirm", actions["delete"])
 
         # a type folder view selects its folder slug
         response = self.client.get(reverse("triggers.trigger_folder", kwargs={"folder": "messages"}))
-        self.assertEqual(
-            f"{reverse('api.internal.triggers')}.json?folder=messages", response.context["new_list_endpoint"]
-        )
+        self.assertEqual(f"{reverse('api.internal.triggers')}.json?folder=messages", response.context["list_url"])
 
         # the component posts trigger ids in `objects` — bulk actions apply as-is
         self.client.post(list_url, {"action": "archive", "objects": trigger1.id})

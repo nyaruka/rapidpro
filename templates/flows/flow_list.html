@@ -29,13 +29,13 @@
                    fill-window
                    history-state-key="flows"
                    list-title="{{ title }}"
-                   {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
-                   endpoint="{{ new_list_endpoint }}"
+                   {% if list_subtitle %}subtitle="{{ list_subtitle }}"{% endif %}
+                   endpoint="{{ list_url }}"
                    action-endpoint="{{ request.path }}"
                    content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
                    empty-message="{% trans "No flows" %}">
   </temba-flow-list>
-  {{ new_list_bulk_actions|json_script:"new-list-bulk-actions" }}
+  {{ list_bulk_actions|json_script:"list-bulk-actions" }}
   <temba-modax header="{% trans "Export Results" %}" id="export-results">
   </temba-modax>
   {% if org_perms.flows.flowlabel_create %}
@@ -52,7 +52,7 @@
   <script type="text/javascript">
     onSpload(function() {
       var list = document.querySelector("#flow-list");
-      list.bulkActions = JSON.parse(document.getElementById("new-list-bulk-actions").textContent);
+      list.bulkActions = JSON.parse(document.getElementById("list-bulk-actions").textContent);
 
       // clicking a row opens the flow editor
       list.addEventListener("temba-row-click", function(event) {

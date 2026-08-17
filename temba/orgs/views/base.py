@@ -254,9 +254,9 @@ class BaseListComponentView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseLis
 
         # the resolved API endpoint, the subtitle, and the bulk action configs the component expects (resolved here
         # so the template stays inert)
-        context["new_list_endpoint"] = f"{reverse(self.list_endpoint)}.json?{self.derive_list_query()}"
+        context["list_url"] = f"{reverse(self.list_endpoint)}.json?{self.derive_list_query()}"
         subtitle = self.derive_subtitle()
-        context["new_list_subtitle"] = str(subtitle) if subtitle else ""
+        context["list_subtitle"] = str(subtitle) if subtitle else ""
 
         actions = []
         for key in self.get_bulk_actions():
@@ -264,7 +264,7 @@ class BaseListComponentView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseLis
             cfg["key"] = key
             # resolve any i18n lazy proxies so json_script doesn't choke
             actions.append({k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()})
-        context["new_list_bulk_actions"] = actions
+        context["list_bulk_actions"] = actions
 
         return context
 

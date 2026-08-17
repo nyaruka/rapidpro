@@ -28,20 +28,20 @@
                        fill-window
                        history-state-key="campaigns"
                        list-title="{{ title }}"
-                       {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
-                       endpoint="{{ new_list_endpoint }}"
+                       {% if list_subtitle %}subtitle="{{ list_subtitle }}"{% endif %}
+                       endpoint="{{ list_url }}"
                        action-endpoint="{{ request.path }}"
                        content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
                        empty-message="{% trans "No campaigns" %}">
   </temba-campaign-list>
-  {{ new_list_bulk_actions|json_script:"new-list-bulk-actions" }}
+  {{ list_bulk_actions|json_script:"list-bulk-actions" }}
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
   <script type="text/javascript">
     onSpload(function() {
       var list = document.querySelector("#campaign-list");
-      list.bulkActions = JSON.parse(document.getElementById("new-list-bulk-actions").textContent);
+      list.bulkActions = JSON.parse(document.getElementById("list-bulk-actions").textContent);
 
       // clicking a row opens the campaign
       list.addEventListener("temba-row-click", function(event) {

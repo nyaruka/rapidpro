@@ -200,7 +200,7 @@ class CRUDLTestMixin:
         """
         Asserts the bulk action keys a list page offers its list component, in order
         """
-        self.assertEqual(keys, [a["key"] for a in response.context["new_list_bulk_actions"]])
+        self.assertEqual(keys, [a["key"] for a in response.context["list_bulk_actions"]])
 
 
 class BaseCheck:

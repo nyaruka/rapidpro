@@ -31,13 +31,13 @@
                   column-width-settings="{{ list_column_settings }}"
                   settings-endpoint="{% url 'users.user_settings' %}"
                   list-title="{{ title }}"
-                  {% if new_list_subtitle %}subtitle="{{ new_list_subtitle }}"{% endif %}
-                  endpoint="{{ new_list_endpoint }}"
+                  {% if list_subtitle %}subtitle="{{ list_subtitle }}"{% endif %}
+                  endpoint="{{ list_url }}"
                   action-endpoint="{{ request.path }}"
                   content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
                   empty-message="{% trans "No messages" %}">
   </temba-msg-list>
-  {{ new_list_bulk_actions|json_script:"new-list-bulk-actions" }}
+  {{ list_bulk_actions|json_script:"list-bulk-actions" }}
   {% if org_perms.msgs.label_create %}
     <temba-modax header="{% trans "New Label" %}"
                  endpoint="{% url 'msgs.label_create' %}"
@@ -52,7 +52,7 @@
   <script type="text/javascript">
     onSpload(function() {
       var list = document.querySelector("#msg-list");
-      list.bulkActions = JSON.parse(document.getElementById("new-list-bulk-actions").textContent);
+      list.bulkActions = JSON.parse(document.getElementById("list-bulk-actions").textContent);
 
       // clicking a row opens the contact
       list.addEventListener("temba-row-click", function(event) {

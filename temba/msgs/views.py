@@ -154,10 +154,10 @@ class BroadcastCRUDL(SmartCRUDL):
         list_endpoint = "api.internal.broadcasts"
 
         # The internal-API folder (and the component's `mode`) this view lists — `sent` or `scheduled`.
-        new_list_folder = "sent"
+        list_folder = "sent"
 
         def derive_list_query(self) -> str:
-            return f"folder={self.new_list_folder}"
+            return f"folder={self.list_folder}"
 
         def get_queryset(self, **kwargs):
             # the component fetches and pages broadcasts itself, and these views have no bulk actions, so the page
@@ -168,7 +168,7 @@ class BroadcastCRUDL(SmartCRUDL):
             context = super().get_context_data(**kwargs)
 
             # the component's mode
-            context["new_list_mode"] = self.new_list_folder
+            context["list_mode"] = self.list_folder
 
             return context
 
@@ -185,7 +185,7 @@ class BroadcastCRUDL(SmartCRUDL):
         title = _("Broadcasts")
         menu_path = "/msg/broadcasts"
         default_order = ("-created_on", "-id")
-        new_list_folder = "sent"
+        list_folder = "sent"
 
         def get_queryset(self, **kwargs):
             return super().get_queryset(**kwargs).filter(schedule=None)
@@ -194,7 +194,7 @@ class BroadcastCRUDL(SmartCRUDL):
         title = _("Scheduled Broadcasts")
         menu_path = "/msg/scheduled"
         default_order = ("schedule__next_fire", "-created_on")
-        new_list_folder = "scheduled"
+        list_folder = "scheduled"
 
         def get_queryset(self, **kwargs):
             return super().get_queryset(**kwargs).exclude(schedule=None)
