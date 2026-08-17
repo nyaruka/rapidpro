@@ -32,5 +32,4 @@ def configure_redbeat(sender, **kwargs):
 
 
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
-app.autodiscover_tasks(("temba.channels.types.whatsapp_legacy",))
 app.autodiscover_tasks(("temba.channels.types.turn",))

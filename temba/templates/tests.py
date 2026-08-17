@@ -18,8 +18,8 @@ from .tasks import refresh_templates
 
 class TemplateTest(TembaTest):
     def test_model(self):
-        channel1 = self.create_channel("WA", "Channel 1", "1234")
-        channel2 = self.create_channel("WA", "Channel 2", "2345")
+        channel1 = self.create_channel("D3C", "Channel 1", "1234")
+        channel2 = self.create_channel("D3C", "Channel 2", "2345")
 
         hello_eng = TemplateTranslation.get_or_create(
             channel1,
@@ -88,7 +88,7 @@ class TemplateTest(TembaTest):
         self.assertEqual(1, TemplateTranslation.objects.filter(channel=channel2).count())
 
     def test_update_local(self):
-        channel = self.create_channel("WA", "Channel 1", "1234")
+        channel = self.create_channel("D3C", "Channel 1", "1234")
 
         TemplateTranslation.update_local(
             channel,
@@ -190,10 +190,7 @@ class TemplateTest(TembaTest):
     @patch("temba.templates.models.TemplateTranslation.update_local")
     @patch("temba.channels.types.twilio_whatsapp.TwilioWhatsappType.fetch_templates")
     @patch("temba.channels.types.dialog360.Dialog360Type.fetch_templates")
-    @patch("temba.channels.types.dialog360_legacy.Dialog360LegacyType.fetch_templates")
-    def test_refresh_task(
-        self, mock_d3_fetch_templates, mock_d3c_fetch_templates, mock_twa_fetch_templates, mock_update_local
-    ):
+    def test_refresh_task(self, mock_d3c_fetch_templates, mock_twa_fetch_templates, mock_update_local):
         org3 = Org.objects.create(
             name="Nyaruka 3",
             timezone=ZoneInfo("Africa/Kigali"),
@@ -218,12 +215,12 @@ class TemplateTest(TembaTest):
 
         # channels on suspended org are ignored
         self.create_channel(
-            "D3",
+            "D3C",
             "360Dialog channel",
             address="234",
             country="BR",
             config={
-                Channel.CONFIG_BASE_URL: "https://example.com/whatsapp",
+                Channel.CONFIG_BASE_URL: "https://waba-v2.360dialog.io",
                 Channel.CONFIG_AUTH_TOKEN: "123456789",
             },
             org=org3,
@@ -231,12 +228,12 @@ class TemplateTest(TembaTest):
 
         # channels on inactive org are ignored
         self.create_channel(
-            "D3",
+            "D3C",
             "360Dialog channel",
             address="345",
             country="BR",
             config={
-                Channel.CONFIG_BASE_URL: "https://example.com/whatsapp",
+                Channel.CONFIG_BASE_URL: "https://waba-v2.360dialog.io",
                 Channel.CONFIG_AUTH_TOKEN: "123456789",
             },
             org=org4,
@@ -249,16 +246,6 @@ class TemplateTest(TembaTest):
             country="BR",
             config={
                 Channel.CONFIG_BASE_URL: "https://waba-v2.360dialog.io",
-                Channel.CONFIG_AUTH_TOKEN: "123456789",
-            },
-        )
-        self.create_channel(
-            "D3",
-            "360Dialog channel",
-            address="1234",
-            country="BR",
-            config={
-                Channel.CONFIG_BASE_URL: "https://example.com/whatsapp",
                 Channel.CONFIG_AUTH_TOKEN: "123456789",
             },
         )
@@ -286,17 +273,15 @@ class TemplateTest(TembaTest):
             )
             raise requests.ConnectionError("timeout")
 
-        mock_d3_fetch_templates.side_effect = mock_fetch
         mock_d3c_fetch_templates.side_effect = mock_fetch
         mock_twa_fetch_templates.side_effect = mock_fetch
         mock_update_local.return_value = None
 
         refresh_templates()
 
-        self.assertEqual(1, mock_d3_fetch_templates.call_count)
         self.assertEqual(1, mock_d3c_fetch_templates.call_count)
         self.assertEqual(1, mock_twa_fetch_templates.call_count)
-        self.assertEqual(3, mock_update_local.call_count)
+        self.assertEqual(2, mock_update_local.call_count)
         self.assertEqual(0, Incident.objects.filter(incident_type=ChannelTemplatesFailedIncidentType.slug).count())
 
         # if one channel fails, others continue
@@ -304,10 +289,9 @@ class TemplateTest(TembaTest):
 
         refresh_templates()
 
-        self.assertEqual(2, mock_d3_fetch_templates.call_count)
         self.assertEqual(2, mock_d3c_fetch_templates.call_count)
         self.assertEqual(2, mock_twa_fetch_templates.call_count)
-        self.assertEqual(5, mock_update_local.call_count)
+        self.assertEqual(3, mock_update_local.call_count)
 
         # one failure isn't enough to create an incident
         self.assertEqual(0, Incident.objects.filter(incident_type=ChannelTemplatesFailedIncidentType.slug).count())
@@ -458,10 +442,7 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
     @patch("temba.templates.models.TemplateTranslation.update_local")
     @patch("temba.channels.types.twilio_whatsapp.TwilioWhatsappType.fetch_templates")
     @patch("temba.channels.types.dialog360.Dialog360Type.fetch_templates")
-    @patch("temba.channels.types.dialog360_legacy.Dialog360LegacyType.fetch_templates")
-    def test_refresh_templates(
-        self, mock_d3_fetch_templates, mock_d3c_fetch_templates, mock_twa_fetch_templates, mock_update_local
-    ):
+    def test_refresh_templates(self, mock_d3c_fetch_templates, mock_twa_fetch_templates, mock_update_local):
         d3c_channel = self.create_channel(
             "D3C",
             "360Dialog channel",
@@ -472,17 +453,6 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
                 Channel.CONFIG_AUTH_TOKEN: "123456789",
             },
         )
-        self.create_channel(
-            "D3",
-            "360Dialog channel",
-            address="1234",
-            country="BR",
-            config={
-                Channel.CONFIG_BASE_URL: "https://example.com/whatsapp",
-                Channel.CONFIG_AUTH_TOKEN: "123456789",
-            },
-        )
-
         self.create_channel(
             "TWA",
             "TWilio WhatsAPp channel",
@@ -535,7 +505,6 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
             )
             raise requests.ConnectionError("timeout")
 
-        mock_d3_fetch_templates.side_effect = mock_fetch
         mock_d3c_fetch_templates.side_effect = mock_fetch
         mock_twa_fetch_templates.side_effect = mock_fetch
         mock_update_local.return_value = None
@@ -545,9 +514,8 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertToast(response, "info", "Your templates have been fetched and refreshed.")
 
         self.assertEqual(1, mock_d3c_fetch_templates.call_count)
-        self.assertEqual(1, mock_d3_fetch_templates.call_count)
         self.assertEqual(1, mock_twa_fetch_templates.call_count)
-        self.assertEqual(3, mock_update_local.call_count)
+        self.assertEqual(2, mock_update_local.call_count)
         self.assertEqual(
             0,
             Incident.objects.filter(
@@ -563,6 +531,5 @@ class TemplateCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertToast(response, "error", "Unable to refresh all templates. See the log for details.")
 
         self.assertEqual(2, mock_d3c_fetch_templates.call_count)
-        self.assertEqual(2, mock_d3_fetch_templates.call_count)
         self.assertEqual(2, mock_twa_fetch_templates.call_count)
-        self.assertEqual(5, mock_update_local.call_count)
+        self.assertEqual(3, mock_update_local.call_count)

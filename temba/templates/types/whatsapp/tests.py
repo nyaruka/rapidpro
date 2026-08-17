@@ -12,7 +12,7 @@ class WhatsAppTypeTest(TembaTest):
 
     def test_update_local_wa(self):
         # namespace in the channel config
-        channel = self.create_channel("WA", "channel", "1234", config={"fb_namespace": "foo_namespace"})
+        channel = self.create_channel("WAC", "channel", "1234", config={"fb_namespace": "foo_namespace"})
 
         trans = self.type.update_local(
             channel,
@@ -320,7 +320,7 @@ class WhatsAppTypeTest(TembaTest):
 
     def test_update_local_d3(self):
         # no namespace in channel config
-        channel = self.create_channel("D3", "channel", "1234", config={})
+        channel = self.create_channel("D3C", "channel", "1234", config={})
 
         # no template id (so we use language/name) and namespace is on template itself
         trans = self.type.update_local(

@@ -35,7 +35,6 @@ from temba.utils.models import (
 )
 from temba.utils.models.counts import BaseDailyCount
 from temba.utils.text import generate_secret
-from temba.utils.whatsapp import update_api_version
 
 logger = logging.getLogger(__name__)
 
@@ -445,10 +444,6 @@ class Channel(LegacyIDMixin, TembaModel, DependencyMixin):
             return
 
         with r.lock(key, 60):
-            # for channels which have version in their config, refresh it
-            if self.config.get("version"):  # pragma: no cover
-                update_api_version(self)
-
             try:
                 raw_templates = self.type.fetch_templates(self)
 

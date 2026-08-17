@@ -107,7 +107,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
 
         # Add a Dialog360 whatsapp channel and bulk sender channel that should not block us to claim an Android channel
         channel = self.create_channel(
-            "D3",
+            "D3C",
             "360Dialog channel",
             address="+250788123123",
             country="RW",

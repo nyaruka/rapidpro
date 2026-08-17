@@ -1267,7 +1267,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # no warning, we don't have a whatsapp channel that requires a message template
         self.assertEqual(response.json()["warnings"], [])
 
-        self.channel.channel_type = "WA"
+        self.channel.channel_type = "WAC"
         self.channel.save()
 
         # clear dependencies, this will cause our flow to look like it isn't using templates

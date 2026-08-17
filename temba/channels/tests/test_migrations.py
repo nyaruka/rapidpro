@@ -1,3 +1,5 @@
+from temba.channels.models import Channel
+from temba.contacts.models import URN
 from temba.notifications.models import Incident
 from temba.templates.models import TemplateTranslation
 from temba.tests import MigrationTest
@@ -10,8 +12,9 @@ class ReleaseLegacyWhatsAppChannelsTest(MigrationTest):
     migrate_to = "0215_release_legacy_whatsapp_channels"
 
     def setUpBeforeMigration(self, apps):
-        self.wa = self.create_channel("WA", "Legacy WhatsApp", "1234", config={"fb_namespace": "foo"})
-        self.d3 = self.create_channel("D3", "Legacy 360Dialog", "2345", config={"fb_namespace": "foo"})
+        # the legacy types no longer exist so these channels have to be created directly
+        self.wa = self._create_legacy_channel("WA", "Legacy WhatsApp", "1234")
+        self.d3 = self._create_legacy_channel("D3", "Legacy 360Dialog", "2345")
         self.wac = self.create_channel("WAC", "Cloud WhatsApp", "3456")
 
         # triggers on both a legacy channel and the cloud channel
@@ -44,6 +47,19 @@ class ReleaseLegacyWhatsAppChannelsTest(MigrationTest):
 
         # a template which only has legacy channel translations
         self.template3 = self.create_template("reminder", [self._create_translation(self.d3, "eng-US")])
+
+    def _create_legacy_channel(self, channel_type: str, name: str, address: str):
+        return Channel.objects.create(
+            org=self.org,
+            channel_type=channel_type,
+            name=name,
+            address=address,
+            config={"fb_namespace": "foo"},
+            role=Channel.DEFAULT_ROLE,
+            schemes=[URN.WHATSAPP_SCHEME],
+            created_by=self.admin,
+            modified_by=self.admin,
+        )
 
     def _create_trigger(self, flow, channel):
         return Trigger.objects.create(
