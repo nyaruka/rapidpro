@@ -244,6 +244,7 @@ class Org(LegacyIDMixin, SmartModel):
     FEATURE_PROMETHEUS = "prometheus"  # can create a prometheus token to access metrics
     FEATURE_SHARED_CHANNELS = "shared_channels"  # can share channels between orgs
     FEATURE_AGENTS = "agents"  # can create AI agents to handle contact conversations
+    FEATURE_UNRESTRICTED_WEBHOOKS = "unrestricted_webhooks"  # can call webhooks to otherwise blocked domains
     FEATURES_CHOICES = (
         (FEATURE_USERS, _("Users")),
         (FEATURE_NEW_ORGS, _("New Orgs")),
@@ -252,6 +253,7 @@ class Org(LegacyIDMixin, SmartModel):
         (FEATURE_PROMETHEUS, _("Prometheus")),
         (FEATURE_SHARED_CHANNELS, _("Shared Channels")),
         (FEATURE_AGENTS, _("Agents")),
+        (FEATURE_UNRESTRICTED_WEBHOOKS, _("Unrestricted Webhooks")),
     )
 
     LIMIT_CHANNELS = "channels"

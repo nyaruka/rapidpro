@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 21:01+0000\n"
+"POT-Creation-Date: 2026-08-17 21:53+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -3144,6 +3144,9 @@ msgstr "Prometheus"
 
 msgid "Shared Channels"
 msgstr "Canais compartilhados"
+
+msgid "Unrestricted Webhooks"
+msgstr "Webhooks sem restrições"
 
 msgid "Sorry, your workspace is currently suspended. To re-enable starting flows and sending messages, please contact support."
 msgstr "Desculpe, sua área de trabalho está suspensa no momento. Para voltar a iniciar fluxos e enviar mensagens, por favor entre em contato com o suporte."
