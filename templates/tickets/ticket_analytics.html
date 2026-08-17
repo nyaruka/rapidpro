@@ -88,16 +88,28 @@
                single
                requireWindow>
   </temba-chart>
-  <temba-chart class="mt-6"
-               header="{% trans "Response Count" %}"
-               url="{% url 'tickets.ticket_chart' 'replies' %}"
-               dataname="Teams"
-               colorIndex="1"
-               xtype="time"
-               config
-               requireWindow
-               legend>
-  </temba-chart>
+  {% if has_teams %}
+    <temba-chart class="mt-6"
+                 header="{% trans "Response Count" %}"
+                 url="{% url 'tickets.ticket_chart' 'replies' %}"
+                 dataname="Teams"
+                 colorIndex="1"
+                 xtype="time"
+                 config
+                 requireWindow
+                 legend>
+    </temba-chart>
+  {% else %}
+    <temba-chart class="mt-6"
+                 header="{% trans "Response Count" %}"
+                 url="{% url 'tickets.ticket_chart' 'replies' %}"
+                 dataname="Responses"
+                 colorIndex="1"
+                 xtype="time"
+                 single
+                 requireWindow>
+    </temba-chart>
+  {% endif %}
   <div class="leaderboard mt-6" id="leaderboard">
     <h3 style="margin: 0 0 1em 0; font-size: 1.1em; font-weight: 600;">{% trans "Top Responders" %}</h3>
     <table>
