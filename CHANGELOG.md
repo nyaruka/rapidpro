@@ -1,3 +1,10 @@
+v26.3.47 (2026-08-17)
+-------------------------
+ * Add unrestricted_webhooks org feature
+ * Add uuid field to Trigger model
+ * Reject an unresolvable group on the contact list's "Remove from group"
+ * Add a shared base class for list pages rendered by a component and remove the bulk-action machinery left over from the old list pages
+
 v26.3.46 (2026-08-17)
 -------------------------
  * Add data migration to release remaining legacy WhatsApp channels
