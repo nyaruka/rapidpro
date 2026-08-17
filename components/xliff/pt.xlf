@@ -1442,6 +1442,86 @@
   <source>Edit note</source>
   <target>Editar nota</target>
 </trans-unit>
+<trans-unit id="se16c5e66886fbc59">
+  <source>Article</source>
+  <target>Artigo</target>
+</trans-unit>
+<trans-unit id="s6d3b5b0561ba34c9">
+  <source>Published</source>
+  <target>Publicado</target>
+</trans-unit>
+<trans-unit id="s44a318192b7f8f56">
+  <source>Next Send</source>
+  <target>Próximo envio</target>
+</trans-unit>
+<trans-unit id="sbdeedc1c60306b35">
+  <source>Messages</source>
+  <target>Mensagens</target>
+</trans-unit>
+<trans-unit id="s98b1cb8fb62909ec">
+  <source>Group</source>
+  <target>Grupo</target>
+</trans-unit>
+<trans-unit id="sc7217615ef254110">
+  <source>Contacts</source>
+  <target>Contatos</target>
+</trans-unit>
+<trans-unit id="sc265a3e29e1206e4">
+  <source>Events</source>
+  <target>Eventos</target>
+</trans-unit>
+<trans-unit id="s10d2dbc4613397f0">
+  <source>Updated</source>
+  <target>Atualizado</target>
+</trans-unit>
+<trans-unit id="saa8939ac88a76f98">
+  <source>Last seen</source>
+  <target>Visto pela última vez</target>
+</trans-unit>
+<trans-unit id="s4b1329a67304d94c">
+  <source>Created on</source>
+  <target>Criado em</target>
+</trans-unit>
+<trans-unit id="s58bfb494feb8eb02">
+  <source><x id="0" equiv-text="${formatCount(this.selectedIds.size)}"/> selected</source>
+  <target><x id="0" equiv-text="${formatCount(this.selectedIds.size)}"/> selecionados</target>
+</trans-unit>
+<trans-unit id="sea7bdd2b70c8c2bb">
+  <source>Runs</source>
+  <target>Execuções</target>
+</trans-unit>
+<trans-unit id="s0cd0f490954a4ee2">
+  <source>Ongoing</source>
+  <target>Em andamento</target>
+</trans-unit>
+<trans-unit id="se7dbe9f0dcd4b207">
+  <source>Completion</source>
+  <target>Conclusão</target>
+</trans-unit>
+<trans-unit id="s6c76b294d740446c">
+  <source>Activity</source>
+  <target>Atividade</target>
+</trans-unit>
+<trans-unit id="s87bae2710b2492c3">
+  <source>Contact</source>
+  <target>Contato</target>
+</trans-unit>
+<trans-unit id="s57ade424d57c6edf">
+  <source>Sent</source>
+  <target>Enviado</target>
+</trans-unit>
+<trans-unit id="s15b9b9182b968e23">
+  <source>Trigger</source>
+  <target>Disparador</target>
+</trans-unit>
+<trans-unit id="sa8beb6b1182241ac">
+  <source>Filters</source>
+  <target>Filtros</target>
+</trans-unit>
+<trans-unit id="sfcebd18506f1e535">
+  <source>Flow</source>
+  <target>Fluxo</target>
+</trans-unit>
 </body>
 </file>
 </xliff>

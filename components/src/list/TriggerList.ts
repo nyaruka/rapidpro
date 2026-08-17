@@ -175,26 +175,34 @@ export class TriggerList extends ContentList<Trigger> {
   constructor() {
     super();
     this.valueKey = 'id';
-    this.columns = [
-      { key: 'trigger', label: 'Trigger', grow: true, minWidth: '260px' },
+    this.bulkActions = [
+      { key: 'archive', label: 'Archive', icon: Icon.archive }
+    ];
+  }
+
+  protected buildColumns(): ContentListColumn[] {
+    return [
+      { key: 'trigger', label: msg('Trigger'), grow: true, minWidth: '260px' },
       {
         key: 'filters',
-        label: 'Filters',
+        label: msg('Filters'),
         minWidth: '120px',
         maxWidth: '360px'
       },
-      { key: 'flow', label: 'Flow', minWidth: '110px', maxWidth: '240px' },
+      {
+        key: 'flow',
+        label: msg('Flow'),
+        minWidth: '110px',
+        maxWidth: '240px'
+      },
       {
         key: 'created_on',
-        label: 'Created on',
+        label: msg('Created on'),
         sortable: true,
         minWidth: '96px',
         maxWidth: '150px',
         align: 'right'
       }
-    ];
-    this.bulkActions = [
-      { key: 'archive', label: 'Archive', icon: Icon.archive }
     ];
   }
 

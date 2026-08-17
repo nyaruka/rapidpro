@@ -193,14 +193,17 @@ export class ShortcutContentList extends ContentList<Shortcut> {
   constructor() {
     super();
     this.valueKey = 'uuid';
-    this.columns = [
+  }
+
+  protected buildColumns(): ContentListColumn[] {
+    return [
       {
         key: 'name',
-        label: 'Name',
+        label: msg('Name'),
         minWidth: '140px',
         maxWidth: '240px'
       },
-      { key: 'text', label: 'Text', minWidth: '240px', grow: true }
+      { key: 'text', label: msg('Text'), minWidth: '240px', grow: true }
     ];
   }
 

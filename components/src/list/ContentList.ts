@@ -1,7 +1,7 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
-import { msg, str } from '@lit/localize';
+import { LOCALE_STATUS_EVENT, msg, str } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
-import { RapidElement } from '../RapidElement';
+import { EventHandler, RapidElement } from '../RapidElement';
 import { Icon } from '../Icons';
 import { CustomEventType } from '../interfaces';
 import { formatCount, getUrl, postJSON, postUrl } from '../utils';
@@ -1302,7 +1302,7 @@ export class ContentList<T = any> extends RapidElement {
     }
   }
 
-  /** Column definitions. Subclasses set this in the constructor;
+  /** Column definitions. Subclasses build these in {@link buildColumns};
    * consumers may also override at the element level. */
   @property({ type: Array, attribute: false })
   columns: ContentListColumn[] = [];
@@ -1660,7 +1660,58 @@ export class ContentList<T = any> extends RapidElement {
     return items;
   }
 
+  /** Builds this list's columns. Subclasses override this rather than
+   * assigning `columns` directly, because their labels are msg()
+   * strings and the workspace locale only arrives once the store has
+   * fetched it — well after the elements are constructed — so the list
+   * builds them at render time and rebuilds them when the locale
+   * lands. Returning null leaves `columns` to whatever the subclass or
+   * the host set. */
+  protected buildColumns(): ContentListColumn[] | null {
+    return null;
+  }
+
+  /** Rebuilds the columns from {@link buildColumns} — a no-op for a
+   * list which doesn't override it. Subclasses call this when the
+   * inputs to their column set change, e.g. custom fields arriving. */
+  protected refreshColumns(): void {
+    const columns = this.buildColumns();
+    if (columns) {
+      this.columns = columns;
+    }
+  }
+
+  /** Whether the columns have been built yet. */
+  private columnsBuilt = false;
+
+  /** The workspace locale is only known once the store has fetched it,
+   * so a list mounted before then built its columns from the source
+   * strings — build them again now they can be translated. A list
+   * mounted after it lands gets translated labels first time. */
+  public getEventHandlers(): EventHandler[] {
+    return [
+      {
+        event: LOCALE_STATUS_EVENT,
+        method: (event: Event) => {
+          if ((event as CustomEvent).detail?.status === 'ready') {
+            this.refreshColumns();
+          }
+        },
+        isWindow: true
+      }
+    ];
+  }
+
   protected willUpdate(changes: PropertyValues): void {
+    // Build before anything reads `columns` this cycle — notably the
+    // column-width sync below, which needs to see them. Setting a
+    // reactive property here folds into the update in progress, so
+    // `changes` picks up `columns` rather than scheduling another pass.
+    if (!this.columnsBuilt) {
+      this.columnsBuilt = true;
+      this.refreshColumns();
+    }
+
     super.willUpdate(changes);
     if (
       changes.has('columnWidthSettings') ||
@@ -2464,7 +2515,7 @@ export class ContentList<T = any> extends RapidElement {
             ? html`
                 <span class="action" @click=${() => this.toggleSearch()}>
                   <temba-icon name=${Icon.search} size="0.95"></temba-icon>
-                  Search
+                  ${msg('Search')}
                 </span>
               `
             : null}
@@ -2531,7 +2582,7 @@ export class ContentList<T = any> extends RapidElement {
       <div class="bulk-bar ${this.bulkCollapsed ? 'collapsed' : ''}">
         ${this.bulkActions.map((a) => this.renderBulkAction(a))}
         <span class="bulk-count"
-          >${formatCount(this.selectedIds.size)} selected</span
+          >${msg(str`${formatCount(this.selectedIds.size)} selected`)}</span
         >
       </div>
     `;

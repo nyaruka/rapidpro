@@ -78,6 +78,29 @@ describe('temba-content-list', () => {
     expect(list.shadowRoot!.querySelector('.resize-handle')).to.equal(null);
   });
 
+  it('rebuilds its column labels when the locale lands', async () => {
+    // The workspace locale arrives long after the lists are constructed,
+    // so the labels a list resolved before then have to be rebuilt -
+    // otherwise every header stays in the source language.
+    const list = (await getComponent('temba-msg-list', {}, '', 700)) as MsgList;
+    list.columns = list.columns.map((column) => ({
+      ...column,
+      label: 'stale'
+    }));
+    await list.updateComplete;
+
+    window.dispatchEvent(
+      new CustomEvent('lit-localize-status', { detail: { status: 'ready' } })
+    );
+    await list.updateComplete;
+
+    expect(list.columns.map((column) => column.label)).to.deep.equal([
+      'Contact',
+      'Message',
+      'Sent'
+    ]);
+  });
+
   it('fires temba-bulk-action when an action is clicked', async () => {
     const list = (await getList({
       endpoint: '/test-assets/content-list/items.json'

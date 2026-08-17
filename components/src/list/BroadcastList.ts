@@ -362,66 +362,64 @@ export class BroadcastList extends ContentList<Broadcast> {
   constructor() {
     super();
     this.valueKey = 'id';
-    this.syncColumns();
   }
 
   protected willUpdate(changes: PropertyValues): void {
     super.willUpdate(changes);
     if (changes.has('mode')) {
-      this.syncColumns();
+      this.refreshColumns();
     }
   }
 
   /** The leading columns are shared; the trailing ones swap between
    * the sent list's count/date and the scheduled list's repeat/next
    * fire. */
-  private syncColumns(): void {
+  protected buildColumns(): ContentListColumn[] {
     const leading: ContentListColumn[] = [
-      { key: 'message', label: 'Message', grow: true, minWidth: '220px' },
+      { key: 'message', label: msg('Message'), grow: true, minWidth: '220px' },
       {
         key: 'recipients',
-        label: 'Recipients',
+        label: msg('Recipients'),
         minWidth: '130px',
         maxWidth: '320px'
       }
     ];
     if (this.mode === 'scheduled') {
-      this.columns = [
+      return [
         ...leading,
         {
           key: 'schedule',
-          label: 'Schedule',
+          label: msg('Schedule'),
           minWidth: '120px',
           maxWidth: '280px'
         },
         {
           key: 'next_fire',
-          label: 'Next Send',
+          label: msg('Next Send'),
           sortable: true,
           minWidth: '96px',
           maxWidth: '170px',
           align: 'right'
         }
       ];
-    } else {
-      this.columns = [
-        ...leading,
-        {
-          key: 'messages',
-          label: 'Messages',
-          minWidth: '80px',
-          align: 'right'
-        },
-        {
-          key: 'created_on',
-          label: 'Sent',
-          sortable: true,
-          minWidth: '96px',
-          maxWidth: '150px',
-          align: 'right'
-        }
-      ];
     }
+    return [
+      ...leading,
+      {
+        key: 'messages',
+        label: msg('Messages'),
+        minWidth: '80px',
+        align: 'right'
+      },
+      {
+        key: 'created_on',
+        label: msg('Sent'),
+        sortable: true,
+        minWidth: '96px',
+        maxWidth: '150px',
+        align: 'right'
+      }
+    ];
   }
 
   protected getRowIcon(_item: Broadcast): string | null {

@@ -98,7 +98,6 @@ export class ContactList extends ContentList<Contact> {
   constructor() {
     super();
     this.valueKey = 'uuid';
-    this.columns = this.buildColumns();
     this.bulkActions = [
       { key: 'send', label: 'Send', icon: Icon.compose },
       { key: 'flow', label: 'Start flow', icon: Icon.flow },
@@ -138,7 +137,7 @@ export class ContactList extends ContentList<Contact> {
     // anon attribute is reflected in the first paint instead of
     // flashing the URN header for a frame.
     if (changes.has('anon') || changes.has('priorityEndpoint')) {
-      this.columns = this.buildColumns();
+      this.refreshColumns();
     }
   }
 
@@ -184,7 +183,7 @@ export class ContactList extends ContentList<Contact> {
       this.featuredFields = all
         .filter((f: any) => f.featured)
         .sort((a: any, b: any) => (b.priority ?? 0) - (a.priority ?? 0));
-      this.columns = this.buildColumns();
+      this.refreshColumns();
     } catch (err) {
       if ((err as DOMException)?.name !== 'AbortError') {
         // eslint-disable-next-line no-console
@@ -210,7 +209,7 @@ export class ContactList extends ContentList<Contact> {
    * There is deliberately no group-membership column — contacts
    * routinely belong to dozens of groups, so a groups cell is
    * noise rather than signal in a list view. */
-  private buildColumns(): ContentListColumn[] {
+  protected buildColumns(): ContentListColumn[] {
     // Custom-field columns are all left-aligned for simplicity. Their
     // resize floor is deliberately half the generic 80px floor so users
     // can pack more workspace-specific fields into view; maxWidth caps a
@@ -235,7 +234,7 @@ export class ContactList extends ContentList<Contact> {
     return [
       {
         key: 'name',
-        label: 'Name',
+        label: msg('Name'),
         minWidth: '150px',
         maxWidth: '260px',
         pinned: true,
@@ -244,14 +243,14 @@ export class ContactList extends ContentList<Contact> {
       this.anon
         ? {
             key: 'ref',
-            label: 'Ref',
+            label: msg('Ref'),
             minWidth: '120px',
             maxWidth: '190px',
             resizable: true
           }
         : {
             key: 'urn',
-            label: 'URN',
+            label: msg('URN'),
             minWidth: '120px',
             maxWidth: '190px',
             resizable: true
@@ -259,7 +258,7 @@ export class ContactList extends ContentList<Contact> {
       ...fieldColumns,
       {
         key: 'last_seen_on',
-        label: 'Last seen',
+        label: msg('Last seen'),
         sortable: true,
         minWidth: '96px',
         maxWidth: '150px',
@@ -268,7 +267,7 @@ export class ContactList extends ContentList<Contact> {
       },
       {
         key: 'created_on',
-        label: 'Created on',
+        label: msg('Created on'),
         sortable: true,
         minWidth: '96px',
         align: 'right',

@@ -436,10 +436,9 @@ export class ArticleList extends ContentList<ArticleRow> {
     // the tree is the order, so there's nothing to sort or search by
     this.searchable = false;
     this.selectable = false;
-    this.columns = this.buildColumns();
   }
 
-  private buildColumns(): ContentListColumn[] {
+  protected buildColumns(): ContentListColumn[] {
     const columns: ContentListColumn[] = [];
 
     // the drag column is an affordance rather than data, so it heads up blank
@@ -449,7 +448,7 @@ export class ArticleList extends ContentList<ArticleRow> {
 
     columns.push({
       key: 'title',
-      label: 'Article',
+      label: msg('Article'),
       minWidth: '200px',
       grow: true
     });
@@ -458,12 +457,12 @@ export class ArticleList extends ContentList<ArticleRow> {
     // it and a pill saying the same thing. Without the permission to publish there's no switch, and then the pill is
     // the only thing left that can say.
     if (!this.publishEndpoint) {
-      columns.push({ key: 'status', label: 'Status', width: '100px' });
+      columns.push({ key: 'status', label: msg('Status'), width: '100px' });
     }
 
     columns.push({
       key: 'modified_on',
-      label: 'Updated',
+      label: msg('Updated'),
       width: '130px',
       align: 'right'
     });
@@ -471,7 +470,7 @@ export class ArticleList extends ContentList<ArticleRow> {
     if (this.publishEndpoint) {
       columns.push({
         key: 'publish',
-        label: 'Published',
+        label: msg('Published'),
         width: '96px',
         align: 'right'
       });
@@ -483,7 +482,7 @@ export class ArticleList extends ContentList<ArticleRow> {
   protected willUpdate(changes: PropertyValues): void {
     // rebuilt before the base class runs so its width bookkeeping sees the columns this render will use
     if (changes.has('sortEndpoint') || changes.has('publishEndpoint')) {
-      this.columns = this.buildColumns();
+      this.refreshColumns();
     }
     super.willUpdate(changes);
   }
