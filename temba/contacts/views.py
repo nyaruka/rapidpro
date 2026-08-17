@@ -16,7 +16,7 @@ from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonRespons
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.functional import Promise, cached_property
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
@@ -28,19 +28,19 @@ from temba.orgs.views.base import (
     BaseDeleteModal,
     BaseDependencyDeleteModal,
     BaseExportModal,
+    BaseListComponentView,
     BaseListView,
     BaseMenuView,
     BaseReadView,
     BaseUpdateModal,
     BaseUsagesModal,
 )
-from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
+from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.tickets.models import Topic
 from temba.users.models import User
 from temba.utils import json, on_transaction_commit
 from temba.utils.fields import CheckboxWidget, InputWidget, SelectWidget, TembaChoiceField
 from temba.utils.models.es import SearchSliceQuerySet
-from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, NonAtomicMixin, SpaMixin
 
 from .forms import ContactGroupForm, CreateContactForm, UpdateContactForm
@@ -50,17 +50,15 @@ from .omnibox import omnibox_query, omnibox_serialize
 logger = logging.getLogger(__name__)
 
 
-class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
+class ContactListView(BaseListComponentView):
     """
     Base class for contact list views with contact folders and groups listed by the side
     """
 
     permission = "contacts.contact_list"
     system_group = None
-    add_button = True
-
-    # the temba-contact-list component fetches and pages contacts itself
-    paginate_by = None
+    template_name = "contacts/contact_list.html"
+    list_endpoint = "api.internal.contacts"
 
     search_max_length = ContactGroup.MAX_QUERY_LEN
 
@@ -68,13 +66,6 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
     parsed_query = None
     search_is_saveable = None
     search_error = None
-
-    # every contact list view renders the temba-contact-list component, which fetches and pages contacts itself from
-    # the internal contacts API
-    template_name = "contacts/contact_list.html"
-
-    # Optional subtitle rendered under the title; subclasses override to describe what the folder contains.
-    subtitle = ""
 
     # Maps a view's system group to the `folder` the internal contacts API expects; user groups pass `group=<uuid>`.
     FOLDER_BY_SYSTEM_GROUP = {
@@ -109,39 +100,19 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
         },
     }
 
-    def derive_subtitle(self):
-        return self.subtitle
-
-    def derive_new_list_query(self) -> str:
+    def derive_list_query(self) -> str:
         if self.system_group:
             return f"folder={self.FOLDER_BY_SYSTEM_GROUP[self.system_group]}"
         return f"group={self.group.uuid}"
 
-    def post(self, request, *args, **kwargs):
-        # The component posts contact uuids in `objects`, but BulkActionMixin matches by primary key — translate them
-        # here. The group dropdown likewise posts the target group by uuid (action=label, add=true|false), which the
-        # form matches by id — translate it too. A fixed "unlabel" with no group (the group view's "Remove from
-        # group") falls back to the current group.
-        data = request.POST.copy()
-        objects = data.getlist("objects")
-        if any(is_uuid(o) for o in objects):
-            # Only look up well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value, so a
-            # single malformed value (a hostile post) would otherwise raise ValueError (500). Anything that isn't a
-            # uuid is left alone so an id-based post still works.
-            ids = Contact.objects.filter(org=request.org, uuid__in=[o for o in objects if is_uuid(o)]).values_list(
-                "id", flat=True
-            )
-            data.setlist("objects", [str(i) for i in ids] + [o for o in objects if not is_uuid(o)])
-        label = data.get("label")
-        if label:
-            if is_uuid(label):
-                group = request.org.groups.filter(uuid=label).first()
-                data["label"] = str(group.id) if group else ""
-        elif data.get("action") == "unlabel" and self.group is not None:
-            data["label"] = str(self.group.id)
-        request.POST = data
+    def resolve_posted_uuids(self, data):
+        data = super().resolve_posted_uuids(data)
 
-        return super().post(request, *args, **kwargs)
+        # a fixed "unlabel" with no group (the group view's "Remove from group") falls back to the current group
+        if not data.get("label") and data.get("action") == "unlabel" and self.group is not None:
+            data["label"] = str(self.group.id)
+
+        return data
 
     @cached_property
     def group(self):
@@ -160,33 +131,11 @@ class ContactListView(SpaMixin, BulkActionMixin, BaseListView):
         return ContactGroup.get_groups(self.request.org, manual_only=True)
 
     def get_queryset(self, **kwargs):
-        # The temba-contact-list component fetches and pages contacts from the internal contacts API, so a GET page
-        # needs no object list — skip the mailroom/DB query entirely. A POST (bulk action) still needs the real
-        # queryset, since BulkActionMixin validates the posted `objects` against it.
+        # a GET page needs no object list — skip the mailroom/DB query entirely
         if self.request.method == "GET":
             return Contact.objects.none()
 
         return self.group.contacts.filter(org=self.request.org).order_by("-id")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        # the resolved contacts-api endpoint (folder= for the system groups, group= for a user group), the subtitle,
-        # and the bulk-action configs the temba-contact-list expects (resolved + JSON-encoded here so the template
-        # stays inert)
-        context["new_list_endpoint"] = f"{reverse('api.internal.contacts')}.json?{self.derive_new_list_query()}"
-        subtitle = self.derive_subtitle()
-        context["new_list_subtitle"] = str(subtitle) if subtitle else ""
-        actions = []
-        for key in self.get_bulk_actions():
-            cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
-            cfg["key"] = key
-            # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
-            cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
-            actions.append(cfg)
-        context["new_list_bulk_actions"] = actions
-
-        return context
 
 
 class ContactCRUDL(SmartCRUDL):
@@ -515,7 +464,7 @@ class ContactCRUDL(SmartCRUDL):
             }
             return JsonResponse(summary)
 
-    class List(ContextMenuMixin, ContactListView):
+    class List(ContactListView):
         title = _("Active")
         system_group = ContactGroup.TYPE_DB_ACTIVE
         menu_path = "/contact/active"
@@ -565,7 +514,7 @@ class ContactCRUDL(SmartCRUDL):
             if self.has_org_perm("contacts.contact_export") and not self.search_error:
                 menu.add_modax(_("Export"), "export-contacts", self.derive_export_url(), title=_("Export Contacts"))
 
-    class Blocked(ContextMenuMixin, ContactListView):
+    class Blocked(ContactListView):
         title = _("Blocked")
         system_group = ContactGroup.TYPE_DB_BLOCKED
 
@@ -576,7 +525,7 @@ class ContactCRUDL(SmartCRUDL):
             if self.has_org_perm("contacts.contact_export"):
                 menu.add_modax(_("Export"), "export-contacts", self.derive_export_url(), title=_("Export Contacts"))
 
-    class Stopped(ContextMenuMixin, ContactListView):
+    class Stopped(ContactListView):
         title = _("Stopped")
         system_group = ContactGroup.TYPE_DB_STOPPED
         subtitle = _(
@@ -591,7 +540,7 @@ class ContactCRUDL(SmartCRUDL):
             if self.has_org_perm("contacts.contact_export"):
                 menu.add_modax(_("Export"), "export-contacts", self.derive_export_url(), title=_("Export Contacts"))
 
-    class Archived(ContextMenuMixin, ContactListView):
+    class Archived(ContactListView):
         title = _("Archived")
         system_group = ContactGroup.TYPE_DB_ARCHIVED
         subtitle = _("These contacts have been removed from all groups and can be deleted permanently.")
@@ -612,7 +561,7 @@ class ContactCRUDL(SmartCRUDL):
             if self.has_org_perm("contacts.contact_delete"):
                 menu.add_js("contacts_delete_all", _("Delete All"))
 
-    class Group(OrgObjPermsMixin, ContextMenuMixin, ContactListView):
+    class Group(OrgObjPermsMixin, ContactListView):
         def build_context_menu(self, menu):
             if not self.group.is_system and self.has_org_perm("contacts.contactgroup_update"):
                 menu.add_modax(_("Edit"), "edit-group", reverse("contacts.contactgroup_update", args=[self.group.uuid]))

@@ -11,7 +11,6 @@ from django.conf import settings
 from django.db.models.functions.text import Lower
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
-from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import RedirectView
 
@@ -22,18 +21,17 @@ from temba.orgs.views.base import (
     BaseCreateModal,
     BaseDependencyDeleteModal,
     BaseExportModal,
+    BaseListComponentView,
     BaseListView,
     BaseMenuView,
     BaseUsagesModal,
 )
-from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
+from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.templates.models import Template
 from temba.utils import json
 from temba.utils.compose import compose_deserialize, compose_serialize
 from temba.utils.fields import CompletionTextarea, ContactSearchWidget, InputWidget, SelectWidget
-from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import (
-    ContextMenuMixin,
     ModalFormMixin,
     ModalHeaderMixin,
     NonAtomicMixin,
@@ -47,7 +45,7 @@ from .forms import ComposeForm, ScheduleForm, TargetForm
 from .models import Broadcast, Label, LabelCount, Media, MessageExport, Msg, MsgFolder
 
 
-class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
+class MsgListView(BaseListComponentView):
     """
     Base class for message list views with message folders and labels listed by the side
     """
@@ -59,15 +57,11 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     bulk_action_permissions = {"resend": "msgs.msg_create", "delete": "msgs.msg_update"}
     template_name = "msgs/msg_list.html"
     folder = None
+    list_endpoint = "api.internal.messages"
 
-    # the temba-msg-list component fetches and pages messages itself
-    paginate_by = None
+    # the msg list posts message ids in `objects`, but its label dropdown still posts the label by uuid
+    list_posts_uuids = False
 
-    # Optional subtitle rendered under the title; subclasses may override to describe what the folder contains.
-    subtitle = ""
-
-    # Bulk-action key -> config consumed by temba-content-list (label,
-    # icon, optional labelsEndpoint / destructive flag).
     BULK_ACTION_CONFIG = {
         "label": {"label": _("Label"), "icon": "tag-01", "labelsEndpoint": "/api/v2/labels.json"},
         "archive": {"label": _("Archive"), "icon": "archive"},
@@ -84,19 +78,6 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         "resend": {"label": _("Resend"), "icon": "send"},
     }
 
-    def post(self, request, *args, **kwargs):
-        # The temba-msg-list label dropdown posts the label by uuid, but BulkActionMixin matches by id — translate
-        # the uuid here. Only touch the label field on label/unlabel actions so an unrelated POST that happens to
-        # carry a `label` key isn't rewritten.
-        if request.POST.get("action") in ("label", "unlabel"):
-            label = request.POST.get("label")
-            if label and is_uuid(label):
-                obj = self.request.org.msgs_labels.filter(uuid=label).first()
-                request.POST = request.POST.copy()
-                request.POST["label"] = str(obj.id) if obj else ""
-
-        return super().post(request, *args, **kwargs)
-
     def pre_process(self, request, *args, **kwargs):
         if self.folder:
             self.queryset = self.folder.get_queryset(request.org)
@@ -106,8 +87,20 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
     def derive_folder(self):
         return self.folder
 
-    def derive_subtitle(self):
-        return self.subtitle
+    def derive_list_query(self) -> str:
+        # the built-in folders are selected by name, a user label by uuid
+        folder = self.derive_folder()
+        if isinstance(folder, Label):
+            return f"label={folder.uuid}"
+
+        return f"folder={folder.name.lower()}"
+
+    def derive_bulk_action_config(self, key: str) -> dict:
+        cfg = super().derive_bulk_action_config(key)
+        if key == "label":
+            # the dropdown's "New Label…" row only renders for viewers who can create labels
+            cfg["allowCreate"] = self.has_org_perm("msgs.label_create")
+        return cfg
 
     def derive_export_url(self):
         redirect = quote_plus(self.request.get_full_path())
@@ -116,41 +109,7 @@ class MsgListView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseListView):
         return "%s?l=%s&redirect=%s" % (reverse("msgs.msg_export"), label_id, redirect)
 
     def get_queryset(self, **kwargs):
-        # The temba-msg-list component fetches and pages messages from the internal messages API, so a GET page needs
-        # no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin validates the
-        # posted `objects` against it.
-        if self.request.method == "GET":
-            return Msg.objects.none()
-
         return super().get_queryset(**kwargs).select_related("contact", "channel", "flow")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        folder = self.derive_folder()
-
-        # the resolved messages-api endpoint (folder= for the built-in folders, label= for a user label), the
-        # subtitle, and the bulk-action configs the temba-msg-list expects (resolved + JSON-encoded here so the
-        # template stays inert)
-        if isinstance(folder, Label):
-            query = f"label={folder.uuid}"
-        else:
-            query = f"folder={folder.name.lower()}"
-        context["new_list_endpoint"] = f"{reverse('api.internal.messages')}.json?{query}"
-        subtitle = self.derive_subtitle()
-        context["new_list_subtitle"] = str(subtitle) if subtitle else ""
-        actions = []
-        for key in self.get_bulk_actions():
-            cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
-            cfg["key"] = key
-            if key == "label":
-                # the dropdown's "New Label…" row only renders for viewers who can create labels
-                cfg["allowCreate"] = self.has_org_perm("msgs.label_create")
-            # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
-            cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
-            actions.append(cfg)
-        context["new_list_bulk_actions"] = actions
-
-        return context
 
     def get_bulk_action_labels(self):
         return self.request.org.msgs_labels.filter(is_active=True).order_by(Lower("name"))
@@ -186,18 +145,19 @@ class BroadcastCRUDL(SmartCRUDL):
     )
     model = Broadcast
 
-    class BaseList(SpaMixin, ContextMenuMixin, BulkActionMixin, BaseListView):
+    class BaseList(BaseListComponentView):
         """
         Base class for the broadcast list views (sent and scheduled)
         """
 
-        # both broadcast list views render the temba-broadcast-list component, which fetches and pages broadcasts
-        # itself from the internal broadcasts API
         template_name = "msgs/broadcast_list.html"
-        paginate_by = None
+        list_endpoint = "api.internal.broadcasts"
 
         # The internal-API folder (and the component's `mode`) this view lists — `sent` or `scheduled`.
         new_list_folder = "sent"
+
+        def derive_list_query(self) -> str:
+            return f"folder={self.new_list_folder}"
 
         def get_queryset(self, **kwargs):
             # the component fetches and pages broadcasts itself, and these views have no bulk actions, so the page
@@ -207,9 +167,7 @@ class BroadcastCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
 
-            # the resolved broadcasts-api endpoint and the component's mode
-            endpoint = reverse("api.internal.broadcasts")
-            context["new_list_endpoint"] = f"{endpoint}.json?folder={self.new_list_folder}"
+            # the component's mode
             context["new_list_mode"] = self.new_list_folder
 
             return context

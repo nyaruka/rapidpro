@@ -6,7 +6,6 @@ from django import forms
 from django.db.models.functions import Upper
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.models import Channel
@@ -15,11 +14,11 @@ from temba.contacts.models import ContactGroup, ContactURN
 from temba.contacts.omnibox import omnibox_serialize
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin, FormaxSectionMixin
-from temba.orgs.views.base import BaseListView, BaseMenuView
-from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin
+from temba.orgs.views.base import BaseListComponentView, BaseMenuView
+from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin
 from temba.schedules.models import Schedule
 from temba.utils.fields import SelectMultipleWidget, SelectWidget, TembaChoiceField, TembaMultipleChoiceField
-from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
+from temba.utils.views.mixins import ComponentFormMixin, ModalFormMixin, SpaMixin
 
 from .models import Trigger
 
@@ -412,24 +411,19 @@ class TriggerCRUDL(SmartCRUDL):
             response["REDIRECT"] = self.get_success_url()
             return response
 
-    class BaseList(SpaMixin, BulkActionMixin, ContextMenuMixin, BaseListView):
+    class BaseList(BaseListComponentView):
         """
         Base class for list views
         """
 
         permission = "triggers.trigger_list"
-        fields = ("name",)
         default_template = "triggers/trigger_list.html"
         search_fields = ("keywords__icontains", "flow__name__icontains", "channel__name__icontains")
+        list_endpoint = "api.internal.triggers"
 
-        # the temba-trigger-list component fetches and pages triggers itself from the internal triggers API
-        paginate_by = None
+        # triggers post their numeric ids in `objects`, matching BulkActionMixin's pk matching
+        list_posts_uuids = False
 
-        # Optional subtitle rendered under the title.
-        subtitle = ""
-
-        # Bulk-action key -> config consumed by temba-trigger-list (label, icon). Triggers post their numeric ids in
-        # `objects`, matching BulkActionMixin's pk matching, so no uuid translation is needed on POST.
         BULK_ACTION_CONFIG = {
             "archive": {"label": _("Archive"), "icon": "archive"},
             "restore": {"label": _("Restore"), "icon": "restore"},
@@ -440,12 +434,6 @@ class TriggerCRUDL(SmartCRUDL):
                 "confirm": _("Are you sure you want to delete the selected triggers? This cannot be undone."),
             },
         }
-
-        def derive_subtitle(self):
-            return self.subtitle
-
-        def derive_new_list_query(self) -> str:
-            return "folder=active"
 
         def build_context_menu(self, menu):
             if self.has_org_perm("triggers.trigger_create"):
@@ -459,35 +447,6 @@ class TriggerCRUDL(SmartCRUDL):
                 .select_related("flow", "channel")
                 .prefetch_related("contacts", "groups", "exclude_groups")
             )
-
-        def get_queryset(self, *args, **kwargs):
-            # The temba-trigger-list component fetches and pages triggers from the internal triggers API, so a GET
-            # page needs no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin
-            # validates the posted `objects` against it.
-            if self.request.method == "GET":
-                return Trigger.objects.none()
-
-            return super().get_queryset(*args, **kwargs)
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-
-            # the resolved triggers-api endpoint (folder= for active/archived/type folders), the subtitle, and the
-            # bulk-action configs the temba-trigger-list expects (resolved + JSON-encoded here so the template stays
-            # inert)
-            context["new_list_endpoint"] = f"{reverse('api.internal.triggers')}.json?{self.derive_new_list_query()}"
-            subtitle = self.derive_subtitle()
-            context["new_list_subtitle"] = str(subtitle) if subtitle else ""
-            actions = []
-            for key in self.get_bulk_actions():
-                cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
-                cfg["key"] = key
-                # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
-                cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
-                actions.append(cfg)
-            context["new_list_bulk_actions"] = actions
-
-            return context
 
     class List(BaseList):
         """
@@ -519,7 +478,7 @@ class TriggerCRUDL(SmartCRUDL):
         title = _("Archived")
         menu_path = "/trigger/archived"
 
-        def derive_new_list_query(self) -> str:
+        def derive_list_query(self) -> str:
             return "folder=archived"
 
         def build_context_menu(self, menu):
@@ -535,7 +494,6 @@ class TriggerCRUDL(SmartCRUDL):
         """
 
         bulk_actions = ("archive",)
-        paginate_by = 100
 
         @classmethod
         def derive_url_pattern(cls, path, action):
@@ -551,7 +509,7 @@ class TriggerCRUDL(SmartCRUDL):
         def derive_title(self):
             return self.folder.title
 
-        def derive_new_list_query(self) -> str:
+        def derive_list_query(self) -> str:
             return f"folder={self.folder.slug}"
 
         def get_queryset(self, *args, **kwargs):
