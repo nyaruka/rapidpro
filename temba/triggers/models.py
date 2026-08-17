@@ -10,6 +10,7 @@ from temba.channels.models import Channel
 from temba.contacts.models import Contact, ContactGroup
 from temba.flows.models import Flow
 from temba.orgs.models import Org
+from temba.utils.models import TembaUUIDMixin
 
 
 class TriggerType:
@@ -72,7 +73,7 @@ class ChannelTriggerType(TriggerType):
     export_fields = TriggerType.export_fields + ("channel",)
 
 
-class Trigger(SmartModel):
+class Trigger(TembaUUIDMixin, SmartModel):
     """
     A Trigger is used to start a user in a flow based on an event. For example, triggers might fire for missed calls,
     inbound messages starting with a keyword, or on a repeating schedule.
@@ -383,10 +384,11 @@ class Trigger(SmartModel):
         """
         Internal API shape, consumed by the temba-trigger-list component. The type slug drives the row icon and
         which of the per-type fields (keywords, schedule, referrer) the details cell renders; channel/groups/contacts
-        render as filter pills. Triggers have no uuid so rows key off the numeric id.
+        render as filter pills. The numeric id is still included for the component's current row key.
         """
 
         return {
+            "uuid": str(self.uuid),
             "id": self.id,
             "type": self.type.slug,
             "flow": {"uuid": str(self.flow.uuid), "name": self.flow.name},

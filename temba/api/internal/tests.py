@@ -1349,6 +1349,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         # each row carries the columns the component renders
         def check_shape(data):
             first = [r for r in data["results"] if r["id"] == trigger1.id][0]
+            self.assertEqual(str(trigger1.uuid), first["uuid"])
             self.assertEqual("keyword", first["type"])
             self.assertEqual({"uuid": str(flow1.uuid), "name": "Survey"}, first["flow"])
             self.assertIsNone(first["channel"])
