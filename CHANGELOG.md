@@ -1,3 +1,10 @@
+v26.3.45 (2026-08-17)
+-------------------------
+ * Use RedBeat as the celery beat scheduler so beat can be embedded in workers
+ * Make cron task locking non-blocking and fix the cron_task decorator losing its configured lock timeout after the first run
+ * Don't split ticket analytics response counts by team for orgs without the teams feature
+ * Update dependencies
+
 v26.3.44 (2026-08-13)
 -------------------------
  * Configure Turn.io webhooks automatically on channel claim and release
