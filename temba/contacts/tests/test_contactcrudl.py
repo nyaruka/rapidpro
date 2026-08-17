@@ -242,6 +242,13 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.client.post(list_url, {"action": "label", "objects": str(frank.uuid), "label": str(newsletter.id)})
         self.assertIn(frank, newsletter.contacts.all())
 
+        # on a group page, an "unlabel" with a group we can't resolve is rejected rather than falling back to the
+        # current group - only an absent group means "Remove from group"
+        smart = self.create_group("Smart", query="tel is 1234")
+        group.contacts.add(frank)
+        self.client.post(group_url, {"action": "unlabel", "objects": str(frank.uuid), "label": str(smart.uuid)})
+        self.assertIn(frank, group.contacts.all())
+
         # on a group page, an "unlabel" with no group falls back to the current group ("Remove from group")
         self.client.post(group_url, {"action": "unlabel", "objects": str(frank.uuid)})
         self.assertNotIn(frank, group.contacts.all())

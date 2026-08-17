@@ -108,8 +108,10 @@ class ContactListView(BaseListComponentView):
     def resolve_posted_uuids(self, data):
         data = super().resolve_posted_uuids(data)
 
-        # a fixed "unlabel" with no group (the group view's "Remove from group") falls back to the current group
-        if not data.get("label") and data.get("action") == "unlabel" and self.group is not None:
+        # A fixed "unlabel" with no group (the group view's "Remove from group") falls back to the current group.
+        # Gated on the key being absent, which is what that action posts — a present-but-unresolvable group must
+        # still be rejected rather than silently removing the selection from the current group.
+        if "label" not in data and data.get("action") == "unlabel" and self.group is not None:
             data["label"] = str(self.group.id)
 
         return data
