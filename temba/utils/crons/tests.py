@@ -49,6 +49,19 @@ class CronsTest(TembaTest):
 
         self.assertEqual(task_calls, ["1-11-12", "2-21-22", "3-31-32"])
 
+        # run tasks again and check that lock timeouts are unchanged (configured values aren't lost after first use)
+        mock_valkey_lock.reset_mock()
+
+        test_task1(11, 12)
+        test_task2(21, bar=22)
+        test_task3(foo=31, bar=32)
+
+        mock_valkey_lock.assert_any_call("celery-task-lock:test_task1", timeout=900)
+        mock_valkey_lock.assert_any_call("celery-task-lock:task2", timeout=100)
+        mock_valkey_lock.assert_any_call("celery-task-lock:task3", timeout=55)
+
+        self.assertEqual(task_calls, ["1-11-12", "2-21-22", "3-31-32", "1-11-12", "2-21-22", "3-31-32"])
+
         # simulate task being already running
         mock_valkey_get.reset_mock()
         mock_valkey_get.return_value = "xyz"
@@ -60,4 +73,4 @@ class CronsTest(TembaTest):
         # check that task is skipped
         mock_valkey_get.assert_called_once_with("celery-task-lock:test_task1")
         self.assertEqual(mock_valkey_lock.call_count, 0)
-        self.assertEqual(task_calls, ["1-11-12", "2-21-22", "3-31-32"])
+        self.assertEqual(task_calls, ["1-11-12", "2-21-22", "3-31-32", "1-11-12", "2-21-22", "3-31-32"])
