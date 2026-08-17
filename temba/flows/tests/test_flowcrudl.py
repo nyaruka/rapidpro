@@ -720,12 +720,14 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # a malformed flow uuid in `objects` fails form validation rather than raising (no 500 on garbage input)
         response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
         self.assertEqual(200, response.status_code)
+        self.assertToast(response, "error", "Your selection is no longer valid. Please refresh and try again.")
         flow2.refresh_from_db()
         self.assertFalse(flow2.is_archived)
 
         # a malformed label uuid is likewise a form error rather than a raise
         response = self.client.post(list_url, {"action": "label", "objects": str(flow2.uuid), "label": "not-a-uuid"})
         self.assertEqual(200, response.status_code)
+        self.assertToast(response, "error", "Your selection is no longer valid. Please refresh and try again.")
         self.assertEqual(set(), set(flow2.labels.all()))
 
         # the export modal accepts uuids as well as ids

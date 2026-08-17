@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 21:53+0000\n"
+"POT-Creation-Date: 2026-08-17 23:39+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -3247,6 +3247,9 @@ msgid "Must specify a label"
 msgstr ""
 
 msgid "An error occurred while making your changes. Please try again."
+msgstr ""
+
+msgid "Your selection is no longer valid. Please refresh and try again."
 msgstr ""
 
 msgid "Edit Team"

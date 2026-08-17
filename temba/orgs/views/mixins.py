@@ -185,7 +185,9 @@ class BulkActionMixin:
             cleaned_data = super().clean()
             action = cleaned_data.get("action")
             label = cleaned_data.get("label")
-            if action in ("label", "unlabel") and not label:
+            # if the label field itself errored then it was specified but didn't resolve, and that's already
+            # reported as a field error
+            if action in ("label", "unlabel") and not label and "label" not in self.errors:
                 raise forms.ValidationError(_("Must specify a label"))
 
             # TODO update frontend to send back unlabel actions
@@ -233,6 +235,15 @@ class BulkActionMixin:
             except Exception:
                 messages.error(request, _("An error occurred while making your changes. Please try again."))
                 logger.exception(f"error applying '{action}' to {self.model.__name__} objects")
+        else:
+            # errors raised by our own clean method (e.g. a missing label) are user facing, but field errors just
+            # mean a posted uuid didn't resolve against the queryset - most likely because the page is stale
+            errors = form.non_field_errors()
+            if errors:
+                for e in errors:
+                    messages.info(request, e)
+            else:
+                messages.error(request, _("Your selection is no longer valid. Please refresh and try again."))
 
         return self.get(request, *args, **kwargs)
 
