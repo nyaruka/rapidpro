@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-13 22:26+0000\n"
+"POT-Creation-Date: 2026-08-17 20:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -747,10 +747,6 @@ msgid "The 360 Dialog API key generated after account registration"
 msgstr ""
 
 msgid "Please enter a valid phone number"
-msgstr ""
-
-#, python-format
-msgid "Activate your own enterprise WhatsApp account in %(link)s to communicate with your contacts. "
 msgstr ""
 
 #, python-format
@@ -3923,9 +3919,6 @@ msgstr ""
 msgid "Submit"
 msgstr ""
 
-msgid "Contacts refresh begun, it may take a few minutes to complete."
-msgstr ""
-
 msgid "Confirm Access"
 msgstr ""
 
@@ -5038,15 +5031,6 @@ msgid "Number already verified"
 msgstr ""
 
 msgid "Fill the code you received on the phone for verification below."
-msgstr ""
-
-msgid "Your WhatsApp channel is now connected, you should be able to send and receive messages as normal."
-msgstr ""
-
-msgid "In the case of a new WhatsApp install or replacement of an existing WhatsApp channel you may need to refresh the contacts on the WhatsApp application. This may take a few minutes."
-msgstr ""
-
-msgid "Refresh Contacts"
 msgstr ""
 
 #, python-format

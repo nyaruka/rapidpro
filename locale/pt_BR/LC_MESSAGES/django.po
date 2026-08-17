@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-13 22:26+0000\n"
+"POT-Creation-Date: 2026-08-17 20:09+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -766,10 +766,6 @@ msgstr "A chave de API da 360 Dialog gerada após o registro da conta"
 
 msgid "Please enter a valid phone number"
 msgstr "Por favor insira um número de telefone válido"
-
-#, python-format
-msgid "Activate your own enterprise WhatsApp account in %(link)s to communicate with your contacts. "
-msgstr "Ative a sua própria conta corporativa do WhatsApp em %(link)s para se comunicar com os seus contatos."
 
 #, python-format
 msgid "If you are based in Uganda or DRC you can purchase a short code from %(link)s and connect it in a few simple steps."
@@ -3953,9 +3949,6 @@ msgstr "e"
 msgid "Submit"
 msgstr "Enviar"
 
-msgid "Contacts refresh begun, it may take a few minutes to complete."
-msgstr "Atualização de contatos iniciada, pode levar alguns minutos para ser concluída."
-
 msgid "Confirm Access"
 msgstr "Confirmar Acesso"
 
@@ -5077,15 +5070,6 @@ msgstr "Número já verificado"
 
 msgid "Fill the code you received on the phone for verification below."
 msgstr "Preencha abaixo o código que você recebeu no telefone para verificação."
-
-msgid "Your WhatsApp channel is now connected, you should be able to send and receive messages as normal."
-msgstr "Seu canal de WhatsApp está agora conectado, você poderá ser capaz de enviar e receber mensagens normalmente."
-
-msgid "In the case of a new WhatsApp install or replacement of an existing WhatsApp channel you may need to refresh the contacts on the WhatsApp application. This may take a few minutes."
-msgstr "No caso de uma nova instalação do WhatsApp ou substituição de um canal existente do WhatsApp, pode ser necessário atualizar os contatos no aplicativo WhatsApp. Isso pode levar alguns minutos."
-
-msgid "Refresh Contacts"
-msgstr "Atualizar contatos"
 
 #, python-format
 msgid "You are about to delete <span class=\"font-normal\">%(object)s.</span> There is no way to undo this. Are you sure?"

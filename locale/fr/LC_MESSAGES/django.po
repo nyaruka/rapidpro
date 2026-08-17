@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-13 22:26+0000\n"
+"POT-Creation-Date: 2026-08-17 20:09+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -762,10 +762,6 @@ msgstr "La clé API 360 Dialog générée après l'enregistrement du compte"
 
 msgid "Please enter a valid phone number"
 msgstr "s'il vous plaît entrer un numéro de téléphone valide"
-
-#, python-format
-msgid "Activate your own enterprise WhatsApp account in %(link)s to communicate with your contacts. "
-msgstr "Activez votre propre compte WhatsApp d'entreprise dans %(link)s pour communiquer avec vos contacts."
 
 #, python-format
 msgid "If you are based in Uganda or DRC you can purchase a short code from %(link)s and connect it in a few simple steps."
@@ -3949,9 +3945,6 @@ msgstr "et"
 msgid "Submit"
 msgstr "Envoyer"
 
-msgid "Contacts refresh begun, it may take a few minutes to complete."
-msgstr "L’actualisation des contacts est en cours, cela peut prendre quelques minutes."
-
 msgid "Confirm Access"
 msgstr "Confirmer l'accès"
 
@@ -5073,15 +5066,6 @@ msgstr "Numéro déjà vérifié"
 
 msgid "Fill the code you received on the phone for verification below."
 msgstr "Saisissez ci-dessous le code de vérification que vous avez reçu sur le téléphone."
-
-msgid "Your WhatsApp channel is now connected, you should be able to send and receive messages as normal."
-msgstr "Votre chaîne WhatsApp est maintenant connectée, vous devriez pouvoir envoyer et recevoir des messages comme d'habitude."
-
-msgid "In the case of a new WhatsApp install or replacement of an existing WhatsApp channel you may need to refresh the contacts on the WhatsApp application. This may take a few minutes."
-msgstr "Dans le cas d'une nouvelle installation de WhatsApp ou du remplacement d'un canal WhatsApp existant, vous devrez peut-être actualiser les contacts sur l'application WhatsApp. Cela peut prendre quelques minutes."
-
-msgid "Refresh Contacts"
-msgstr "Actualiser les contacts"
 
 #, python-format
 msgid "You are about to delete <span class=\"font-normal\">%(object)s.</span> There is no way to undo this. Are you sure?"

@@ -171,9 +171,9 @@ class TwilioTypeTest(TembaTest):
                     response.context["form"], None, "This channel is already connected in this workspace."
                 )
 
-                # make sure the schemes do not overlap, having a WA channel with the same number
+                # make sure the schemes do not overlap, having a WhatsApp channel with the same number
                 channel = Channel.objects.get(channel_type="T", org=self.org)
-                channel.channel_type = "WA"
+                channel.channel_type = "WAC"
                 channel.schemes = [URN.WHATSAPP_SCHEME]
                 channel.save()
 
