@@ -299,6 +299,7 @@ class TicketCRUDL(SmartCRUDL):
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
+            context["has_teams"] = Org.FEATURE_TEAMS in self.request.org.features
             return context
 
     class AnalyticsExport(OrgPermsMixin, SmartTemplateView):

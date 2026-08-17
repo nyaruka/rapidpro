@@ -191,6 +191,17 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "Analytics")
         self.assertContains(response, "Tickets Opened")
 
+        # org doesn't have the teams feature so response count chart shouldn't be split by team
+        self.assertFalse(response.context["has_teams"])
+        self.assertNotContains(response, 'dataname="Teams"')
+
+        self.org.features = [Org.FEATURE_TEAMS]
+        self.org.save(update_fields=("features",))
+
+        response = self.assertReadFetch(analytics_url, [self.admin])
+        self.assertTrue(response.context["has_teams"])
+        self.assertContains(response, 'dataname="Teams"')
+
         # should not be able to post to it
         response = self.client.post(analytics_url)
         self.assertEqual(405, response.status_code)
