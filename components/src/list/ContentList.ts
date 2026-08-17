@@ -1,7 +1,7 @@
 import { css, html, PropertyValues, TemplateResult } from 'lit';
 import { LOCALE_STATUS_EVENT, msg, str } from '@lit/localize';
 import { property, state } from 'lit/decorators.js';
-import { EventHandler, RapidElement } from '../RapidElement';
+import { RapidElement } from '../RapidElement';
 import { Icon } from '../Icons';
 import { CustomEventType } from '../interfaces';
 import { formatCount, getUrl, postJSON, postUrl } from '../utils';
@@ -1688,18 +1688,10 @@ export class ContentList<T = any> extends RapidElement {
    * so a list mounted before then built its columns from the source
    * strings — build them again now they can be translated. A list
    * mounted after it lands gets translated labels first time. */
-  public getEventHandlers(): EventHandler[] {
-    return [
-      {
-        event: LOCALE_STATUS_EVENT,
-        method: (event: Event) => {
-          if ((event as CustomEvent).detail?.status === 'ready') {
-            this.refreshColumns();
-          }
-        },
-        isWindow: true
-      }
-    ];
+  private handleLocaleStatus(event: Event): void {
+    if ((event as CustomEvent).detail?.status === 'ready') {
+      this.refreshColumns();
+    }
   }
 
   protected willUpdate(changes: PropertyValues): void {
@@ -1749,6 +1741,11 @@ export class ContentList<T = any> extends RapidElement {
 
   public connectedCallback(): void {
     super.connectedCallback();
+    // Deliberately not a getEventHandlers() entry: RapidElement reads
+    // that with no super-merging, so a subclass overriding it would
+    // silently stop re-translating its headers. listenTo removes the
+    // listener when we disconnect either way.
+    this.listenTo(window, LOCALE_STATUS_EVENT, this.handleLocaleStatus);
     if (this.urlState) {
       this.readUrlState();
       this.popstateHandler = () => {
