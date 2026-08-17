@@ -1,3 +1,8 @@
+v26.3.46 (2026-08-17)
+-------------------------
+ * Add data migration to release remaining legacy WhatsApp channels
+ * Remove legacy WhatsApp channel types
+
 v26.3.45 (2026-08-17)
 -------------------------
  * Use RedBeat as the celery beat scheduler so beat can be embedded in workers
