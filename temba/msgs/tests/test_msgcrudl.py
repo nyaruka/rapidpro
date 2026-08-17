@@ -67,7 +67,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(new_actions["label"]["allowCreate"])
 
         # check that we have the appropriate bulk actions
-        self.assertEqual(("label", "archive"), response.context["actions"])
+        self.assertBulkActions(response, ["label", "archive"])
 
         # error response if search query too long
         self.assertListFetch(inbox_url + "?search=" + "x" * 1001, [self.editor], status=413)
@@ -140,7 +140,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(flows_url, [None, self.agent])
         response = self.assertListFetch(flows_url, [self.editor, self.admin])
 
-        self.assertEqual(("label", "archive"), response.context["actions"])
+        self.assertBulkActions(response, ["label", "archive"])
 
     @mock_mailroom
     def test_archived(self, mr_mocks):
@@ -161,7 +161,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(archived_url, [None, self.agent])
         response = self.assertListFetch(archived_url + "?refresh=10000", [self.editor, self.admin])
-        self.assertEqual(("restore", "label", "delete"), response.context["actions"])
+        self.assertBulkActions(response, ["restore", "label", "delete"])
 
         # editors can restore messages
         response = self.requestView(archived_url, self.editor, post_data={"action": "restore", "objects": [msg1.id]})
@@ -197,7 +197,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(outbox_url, [None, self.agent])
         response = self.assertListFetch(outbox_url, [self.editor, self.admin])
-        self.assertEqual((), response.context["actions"])
+        self.assertBulkActions(response, [])
 
         # create another broadcast this time with 3 messages
         contact4 = self.create_contact("Kevin", phone="+250788000003")
@@ -253,7 +253,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(failed_url, [None, self.agent])
         response = self.assertListFetch(failed_url, [self.editor, self.admin])
 
-        self.assertEqual(("resend",), response.context["actions"])
+        self.assertBulkActions(response, ["resend"])
 
         # resend some messages
         self.client.post(failed_url, {"action": "resend", "objects": [msg2.id]})
@@ -264,7 +264,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org.suspend()
 
         response = self.client.get(failed_url)
-        self.assertNotIn("resend", response.context["actions"])
+        self.assertNotIn("resend", [a["key"] for a in response.context["new_list_bulk_actions"]])
 
     def test_filter(self):
         flow = self.create_flow("Flow")
@@ -300,7 +300,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(label3_url, self.editor, HTTP_X_TEMBA_SPA=1)
         self.assertEqual(f"/msg/labels/{label3.uuid}", response.headers[TEMBA_MENU_SELECTION])
         self.assertEqual(200, response.status_code)
-        self.assertEqual(("label", "archive"), response.context["actions"])
+        self.assertBulkActions(response, ["label", "archive"])
 
         self.assertContentMenu(label3_url, self.editor, ["Edit", "Delete", "-", "Export", "Usages"])
         self.assertContentMenu(label1_url, self.admin, ["Edit", "Delete", "-", "Export", "Usages"])

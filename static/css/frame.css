@@ -141,14 +141,6 @@ temba-menu:defined {
   display: block;
 }
 
-.list-buttons-container {
-  --icon-color: #666;
-  margin-left: 1em;
-}
-
-.list-buttons-container.visible {
-}
-
 .spa-container {
   background: #f7f7f7;
   overflow-y: clip;

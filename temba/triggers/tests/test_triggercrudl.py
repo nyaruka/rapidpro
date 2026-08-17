@@ -946,7 +946,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
         response = self.assertListFetch(list_url, [self.editor, self.admin])
-        self.assertEqual(("archive",), response.context["actions"])
+        self.assertBulkActions(response, ["archive"])
 
         # can archive it
         self.client.post(list_url, {"action": "archive", "objects": trigger3.id})
@@ -1080,7 +1080,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(archived_url, [None, self.agent])
         response = self.assertListFetch(archived_url, [self.editor, self.admin])
-        self.assertEqual(("restore", "delete"), response.context["actions"])
+        self.assertBulkActions(response, ["restore", "delete"])
 
         # can restore it
         self.client.post(archived_url, {"action": "restore", "objects": trigger1.id})
@@ -1248,7 +1248,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.assertListFetch(messages_url, [self.editor, self.admin])
         self.assertEqual("/trigger/messages", response.headers[TEMBA_MENU_SELECTION])
-        self.assertEqual(("archive",), response.context["actions"])
+        self.assertBulkActions(response, ["archive"])
 
         self.assertListFetch(referral_url, [self.admin])
         self.assertListFetch(tickets_url, [self.admin])

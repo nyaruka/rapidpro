@@ -576,11 +576,6 @@ class ContactCRUDL(SmartCRUDL):
             if self.has_org_perm("contacts.contact_export"):
                 menu.add_modax(_("Export"), "export-contacts", self.derive_export_url(), title=_("Export Contacts"))
 
-        def get_context_data(self, *args, **kwargs):
-            context = super().get_context_data(*args, **kwargs)
-            context["reply_disabled"] = True
-            return context
-
     class Stopped(ContextMenuMixin, ContactListView):
         title = _("Stopped")
         system_group = ContactGroup.TYPE_DB_STOPPED
@@ -596,11 +591,6 @@ class ContactCRUDL(SmartCRUDL):
             if self.has_org_perm("contacts.contact_export"):
                 menu.add_modax(_("Export"), "export-contacts", self.derive_export_url(), title=_("Export Contacts"))
 
-        def get_context_data(self, *args, **kwargs):
-            context = super().get_context_data(*args, **kwargs)
-            context["reply_disabled"] = True
-            return context
-
     class Archived(ContextMenuMixin, ContactListView):
         title = _("Archived")
         system_group = ContactGroup.TYPE_DB_ARCHIVED
@@ -614,11 +604,6 @@ class ContactCRUDL(SmartCRUDL):
             if self.has_org_perm("contacts.contact_delete"):
                 actions.append("delete")
             return actions
-
-        def get_context_data(self, *args, **kwargs):
-            context = super().get_context_data(*args, **kwargs)
-            context["reply_disabled"] = True
-            return context
 
         def build_context_menu(self, menu):
             if self.has_org_perm("contacts.contact_export"):
@@ -659,11 +644,6 @@ class ContactCRUDL(SmartCRUDL):
 
         def get_bulk_action_labels(self):
             return ContactGroup.get_groups(self.request.org, manual_only=True)
-
-        def get_context_data(self, *args, **kwargs):
-            context = super().get_context_data(*args, **kwargs)
-            context["current_group"] = self.group
-            return context
 
         @classmethod
         def derive_url_pattern(cls, path, action):

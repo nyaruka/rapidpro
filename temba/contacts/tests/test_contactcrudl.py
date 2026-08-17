@@ -148,7 +148,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.login(self.editor)
 
         response = self.client.get(list_url)
-        self.assertEqual(["label", "block", "send", "start-flow", "archive"], list(response.context["actions"]))
+        self.assertBulkActions(response, ["label", "block", "send", "start-flow", "archive"])
         self.assertContentMenu(list_url, self.editor, ["New Contact", "New Group", "Export"])
 
         # a saveable search in the query string adds Create Smart Group to the content menu
@@ -269,7 +269,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         self.assertRequestDisallowed(blocked_url, [None, self.agent])
         response = self.assertListFetch(blocked_url, [self.editor, self.admin])
-        self.assertEqual(["restore", "archive"], list(response.context["actions"]))
+        self.assertBulkActions(response, ["restore", "archive"])
         self.assertContentMenu(blocked_url, self.admin, ["Export"])
 
         # try restore bulk action
@@ -299,7 +299,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         self.assertRequestDisallowed(stopped_url, [None, self.agent])
         response = self.assertListFetch(stopped_url, [self.editor, self.admin])
-        self.assertEqual(["restore", "archive"], list(response.context["actions"]))
+        self.assertBulkActions(response, ["restore", "archive"])
         self.assertContentMenu(stopped_url, self.admin, ["Export"])
 
         # try restore bulk action
@@ -332,7 +332,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         self.assertRequestDisallowed(archived_url, [None, self.agent])
         response = self.assertListFetch(archived_url, [self.editor, self.admin])
-        self.assertEqual(["restore", "delete"], list(response.context["actions"]))
+        self.assertBulkActions(response, ["restore", "delete"])
         self.assertContentMenu(archived_url, self.admin, ["Export", "Delete All"])
 
         # try restore bulk action
@@ -389,7 +389,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertRequestDisallowed(group1_url, [None, self.agent, self.admin2])
         response = self.assertReadFetch(group1_url, [self.editor, self.admin])
 
-        self.assertEqual(["unlabel", "block", "send", "start-flow"], list(response.context["actions"]))
+        self.assertBulkActions(response, ["unlabel", "block", "send", "start-flow"])
         self.assertEqual(f"/api/internal/contacts.json?group={group1.uuid}", response.context["new_list_endpoint"])
 
         self.assertContentMenu(
@@ -400,7 +400,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         response = self.assertReadFetch(group2_url, [self.editor])
 
-        self.assertEqual(["block", "send", "start-flow", "archive"], list(response.context["actions"]))
+        self.assertBulkActions(response, ["block", "send", "start-flow", "archive"])
 
         # try unlabel bulk action
         self.client.post(group1_url, {"action": "unlabel", "objects": frank.id, "label": group1.id})
@@ -408,7 +408,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # can access system group like any other except no options to edit or delete
         response = self.assertReadFetch(open_tickets_url, [self.editor])
-        self.assertEqual(["block", "send", "start-flow", "archive"], list(response.context["actions"]))
+        self.assertBulkActions(response, ["block", "send", "start-flow", "archive"])
         self.assertContentMenu(open_tickets_url, self.admin, ["Export", "Usages"])
 
         # if a user tries to access a non-existent group, that's a 404

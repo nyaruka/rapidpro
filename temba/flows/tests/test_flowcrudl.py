@@ -611,7 +611,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(flow1.is_archived)
 
         response = self.client.get(reverse("flows.flow_list"))
-        self.assertEqual(("label", "export-results", "archive"), response.context["actions"])
+        self.assertBulkActions(response, ["label", "export-results", "archive"])
 
         # unarchive it
         response = self.client.post(reverse("flows.flow_archived"), {"action": "restore", "objects": flow1.id})
@@ -621,7 +621,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(flow1.is_archived)
 
         response = self.client.get(reverse("flows.flow_archived"))
-        self.assertEqual(("restore",), response.context["actions"])
+        self.assertBulkActions(response, ["restore"])
 
         # can label flows
         label1 = FlowLabel.create(self.org, self.admin, "Important")
@@ -657,7 +657,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
 
         response = self.client.get(reverse("flows.flow_filter", args=[label1.uuid]))
-        self.assertEqual(("label", "export-results"), response.context["actions"])
+        self.assertBulkActions(response, ["label", "export-results"])
 
         response = self.client.get(reverse("flows.flow_filter", args=[label2.uuid]))
         self.assertEqual(f"/flow/labels/{label2.uuid}", response.headers.get(TEMBA_MENU_SELECTION))

@@ -760,11 +760,6 @@ class FlowCRUDL(SmartCRUDL):
                     title=_("Delete Label"),
                 )
 
-        def get_context_data(self, *args, **kwargs):
-            context = super().get_context_data(*args, **kwargs)
-            context["current_label"] = self.label
-            return context
-
         @classmethod
         def derive_url_pattern(cls, path, action):
             return r"^%s/%s/(?P<label_uuid>[0-9a-f-]+)/$" % (path, action)
