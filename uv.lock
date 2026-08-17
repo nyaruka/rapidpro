@@ -234,6 +234,21 @@ redis = [
 ]
 
 [[package]]
+name = "celery-redbeat"
+version = "2.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "celery" },
+    { name = "python-dateutil" },
+    { name = "redis" },
+    { name = "tenacity" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/03/13/9aefb6cb39266b28ab2b2a8f24382fd7d82399e20578c5ba2238e63c4445/celery_redbeat-2.4.2.tar.gz", hash = "sha256:a590fef7ef39d7e4511174ce8bafe310e07ef6cdf84a240cd311946815bd90bb", size = 36671, upload-time = "2026-07-27T01:28:09.389Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/3d/bb4adef34e7691ebd2e80c1e8df1fb3f3bf43b388de714219ac6a580a4d2/celery_redbeat-2.4.2-py2.py3-none-any.whl", hash = "sha256:4124d221a798ad983df0874bfa0d2e9beca41ca9ef91e92d073770bb193da000", size = 16526, upload-time = "2026-07-27T01:28:08.164Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.4.22"
 source = { registry = "https://pypi.org/simple" }
@@ -1767,6 +1782,7 @@ dependencies = [
     { name = "anthropic" },
     { name = "boto3" },
     { name = "celery", extra = ["redis"] },
+    { name = "celery-redbeat" },
     { name = "chardet" },
     { name = "colorama" },
     { name = "cryptography" },
@@ -1828,6 +1844,7 @@ requires-dist = [
     { name = "anthropic", specifier = ">=0.54.0,<1.0.0" },
     { name = "boto3", specifier = ">=1.42.24,<2.0.0" },
     { name = "celery", extras = ["redis"], specifier = "~=5.5.3" },
+    { name = "celery-redbeat", specifier = "~=2.4.2" },
     { name = "chardet", specifier = "~=5.2.0" },
     { name = "colorama", specifier = "~=0.4.6" },
     { name = "cryptography", specifier = "~=50.0.0" },

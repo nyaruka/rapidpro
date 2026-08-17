@@ -682,6 +682,14 @@ CELERY_TASK_TRACK_STARTED = True
 # by default, celery doesn't have any timeout on our valkey connections, this fixes that
 CELERY_BROKER_TRANSPORT_OPTIONS = {"socket_timeout": 5}
 
+# valkey-backed beat scheduler which can be embedded in every worker (celery worker --beat) - a distributed lock
+# ensures only one instance actually schedules, and if it stops refreshing the lock another takes over on expiry
+# (the redbeat settings themselves are derived from the broker settings in temba_celery.py)
+CELERY_BEAT_SCHEDULER = "redbeat.RedBeatScheduler"
+CELERY_BEAT_MAX_LOOP_INTERVAL = 30  # max sleep between beat ticks - each tick refreshes the scheduler lock
+
+# NOTE: entries are synced into valkey when a beat instance starts, so like task signatures, schedule changes need to
+# be backward compatible with the previous version during a rolling deploy
 CELERY_BEAT_SCHEDULE = {
     "check-android-channels": {"task": "check_android_channels", "schedule": timedelta(seconds=300)},
     "delete-released-orgs": {"task": "delete_released_orgs", "schedule": crontab(hour=4, minute=0)},

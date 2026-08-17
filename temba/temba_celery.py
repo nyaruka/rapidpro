@@ -18,6 +18,19 @@ class TembaCelery(celery.Celery):
 
 app = TembaCelery("temba")
 app.config_from_object("django.conf:settings", namespace="CELERY")
+
+
+@app.on_after_configure.connect
+def configure_redbeat(sender, **kwargs):
+    """
+    RedBeat looks for its settings as un-namespaced keys on the celery conf so they can't come from Django settings.
+    Deriving them from the broker settings here also means they track any deployment overrides of those.
+    """
+    sender.conf.redbeat_redis_url = sender.conf.broker_url
+    sender.conf.redbeat_redis_options = {**sender.conf.broker_transport_options, "retry_period": 60}
+    sender.conf.redbeat_lock_timeout = sender.conf.beat_max_loop_interval * 3
+
+
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 app.autodiscover_tasks(("temba.channels.types.whatsapp_legacy",))
 app.autodiscover_tasks(("temba.channels.types.turn",))
