@@ -184,8 +184,9 @@ export interface Campaign {
 /** A single row in the trigger CRUDL list
  * (`triggers/trigger_list.html`): what starts the flow (type +
  * per-type details), any channel / group filters, and the flow it
- * starts. Triggers have no uuid — rows key off the numeric id. */
+ * starts. Rows still key off the numeric id. */
 export interface Trigger {
+  uuid: string;
   id: number;
   /** Trigger type slug — drives the leading row icon and the
    * details cell (`keyword`, `catch_all`, `schedule`,
