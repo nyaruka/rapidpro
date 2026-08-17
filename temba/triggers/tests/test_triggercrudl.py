@@ -1,6 +1,7 @@
 from datetime import datetime, timezone as tzone
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.urls import reverse
 
 from temba.channels.models import Channel
@@ -52,6 +53,10 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # the archived trigger not counted
         self.assertPageMenu(menu_url, self.editor, ["Active (1)", "Archived (1)", "New Trigger", "Messages (1)"])
+
+        # at the org limit there's no way to create a new one (the archived trigger doesn't count towards it)
+        with override_settings(ORG_LIMIT_DEFAULTS={"triggers": 1}):
+            self.assertPageMenu(menu_url, self.editor, ["Active (1)", "Archived (1)", "Messages (1)"])
 
     @mock_mailroom
     def test_create(self, mr_mocks):

@@ -894,6 +894,7 @@ ORG_LIMIT_DEFAULTS = {
     "llms": 10,
     "teams": 50,
     "topics": 50,
+    "triggers": 500,
 }
 
 RETENTION_PERIODS = {
