@@ -29,26 +29,30 @@ const settlePills = async (list: TriggerList) => {
   }
 };
 
-const trigger = (over: any = {}) => ({
-  id: 101,
-  type: 'keyword',
-  flow: { uuid: 'flow-1', name: 'Registration' },
-  channel: null,
-  groups: [{ uuid: 'group-1', name: 'Farmers' }],
-  exclude_groups: [],
-  contacts: [],
-  keywords: ['join', 'start'],
-  match_type: 'F',
-  created_on: '2026-05-11T09:12:00.000000Z',
-  ...over
-});
+const trigger = (over: any = {}) => {
+  const item = {
+    id: 101,
+    type: 'keyword',
+    flow: { uuid: 'flow-1', name: 'Registration' },
+    channel: null,
+    groups: [{ uuid: 'group-1', name: 'Farmers' }],
+    exclude_groups: [],
+    contacts: [],
+    keywords: ['join', 'start'],
+    match_type: 'F',
+    created_on: '2026-05-11T09:12:00.000000Z',
+    ...over
+  };
+  // rows key off the uuid, so derive one per id unless the caller set one
+  return { uuid: `trigger-${item.id}`, ...item };
+};
 
 describe('temba-trigger-list', () => {
   it('can be created', async () => {
     const list: TriggerList = await getTriggerList();
     assert.instanceOf(list, TriggerList);
-    // triggers have no uuid — rows key off the numeric id
-    expect(list.valueKey).to.equal('id');
+    // rows key off the trigger uuid
+    expect(list.valueKey).to.equal('uuid');
   });
 
   it('keeps rows event-only (no row href)', async () => {

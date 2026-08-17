@@ -105,16 +105,15 @@ class ContactListView(BaseListComponentView):
             return f"folder={self.FOLDER_BY_SYSTEM_GROUP[self.system_group]}"
         return f"group={self.group.uuid}"
 
-    def resolve_posted_uuids(self, data):
-        data = super().resolve_posted_uuids(data)
-
+    def post(self, request, *args, **kwargs):
         # A fixed "unlabel" with no group (the group view's "Remove from group") falls back to the current group.
         # Gated on the key being absent, which is what that action posts — a present-but-unresolvable group must
         # still be rejected rather than silently removing the selection from the current group.
-        if "label" not in data and data.get("action") == "unlabel" and self.group is not None:
-            data["label"] = str(self.group.id)
+        if "label" not in request.POST and request.POST.get("action") == "unlabel" and self.group is not None:
+            request.POST = request.POST.copy()
+            request.POST["label"] = str(self.group.uuid)
 
-        return data
+        return super().post(request, *args, **kwargs)
 
     @cached_property
     def group(self):

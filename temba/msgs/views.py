@@ -59,9 +59,6 @@ class MsgListView(BaseListComponentView):
     folder = None
     list_endpoint = "api.internal.messages"
 
-    # the msg list posts message ids in `objects`, but its label dropdown still posts the label by uuid
-    list_posts_uuids = False
-
     BULK_ACTION_CONFIG = {
         "label": {"label": _("Label"), "icon": "tag-01", "labelsEndpoint": "/api/v2/labels.json"},
         "archive": {"label": _("Archive"), "icon": "archive"},

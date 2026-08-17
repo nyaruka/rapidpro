@@ -159,7 +159,9 @@ class InferUserMixin:
 
 class BulkActionMixin:
     """
-    Mixin for list views which have bulk actions
+    Mixin for list views which have bulk actions. The list components which post these actions identify both the
+    selection and any label by uuid, so the form matches on uuid rather than pk - which also means a malformed value
+    is a form error rather than an uncaught ValueError from the database layer.
     """
 
     bulk_actions = ()
@@ -170,12 +172,14 @@ class BulkActionMixin:
             super().__init__(*args, **kwargs)
 
             self.fields["action"] = forms.ChoiceField(choices=[(a, a) for a in actions], required=True)
-            self.fields["objects"] = forms.ModelMultipleChoiceField(queryset=queryset, required=False)
+            self.fields["objects"] = forms.ModelMultipleChoiceField(
+                queryset=queryset, to_field_name="uuid", required=False
+            )
             self.fields["all"] = forms.BooleanField(required=False)
             self.fields["add"] = forms.BooleanField(required=False)
 
             if label_queryset:
-                self.fields["label"] = forms.ModelChoiceField(label_queryset, required=False)
+                self.fields["label"] = forms.ModelChoiceField(label_queryset, to_field_name="uuid", required=False)
 
         def clean(self):
             cleaned_data = super().clean()

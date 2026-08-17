@@ -184,7 +184,8 @@ export interface Campaign {
 /** A single row in the trigger CRUDL list
  * (`triggers/trigger_list.html`): what starts the flow (type +
  * per-type details), any channel / group filters, and the flow it
- * starts. Rows still key off the numeric id. */
+ * starts. Rows key off the uuid; the numeric id is carried for the
+ * page's pk-based update modal URL. */
 export interface Trigger {
   uuid: string;
   id: number;
@@ -223,9 +224,11 @@ export interface Trigger {
 
 /** A single row in the broadcast CRUDL lists — both the scheduled
  * list (`msgs/broadcast_scheduled.html`) and the sent list
- * (`msgs/broadcast_list.html`). Broadcasts key off the numeric id;
- * content fields carry the base-language translation. */
+ * (`msgs/broadcast_list.html`). Rows key off the uuid; the numeric id
+ * is carried for the scheduled list's pk-based edit and delete modal
+ * URLs. Content fields carry the base-language translation. */
 export interface Broadcast {
+  uuid: string;
   id: number;
   /** Server status slug — `pending`, `queued`, `started`,
    * `completed`, `failed` or `interrupted`. Scheduled broadcasts
@@ -273,9 +276,12 @@ export interface Broadcast {
 }
 
 export interface Msg {
-  /** Numeric id — present on persisted messages (the CRUDL list
-   * keys rows off it); absent on outbound drafts. */
+  /** Numeric id — present on persisted messages; absent on outbound
+   * drafts and on the messages CRUDL endpoint, which identifies
+   * messages by uuid. */
   id?: number;
+  /** Message uuid — how the CRUDL list keys and selects rows. */
+  uuid?: string;
   text: string;
   status: string;
   channel: ObjectReference;

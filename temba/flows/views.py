@@ -595,9 +595,6 @@ class FlowCRUDL(SmartCRUDL):
             "restore": {"label": _("Restore"), "icon": "restore"},
         }
 
-        def derive_bulk_action_objects(self, uuids: list):
-            return super().derive_bulk_action_objects(uuids).filter(is_active=True)
-
         def derive_bulk_action_config(self, key: str) -> dict:
             cfg = super().derive_bulk_action_config(key)
             if key == "label":

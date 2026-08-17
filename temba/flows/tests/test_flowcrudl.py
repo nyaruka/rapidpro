@@ -576,7 +576,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertListFetch(list_url, [self.editor, self.admin])
 
         # try to archive flow used by campaign
-        response = self.client.post(list_url, {"action": "archive", "objects": flow3.id})
+        response = self.client.post(list_url, {"action": "archive", "objects": str(flow3.uuid)})
         self.assertToast(
             response,
             "info",
@@ -592,7 +592,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow4.counts.create(scope=f"status:{FlowRun.STATUS_WAITING}", count=10)
 
         # try to archive flow with ongoing runs
-        response = self.client.post(list_url, {"action": "archive", "objects": flow4.id})
+        response = self.client.post(list_url, {"action": "archive", "objects": str(flow4.uuid)})
         self.assertToast(
             response,
             "info",
@@ -604,7 +604,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(flow4.is_archived)
 
         # archive first flow
-        response = self.client.post(list_url, {"action": "archive", "objects": flow1.id})
+        response = self.client.post(list_url, {"action": "archive", "objects": str(flow1.uuid)})
         self.assertEqual(200, response.status_code)
 
         flow1.refresh_from_db()
@@ -614,7 +614,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertBulkActions(response, ["label", "export-results", "archive"])
 
         # unarchive it
-        response = self.client.post(reverse("flows.flow_archived"), {"action": "restore", "objects": flow1.id})
+        response = self.client.post(reverse("flows.flow_archived"), {"action": "restore", "objects": str(flow1.uuid)})
         self.assertEqual(200, response.status_code)
 
         flow1.refresh_from_db()
@@ -627,7 +627,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         label1 = FlowLabel.create(self.org, self.admin, "Important")
 
         response = self.client.post(
-            reverse("flows.flow_list"), {"action": "label", "objects": flow1.id, "label": label1.id}
+            reverse("flows.flow_list"), {"action": "label", "objects": str(flow1.uuid), "label": str(label1.uuid)}
         )
 
         self.assertEqual(200, response.status_code)
@@ -636,7 +636,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # and unlabel
         response = self.client.post(
-            reverse("flows.flow_list"), {"action": "label", "objects": flow1.id, "label": label1.id, "add": False}
+            reverse("flows.flow_list"),
+            {"action": "label", "objects": str(flow1.uuid), "label": str(label1.uuid), "add": False},
         )
 
         self.assertEqual(200, response.status_code)
@@ -697,7 +698,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("flows.flow_filter", args=[label.uuid]))
         self.assertEqual(f"{reverse('api.internal.flows')}.json?label={label.uuid}", response.context["list_url"])
 
-        # the component posts flow uuids in `objects`; the view translates them to ids so the bulk action applies
+        # the component posts flow uuids in `objects`
         self.client.post(list_url, {"action": "archive", "objects": str(flow1.uuid)})
         flow1.refresh_from_db()
         self.assertTrue(flow1.is_archived)
@@ -712,18 +713,17 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(set(), set(flow2.labels.all()))
 
-        # a label posted as a numeric id is passed through untranslated
+        # a label posted as a numeric id is rejected
         self.client.post(list_url, {"action": "label", "objects": str(flow2.uuid), "label": str(label.id)})
-        self.assertEqual({label}, set(flow2.labels.all()))
-        label.toggle_label([flow2], add=False)
+        self.assertEqual(set(), set(flow2.labels.all()))
 
-        # a malformed flow uuid in `objects` is ignored rather than raising (no 500 on hostile/garbage input)
+        # a malformed flow uuid in `objects` fails form validation rather than raising (no 500 on garbage input)
         response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
         self.assertEqual(200, response.status_code)
         flow2.refresh_from_db()
         self.assertFalse(flow2.is_archived)
 
-        # a malformed label uuid is likewise ignored rather than raising
+        # a malformed label uuid is likewise a form error rather than a raise
         response = self.client.post(list_url, {"action": "label", "objects": str(flow2.uuid), "label": "not-a-uuid"})
         self.assertEqual(200, response.status_code)
         self.assertEqual(set(), set(flow2.labels.all()))

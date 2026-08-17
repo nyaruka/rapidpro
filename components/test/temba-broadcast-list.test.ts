@@ -8,22 +8,26 @@ const getBroadcastList = async (attrs: any = {}, width = 800, height = 0) => {
   return (await getComponent(TAG, attrs, '', width, height)) as BroadcastList;
 };
 
-const broadcast = (over: any = {}) => ({
-  id: 201,
-  status: 'completed',
-  text: 'Your appointment is confirmed for tomorrow at 10am.',
-  attachments: [],
-  quick_replies: [],
-  groups: [{ uuid: 'group-1', name: 'Patients' }],
-  contacts: [],
-  query: null,
-  exclusions: [],
-  schedule: null,
-  msg_count: 1250,
-  created_on: '2026-07-14T14:32:00.000000Z',
-  created_by: 'admin@textit.com',
-  ...over
-});
+const broadcast = (over: any = {}) => {
+  const item = {
+    id: 201,
+    status: 'completed',
+    text: 'Your appointment is confirmed for tomorrow at 10am.',
+    attachments: [],
+    quick_replies: [],
+    groups: [{ uuid: 'group-1', name: 'Patients' }],
+    contacts: [],
+    query: null,
+    exclusions: [],
+    schedule: null,
+    msg_count: 1250,
+    created_on: '2026-07-14T14:32:00.000000Z',
+    created_by: 'admin@textit.com',
+    ...over
+  };
+  // rows key off the uuid, so derive one per id unless the caller set one
+  return { uuid: `bcast-${item.id}`, ...item };
+};
 
 const scheduled = (over: any = {}) =>
   broadcast({
@@ -56,8 +60,8 @@ describe('temba-broadcast-list', () => {
   it('can be created', async () => {
     const list: BroadcastList = await getBroadcastList();
     assert.instanceOf(list, BroadcastList);
-    // broadcasts have no exposed uuid — rows key off the numeric id
-    expect(list.valueKey).to.equal('id');
+    // rows key off the broadcast uuid
+    expect(list.valueKey).to.equal('uuid');
   });
 
   it('keeps rows event-only (no row href)', async () => {

@@ -384,7 +384,8 @@ class Trigger(TembaUUIDMixin, SmartModel):
         """
         Internal API shape, consumed by the temba-trigger-list component. The type slug drives the row icon and
         which of the per-type fields (keywords, schedule, referrer) the details cell renders; channel/groups/contacts
-        render as filter pills. The numeric id is still included for the component's current row key.
+        render as filter pills. The numeric id is included alongside the uuid for the page's update modal, whose URL
+        is still pk based.
         """
 
         return {

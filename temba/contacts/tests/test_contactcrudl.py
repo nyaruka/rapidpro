@@ -174,7 +174,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertContentMenu(list_url, self.admin, ["New Contact", "New Group", "Export"])
 
         # bulk actions apply to the posted contacts
-        self.client.post(list_url, {"action": "archive", "objects": joe.id})
+        self.client.post(list_url, {"action": "archive", "objects": str(joe.uuid)})
 
         joe.refresh_from_db()
         self.assertEqual(Contact.STATUS_ARCHIVED, joe.status)
@@ -222,7 +222,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(reverse("contacts.contact_group", args=[smart.uuid]))
         self.assertEqual(smart.query, response.context["list_subtitle"])
 
-        # the component posts contact uuids in `objects`; the view translates them to ids so the bulk action applies
+        # the component posts contact uuids in `objects`
         self.client.post(list_url, {"action": "archive", "objects": str(joe.uuid)})
         joe.refresh_from_db()
         self.assertEqual(Contact.STATUS_ARCHIVED, joe.status)
@@ -238,9 +238,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         )
         self.assertNotIn(frank, newsletter.contacts.all())
 
-        # a label posted as a numeric id is passed through untranslated
+        # a group posted as a numeric id is rejected
         self.client.post(list_url, {"action": "label", "objects": str(frank.uuid), "label": str(newsletter.id)})
-        self.assertIn(frank, newsletter.contacts.all())
+        self.assertNotIn(frank, newsletter.contacts.all())
 
         # on a group page, an "unlabel" with a group we can't resolve is rejected rather than falling back to the
         # current group - only an absent group means "Remove from group"
@@ -253,7 +253,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.client.post(group_url, {"action": "unlabel", "objects": str(frank.uuid)})
         self.assertNotIn(frank, group.contacts.all())
 
-        # a malformed contact uuid in `objects` is ignored rather than raising (no 500 on hostile/garbage input)
+        # a malformed contact uuid in `objects` fails form validation rather than raising (no 500 on garbage input)
         response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
         self.assertEqual(200, response.status_code)
 
@@ -276,13 +276,13 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertContentMenu(blocked_url, self.admin, ["Export"])
 
         # try restore bulk action
-        self.client.post(blocked_url, {"action": "restore", "objects": billy.id})
+        self.client.post(blocked_url, {"action": "restore", "objects": str(billy.uuid)})
 
         billy.refresh_from_db()
         self.assertEqual(Contact.STATUS_ACTIVE, billy.status)
 
         # try archive bulk action
-        self.client.post(blocked_url, {"action": "archive", "objects": frank.id})
+        self.client.post(blocked_url, {"action": "archive", "objects": str(frank.uuid)})
 
         frank.refresh_from_db()
         self.assertEqual(Contact.STATUS_ARCHIVED, frank.status)
@@ -306,13 +306,13 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertContentMenu(stopped_url, self.admin, ["Export"])
 
         # try restore bulk action
-        self.client.post(stopped_url, {"action": "restore", "objects": billy.id})
+        self.client.post(stopped_url, {"action": "restore", "objects": str(billy.uuid)})
 
         billy.refresh_from_db()
         self.assertEqual(Contact.STATUS_ACTIVE, billy.status)
 
         # try archive bulk action
-        self.client.post(stopped_url, {"action": "archive", "objects": frank.id})
+        self.client.post(stopped_url, {"action": "archive", "objects": str(frank.uuid)})
 
         frank.refresh_from_db()
         self.assertEqual(Contact.STATUS_ARCHIVED, frank.status)
@@ -339,13 +339,13 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertContentMenu(archived_url, self.admin, ["Export", "Delete All"])
 
         # try restore bulk action
-        self.client.post(archived_url, {"action": "restore", "objects": billy.id})
+        self.client.post(archived_url, {"action": "restore", "objects": str(billy.uuid)})
 
         billy.refresh_from_db()
         self.assertEqual(Contact.STATUS_ACTIVE, billy.status)
 
         # try delete bulk action
-        self.client.post(archived_url, {"action": "delete", "objects": frank.id})
+        self.client.post(archived_url, {"action": "delete", "objects": str(frank.uuid)})
 
         frank.refresh_from_db()
         self.assertFalse(frank.is_active)
@@ -406,7 +406,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertBulkActions(response, ["block", "send", "start-flow", "archive"])
 
         # try unlabel bulk action
-        self.client.post(group1_url, {"action": "unlabel", "objects": frank.id, "label": group1.id})
+        self.client.post(group1_url, {"action": "unlabel", "objects": str(frank.uuid), "label": str(group1.uuid)})
         self.assertEqual({joe}, set(group1.contacts.all()))
 
         # can access system group like any other except no options to edit or delete
