@@ -20,7 +20,6 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
-from django.urls import reverse
 from django.utils import timezone
 
 from temba.archives.models import Archive, jsonlgz_encode
@@ -798,9 +797,6 @@ class TembaTest(SmartminTest):
                 "Data": data,
             }
         )
-
-    def assertLoginRedirectLegacy(self, response, msg=None):
-        self.assertRedirect(response, reverse("orgs.login"), msg=msg)
 
     def assertToast(self, response, level, text):
         toasts = json.loads(response.get("X-Temba-Toasts", []))

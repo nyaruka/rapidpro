@@ -232,12 +232,6 @@ class BulkActionMixin:
 
         return self.get(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["actions"] = self.get_bulk_actions()
-        context["labels"] = self.get_bulk_action_labels()
-        return context
-
     def get_bulk_actions(self):
         """
         Gets the allowed bulk actions for this view

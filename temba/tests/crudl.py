@@ -196,6 +196,12 @@ class CRUDLTestMixin:
         )
         self.assertEqual(items, [item.get("label", "-") for item in response.json()["items"]])
 
+    def assertBulkActions(self, response, keys: list):
+        """
+        Asserts the bulk action keys a list page offers its list component, in order
+        """
+        self.assertEqual(keys, [a["key"] for a in response.context["list_bulk_actions"]])
+
 
 class BaseCheck:
     def pre_check(self, test_cls, desc):

@@ -22,7 +22,7 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
-from django.utils.functional import Promise, cached_property
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
@@ -37,12 +37,13 @@ from temba.orgs.models import IntegrationType, Org
 from temba.orgs.views.base import (
     BaseDependencyDeleteModal,
     BaseExportModal,
+    BaseListComponentView,
     BaseListView,
     BaseMenuView,
     BaseReadView,
     BaseUpdateModal,
 )
-from temba.orgs.views.mixins import BulkActionMixin, OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
+from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.triggers.models import Trigger
 from temba.utils import json, languages
 from temba.utils.fields import (
@@ -53,7 +54,6 @@ from temba.utils.fields import (
     SelectWidget,
     TembaChoiceField,
 )
-from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .models import (
@@ -576,24 +576,14 @@ class FlowCRUDL(SmartCRUDL):
                         match_type=Trigger.MATCH_FIRST_WORD,
                     )
 
-    class BaseList(SpaMixin, BulkActionMixin, ContextMenuMixin, BaseListView):
+    class BaseList(BaseListComponentView):
         permission = "flows.flow_list"
         title = _("Flows")
-        fields = ("name", "modified_on")
         default_template = "flows/flow_list.html"
         default_order = ("-saved_on",)
         search_fields = ("name__icontains",)
+        list_endpoint = "api.internal.flows"
 
-        # the temba-flow-list component fetches and pages flows itself from the internal flows API
-        paginate_by = None
-
-        # Optional subtitle rendered under the title.
-        subtitle = ""
-
-        # Bulk-action key -> config consumed by temba-flow-list (label, icon). `clientOnly` actions (export-results)
-        # open a modal seeded with the selected flows rather than POSTing to the action endpoint. `labelsEndpoint`
-        # turns the action into a dropdown of flow labels to add/remove the selection to/from — mirroring the message
-        # list's label dropdown.
         BULK_ACTION_CONFIG = {
             "label": {
                 "label": _("Label"),
@@ -605,66 +595,15 @@ class FlowCRUDL(SmartCRUDL):
             "restore": {"label": _("Restore"), "icon": "restore"},
         }
 
-        def derive_subtitle(self):
-            return self.subtitle
+        def derive_bulk_action_objects(self, uuids: list):
+            return super().derive_bulk_action_objects(uuids).filter(is_active=True)
 
-        def derive_new_list_query(self) -> str:
-            return "folder=active"
-
-        def post(self, request, *args, **kwargs):
-            # The component posts flow uuids in `objects`, but BulkActionMixin matches by primary key — translate
-            # them here. The label dropdown likewise posts the target label by uuid (action=label, add=true|false),
-            # which the form matches by id — translate it too.
-            if "objects" in request.POST or "label" in request.POST:
-                data = request.POST.copy()
-                objects = data.getlist("objects")
-                if any(is_uuid(o) for o in objects):
-                    # Only look up well-formed UUIDs — `uuid__in` runs each value through UUIDField.get_prep_value,
-                    # so a single malformed value (a hostile post) would otherwise raise ValueError (500). Anything
-                    # that isn't a uuid is left alone so an id-based post still works.
-                    ids = Flow.objects.filter(
-                        org=request.org, is_active=True, uuid__in=[o for o in objects if is_uuid(o)]
-                    ).values_list("id", flat=True)
-                    data.setlist("objects", [str(i) for i in ids] + [o for o in objects if not is_uuid(o)])
-                label = data.get("label")
-                if label and is_uuid(label):
-                    obj = request.org.flow_labels.filter(uuid=label).first()
-                    data["label"] = str(obj.id) if obj else ""
-                request.POST = data
-
-            return super().post(request, *args, **kwargs)
-
-        def get_queryset(self, **kwargs):
-            # The temba-flow-list component fetches and pages flows from the internal flows API, so a GET page needs
-            # no object list. A POST (bulk action) still needs the real queryset, since BulkActionMixin validates the
-            # posted `objects` against it.
-            if self.request.method == "GET":
-                return Flow.objects.none()
-
-            return super().get_queryset(**kwargs)
-
-        def get_context_data(self, **kwargs):
-            context = super().get_context_data(**kwargs)
-
-            # the resolved flows-api endpoint (folder= for active/archived, label= for the filter view), the subtitle,
-            # and the bulk-action configs the temba-flow-list expects (resolved + JSON-encoded here so the template
-            # stays inert)
-            context["new_list_endpoint"] = f"{reverse('api.internal.flows')}.json?{self.derive_new_list_query()}"
-            subtitle = self.derive_subtitle()
-            context["new_list_subtitle"] = str(subtitle) if subtitle else ""
-            actions = []
-            for key in self.get_bulk_actions():
-                cfg = dict(self.BULK_ACTION_CONFIG.get(key, {}))
-                cfg["key"] = key
-                if key == "label":
-                    # the dropdown's "New Label…" row only renders for viewers who can create labels
-                    cfg["allowCreate"] = self.has_org_perm("flows.flowlabel_create")
-                # Resolve any i18n lazy proxies so json_script / json.dumps don't choke.
-                cfg = {k: (str(v) if isinstance(v, Promise) else v) for k, v in cfg.items()}
-                actions.append(cfg)
-            context["new_list_bulk_actions"] = actions
-
-            return context
+        def derive_bulk_action_config(self, key: str) -> dict:
+            cfg = super().derive_bulk_action_config(key)
+            if key == "label":
+                # the dropdown's "New Label…" row only renders for viewers who can create labels
+                cfg["allowCreate"] = self.has_org_perm("flows.flowlabel_create")
+            return cfg
 
         def apply_bulk_action(self, user, action, objects, label):
             super().apply_bulk_action(user, action, objects, label)
@@ -715,7 +654,7 @@ class FlowCRUDL(SmartCRUDL):
         default_order = ("-created_on",)
         subtitle = _("These flows have been archived and can no longer be started.")
 
-        def derive_new_list_query(self) -> str:
+        def derive_list_query(self) -> str:
             return "folder=archived"
 
         def derive_queryset(self, *args, **kwargs):
@@ -739,7 +678,7 @@ class FlowCRUDL(SmartCRUDL):
         def derive_menu_path(self):
             return f"/flow/labels/{self.label.uuid}"
 
-        def derive_new_list_query(self) -> str:
+        def derive_list_query(self) -> str:
             return f"label={self.label.uuid}"
 
         def build_context_menu(self, menu):
@@ -759,11 +698,6 @@ class FlowCRUDL(SmartCRUDL):
                     f"{reverse('flows.flowlabel_delete', args=[self.label.id])}",
                     title=_("Delete Label"),
                 )
-
-        def get_context_data(self, *args, **kwargs):
-            context = super().get_context_data(*args, **kwargs)
-            context["current_label"] = self.label
-            return context
 
         @classmethod
         def derive_url_pattern(cls, path, action):

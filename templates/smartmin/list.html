@@ -71,16 +71,6 @@
   {% block post-table %}
   {% endblock post-table %}
 {% endblock content %}
-{% block extra-script %}
-  {{ block.super }}
-  <script type="text/javascript">
-    {% if current_label.id %}
-    current_label_id = {{current_label.id}};
-    {% else %}
-    current_label_id = 0;
-    {% endif %}
-  </script>
-{% endblock extra-script %}
 {% block extra-style %}
   {{ block.super }}
   <style type="text/css">

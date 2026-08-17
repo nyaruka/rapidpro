@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 20:09+0000\n"
+"POT-Creation-Date: 2026-08-17 21:01+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -5456,9 +5456,6 @@ msgstr[2] "%(count)s resultats"
 #, python-format
 msgid "Results %(start)s - %(end)s of %(total)s"
 msgstr "Resultats %(start)s - %(end)s sur %(total)s"
-
-msgid "New Label..."
-msgstr "Nouvelle étiquette..."
 
 #, python-format
 msgid "%(start)s - %(end)s of %(total)s"

@@ -608,10 +608,8 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(list_url)
         self.assertContains(response, "temba-broadcast-list")
-        self.assertEqual(
-            f"{reverse('api.internal.broadcasts')}.json?folder=sent", response.context["new_list_endpoint"]
-        )
-        self.assertEqual("sent", response.context["new_list_mode"])
+        self.assertEqual(f"{reverse('api.internal.broadcasts')}.json?folder=sent", response.context["list_url"])
+        self.assertEqual("sent", response.context["list_mode"])
         # the sent list's detail dialog has no edit/delete actions
         self.assertNotContains(response, "can-edit")
 
@@ -642,10 +640,8 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(scheduled_url)
         self.assertContains(response, "temba-broadcast-list")
-        self.assertEqual(
-            f"{reverse('api.internal.broadcasts')}.json?folder=scheduled", response.context["new_list_endpoint"]
-        )
-        self.assertEqual("scheduled", response.context["new_list_mode"])
+        self.assertEqual(f"{reverse('api.internal.broadcasts')}.json?folder=scheduled", response.context["list_url"])
+        self.assertEqual("scheduled", response.context["list_mode"])
         # editors can update and delete scheduled broadcasts, so the detail dialog gets its edit/delete actions
         self.assertContains(response, "can-edit")
         self.assertContains(response, "can-delete")

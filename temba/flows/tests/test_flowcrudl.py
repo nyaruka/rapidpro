@@ -611,7 +611,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(flow1.is_archived)
 
         response = self.client.get(reverse("flows.flow_list"))
-        self.assertEqual(("label", "export-results", "archive"), response.context["actions"])
+        self.assertBulkActions(response, ["label", "export-results", "archive"])
 
         # unarchive it
         response = self.client.post(reverse("flows.flow_archived"), {"action": "restore", "objects": flow1.id})
@@ -621,7 +621,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(flow1.is_archived)
 
         response = self.client.get(reverse("flows.flow_archived"))
-        self.assertEqual(("restore",), response.context["actions"])
+        self.assertBulkActions(response, ["restore"])
 
         # can label flows
         label1 = FlowLabel.create(self.org, self.admin, "Important")
@@ -657,7 +657,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
 
         response = self.client.get(reverse("flows.flow_filter", args=[label1.uuid]))
-        self.assertEqual(("label", "export-results"), response.context["actions"])
+        self.assertBulkActions(response, ["label", "export-results"])
 
         response = self.client.get(reverse("flows.flow_filter", args=[label2.uuid]))
         self.assertEqual(f"/flow/labels/{label2.uuid}", response.headers.get(TEMBA_MENU_SELECTION))
@@ -676,11 +676,11 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # the temba-flow-list component is pointed at the internal flows api
         response = self.client.get(list_url)
         self.assertContains(response, "temba-flow-list")
-        self.assertEqual(f"{reverse('api.internal.flows')}.json?folder=active", response.context["new_list_endpoint"])
+        self.assertEqual(f"{reverse('api.internal.flows')}.json?folder=active", response.context["list_url"])
 
         # export-results is clientOnly (it opens the export modal); the label dropdown carries a labelsEndpoint of
         # the workspace's flow labels; the rest post to the action endpoint
-        actions = {a["key"]: a for a in response.context["new_list_bulk_actions"]}
+        actions = {a["key"]: a for a in response.context["list_bulk_actions"]}
         self.assertEqual(["label", "export-results", "archive"], list(actions.keys()))
         self.assertTrue(actions["export-results"]["clientOnly"])
         self.assertNotIn("clientOnly", actions["archive"])
@@ -690,14 +690,12 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # the archived view selects the archived folder
         response = self.client.get(reverse("flows.flow_archived"))
-        self.assertEqual(f"{reverse('api.internal.flows')}.json?folder=archived", response.context["new_list_endpoint"])
-        self.assertNotEqual("", response.context["new_list_subtitle"])
+        self.assertEqual(f"{reverse('api.internal.flows')}.json?folder=archived", response.context["list_url"])
+        self.assertNotEqual("", response.context["list_subtitle"])
 
         # a label filter view is selected by uuid rather than a folder
         response = self.client.get(reverse("flows.flow_filter", args=[label.uuid]))
-        self.assertEqual(
-            f"{reverse('api.internal.flows')}.json?label={label.uuid}", response.context["new_list_endpoint"]
-        )
+        self.assertEqual(f"{reverse('api.internal.flows')}.json?label={label.uuid}", response.context["list_url"])
 
         # the component posts flow uuids in `objects`; the view translates them to ids so the bulk action applies
         self.client.post(list_url, {"action": "archive", "objects": str(flow1.uuid)})

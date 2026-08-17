@@ -29,13 +29,13 @@
 {% block content %}
   <temba-broadcast-list id="broadcast-list"
                         fill-window
-                        mode="{{ new_list_mode }}"
-                        history-state-key="broadcasts-{{ new_list_mode }}"
+                        mode="{{ list_mode }}"
+                        history-state-key="broadcasts-{{ list_mode }}"
                         list-title="{{ title }}"
-                        endpoint="{{ new_list_endpoint }}"
+                        endpoint="{{ list_url }}"
                         content-menu-endpoint="{{ request.path }}?{{ request.GET.urlencode }}"
-                        {% if new_list_mode == "scheduled" and org_perms.msgs.broadcast_update %}can-edit{% endif %}
-                        {% if new_list_mode == "scheduled" and org_perms.msgs.broadcast_scheduled_delete %}can-delete{% endif %}
+                        {% if list_mode == "scheduled" and org_perms.msgs.broadcast_update %}can-edit{% endif %}
+                        {% if list_mode == "scheduled" and org_perms.msgs.broadcast_scheduled_delete %}can-delete{% endif %}
                         empty-message="{% trans "No broadcasts" %}">
   </temba-broadcast-list>
 {% endblock content %}
