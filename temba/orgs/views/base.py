@@ -23,7 +23,6 @@ from django.utils.translation import gettext_lazy as _
 from temba.contacts.models import ContactField, ContactGroup
 from temba.utils import on_transaction_commit
 from temba.utils.fields import SelectMultipleWidget, TembaDateField
-from temba.utils.uuid import is_uuid
 from temba.utils.views.mixins import ComponentFormMixin, ContextMenuMixin, ModalFormMixin, SpaMixin
 
 from .mixins import BulkActionMixin, DependencyMixin, OrgObjPermsMixin, OrgPermsMixin
@@ -170,14 +169,11 @@ class BaseListComponentView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseLis
     """
     Base list view for pages rendered by a list component. The component fetches and pages the objects itself from
     the internal API, so this view only renders the page shell, serves its content menu, and applies bulk actions
-    posted back to it.
+    posted back to it. Selections and labels are posted by uuid - see BulkActionMixin.
     """
 
     # the internal API endpoint the component fetches from, e.g. "api.internal.contacts"
     list_endpoint = None
-
-    # whether the component posts object uuids rather than ids in `objects`
-    list_posts_uuids = True
 
     # bulk action key -> config consumed by the component: a label and icon, plus optionally `clientOnly` (the action
     # opens a modal seeded with the selection rather than posting back here), `destructive`/`confirm`, or a
@@ -204,42 +200,6 @@ class BaseListComponentView(ContextMenuMixin, BulkActionMixin, SpaMixin, BaseLis
         Gets the config for the given bulk action. Views can override to vary it by requesting user.
         """
         return dict(self.BULK_ACTION_CONFIG.get(key, {}))
-
-    def derive_bulk_action_objects(self, uuids: list):
-        """
-        Gets the objects the component posted by uuid, so they can be matched to the ids BulkActionMixin expects.
-        """
-        return self.model._default_manager.filter(org=self.request.org, uuid__in=uuids)
-
-    def resolve_posted_uuids(self, data):
-        """
-        Translates the uuids the component posts to the ids BulkActionMixin matches on.
-        """
-        if self.list_posts_uuids:
-            objects = data.getlist("objects")
-            uuids = [o for o in objects if is_uuid(o)]
-            if uuids:
-                # Only look up well-formed uuids — `uuid__in` runs each value through UUIDField.get_prep_value, so a
-                # single malformed value (a hostile post) would otherwise raise ValueError (500). Anything that isn't
-                # a uuid is left alone so an id-based post still works.
-                ids = self.derive_bulk_action_objects(uuids).values_list("id", flat=True)
-                data.setlist("objects", [str(i) for i in ids] + [o for o in objects if not is_uuid(o)])
-
-        # the label dropdown posts its target by uuid whatever the list posts for `objects`. Only touch the label
-        # field on label/unlabel actions so an unrelated post that happens to carry a `label` key isn't rewritten.
-        if data.get("action") in ("label", "unlabel"):
-            label = data.get("label")
-            labels = self.get_bulk_action_labels()
-            if label and is_uuid(label) and labels is not None:
-                obj = labels.filter(uuid=label).first()
-                data["label"] = str(obj.id) if obj else ""
-
-        return data
-
-    def post(self, request, *args, **kwargs):
-        request.POST = self.resolve_posted_uuids(request.POST.copy())
-
-        return super().post(request, *args, **kwargs)
 
     def get_queryset(self, **kwargs):
         # the component fetches and pages the objects itself, so a GET page needs no object list. A POST still needs

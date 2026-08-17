@@ -174,7 +174,7 @@ export class TriggerList extends ContentList<Trigger> {
 
   constructor() {
     super();
-    this.valueKey = 'id';
+    this.valueKey = 'uuid';
     this.columns = [
       { key: 'trigger', label: 'Trigger', grow: true, minWidth: '260px' },
       {

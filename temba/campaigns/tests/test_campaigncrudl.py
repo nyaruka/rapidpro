@@ -314,7 +314,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertNotEqual("", response.context["list_subtitle"])
         self.assertEqual(["restore"], [a["key"] for a in response.context["list_bulk_actions"]])
 
-        # the component posts campaign uuids in `objects`; the view translates them to ids so the bulk action applies
+        # the component posts campaign uuids in `objects`
         self.client.post(list_url, {"action": "archive", "objects": str(campaign1.uuid)})
         campaign1.refresh_from_db()
         self.assertTrue(campaign1.is_archived)
@@ -324,7 +324,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         campaign1.refresh_from_db()
         self.assertFalse(campaign1.is_archived)
 
-        # a malformed uuid is dropped rather than erroring
+        # a malformed uuid fails form validation rather than erroring
         response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
         self.assertEqual(200, response.status_code)
         campaign2.refresh_from_db()
