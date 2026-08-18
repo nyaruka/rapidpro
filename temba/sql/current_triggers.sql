@@ -24,6 +24,10 @@ CREATE TRIGGER temba_flowrun_on_change
     AFTER UPDATE ON flows_flowrun
     FOR EACH ROW EXECUTE PROCEDURE temba_flowrun_on_change();
 
+CREATE TRIGGER temba_flowrun_on_delete
+AFTER DELETE ON flows_flowrun REFERENCING OLD TABLE AS oldtab
+FOR EACH STATEMENT EXECUTE PROCEDURE temba_flowrun_on_delete();
+
 CREATE TRIGGER temba_flowrun_on_insert
 AFTER INSERT ON flows_flowrun REFERENCING NEW TABLE AS newtab
 FOR EACH STATEMENT EXECUTE PROCEDURE temba_flowrun_on_insert();

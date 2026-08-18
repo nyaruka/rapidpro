@@ -54,6 +54,18 @@ class FlowActivityCountTest(TembaTest):
             flow.counts.prefix("node:").scope_totals(),
         )
 
+        # deleting runs decrements the node counts of any still active or waiting
+        FlowRun.objects.all().delete()
+
+        self.assertEqual(
+            {
+                "node:ebb534e1-e2e0-40e9-8652-d195e87d832b": 0,
+                "node:bbb71aab-e026-442e-9971-6bc4f48941fb": 0,
+                "node:85b0c928-4bd9-4a2e-84b2-164802c32486": 0,
+            },
+            flow.counts.prefix("node:").scope_totals(),
+        )
+
     def test_status_counts(self):
         contact = self.create_contact("Bob", phone="+1234567890")
         session = FlowSession.objects.create(
@@ -134,11 +146,16 @@ class FlowActivityCountTest(TembaTest):
         self.assertEqual({"status:A": 2, "status:I": 4}, flow1.counts.scope_totals())
         self.assertEqual({"status:X": 1, "status:I": 2}, flow2.counts.scope_totals())
 
-        # delete some runs
+        # deleting runs which are still active or waiting decrements their status counts
         FlowRun.objects.filter(id__in=[r.id for r in runs2]).delete()
 
-        # status counts are unchanged
-        self.assertEqual({"status:A": 2, "status:I": 4}, flow1.counts.scope_totals())
+        self.assertEqual({"status:A": 0, "status:I": 4}, flow1.counts.scope_totals())
+        self.assertEqual({"status:X": 1, "status:I": 2}, flow2.counts.scope_totals())
+
+        # but deleting exited runs doesn't change status counts
+        FlowRun.objects.filter(id__in=[r.id for r in runs1]).delete()
+
+        self.assertEqual({"status:A": 0, "status:I": 4}, flow1.counts.scope_totals())
         self.assertEqual({"status:X": 1, "status:I": 2}, flow2.counts.scope_totals())
 
     def test_msgsin_counts(self):
