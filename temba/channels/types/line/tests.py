@@ -46,6 +46,9 @@ class LineTypeTest(TembaTest):
         self.assertRedirects(response, reverse("channels.channel_configuration", args=[channel.uuid]))
         self.assertEqual(channel.config, {"auth_token": "abcdef123456", "secret": "123456", "channel_id": "123456789"})
 
+        response = self.client.get(reverse("channels.channel_configuration", args=[channel.uuid]))
+        self.assertContains(response, f"/c/ln/{channel.uuid}/receive")
+
         response = self.client.post(url, payload, follow=True)
         self.assertContains(response, "This channel is already connected in this workspace.")
 

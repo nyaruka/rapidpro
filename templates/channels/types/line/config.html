@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n channels %}
 
 {% blocktrans trimmed %}
   To finish the configuration of Line channel you'll need to set the following callback URL in the Line Bot settings page, following the steps below:
@@ -11,7 +11,7 @@
 </div>
 <div class="card mt-4 flex-shrink-0">
   <div class="subtitle">{% trans "Callback URL" %}</div>
-  <div class="code">https://{{ channel.callback_domain }}/c/ln/{{ channel.uuid }}/receive</div>
+  <div class="code">{% channel_callback channel "receive" %}</div>
 </div>
 <div class="mt-6">
   <div class="subtitle">{% trans "Step Two" %}</div>

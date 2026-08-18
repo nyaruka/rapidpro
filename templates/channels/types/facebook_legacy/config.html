@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n channels %}
 
 {% blocktrans trimmed %}
   To finish configuring your Facebook connection, you'll need to enter the following webhook URL and token on your application's
@@ -26,7 +26,7 @@
   <div class="subtitle">{% trans "Verify Token" %}</div>
   <div class="code">{{ channel.config.secret }}</div>
   <div class="subtitle mt-4">{% trans "Webhook URL" %}</div>
-  <div class="code">https://{{ channel.callback_domain }}/c/fb/{{ channel.uuid }}/receive</div>
+  <div class="code">{% channel_callback channel "receive" %}</div>
   <div class="mt-4">
     {% blocktrans trimmed %}
       It may take up to ten minutes for a new webhook to take effect after being set on your Facebook application. Remember,

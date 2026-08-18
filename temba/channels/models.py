@@ -59,11 +59,9 @@ class ConfigUI:
 
         def get_url(self, channel) -> str:
             if self.courier is not None:
-                path = channel.type.courier_path(channel.uuid, self.courier)
-            elif self.mailroom is not None:
-                path = f"/mr/ivr/c/{channel.uuid}/{self.mailroom}"
+                return channel.courier_url(self.courier)
 
-            return f"https://{channel.callback_domain}{path}"
+            return f"https://{channel.callback_domain}/mr/ivr/c/{channel.uuid}/{self.mailroom}"
 
     blurb: str = None
     endpoints: tuple[Endpoint] = ()
@@ -556,6 +554,12 @@ class Channel(LegacyIDMixin, TembaModel, DependencyMixin):
             return callback_domain
         else:
             return self.org.get_brand_domain()
+
+    def courier_url(self, action: str) -> str:
+        """
+        Gets the URL on which courier handles the given action for this channel
+        """
+        return f"https://{self.callback_domain}{self.type.courier_path(self.uuid, action)}"
 
     def supports_ivr(self):
         return Channel.ROLE_CALL in self.role or Channel.ROLE_ANSWER in self.role

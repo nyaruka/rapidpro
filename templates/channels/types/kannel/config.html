@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n channels %}
 
 <div class="card">
   {% blocktrans trimmed %}
@@ -27,7 +27,7 @@
         keyword = default
         allowed-receiver-prefix = {{ channel.address }}
         max-messages = 0
-        post-url = &quot;https://{{ channel.callback_domain }}/c/kn/{{ channel.uuid }}/receive?backend=%i&amp;sender=%p&amp;message=%b&amp;ts=%T&amp;id=%I&amp;to=%P&quot;
+        post-url = &quot;{% channel_callback channel "receive" %}?backend=%i&amp;sender=%p&amp;message=%b&amp;ts=%T&amp;id=%I&amp;to=%P&quot;
         concatenation = true
         assume-plain-text = true
         accept-x-kannel-headers = true
