@@ -1,3 +1,7 @@
+v26.3.51 (2026-08-18)
+-------------------------
+ * Interrupt a contact's waiting session before deleting their runs
+
 v26.3.50 (2026-08-18)
 -------------------------
  * Batch the flow activity count repair so it can run on large databases
