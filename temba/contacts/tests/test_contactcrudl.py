@@ -256,6 +256,12 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # a malformed contact uuid in `objects` fails form validation rather than raising (no 500 on garbage input)
         response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
         self.assertEqual(200, response.status_code)
+        self.assertToast(response, "error", "Your selection is no longer valid. Please refresh and try again.")
+
+        # a label action with no label at all is rejected with our own error
+        response = self.client.post(list_url, {"action": "label", "objects": str(frank.uuid)})
+        self.assertEqual(200, response.status_code)
+        self.assertToast(response, "info", "Must specify a label")
 
     @mock_mailroom
     def test_blocked(self, mr_mocks):

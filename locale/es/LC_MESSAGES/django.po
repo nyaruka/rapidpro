@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 21:53+0000\n"
+"POT-Creation-Date: 2026-08-17 23:39+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -3274,6 +3274,9 @@ msgstr "Debe especificar una etiqueta"
 
 msgid "An error occurred while making your changes. Please try again."
 msgstr "Se produjo un error al realizar los cambios. Inténtalo de nuevo."
+
+msgid "Your selection is no longer valid. Please refresh and try again."
+msgstr "Su selección ya no es válida. Actualice la página y vuelva a intentarlo."
 
 msgid "Edit Team"
 msgstr "Editar equipo"

@@ -324,9 +324,10 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         campaign1.refresh_from_db()
         self.assertFalse(campaign1.is_archived)
 
-        # a malformed uuid fails form validation rather than erroring
+        # a malformed uuid fails form validation rather than erroring, and the user is told
         response = self.client.post(list_url, {"action": "archive", "objects": "not-a-uuid"})
         self.assertEqual(200, response.status_code)
+        self.assertToast(response, "error", "Your selection is no longer valid. Please refresh and try again.")
         campaign2.refresh_from_db()
         self.assertFalse(campaign2.is_archived)
 
@@ -335,6 +336,7 @@ class CampaignCRUDLTest(TembaTest, CRUDLTestMixin):
         other_org_campaign = self.create_campaign(self.org2, "Other Org", other_org_group)
         response = self.client.post(list_url, {"action": "archive", "objects": str(other_org_campaign.uuid)})
         self.assertEqual(200, response.status_code)
+        self.assertToast(response, "error", "Your selection is no longer valid. Please refresh and try again.")
         other_org_campaign.refresh_from_db()
         self.assertFalse(other_org_campaign.is_archived)
 
