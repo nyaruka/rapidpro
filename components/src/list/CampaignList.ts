@@ -41,10 +41,16 @@ export class CampaignList extends ContentList<Campaign> {
   constructor() {
     super();
     this.valueKey = 'uuid';
-    this.columns = [
+    this.bulkActions = [
+      { key: 'archive', label: 'Archive', icon: Icon.archive }
+    ];
+  }
+
+  protected buildColumns(): ContentListColumn[] {
+    return [
       {
         key: 'name',
-        label: 'Name',
+        label: msg('Name'),
         sortable: true,
         minWidth: '160px',
         maxWidth: '280px',
@@ -52,35 +58,32 @@ export class CampaignList extends ContentList<Campaign> {
       },
       {
         key: 'group',
-        label: 'Group',
+        label: msg('Group'),
         minWidth: '120px',
         maxWidth: '220px'
       },
       {
         key: 'contacts',
-        label: 'Contacts',
+        label: msg('Contacts'),
         sortable: true,
         minWidth: '72px',
         align: 'right'
       },
       {
         key: 'events',
-        label: 'Events',
+        label: msg('Events'),
         sortable: true,
         minWidth: '64px',
         align: 'right'
       },
       {
         key: 'modified_on',
-        label: 'Updated',
+        label: msg('Updated'),
         sortable: true,
         minWidth: '96px',
         maxWidth: '150px',
         align: 'right'
       }
-    ];
-    this.bulkActions = [
-      { key: 'archive', label: 'Archive', icon: Icon.archive }
     ];
   }
 

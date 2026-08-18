@@ -116,24 +116,6 @@ export class MsgList extends ContentList<Msg> {
     // scroll horizontally once the container is too narrow to keep the
     // columns usable, rather than clipping anything.
     this.minTableWidth = '640px';
-    this.columns = [
-      {
-        key: 'contact',
-        label: 'Contact',
-        width: '130px',
-        pinned: true,
-        resizable: true
-      },
-      { key: 'text', label: 'Message', grow: true },
-      // Sent is deliberately not resizable: it's the last column, so its
-      // only possible handle would sit on the table's outer edge (Message
-      // is the grow column and owns the boundary between them).
-      {
-        key: 'created_on',
-        label: 'Sent',
-        align: 'right'
-      }
-    ];
     this.bulkActions = [
       {
         key: 'label',
@@ -145,6 +127,27 @@ export class MsgList extends ContentList<Msg> {
       // always goes last.
       { key: 'archive', label: 'Archive', icon: Icon.archive },
       { key: 'delete', label: 'Delete', icon: Icon.delete, destructive: true }
+    ];
+  }
+
+  protected buildColumns(): ContentListColumn[] {
+    return [
+      {
+        key: 'contact',
+        label: msg('Contact'),
+        width: '130px',
+        pinned: true,
+        resizable: true
+      },
+      { key: 'text', label: msg('Message'), grow: true },
+      // Sent is deliberately not resizable: it's the last column, so its
+      // only possible handle would sit on the table's outer edge (Message
+      // is the grow column and owns the boundary between them).
+      {
+        key: 'created_on',
+        label: msg('Sent'),
+        align: 'right'
+      }
     ];
   }
 

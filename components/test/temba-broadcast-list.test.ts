@@ -265,7 +265,10 @@ describe('temba-broadcast-list', () => {
 
   it('renders the sent date', async () => {
     const list: BroadcastList = await getBroadcastList();
-    await setItems(list, [broadcast(), broadcast({ uuid: 'bcast-202', created_on: '' })]);
+    await setItems(list, [
+      broadcast(),
+      broadcast({ uuid: 'bcast-202', created_on: '' })
+    ]);
     const rows = list.shadowRoot.querySelectorAll('tr.row');
     expect(rows[0].querySelectorAll('td')[3].querySelector('temba-date')).to
       .exist;

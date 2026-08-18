@@ -118,37 +118,6 @@ export class FlowList extends ContentList<Flow> {
     // a horizontal scroll once the container is too narrow to keep
     // the columns usable, rather than clipping anything.
     this.minTableWidth = '640px';
-    this.columns = [
-      {
-        key: 'name',
-        label: 'Name',
-        sortable: true,
-        minWidth: '160px',
-        grow: true,
-        pinned: true
-      },
-      {
-        key: 'runs',
-        label: 'Runs',
-        sortable: true,
-        minWidth: '64px',
-        align: 'right'
-      },
-      {
-        key: 'ongoing',
-        label: 'Ongoing',
-        sortable: true,
-        minWidth: '64px',
-        align: 'right'
-      },
-      {
-        key: 'completion',
-        label: 'Completion',
-        minWidth: '110px',
-        align: 'right'
-      },
-      { key: 'activity', label: 'Activity', width: '120px', align: 'right' }
-    ];
     this.bulkActions = [
       {
         key: 'label',
@@ -158,6 +127,45 @@ export class FlowList extends ContentList<Flow> {
       },
       { key: 'export', label: 'Export results', icon: Icon.export },
       { key: 'archive', label: 'Archive', icon: Icon.archive }
+    ];
+  }
+
+  protected buildColumns(): ContentListColumn[] {
+    return [
+      {
+        key: 'name',
+        label: msg('Name'),
+        sortable: true,
+        minWidth: '160px',
+        grow: true,
+        pinned: true
+      },
+      {
+        key: 'runs',
+        label: msg('Runs'),
+        sortable: true,
+        minWidth: '64px',
+        align: 'right'
+      },
+      {
+        key: 'ongoing',
+        label: msg('Ongoing'),
+        sortable: true,
+        minWidth: '64px',
+        align: 'right'
+      },
+      {
+        key: 'completion',
+        label: msg('Completion'),
+        minWidth: '110px',
+        align: 'right'
+      },
+      {
+        key: 'activity',
+        label: msg('Activity'),
+        width: '120px',
+        align: 'right'
+      }
     ];
   }
 
