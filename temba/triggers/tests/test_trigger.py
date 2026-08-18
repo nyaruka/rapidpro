@@ -369,6 +369,24 @@ class TriggerTest(TembaTest):
         self.assertFalse(Trigger.is_limit_reached(self.org))
 
     @override_settings(ORG_LIMIT_DEFAULTS={"triggers": 1})
+    def test_restore_limit(self):
+        flow = self.create_flow("Test")
+
+        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_CATCH_ALL, flow, is_archived=True)
+        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow, is_archived=True)
+
+        self.assertFalse(Trigger.is_limit_reached(self.org))
+
+        # restoring both would exceed the limit, so we restore what fits and error on the rest
+        with self.assertRaises(ValidationError):
+            Trigger.apply_action_restore(self.admin, self.org.triggers.filter(id__in=[trigger1.id, trigger2.id]))
+
+        # exactly one was restored, the other was blocked by the limit
+        self.assertEqual(1, self.org.triggers.filter(is_archived=False).count())
+        self.assertEqual(1, self.org.triggers.filter(is_archived=True).count())
+        self.assertTrue(Trigger.is_limit_reached(self.org))
+
+    @override_settings(ORG_LIMIT_DEFAULTS={"triggers": 1})
     def test_import_limit(self):
         flow = self.create_flow("Test")
         flow_ref = {"uuid": str(flow.uuid), "name": "Test"}

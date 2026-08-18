@@ -376,6 +376,9 @@ class Trigger(TembaUUIDMixin, OrgLimitMixin, SmartModel):
     def apply_action_restore(cls, user, triggers):
         # work through all the restored triggers in order of most recent used
         for trigger in triggers.order_by("-modified_on"):
+            if cls.is_limit_reached(trigger.org):
+                raise ValidationError(_("This workspace has reached its limit of triggers."))
+
             trigger.restore(user)
 
     @classmethod
