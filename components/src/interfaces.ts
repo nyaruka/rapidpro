@@ -184,11 +184,10 @@ export interface Campaign {
 /** A single row in the trigger CRUDL list
  * (`triggers/trigger_list.html`): what starts the flow (type +
  * per-type details), any channel / group filters, and the flow it
- * starts. Rows key off the uuid; the numeric id is carried for the
- * page's pk-based update modal URL. */
+ * starts. Rows key off the uuid, which also addresses the page's
+ * update modal. */
 export interface Trigger {
   uuid: string;
-  id: number;
   /** Trigger type slug — drives the leading row icon and the
    * details cell (`keyword`, `catch_all`, `schedule`,
    * `inbound_call`, `missed_call`, `new_conversation`, `referral`,
@@ -224,12 +223,11 @@ export interface Trigger {
 
 /** A single row in the broadcast CRUDL lists — both the scheduled
  * list (`msgs/broadcast_scheduled.html`) and the sent list
- * (`msgs/broadcast_list.html`). Rows key off the uuid; the numeric id
- * is carried for the scheduled list's pk-based edit and delete modal
- * URLs. Content fields carry the base-language translation. */
+ * (`msgs/broadcast_list.html`). Rows key off the uuid, which also
+ * addresses the scheduled list's edit and delete modals. Content
+ * fields carry the base-language translation. */
 export interface Broadcast {
   uuid: string;
-  id: number;
   /** Server status slug — `pending`, `queued`, `started`,
    * `completed`, `failed` or `interrupted`. Scheduled broadcasts
    * that haven't fired yet sit at `pending`. */

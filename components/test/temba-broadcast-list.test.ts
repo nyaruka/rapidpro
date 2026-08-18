@@ -10,7 +10,7 @@ const getBroadcastList = async (attrs: any = {}, width = 800, height = 0) => {
 
 const broadcast = (over: any = {}) => {
   const item = {
-    id: 201,
+    uuid: 'bcast-201',
     status: 'completed',
     text: 'Your appointment is confirmed for tomorrow at 10am.',
     attachments: [],
@@ -25,13 +25,12 @@ const broadcast = (over: any = {}) => {
     created_by: 'admin@textit.com',
     ...over
   };
-  // rows key off the uuid, so derive one per id unless the caller set one
-  return { uuid: `bcast-${item.id}`, ...item };
+  return item;
 };
 
 const scheduled = (over: any = {}) =>
   broadcast({
-    id: 301,
+    uuid: 'bcast-301',
     status: 'pending',
     msg_count: undefined,
     schedule: {
@@ -183,14 +182,14 @@ describe('temba-broadcast-list', () => {
     await setItems(list, [
       broadcast(),
       broadcast({
-        id: 202,
+        uuid: 'bcast-202',
         status: 'started',
         msg_count: 40,
         progress: { total: 100, started: 40 }
       }),
-      broadcast({ id: 203, status: 'queued', msg_count: 0 }),
-      broadcast({ id: 204, status: 'failed', msg_count: 0 }),
-      broadcast({ id: 205, status: 'wobble' })
+      broadcast({ uuid: 'bcast-203', status: 'queued', msg_count: 0 }),
+      broadcast({ uuid: 'bcast-204', status: 'failed', msg_count: 0 }),
+      broadcast({ uuid: 'bcast-205', status: 'wobble' })
     ]);
 
     const rows = list.shadowRoot.querySelectorAll('tr.row');
@@ -266,7 +265,7 @@ describe('temba-broadcast-list', () => {
 
   it('renders the sent date', async () => {
     const list: BroadcastList = await getBroadcastList();
-    await setItems(list, [broadcast(), broadcast({ id: 202, created_on: '' })]);
+    await setItems(list, [broadcast(), broadcast({ uuid: 'bcast-202', created_on: '' })]);
     const rows = list.shadowRoot.querySelectorAll('tr.row');
     expect(rows[0].querySelectorAll('td')[3].querySelector('temba-date')).to
       .exist;
@@ -278,11 +277,11 @@ describe('temba-broadcast-list', () => {
     await setItems(list, [
       scheduled(),
       scheduled({
-        id: 302,
+        uuid: 'bcast-302',
         schedule: { repeat_period: 'O', display: 'once', next_fire: null }
       }),
       scheduled({
-        id: 303,
+        uuid: 'bcast-303',
         schedule: {
           repeat_period: 'D',
           display: '',
@@ -557,7 +556,7 @@ describe('temba-broadcast-list', () => {
     await list.updateComplete;
     expect(fired).to.have.length(1);
     expect(fired[0].action).to.equal('edit_broadcast');
-    expect(fired[0].broadcast.id).to.equal(301);
+    expect(fired[0].broadcast.uuid).to.equal('bcast-301');
     expect((list as any).detailBroadcast).to.be.null;
 
     // reopen and delete

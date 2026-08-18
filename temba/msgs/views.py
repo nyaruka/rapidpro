@@ -286,6 +286,10 @@ class BroadcastCRUDL(SmartCRUDL):
 
     class Update(ModalHeaderMixin, OrgObjPermsMixin, SmartWizardUpdateView):
         form_list = [("target", TargetForm), ("compose", ComposeForm), ("schedule", ScheduleForm)]
+        # this wizard view resolves its object through Django's SingleObjectMixin rather than smartmin's, and that
+        # doesn't default `slug_field` to the url kwarg, so both are needed
+        slug_url_kwarg = "uuid"
+        slug_field = "uuid"
         success_url = "@msgs.broadcast_scheduled"
         submit_button_name = _("Save")
         modal_header_bg = "#8e5ea7"
@@ -386,9 +390,10 @@ class BroadcastCRUDL(SmartCRUDL):
 
     class ScheduledDelete(ModalFormMixin, OrgObjPermsMixin, SmartDeleteView):
         default_template = "broadcast_scheduled_delete.html"
+        slug_url_kwarg = "uuid"
         success_url = "@msgs.broadcast_scheduled"
         cancel_url = "@msgs.broadcast_scheduled"
-        fields = ("id",)
+        fields = ("uuid",)
         submit_button_name = _("Delete")
 
         def post(self, request, *args, **kwargs):
@@ -533,6 +538,7 @@ class BroadcastCRUDL(SmartCRUDL):
 
     class Interrupt(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         default_template = "smartmin/delete_confirm.html"
+        slug_url_kwarg = "uuid"
         permission = "msgs.broadcast_update"
         fields = ()
         submit_button_name = _("Interrupt")

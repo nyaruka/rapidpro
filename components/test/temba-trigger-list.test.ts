@@ -31,7 +31,7 @@ const settlePills = async (list: TriggerList) => {
 
 const trigger = (over: any = {}) => {
   const item = {
-    id: 101,
+    uuid: 'trigger-101',
     type: 'keyword',
     flow: { uuid: 'flow-1', name: 'Registration' },
     channel: null,
@@ -43,8 +43,7 @@ const trigger = (over: any = {}) => {
     created_on: '2026-05-11T09:12:00.000000Z',
     ...over
   };
-  // rows key off the uuid, so derive one per id unless the caller set one
-  return { uuid: `trigger-${item.id}`, ...item };
+  return item;
 };
 
 describe('temba-trigger-list', () => {
@@ -98,7 +97,7 @@ describe('temba-trigger-list', () => {
     row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(rowClicks).to.have.length(1);
-    expect(rowClicks[0].item.id).to.equal(101);
+    expect(rowClicks[0].item.uuid).to.equal('trigger-101');
     // no navigation — the host owns what happens next
     expect(redirects).to.have.length(0);
   });
@@ -254,8 +253,8 @@ describe('temba-trigger-list', () => {
   it('states the type name only when there are no details', async () => {
     const list: TriggerList = await getTriggerList();
     (list as any).items = [
-      trigger({ id: 1, type: 'new_conversation', keywords: null }),
-      trigger({ id: 2 })
+      trigger({ uuid: 'trigger-1', type: 'new_conversation', keywords: null }),
+      trigger({ uuid: 'trigger-2' })
     ];
     list.requestUpdate();
     await list.updateComplete;

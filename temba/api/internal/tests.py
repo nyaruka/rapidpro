@@ -1208,7 +1208,6 @@ class EndpointsTest(APITestMixin, TembaTest):
         # each row carries the columns the component renders
         def check_sent_shape(data):
             row = [r for r in data["results"] if r["uuid"] == str(bcast1.uuid)][0]
-            self.assertEqual(bcast1.id, row["id"])
             self.assertEqual("completed", row["status"])
             self.assertEqual("Hello everyone", row["text"])
             self.assertEqual(["image/jpeg:http://example.com/cat.jpg"], row["attachments"])
@@ -1346,7 +1345,6 @@ class EndpointsTest(APITestMixin, TembaTest):
         # each row carries the columns the component renders
         def check_shape(data):
             first = [r for r in data["results"] if r["uuid"] == str(trigger1.uuid)][0]
-            self.assertEqual(trigger1.id, first["id"])
             self.assertEqual("keyword", first["type"])
             self.assertEqual({"uuid": str(flow1.uuid), "name": "Survey"}, first["flow"])
             self.assertIsNone(first["channel"])
