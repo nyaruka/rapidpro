@@ -1149,8 +1149,9 @@ class Org(LegacyIDMixin, SmartModel):
 
         # delete our contacts
         for contact in self.contacts.all():
-            # release synchronously and don't deindex as that will happen for the whole org
-            counts_for_contact = contact.release(user, immediately=True, deindex=False)
+            # release synchronously and don't deindex as that will happen for the whole org, or interrupt as we don't
+            # want to fire mailroom tasks for flows we've already released
+            counts_for_contact = contact.release(user, immediately=True, deindex=False, interrupt=False)
             contact.delete()
 
             counts.update(counts_for_contact)
