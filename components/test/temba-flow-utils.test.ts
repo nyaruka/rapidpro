@@ -21,16 +21,6 @@ function setFlowType(type: string) {
 }
 
 describe('shouldExcludeFlow', () => {
-  it('excludes message flows when current flow is background', () => {
-    setFlowType('messaging_background');
-    expect(shouldExcludeFlow({ type: 'message' })).to.be.true;
-  });
-
-  it('allows background flows when current flow is background', () => {
-    setFlowType('messaging_background');
-    expect(shouldExcludeFlow({ type: 'background' })).to.be.false;
-  });
-
   it('allows message flows when current flow is messaging', () => {
     setFlowType('messaging');
     expect(shouldExcludeFlow({ type: 'message' })).to.be.false;
@@ -41,9 +31,88 @@ describe('shouldExcludeFlow', () => {
     expect(shouldExcludeFlow({ type: 'background' })).to.be.false;
   });
 
+  it('excludes survey flows when current flow is messaging', () => {
+    setFlowType('messaging');
+    expect(shouldExcludeFlow({ type: 'survey' })).to.be.true;
+  });
+
+  it('excludes voice flows when current flow is messaging', () => {
+    setFlowType('messaging');
+    expect(shouldExcludeFlow({ type: 'voice' })).to.be.true;
+  });
+
+  it('excludes message flows when current flow is messaging_background', () => {
+    setFlowType('messaging_background');
+    expect(shouldExcludeFlow({ type: 'message' })).to.be.true;
+  });
+
+  it('allows background flows when current flow is messaging_background', () => {
+    setFlowType('messaging_background');
+    expect(shouldExcludeFlow({ type: 'background' })).to.be.false;
+  });
+
+  it('excludes survey flows when current flow is messaging_background', () => {
+    setFlowType('messaging_background');
+    expect(shouldExcludeFlow({ type: 'survey' })).to.be.true;
+  });
+
+  it('excludes voice flows when current flow is messaging_background', () => {
+    setFlowType('messaging_background');
+    expect(shouldExcludeFlow({ type: 'voice' })).to.be.true;
+  });
+
+  it('excludes message flows when current flow is messaging_offline', () => {
+    setFlowType('messaging_offline');
+    expect(shouldExcludeFlow({ type: 'message' })).to.be.true;
+  });
+
+  it('allows background flows when current flow is messaging_offline', () => {
+    setFlowType('messaging_offline');
+    expect(shouldExcludeFlow({ type: 'background' })).to.be.false;
+  });
+
+  it('allows survey flows when current flow is messaging_offline', () => {
+    setFlowType('messaging_offline');
+    expect(shouldExcludeFlow({ type: 'survey' })).to.be.false;
+  });
+
+  it('excludes voice flows when current flow is messaging_offline', () => {
+    setFlowType('messaging_offline');
+    expect(shouldExcludeFlow({ type: 'voice' })).to.be.true;
+  });
+
+  it('excludes message flows when current flow is voice', () => {
+    setFlowType('voice');
+    expect(shouldExcludeFlow({ type: 'message' })).to.be.true;
+  });
+
+  it('allows background flows when current flow is voice', () => {
+    setFlowType('voice');
+    expect(shouldExcludeFlow({ type: 'background' })).to.be.false;
+  });
+
+  it('excludes survey flows when current flow is voice', () => {
+    setFlowType('voice');
+    expect(shouldExcludeFlow({ type: 'survey' })).to.be.true;
+  });
+
+  it('allows voice flows when current flow is voice', () => {
+    setFlowType('voice');
+    expect(shouldExcludeFlow({ type: 'voice' })).to.be.false;
+  });
+
   it('returns false when flow definition is null', () => {
     zustand.setState({ ...zustand.getState(), flowDefinition: null });
     expect(shouldExcludeFlow({ type: 'message' })).to.be.false;
+  });
+
+  it('returns false for unrecognized flow types', () => {
+    setFlowType('messaging');
+    expect(shouldExcludeFlow({ type: 'something_new' })).to.be.false;
+    expect(shouldExcludeFlow({})).to.be.false;
+
+    setFlowType('something_new');
+    expect(shouldExcludeFlow({ type: 'voice' })).to.be.false;
   });
 });
 
