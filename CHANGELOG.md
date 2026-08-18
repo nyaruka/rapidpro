@@ -1,3 +1,10 @@
+v26.4.0 (2026-08-18)
+-------------------------
+ * Extract org limit functionality into its own mixin and use for triggers
+ * Address triggers and broadcasts by uuid in their modal URLs
+ * Tell the user when a bulk action form fails validation instead of silently no-op'ing
+ * Localize the column headers on the component rendered list pages
+
 v26.3.48 (2026-08-18)
 -------------------------
  * Only offer subflows that the engine will actually let us enter
