@@ -151,6 +151,25 @@ END;
 $$ LANGUAGE plpgsql;
 
 ----------------------------------------------------------------------
+-- Handles DELETE statements on flowrun table
+----------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION temba_flowrun_on_delete() RETURNS TRIGGER AS $$
+BEGIN
+    -- add negative status counts for any deleted runs which were still active or waiting
+    INSERT INTO flows_flowactivitycount("flow_id", "scope", "count", "is_squashed")
+    SELECT flow_id, format('status:%s', status), -count(*), FALSE FROM oldtab
+    WHERE status IN ('A', 'W') GROUP BY 1, 2;
+
+    -- add negative node counts for any deleted runs sitting at a node
+    INSERT INTO flows_flowactivitycount("flow_id", "scope", "count", "is_squashed")
+    SELECT flow_id, format('node:%s', current_node_uuid), -count(*), FALSE FROM oldtab
+    WHERE status IN ('A', 'W') AND current_node_uuid IS NOT NULL GROUP BY 1, 2;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+----------------------------------------------------------------------
 -- Handles INSERT statements on flowrun table
 ----------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION temba_flowrun_on_insert() RETURNS TRIGGER AS $$
