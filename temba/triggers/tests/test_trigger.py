@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
+from django.test import override_settings
 from django.utils import timezone
 
 from temba.channels.models import Channel
@@ -341,6 +342,63 @@ class TriggerTest(TembaTest):
 
         trigger = Trigger.objects.get(trigger_type="C")
         self.assertIsNone(trigger.keywords)
+
+    @override_settings(ORG_LIMIT_DEFAULTS={"triggers": 2})
+    def test_org_limit(self):
+        flow = self.create_flow("Test")
+
+        self.assertFalse(Trigger.is_limit_reached(self.org))
+
+        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_CATCH_ALL, flow)
+        Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow)
+
+        self.assertTrue(Trigger.is_limit_reached(self.org))
+
+        # limits are per org
+        self.assertFalse(Trigger.is_limit_reached(self.org2))
+
+        # archived triggers don't fire so they don't count
+        trigger1.archive(self.admin)
+        self.assertFalse(Trigger.is_limit_reached(self.org))
+
+        # and neither do released ones
+        trigger1.restore(self.admin)
+        self.assertTrue(Trigger.is_limit_reached(self.org))
+
+        trigger1.release(self.admin)
+        self.assertFalse(Trigger.is_limit_reached(self.org))
+
+    @override_settings(ORG_LIMIT_DEFAULTS={"triggers": 1})
+    def test_import_limit(self):
+        flow = self.create_flow("Test")
+        flow_ref = {"uuid": str(flow.uuid), "name": "Test"}
+
+        def unarchived_count():
+            return Trigger.objects.filter(org=self.org, is_active=True, is_archived=False).count()
+
+        self._import_trigger({"trigger_type": "C", "flow": flow_ref, "groups": []})
+        catchall = Trigger.objects.get(trigger_type="C")
+        self.assertEqual(1, unarchived_count())
+
+        # at the limit, so a new trigger isn't created
+        self._import_trigger({"trigger_type": "V", "flow": flow_ref, "groups": []})
+        self.assertEqual(1, unarchived_count())
+        self.assertFalse(Trigger.objects.filter(trigger_type="V").exists())
+
+        # but an import which matches an existing trigger is still allowed
+        self._import_trigger({"trigger_type": "C", "flow": flow_ref, "groups": []})
+        self.assertEqual([catchall], list(Trigger.objects.filter(trigger_type="C")))
+
+        # archiving frees up room again
+        catchall.archive(self.admin)
+        self._import_trigger({"trigger_type": "V", "flow": flow_ref, "groups": []})
+        self.assertEqual(1, unarchived_count())
+
+        # and a matching import can restore an archived trigger even tho that puts us over the limit
+        self._import_trigger({"trigger_type": "C", "flow": flow_ref, "groups": []})
+        catchall.refresh_from_db()
+        self.assertFalse(catchall.is_archived)
+        self.assertEqual(2, unarchived_count())
 
     def test_export_import_keyword(self):
         flow = self.create_flow("Test")

@@ -155,7 +155,34 @@ class TembaNameMixin(models.Model):
         abstract = True
 
 
-class TembaModel(TembaUUIDMixin, TembaNameMixin, SmartModel):
+class OrgLimitMixin:
+    """
+    Mixin for things which are limited per org. Deliberately not a model mixin - it adds no fields of its own, so it
+    can be mixed into models which don't have the rest of the `TembaModel` machinery (e.g. things without a name).
+    """
+
+    org_limit_key = None
+
+    @classmethod
+    def get_countable_for_org(cls, org):
+        """
+        The objects which count against this org's limit. Override to narrow it further.
+        """
+        return cls._default_manager.filter(org=org, is_active=True)
+
+    @classmethod
+    def is_limit_reached(cls, org) -> bool:
+        """
+        Returns whether we've reached the org limit for this model
+        """
+
+        if cls.org_limit_key:
+            return cls.get_countable_for_org(org).count() >= org.get_limit(cls.org_limit_key)
+
+        return False
+
+
+class TembaModel(TembaUUIDMixin, TembaNameMixin, OrgLimitMixin, SmartModel):
     """
     Base for models which have UUID, name and smartmin auditing fields
     """
@@ -167,8 +194,6 @@ class TembaModel(TembaUUIDMixin, TembaNameMixin, SmartModel):
         IGNORED_INVALID = 4  # import ignored because it's invalid
         IGNORED_LIMIT_REACHED = 5  # import ignored because workspace has reached limit
 
-    org_limit_key = None
-
     is_system = models.BooleanField(default=False)  # not user created, doesn't count against limits
 
     @classmethod
@@ -176,17 +201,8 @@ class TembaModel(TembaUUIDMixin, TembaNameMixin, SmartModel):
         return cls._default_manager.filter(org=org, is_active=True)
 
     @classmethod
-    def is_limit_reached(cls, org) -> bool:
-        """
-        Returns whether we've reached the org limit for this model
-        """
-
-        if cls.org_limit_key:
-            limit = org.get_limit(cls.org_limit_key)
-            count = cls.get_active_for_org(org).filter(is_system=False).count()
-            return count >= limit
-
-        return False
+    def get_countable_for_org(cls, org):
+        return cls.get_active_for_org(org).filter(is_system=False)  # system objects don't count against limits
 
     @classmethod
     def import_def(cls, org, user, definition: dict, preview: bool = False) -> tuple:

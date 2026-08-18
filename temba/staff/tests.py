@@ -85,6 +85,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "llms_limit",
                 "teams_limit",
                 "topics_limit",
+                "triggers_limit",
                 "loc",
             ],
             list(response.context["form"].fields.keys()),

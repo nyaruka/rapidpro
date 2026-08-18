@@ -220,9 +220,10 @@ class TriggerCRUDL(SmartCRUDL):
                 )
             )
 
-            menu.append(
-                self.create_menu_item(name=_("New Trigger"), icon="trigger_new", href="triggers.trigger_create")
-            )
+            if not Trigger.is_limit_reached(org):
+                menu.append(
+                    self.create_menu_item(name=_("New Trigger"), icon="trigger_new", href="triggers.trigger_create")
+                )
 
             menu.append(self.create_divider())
 
@@ -435,7 +436,7 @@ class TriggerCRUDL(SmartCRUDL):
         }
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("triggers.trigger_create"):
+            if self.has_org_perm("triggers.trigger_create") and not self.is_limit_reached():
                 menu.add_link(_("New Trigger"), reverse("triggers.trigger_create"), as_button=True)
 
         def derive_queryset(self, *args, **kwargs):

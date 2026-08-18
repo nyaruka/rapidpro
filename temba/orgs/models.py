@@ -265,6 +265,7 @@ class Org(LegacyIDMixin, SmartModel):
     LIMIT_LLMS = "llms"
     LIMIT_TOPICS = "topics"
     LIMIT_TEAMS = "teams"
+    LIMIT_TRIGGERS = "triggers"
 
     DELETE_DELAY_DAYS = 7  # how many days after releasing that an org is deleted
     OUTBOX_WARNING_THRESHOLD = 10_000

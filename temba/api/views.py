@@ -15,7 +15,7 @@ from temba import mailroom
 from temba.api.support import InvalidQueryError
 from temba.contacts.models import URN
 from temba.orgs.views.base import BaseDeleteModal, BaseListView
-from temba.utils.models import TembaModel
+from temba.utils.models import OrgLimitMixin, TembaModel
 from temba.utils.views.mixins import ContextMenuMixin, NonAtomicMixin, SpaMixin
 
 from .models import APIToken, BulkActionFailure
@@ -205,7 +205,7 @@ class WriteAPIMixin:
         else:
             instance = None
 
-            if issubclass(self.model, TembaModel):
+            if issubclass(self.model, OrgLimitMixin):
                 if self.model.is_limit_reached(request.org):
                     return Response(
                         {"detail": "Cannot create object because workspace has reached limit."},
