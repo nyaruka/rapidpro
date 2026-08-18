@@ -1,3 +1,6 @@
+from importlib import import_module
+from unittest.mock import patch
+
 from django.utils import timezone
 
 from temba.flows.models import FlowRun
@@ -59,3 +62,53 @@ class FixActivityCountsTest(MigrationTest):
             {"status:W": 1, "status:C": 11, "node:bbb71aab-e026-442e-9971-6bc4f48941fb": 1},
             self.flow3.counts.scope_totals(),
         )
+
+
+class FixActivityCountsPagingTest(MigrationTest):
+    """
+    The repair pages through flows in batches of BATCH_SIZE, so with a realistic batch size a test fixture never
+    runs the loop more than once. Shrink it so that advancing between pages is actually exercised.
+    """
+
+    app = "flows"
+    migrate_from = "0408_flowrun_active_index"
+    migrate_to = "0409_fix_activity_counts"
+
+    def setUp(self):
+        # has to be patched before super() runs the migration
+        migration = import_module("temba.flows.migrations.0409_fix_activity_counts")
+        patcher = patch.object(migration, "BATCH_SIZE", 2)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+        super().setUp()
+
+    def setUpBeforeMigration(self, apps):
+        contact = self.create_contact("Bob", phone="+1234567890")
+
+        # enough flows to span several pages, each with a count inflated by a run deleted whilst waiting
+        self.flows = []
+        for f in range(5):
+            flow = self.create_flow(f"Test {f}")
+            FlowRun.objects.create(
+                uuid=uuid4(),
+                org=self.org,
+                flow=flow,
+                contact=contact,
+                status=FlowRun.STATUS_WAITING,
+                session_uuid=uuid4(),
+                created_on=timezone.now(),
+                modified_on=timezone.now(),
+                current_node_uuid="bbb71aab-e026-442e-9971-6bc4f48941fb",
+            )
+            flow.counts.create(scope="status:W", count=3)
+            self.flows.append(flow)
+
+    def test_migration(self):
+        # every flow fixed, so no page was skipped or repeated
+        for flow in self.flows:
+            self.assertEqual(
+                {"status:W": 1, "node:bbb71aab-e026-442e-9971-6bc4f48941fb": 1},
+                flow.counts.scope_totals(),
+                f"counts not fixed for {flow.name}",
+            )

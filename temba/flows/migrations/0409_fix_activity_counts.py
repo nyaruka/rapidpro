@@ -1,4 +1,4 @@
-from django.db import migrations
+from django.db import connection as default_connection, migrations
 
 # runs could previously be deleted (e.g. by contact deletion) whilst still active or waiting, without their status and
 # node counts being decremented. Each statement compares counts to actual runs and inserts corrective count rows.
@@ -59,6 +59,9 @@ WHERE COALESCE(c.total, 0) != COALESCE(a.total, 0)
 def fix_activity_counts(apps, schema_editor):
     Flow = apps.get_model("flows", "Flow")
 
+    # schema_editor is None when this is run out of band via apply_manual
+    conn = schema_editor.connection if schema_editor else default_connection
+
     flow_ids_qs = Flow.objects.values_list("id", flat=True).order_by("id")
 
     last_flow_id = 0
@@ -72,7 +75,7 @@ def fix_activity_counts(apps, schema_editor):
         if not flow_ids:
             break
 
-        with schema_editor.connection.cursor() as cursor:
+        with conn.cursor() as cursor:
             cursor.execute(SQL_FIX_STATUS_COUNTS, {"flow_ids": flow_ids})
             num_status_rows += cursor.rowcount
 
