@@ -1,3 +1,10 @@
+v26.3.50 (2026-08-18)
+-------------------------
+ * Batch the flow activity count repair so it can run on large databases
+ * Add db trigger to decrement status/node counts for deleted active runs
+ * Enforce org trigger limit when restoring archived triggers
+ * Reduce default org limit of triggers to 250 from 500
+
 v26.3.49 (2026-08-18)
 -------------------------
  * Extract org limit functionality into its own mixin and use for triggers
