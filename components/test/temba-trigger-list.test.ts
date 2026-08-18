@@ -29,26 +29,29 @@ const settlePills = async (list: TriggerList) => {
   }
 };
 
-const trigger = (over: any = {}) => ({
-  id: 101,
-  type: 'keyword',
-  flow: { uuid: 'flow-1', name: 'Registration' },
-  channel: null,
-  groups: [{ uuid: 'group-1', name: 'Farmers' }],
-  exclude_groups: [],
-  contacts: [],
-  keywords: ['join', 'start'],
-  match_type: 'F',
-  created_on: '2026-05-11T09:12:00.000000Z',
-  ...over
-});
+const trigger = (over: any = {}) => {
+  const item = {
+    uuid: 'trigger-101',
+    type: 'keyword',
+    flow: { uuid: 'flow-1', name: 'Registration' },
+    channel: null,
+    groups: [{ uuid: 'group-1', name: 'Farmers' }],
+    exclude_groups: [],
+    contacts: [],
+    keywords: ['join', 'start'],
+    match_type: 'F',
+    created_on: '2026-05-11T09:12:00.000000Z',
+    ...over
+  };
+  return item;
+};
 
 describe('temba-trigger-list', () => {
   it('can be created', async () => {
     const list: TriggerList = await getTriggerList();
     assert.instanceOf(list, TriggerList);
-    // triggers have no uuid — rows key off the numeric id
-    expect(list.valueKey).to.equal('id');
+    // rows key off the trigger uuid
+    expect(list.valueKey).to.equal('uuid');
   });
 
   it('keeps rows event-only (no row href)', async () => {
@@ -94,7 +97,7 @@ describe('temba-trigger-list', () => {
     row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(rowClicks).to.have.length(1);
-    expect(rowClicks[0].item.id).to.equal(101);
+    expect(rowClicks[0].item.uuid).to.equal('trigger-101');
     // no navigation — the host owns what happens next
     expect(redirects).to.have.length(0);
   });
@@ -250,8 +253,8 @@ describe('temba-trigger-list', () => {
   it('states the type name only when there are no details', async () => {
     const list: TriggerList = await getTriggerList();
     (list as any).items = [
-      trigger({ id: 1, type: 'new_conversation', keywords: null }),
-      trigger({ id: 2 })
+      trigger({ uuid: 'trigger-1', type: 'new_conversation', keywords: null }),
+      trigger({ uuid: 'trigger-2' })
     ];
     list.requestUpdate();
     await list.updateComplete;

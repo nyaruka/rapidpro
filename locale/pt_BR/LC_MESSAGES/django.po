@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 21:01+0000\n"
+"POT-Creation-Date: 2026-08-17 23:39+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -3145,6 +3145,9 @@ msgstr "Prometheus"
 msgid "Shared Channels"
 msgstr "Canais compartilhados"
 
+msgid "Unrestricted Webhooks"
+msgstr "Webhooks sem restrições"
+
 msgid "Sorry, your workspace is currently suspended. To re-enable starting flows and sending messages, please contact support."
 msgstr "Desculpe, sua área de trabalho está suspensa no momento. Para voltar a iniciar fluxos e enviar mensagens, por favor entre em contato com o suporte."
 
@@ -3275,6 +3278,9 @@ msgstr "É preciso especificar um rótulo"
 
 msgid "An error occurred while making your changes. Please try again."
 msgstr "Um erro ocorreu enquanto realizava suas alterações. Por favor, tente novamente."
+
+msgid "Your selection is no longer valid. Please refresh and try again."
+msgstr "Sua seleção não é mais válida. Por favor atualize a página e tente novamente."
 
 msgid "Edit Team"
 msgstr "Editar equipe"

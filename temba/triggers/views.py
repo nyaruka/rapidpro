@@ -358,6 +358,8 @@ class TriggerCRUDL(SmartCRUDL):
         trigger_type = Trigger.TYPE_CLOSED_TICKET
 
     class Update(ModalFormMixin, ComponentFormMixin, OrgObjPermsMixin, SmartUpdateView):
+        slug_url_kwarg = "uuid"
+
         def get_form_class(self):
             return self.object.type.form
 
@@ -420,9 +422,6 @@ class TriggerCRUDL(SmartCRUDL):
         default_template = "triggers/trigger_list.html"
         search_fields = ("keywords__icontains", "flow__name__icontains", "channel__name__icontains")
         list_endpoint = "api.internal.triggers"
-
-        # triggers post their numeric ids in `objects`, matching BulkActionMixin's pk matching
-        list_posts_uuids = False
 
         BULK_ACTION_CONFIG = {
             "archive": {"label": _("Archive"), "icon": "archive"},

@@ -77,11 +77,16 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.create_label("label2")
         label3 = self.create_label("label3")
 
-        # editors can label messages - the component posts the label by uuid
+        # editors can label messages - the component posts both the messages and the label by uuid
         response = self.requestView(
             inbox_url,
             self.editor,
-            post_data={"action": "label", "objects": [msg1.id, msg2.id], "label": str(label1.uuid), "add": True},
+            post_data={
+                "action": "label",
+                "objects": [str(msg1.uuid), str(msg2.uuid)],
+                "label": str(label1.uuid),
+                "add": True,
+            },
         )
         self.assertEqual(200, response.status_code)
         self.assertEqual({msg1, msg2}, set(label1.msgs.all()))
@@ -90,7 +95,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.requestView(
             inbox_url,
             self.editor,
-            post_data={"action": "label", "objects": [msg2.id], "label": str(label1.uuid), "add": False},
+            post_data={"action": "label", "objects": [str(msg2.uuid)], "label": str(label1.uuid), "add": False},
         )
         self.assertEqual({msg1}, set(label1.msgs.all()))
 
@@ -98,21 +103,38 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(
             inbox_url,
             self.editor,
-            post_data={"action": "label", "objects": [msg2.id], "add": False},
+            post_data={"action": "label", "objects": [str(msg2.uuid)], "add": False},
         )
         self.assertEqual({msg1}, set(label1.msgs.all()))
 
-        # labels can also be posted by id, as the other message folders still do
+        # a label posted by id is rejected
         self.requestView(
             inbox_url,
             self.admin,
-            post_data={"action": "label", "objects": [msg1.id, msg2.id, msg3.id], "label": label3.id, "add": True},
+            post_data={
+                "action": "label",
+                "objects": [str(msg1.uuid), str(msg2.uuid), str(msg3.uuid)],
+                "label": label3.id,
+                "add": True,
+            },
+        )
+        self.assertEqual(set(), set(label3.msgs.all()))
+
+        self.requestView(
+            inbox_url,
+            self.admin,
+            post_data={
+                "action": "label",
+                "objects": [str(msg1.uuid), str(msg2.uuid), str(msg3.uuid)],
+                "label": str(label3.uuid),
+                "add": True,
+            },
         )
         self.assertEqual({msg1}, set(label1.msgs.all()))
         self.assertEqual({msg1, msg2, msg3}, set(label3.msgs.all()))
 
         # test archiving a msg
-        self.client.post(inbox_url, {"action": "archive", "objects": msg1.id})
+        self.client.post(inbox_url, {"action": "archive", "objects": str(msg1.uuid)})
         self.assertEqual({msg1, msg5}, set(Msg.objects.filter(visibility=Msg.VISIBILITY_ARCHIVED)))
 
         # archiving doesn't remove labels
@@ -164,12 +186,16 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertBulkActions(response, ["restore", "label", "delete"])
 
         # editors can restore messages
-        response = self.requestView(archived_url, self.editor, post_data={"action": "restore", "objects": [msg1.id]})
+        response = self.requestView(
+            archived_url, self.editor, post_data={"action": "restore", "objects": [str(msg1.uuid)]}
+        )
         self.assertEqual(200, response.status_code)
         self.assertEqual({msg2, msg3}, set(Msg.objects.filter(visibility=Msg.VISIBILITY_ARCHIVED)))
 
         # can also delete messages
-        response = self.requestView(archived_url, self.admin, post_data={"action": "delete", "objects": [msg2.id]})
+        response = self.requestView(
+            archived_url, self.admin, post_data={"action": "delete", "objects": [str(msg2.uuid)]}
+        )
         self.assertEqual(200, response.status_code)
         self.assertEqual([call(self.org, self.admin, [msg2])], mr_mocks.calls["msg_delete"])
 
@@ -256,7 +282,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertBulkActions(response, ["resend"])
 
         # resend some messages
-        self.client.post(failed_url, {"action": "resend", "objects": [msg2.id]})
+        self.client.post(failed_url, {"action": "resend", "objects": [str(msg2.uuid)]})
 
         self.assertEqual([call(self.org, self.admin, [msg2])], mr_mocks.calls["msg_resend"])
 

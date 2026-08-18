@@ -103,7 +103,6 @@ class EndpointsTest(APITestMixin, TembaTest):
             [self.admin],
             results=[
                 {
-                    "id": msg2.id,
                     "uuid": str(msg2.uuid),
                     "type": "text",
                     "contact": {"uuid": str(contact2.uuid), "name": "Bob"},
@@ -115,7 +114,6 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "logs_url": msg2_logs_url,
                 },
                 {
-                    "id": msg1.id,
                     "uuid": str(msg1.uuid),
                     "type": "text",
                     "contact": {"uuid": str(contact1.uuid), "name": "Ann"},
@@ -135,7 +133,6 @@ class EndpointsTest(APITestMixin, TembaTest):
             [self.editor],
             results=[
                 {
-                    "id": msg2.id,
                     "uuid": str(msg2.uuid),
                     "type": "text",
                     "contact": {"uuid": str(contact2.uuid), "name": "Bob"},
@@ -147,7 +144,6 @@ class EndpointsTest(APITestMixin, TembaTest):
                     "logs_url": None,
                 },
                 {
-                    "id": msg1.id,
                     "uuid": str(msg1.uuid),
                     "type": "text",
                     "contact": {"uuid": str(contact1.uuid), "name": "Ann"},
@@ -1211,7 +1207,7 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         # each row carries the columns the component renders
         def check_sent_shape(data):
-            row = [r for r in data["results"] if r["id"] == bcast1.id][0]
+            row = [r for r in data["results"] if r["uuid"] == str(bcast1.uuid)][0]
             self.assertEqual("completed", row["status"])
             self.assertEqual("Hello everyone", row["text"])
             self.assertEqual(["image/jpeg:http://example.com/cat.jpg"], row["attachments"])
@@ -1230,13 +1226,13 @@ class EndpointsTest(APITestMixin, TembaTest):
         # a scheduled row carries the schedule instead of a message count, and a paused schedule's stale
         # next_fire reads as not scheduled
         def check_scheduled_shape(data):
-            row = [r for r in data["results"] if r["id"] == bcast3.id][0]
+            row = [r for r in data["results"] if r["uuid"] == str(bcast3.uuid)][0]
             self.assertEqual("D", row["schedule"]["repeat_period"])
             self.assertTrue(row["schedule"]["display"].startswith("each day at"))
             self.assertIsNotNone(row["schedule"]["next_fire"])
             self.assertIsNone(row["msg_count"])
             self.assertIsNone(row["progress"])
-            paused_row = [r for r in data["results"] if r["id"] == bcast5.id][0]
+            paused_row = [r for r in data["results"] if r["uuid"] == str(bcast5.uuid)][0]
             self.assertIsNone(paused_row["schedule"]["next_fire"])
             return True
 
@@ -1329,7 +1325,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertGet(endpoint_url + "?folder=archived", [self.admin], results=[trigger7, trigger4])
 
         def check_archived_schedule(data):
-            scheduled = [r for r in data["results"] if r["id"] == trigger7.id][0]
+            scheduled = [r for r in data["results"] if r["uuid"] == str(trigger7.uuid)][0]
             self.assertEqual(Schedule.REPEAT_DAILY, scheduled["schedule"]["repeat_period"])
             self.assertIsNone(scheduled["schedule"]["next_fire"])
             return True
@@ -1348,7 +1344,7 @@ class EndpointsTest(APITestMixin, TembaTest):
 
         # each row carries the columns the component renders
         def check_shape(data):
-            first = [r for r in data["results"] if r["id"] == trigger1.id][0]
+            first = [r for r in data["results"] if r["uuid"] == str(trigger1.uuid)][0]
             self.assertEqual("keyword", first["type"])
             self.assertEqual({"uuid": str(flow1.uuid), "name": "Survey"}, first["flow"])
             self.assertIsNone(first["channel"])
@@ -1360,13 +1356,13 @@ class EndpointsTest(APITestMixin, TembaTest):
             self.assertIsNone(first["schedule"])
             self.assertEqual(matchers.ISODatetime(), first["created_on"])
 
-            missed_call = [r for r in data["results"] if r["id"] == trigger3.id][0]
+            missed_call = [r for r in data["results"] if r["uuid"] == str(trigger3.uuid)][0]
             self.assertEqual(
                 {"uuid": str(self.channel.uuid), "name": "Test Channel", "icon": "channel_a"},
                 missed_call["channel"],
             )
 
-            scheduled = [r for r in data["results"] if r["id"] == trigger5.id][0]
+            scheduled = [r for r in data["results"] if r["uuid"] == str(trigger5.uuid)][0]
             self.assertEqual("schedule", scheduled["type"])
             self.assertEqual(Schedule.REPEAT_DAILY, scheduled["schedule"]["repeat_period"])
             self.assertEqual(matchers.ISODatetime(), scheduled["schedule"]["next_fire"])

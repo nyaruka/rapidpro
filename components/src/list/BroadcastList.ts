@@ -361,7 +361,7 @@ export class BroadcastList extends ContentList<Broadcast> {
 
   constructor() {
     super();
-    this.valueKey = 'id';
+    this.valueKey = 'uuid';
   }
 
   protected willUpdate(changes: PropertyValues): void {

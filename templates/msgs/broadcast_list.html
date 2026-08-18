@@ -50,13 +50,13 @@
       list.addEventListener("temba-selection", function(event) {
         var detail = event.detail;
         if (detail.action === "edit_broadcast") {
-          showModax("{{ _("Edit Broadcast")|escapejs }}", "/broadcast/update/" + detail.broadcast.id + "/", {
+          showModax("{{ _("Edit Broadcast")|escapejs }}", "/broadcast/update/" + detail.broadcast.uuid + "/", {
             onSubmit: "handleBroadcastChanged()"
           });
           return;
         }
         if (detail.action === "delete_broadcast") {
-          showModax("{{ _("Delete Broadcast")|escapejs }}", "/broadcast/scheduled_delete/" + detail.broadcast.id + "/", {
+          showModax("{{ _("Delete Broadcast")|escapejs }}", "/broadcast/scheduled_delete/" + detail.broadcast.uuid + "/", {
             onSubmit: "handleBroadcastChanged()"
           });
           return;

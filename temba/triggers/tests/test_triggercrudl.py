@@ -681,7 +681,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             match_type=Trigger.MATCH_ONLY_WORD,
         )
 
-        update_url = reverse("triggers.trigger_update", args=[trigger.id])
+        update_url = reverse("triggers.trigger_update", args=[trigger.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
@@ -753,7 +753,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         trigger = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow2, channel=call_channel)
 
-        update_url = reverse("triggers.trigger_update", args=[trigger.id])
+        update_url = reverse("triggers.trigger_update", args=[trigger.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
@@ -823,7 +823,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         next_fire = trigger.schedule.calculate_next_fire(datetime(2021, 6, 23, 12, 0, 0, 0, tzone.utc))  # Wed 23rd
         self.assertEqual(datetime(2021, 6, 25, 12, 0, 0, 0).replace(tzinfo=tz), next_fire)  # Fri 25th
 
-        update_url = reverse("triggers.trigger_update", args=[trigger.id])
+        update_url = reverse("triggers.trigger_update", args=[trigger.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
@@ -949,7 +949,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertBulkActions(response, ["archive"])
 
         # can archive it
-        self.client.post(list_url, {"action": "archive", "objects": trigger3.id})
+        self.client.post(list_url, {"action": "archive", "objects": str(trigger3.uuid)})
 
         trigger3.refresh_from_db()
         self.assertTrue(trigger3.is_archived)
@@ -957,7 +957,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         # test when archiving fails
         mock_deactivate_trigger.side_effect = ValueError("boom")
 
-        response = self.client.post(list_url, {"action": "archive", "objects": trigger4.id})
+        response = self.client.post(list_url, {"action": "archive", "objects": str(trigger4.uuid)})
         # TODO: Convert to temba-toast
         # self.assertEqual("An error occurred while making your changes. Please try again.", response["Temba-Toast"])
 
@@ -1008,13 +1008,13 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("triggers.trigger_folder", kwargs={"folder": "messages"}))
         self.assertEqual(f"{reverse('api.internal.triggers')}.json?folder=messages", response.context["list_url"])
 
-        # the component posts trigger ids in `objects` — bulk actions apply as-is
-        self.client.post(list_url, {"action": "archive", "objects": trigger1.id})
+        # the component posts trigger uuids in `objects`
+        self.client.post(list_url, {"action": "archive", "objects": str(trigger1.uuid)})
         trigger1.refresh_from_db()
         self.assertTrue(trigger1.is_archived)
 
         # restore from the archived view
-        self.client.post(reverse("triggers.trigger_archived"), {"action": "restore", "objects": trigger2.id})
+        self.client.post(reverse("triggers.trigger_archived"), {"action": "restore", "objects": str(trigger2.uuid)})
         trigger2.refresh_from_db()
         self.assertFalse(trigger2.is_archived)
 
@@ -1077,7 +1077,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertBulkActions(response, ["restore", "delete"])
 
         # can restore it
-        self.client.post(archived_url, {"action": "restore", "objects": trigger1.id})
+        self.client.post(archived_url, {"action": "restore", "objects": str(trigger1.uuid)})
 
         trigger1.refresh_from_db()
         self.assertFalse(trigger1.is_archived)
@@ -1097,7 +1097,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(trigger.pk == other_trigger.pk)
 
         # restoring it leaves one archived and the other active
-        self.client.post(archived_url, {"action": "restore", "objects": trigger.id})
+        self.client.post(archived_url, {"action": "restore", "objects": str(trigger.uuid)})
 
         self.assertEqual(1, Trigger.objects.filter(keywords=["start"], is_archived=False).count())
         self.assertNotEqual(other_trigger, Trigger.objects.filter(keywords=["start"], is_archived=False)[0])
@@ -1184,13 +1184,15 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             return {t.keywords[0] for t in Trigger.objects.filter(org=self.org, is_active=True, is_archived=True)}
 
         # cannot bulk delete an active trigger
-        self.client.post(archived_url, {"action": "delete", "objects": trigger7.id})
+        self.client.post(archived_url, {"action": "delete", "objects": str(trigger7.uuid)})
 
         trigger7.refresh_from_db()
         self.assertTrue(trigger7.is_active)
 
         # cannot bulk delete a mix of active and archived triggers
-        self.client.post(archived_url, {"action": "delete", "objects": [trigger3.id, trigger4.id, trigger7.id]})
+        self.client.post(
+            archived_url, {"action": "delete", "objects": [str(trigger3.uuid), str(trigger4.uuid), str(trigger7.uuid)]}
+        )
         self.assertTrue(
             {trigger3.keywords[0], trigger4.keywords[0], trigger5.keywords[0], trigger6.keywords[0]}
             <= archived_keywords()
@@ -1199,7 +1201,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertTrue(trigger7.is_active)
 
         # can bulk delete archived triggers
-        self.client.post(archived_url, {"action": "delete", "objects": [trigger3.id, trigger4.id]})
+        self.client.post(archived_url, {"action": "delete", "objects": [str(trigger3.uuid), str(trigger4.uuid)]})
         remaining = archived_keywords()
         self.assertNotIn(trigger3.keywords[0], remaining)
         self.assertNotIn(trigger4.keywords[0], remaining)

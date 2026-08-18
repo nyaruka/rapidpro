@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 21:01+0000\n"
+"POT-Creation-Date: 2026-08-17 23:39+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -3115,6 +3115,9 @@ msgstr ""
 msgid "Shared Channels"
 msgstr ""
 
+msgid "Unrestricted Webhooks"
+msgstr ""
+
 msgid "Sorry, your workspace is currently suspended. To re-enable starting flows and sending messages, please contact support."
 msgstr ""
 
@@ -3244,6 +3247,9 @@ msgid "Must specify a label"
 msgstr ""
 
 msgid "An error occurred while making your changes. Please try again."
+msgstr ""
+
+msgid "Your selection is no longer valid. Please refresh and try again."
 msgstr ""
 
 msgid "Edit Team"

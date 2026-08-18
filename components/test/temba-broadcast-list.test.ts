@@ -8,26 +8,29 @@ const getBroadcastList = async (attrs: any = {}, width = 800, height = 0) => {
   return (await getComponent(TAG, attrs, '', width, height)) as BroadcastList;
 };
 
-const broadcast = (over: any = {}) => ({
-  id: 201,
-  status: 'completed',
-  text: 'Your appointment is confirmed for tomorrow at 10am.',
-  attachments: [],
-  quick_replies: [],
-  groups: [{ uuid: 'group-1', name: 'Patients' }],
-  contacts: [],
-  query: null,
-  exclusions: [],
-  schedule: null,
-  msg_count: 1250,
-  created_on: '2026-07-14T14:32:00.000000Z',
-  created_by: 'admin@textit.com',
-  ...over
-});
+const broadcast = (over: any = {}) => {
+  const item = {
+    uuid: 'bcast-201',
+    status: 'completed',
+    text: 'Your appointment is confirmed for tomorrow at 10am.',
+    attachments: [],
+    quick_replies: [],
+    groups: [{ uuid: 'group-1', name: 'Patients' }],
+    contacts: [],
+    query: null,
+    exclusions: [],
+    schedule: null,
+    msg_count: 1250,
+    created_on: '2026-07-14T14:32:00.000000Z',
+    created_by: 'admin@textit.com',
+    ...over
+  };
+  return item;
+};
 
 const scheduled = (over: any = {}) =>
   broadcast({
-    id: 301,
+    uuid: 'bcast-301',
     status: 'pending',
     msg_count: undefined,
     schedule: {
@@ -56,8 +59,8 @@ describe('temba-broadcast-list', () => {
   it('can be created', async () => {
     const list: BroadcastList = await getBroadcastList();
     assert.instanceOf(list, BroadcastList);
-    // broadcasts have no exposed uuid — rows key off the numeric id
-    expect(list.valueKey).to.equal('id');
+    // rows key off the broadcast uuid
+    expect(list.valueKey).to.equal('uuid');
   });
 
   it('keeps rows event-only (no row href)', async () => {
@@ -179,14 +182,14 @@ describe('temba-broadcast-list', () => {
     await setItems(list, [
       broadcast(),
       broadcast({
-        id: 202,
+        uuid: 'bcast-202',
         status: 'started',
         msg_count: 40,
         progress: { total: 100, started: 40 }
       }),
-      broadcast({ id: 203, status: 'queued', msg_count: 0 }),
-      broadcast({ id: 204, status: 'failed', msg_count: 0 }),
-      broadcast({ id: 205, status: 'wobble' })
+      broadcast({ uuid: 'bcast-203', status: 'queued', msg_count: 0 }),
+      broadcast({ uuid: 'bcast-204', status: 'failed', msg_count: 0 }),
+      broadcast({ uuid: 'bcast-205', status: 'wobble' })
     ]);
 
     const rows = list.shadowRoot.querySelectorAll('tr.row');
@@ -262,7 +265,10 @@ describe('temba-broadcast-list', () => {
 
   it('renders the sent date', async () => {
     const list: BroadcastList = await getBroadcastList();
-    await setItems(list, [broadcast(), broadcast({ id: 202, created_on: '' })]);
+    await setItems(list, [
+      broadcast(),
+      broadcast({ uuid: 'bcast-202', created_on: '' })
+    ]);
     const rows = list.shadowRoot.querySelectorAll('tr.row');
     expect(rows[0].querySelectorAll('td')[3].querySelector('temba-date')).to
       .exist;
@@ -274,11 +280,11 @@ describe('temba-broadcast-list', () => {
     await setItems(list, [
       scheduled(),
       scheduled({
-        id: 302,
+        uuid: 'bcast-302',
         schedule: { repeat_period: 'O', display: 'once', next_fire: null }
       }),
       scheduled({
-        id: 303,
+        uuid: 'bcast-303',
         schedule: {
           repeat_period: 'D',
           display: '',
@@ -553,7 +559,7 @@ describe('temba-broadcast-list', () => {
     await list.updateComplete;
     expect(fired).to.have.length(1);
     expect(fired[0].action).to.equal('edit_broadcast');
-    expect(fired[0].broadcast.id).to.equal(301);
+    expect(fired[0].broadcast.uuid).to.equal('bcast-301');
     expect((list as any).detailBroadcast).to.be.null;
 
     // reopen and delete

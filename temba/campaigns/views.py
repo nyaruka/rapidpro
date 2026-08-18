@@ -204,9 +204,6 @@ class CampaignCRUDL(SmartCRUDL):
             "restore": {"label": _("Restore"), "icon": "restore"},
         }
 
-        def derive_bulk_action_objects(self, uuids: list):
-            return super().derive_bulk_action_objects(uuids).filter(is_active=True)
-
     class List(BaseList):
         title = _("Active")
         bulk_actions = ("archive",)
