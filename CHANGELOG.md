@@ -1,4 +1,4 @@
-v26.4.0 (2026-08-18)
+v26.3.49 (2026-08-18)
 -------------------------
  * Extract org limit functionality into its own mixin and use for triggers
  * Address triggers and broadcasts by uuid in their modal URLs
