@@ -26,5 +26,5 @@ class MtargetTypeTest(TembaTest):
         channel = Channel.objects.get(channel_type="MT", address="151515", country="FR", name="151515")
         self.assertEqual("user1", channel.config["username"])
         self.assertEqual("pass1", channel.config["password"])
-        self.assertContains(response, reverse("courier.mt", args=[channel.uuid, "receive"]))
-        self.assertContains(response, reverse("courier.mt", args=[channel.uuid, "status"]))
+        self.assertContains(response, f"/c/mt/{channel.uuid}/receive")
+        self.assertContains(response, f"/c/mt/{channel.uuid}/status")

@@ -1,7 +1,6 @@
 import requests
 
 from django.forms import ValidationError
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
@@ -19,7 +18,6 @@ class JustCallType(ChannelType):
     name = "JustCall"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^jcl/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
     schemes = [URN.TEL_SCHEME]
     async_activation = False
 
@@ -34,8 +32,8 @@ class JustCallType(ChannelType):
 
         domain = channel.org.get_brand_domain()
 
-        receive_url = "https://" + domain + reverse("courier.jcl", args=[channel.uuid, "receive"])
-        status_url = "https://" + domain + reverse("courier.jcl", args=[channel.uuid, "status"])
+        receive_url = "https://" + domain + channel.type.courier_path(channel.uuid, "receive")
+        status_url = "https://" + domain + channel.type.courier_path(channel.uuid, "status")
 
         resp = requests.post(
             "https://api.justcall.io/v1/webhooks/add",

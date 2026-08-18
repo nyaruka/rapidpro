@@ -52,5 +52,5 @@ class MacrokioskTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.mk", args=[channel.uuid, "receive"]))
-        self.assertContains(response, reverse("courier.mk", args=[channel.uuid, "status"]))
+        self.assertContains(response, f"/c/mk/{channel.uuid}/receive")
+        self.assertContains(response, f"/c/mk/{channel.uuid}/status")

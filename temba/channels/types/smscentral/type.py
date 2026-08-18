@@ -15,7 +15,6 @@ class SMSCentralType(ChannelType):
     name = "SMSCentral"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^sc/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = ["Asia/Kathmandu"]
 

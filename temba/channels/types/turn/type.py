@@ -4,7 +4,6 @@ import logging
 import requests
 
 from django.forms import ValidationError
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -36,7 +35,6 @@ class TurnType(ChannelType):
 
     unique_addresses = True
 
-    courier_url = r"^trn/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.WHATSAPP_SCHEME]
     async_activation = False
     template_type = "whatsapp"
@@ -54,7 +52,7 @@ class TurnType(ChannelType):
 
     def activate(self, channel):
         domain = channel.org.get_brand_domain()
-        receive_url = "https://" + domain + reverse("courier.trn", args=[channel.uuid, "receive"])
+        receive_url = "https://" + domain + channel.type.courier_path(channel.uuid, "receive")
 
         resp = requests.patch(
             channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application",

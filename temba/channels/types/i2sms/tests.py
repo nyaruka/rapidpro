@@ -43,4 +43,4 @@ class I2SMSChannelTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.i2", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/i2/{channel.uuid}/receive")

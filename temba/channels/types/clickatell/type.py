@@ -15,7 +15,6 @@ class ClickatellType(ChannelType):
     name = "Clickatell"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^ct/(?P<uuid>[a-z0-9\-]+)/(?P<action>status|receive)$"
     schemes = [URN.TEL_SCHEME]
 
     claim_blurb = _(

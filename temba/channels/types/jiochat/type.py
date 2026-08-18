@@ -15,7 +15,6 @@ class JioChatType(ChannelType):
     name = "JioChat"
     category = ChannelType.Category.SOCIAL_MEDIA
 
-    courier_url = r"^jc/(?P<uuid>[a-z0-9\-]+)(/rcv/msg/message|/rcv/event/menu|/rcv/event/follow)?/?$"
     schemes = [URN.JIOCHAT_SCHEME]
 
     claim_blurb = _(

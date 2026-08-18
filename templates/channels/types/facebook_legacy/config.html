@@ -26,7 +26,7 @@
   <div class="subtitle">{% trans "Verify Token" %}</div>
   <div class="code">{{ channel.config.secret }}</div>
   <div class="subtitle mt-4">{% trans "Webhook URL" %}</div>
-  <div class="code">https://{{ channel.callback_domain }}{% url 'courier.fb' channel.uuid %}</div>
+  <div class="code">https://{{ channel.callback_domain }}/c/fb/{{ channel.uuid }}/receive</div>
   <div class="mt-4">
     {% blocktrans trimmed %}
       It may take up to ten minutes for a new webhook to take effect after being set on your Facebook application. Remember,

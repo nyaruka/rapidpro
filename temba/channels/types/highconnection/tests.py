@@ -51,4 +51,4 @@ class HighConnectionTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.hx", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/hx/{channel.uuid}/receive")

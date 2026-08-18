@@ -17,7 +17,6 @@ class FacebookLegacyType(ChannelType):
     name = "Facebook"
     category = ChannelType.Category.SOCIAL_MEDIA
 
-    courier_url = r"^fb/(?P<uuid>[a-z0-9\-]+)/receive"
     schemes = [URN.FACEBOOK_SCHEME]
 
     claim_blurb = _(

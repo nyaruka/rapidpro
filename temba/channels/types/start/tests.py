@@ -49,7 +49,7 @@ class StartTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.st", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/st/{channel.uuid}/receive")
 
         Channel.objects.all().delete()
 

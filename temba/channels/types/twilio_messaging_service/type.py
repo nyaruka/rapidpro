@@ -24,7 +24,6 @@ class TwilioMessagingServiceType(ChannelType):
     name = "Twilio Messaging Service"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^tms/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
     schemes = [URN.TEL_SCHEME]
 
     claim_view = ClaimView

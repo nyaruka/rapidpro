@@ -15,7 +15,6 @@ class GlobeType(ChannelType):
     name = "Globe Labs"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^gl/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = ["Asia/Manila"]
 

@@ -15,7 +15,6 @@ class YoType(ChannelType):
     name = "YO!"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^yo/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = ["Africa/Kampala"]
 

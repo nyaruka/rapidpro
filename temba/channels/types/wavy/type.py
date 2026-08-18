@@ -15,7 +15,6 @@ class WavyType(ChannelType):
     name = "Movile/Wavy"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^wv/(?P<uuid>[a-z0-9\-]+)/(?P<action>sent|delivered|receive)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = [
         "America/Noronha",

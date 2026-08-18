@@ -169,8 +169,8 @@ class VonageTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.nx", args=[channel.uuid, "receive"]))
-        self.assertContains(response, reverse("courier.nx", args=[channel.uuid, "status"]))
+        self.assertContains(response, f"/c/nx/{channel.uuid}/receive")
+        self.assertContains(response, f"/c/nx/{channel.uuid}/status")
         self.assertContains(response, reverse("mailroom.ivr_handler", args=[channel.uuid, "incoming"]))
 
     @patch("temba.channels.types.vonage.client.VonageClient.check_credentials")

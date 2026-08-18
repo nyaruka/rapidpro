@@ -17,7 +17,6 @@ class FirebaseCloudMessagingType(ChannelType):
 
     unique_addresses = True
 
-    courier_url = r"^fcm/(?P<uuid>[a-z0-9\-]+)/(?P<action>register|receive)$"
     schemes = [URN.FCM_SCHEME]
 
     claim_blurb = _(

@@ -54,8 +54,8 @@ class DartMediaTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.da", args=[channel.uuid, "receive"]))
-        self.assertContains(response, reverse("courier.da", args=[channel.uuid, "delivered"]))
+        self.assertContains(response, f"/c/da/{channel.uuid}/receive")
+        self.assertContains(response, f"/c/da/{channel.uuid}/delivered")
 
         # check we show the IP to whitelist
         self.assertContains(response, "10.10.10.10")

@@ -3,7 +3,6 @@ import xml.etree.ElementTree as ET
 import requests
 
 from django.forms import ValidationError
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
@@ -21,7 +20,6 @@ class BandwidthType(ChannelType):
     name = "Bandwidth"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^bw/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
     schemes = [URN.TEL_SCHEME]
     async_activation = False
 
@@ -37,8 +35,8 @@ class BandwidthType(ChannelType):
         url = f"https://dashboard.bandwidth.com/api/accounts/{account_id}/applications"
 
         if Channel.ROLE_SEND in channel.role:
-            receive_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "receive"])
-            status_url = "https://" + domain + reverse("courier.bw", args=[channel.uuid, "status"])
+            receive_url = "https://" + domain + channel.type.courier_path(channel.uuid, "receive")
+            status_url = "https://" + domain + channel.type.courier_path(channel.uuid, "status")
 
             application_xml = f"<Application><ServiceType>Messaging-V2</ServiceType><AppName>{domain}/{channel.uuid}/messaging</AppName><InboundCallbackUrl>{receive_url}</InboundCallbackUrl><OutboundCallbackUrl>{status_url}</OutboundCallbackUrl><RequestedCallbackTypes><CallbackType>message-delivered</CallbackType><CallbackType>message-failed</CallbackType><CallbackType>message-sending</CallbackType></RequestedCallbackTypes></Application>"
 

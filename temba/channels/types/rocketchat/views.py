@@ -5,7 +5,6 @@ from smartmin.views import SmartFormView
 
 from django import forms
 from django.contrib import messages
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.utils.fields import ExternalURLField
@@ -123,7 +122,9 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         )
 
         client = Client(config[RocketChatType.CONFIG_BASE_URL], config[RocketChatType.CONFIG_SECRET])
-        webhook_url = "https://" + self.object.callback_domain + reverse("courier.rc", args=[self.object.uuid])
+        webhook_url = (
+            "https://" + self.object.callback_domain + self.channel_type.courier_path(self.object.uuid, "receive")
+        )
 
         try:
             client.settings(webhook_url, bot_username)

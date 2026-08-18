@@ -22,7 +22,6 @@ class FacebookType(ChannelType):
 
     unique_addresses = True
 
-    courier_url = r"^fba/receive"
     schemes = [URN.FACEBOOK_SCHEME]
 
     claim_blurb = _(

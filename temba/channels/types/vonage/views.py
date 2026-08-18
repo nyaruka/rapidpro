@@ -369,7 +369,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
         channel_uuid = generate_uuid()
         callback_domain = org.get_brand_domain()
-        receive_url = "https://" + callback_domain + reverse("courier.nx", args=[channel_uuid, "receive"])
+        receive_url = "https://" + callback_domain + self.channel_type.courier_path(channel_uuid, "receive")
 
         # if it supports voice, create new voice app for this number
         if supports_voice:

@@ -15,7 +15,6 @@ class KannelType(ChannelType):
     name = "Kannel"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^kn/(?P<uuid>[a-z0-9\-]+)/(?P<action>status|receive)$"
     schemes = [URN.TEL_SCHEME]
 
     claim_blurb = _(

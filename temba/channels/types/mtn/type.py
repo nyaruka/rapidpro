@@ -1,7 +1,6 @@
 import requests
 
 from django.forms import ValidationError
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.channels.types.mtn.views import ClaimView
@@ -22,7 +21,6 @@ class MtnType(ChannelType):
     name = "MTN Developer Portal"
     available_timezones = ["Africa/Brazzaville"]
 
-    courier_url = r"^mtn/(?P<uuid>[a-z0-9\-]+)/(?P<action>status|receive)$"
     schemes = [URN.TEL_SCHEME]
     async_activation = False
 
@@ -70,7 +68,7 @@ class MtnType(ChannelType):
         domain = channel.org.get_brand_domain()
 
         payload = {
-            "notifyUrl": "https://" + domain + reverse("courier.mtn", args=[channel.uuid, "receive"]),
+            "notifyUrl": "https://" + domain + channel.type.courier_path(channel.uuid, "receive"),
             "targetSystem": domain,
         }
 

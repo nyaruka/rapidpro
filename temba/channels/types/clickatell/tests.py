@@ -41,5 +41,5 @@ class ClickatellTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.ct", args=[channel.uuid, "status"]))
-        self.assertContains(response, reverse("courier.ct", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/ct/{channel.uuid}/status")
+        self.assertContains(response, f"/c/ct/{channel.uuid}/receive")

@@ -15,7 +15,6 @@ class Hub9Type(ChannelType):
     name = "Hub9"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^h9/(?P<uuid>[a-z0-9\-]+)/(?P<action>sent|delivered|failed|receive|received)$"
     schemes = [URN.TEL_SCHEME, URN.EXTERNAL_SCHEME]
     available_timezones = ["Asia/Jakarta"]
 

@@ -69,8 +69,7 @@ class Dialog360TypeTest(CRUDLTestMixin, TembaTest):
             Dialog360Type().activate(channel)
             self.assertEqual(
                 mock_post.call_args_list[0][1]["json"]["url"],
-                "https://%s%s"
-                % (channel.org.get_brand_domain(), reverse("courier.d3c", args=[channel.uuid, "receive"])),
+                "https://%s%s" % (channel.org.get_brand_domain(), f"/c/d3c/{channel.uuid}/receive"),
             )
 
         with patch("requests.post") as mock_post:

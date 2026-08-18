@@ -21,7 +21,6 @@ class InstagramType(ChannelType):
 
     unique_addresses = True
 
-    courier_url = r"^ig/receive"
     schemes = [URN.INSTAGRAM_SCHEME]
 
     claim_blurb = _("Add an %(link)s bot to send and receive messages on behalf of a business Instagram account.") % {

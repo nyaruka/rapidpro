@@ -22,7 +22,6 @@ class VKType(ChannelType):
 
     unique_addresses = True
 
-    courier_url = r"^vk/(?P<uuid>[a-z0-9\-]+)/receive"
     schemes = [URN.VK_SCHEME]
 
     claim_blurb = _(

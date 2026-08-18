@@ -59,7 +59,7 @@ class ConfigUI:
 
         def get_url(self, channel) -> str:
             if self.courier is not None:
-                path = f"/c/{channel.type.code.lower()}/{channel.uuid}/{self.courier}"
+                path = channel.type.courier_path(channel.uuid, self.courier)
             elif self.mailroom is not None:
                 path = f"/mr/ivr/c/{channel.uuid}/{self.mailroom}"
 
@@ -93,9 +93,6 @@ class ChannelType(metaclass=ABCMeta):
     category = None
 
     unique_addresses = False
-
-    # the courier handling URL, will be wired automatically for use in templates, but wired to a null handler
-    courier_url = None
 
     schemes = None
     available_timezones = None
@@ -155,6 +152,13 @@ class ChannelType(metaclass=ABCMeta):
         Gets the blurb for use on the claim page list of channel types
         """
         return Engine.get_default().from_string(self.claim_blurb)
+
+    @classmethod
+    def courier_path(cls, channel_uuid, action: str) -> str:
+        """
+        Gets the path on which courier handles the given action for a channel of this type.
+        """
+        return f"/c/{cls.code.lower()}/{channel_uuid}/{action}"
 
     def get_urls(self):
         """

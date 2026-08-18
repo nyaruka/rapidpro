@@ -52,4 +52,4 @@ class PlayMobileTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.pm", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/pm/{channel.uuid}/receive")

@@ -1,6 +1,5 @@
 import requests
 
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
@@ -18,7 +17,6 @@ class TelegramType(ChannelType):
     name = "Telegram"
     category = ChannelType.Category.SOCIAL_MEDIA
 
-    courier_url = r"^tg/(?P<uuid>[a-z0-9\-]+)/receive$"
     schemes = [URN.TELEGRAM_SCHEME]
     async_activation = False
 
@@ -38,7 +36,7 @@ class TelegramType(ChannelType):
 
         response = requests.post(
             f"https://api.telegram.org/bot{config['auth_token']}/setWebhook",
-            data={"url": "https://" + channel.callback_domain + reverse("courier.tg", args=[channel.uuid])},
+            data={"url": "https://" + channel.callback_domain + channel.type.courier_path(channel.uuid, "receive")},
         )
         response.raise_for_status()
 

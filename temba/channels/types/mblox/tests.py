@@ -42,7 +42,7 @@ class MbloxTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.mb", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/mb/{channel.uuid}/receive")
 
         Channel.objects.all().delete()
 

@@ -50,6 +50,6 @@ class WavyTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.wv", args=[channel.uuid, "receive"]))
-        self.assertContains(response, reverse("courier.wv", args=[channel.uuid, "sent"]))
-        self.assertContains(response, reverse("courier.wv", args=[channel.uuid, "delivered"]))
+        self.assertContains(response, f"/c/wv/{channel.uuid}/receive")
+        self.assertContains(response, f"/c/wv/{channel.uuid}/sent")
+        self.assertContains(response, f"/c/wv/{channel.uuid}/delivered")

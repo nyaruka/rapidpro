@@ -21,7 +21,6 @@ class SignalWireType(ChannelType):
     name = "SignalWire"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^sw/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.TEL_SCHEME]
     async_activation = False
     available_timezones = [
@@ -120,7 +119,7 @@ class SignalWireType(ChannelType):
             )
 
         channel_uuid = channel.uuid
-        sms_url = "https://" + callback_domain + reverse("courier.sw", args=[channel_uuid, "receive"])
+        sms_url = "https://" + callback_domain + channel.type.courier_path(channel_uuid, "receive")
         status_url = "https://" + callback_domain + reverse("mailroom.ivr_handler", args=[channel_uuid, "status"])
         voice_url = "https://" + callback_domain + reverse("mailroom.ivr_handler", args=[channel_uuid, "incoming"])
 
