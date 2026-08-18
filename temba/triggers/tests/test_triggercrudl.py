@@ -1221,6 +1221,26 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         trigger7.refresh_from_db()
         self.assertTrue(trigger7.is_active)
 
+    def test_archived_restore_limit(self):
+        flow = self.create_flow("Test")
+
+        trigger1 = Trigger.create(self.org, self.admin, Trigger.TYPE_CATCH_ALL, flow, is_archived=True)
+        trigger2 = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow, is_archived=True)
+
+        archived_url = reverse("triggers.trigger_archived")
+        self.login(self.admin)
+
+        # trying to restore more triggers than the limit allows restores what fits and toasts about the rest
+        with override_settings(ORG_LIMIT_DEFAULTS={"triggers": 1}):
+            response = self.client.post(
+                archived_url, {"action": "restore", "objects": [str(trigger1.uuid), str(trigger2.uuid)]}
+            )
+            self.assertToast(response, "info", "This workspace has reached its limit of triggers.")
+
+        # exactly one was restored, the other left archived
+        self.assertEqual(1, self.org.triggers.filter(is_archived=False).count())
+        self.assertEqual(1, self.org.triggers.filter(is_archived=True).count())
+
     def test_folder(self):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
