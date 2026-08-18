@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 23:39+0000\n"
+"POT-Creation-Date: 2026-08-18 18:23+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -3773,6 +3773,9 @@ msgstr "Mensagem começa com uma palavra-chave"
 #, python-format
 msgid "%(type)s is not a valid trigger type"
 msgstr "%(type)s não é um tipo de disparador válido"
+
+msgid "This workspace has reached its limit of triggers."
+msgstr "Esta área de trabalho atingiu seu limite de disparadores."
 
 msgid "Trigger"
 msgstr "Disparador"

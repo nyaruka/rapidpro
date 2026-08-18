@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-17 23:39+0000\n"
+"POT-Creation-Date: 2026-08-18 18:23+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -3769,6 +3769,9 @@ msgstr "El mensaje comienza con la palabra clave"
 #, python-format
 msgid "%(type)s is not a valid trigger type"
 msgstr "%(type)s no es un tipo de activador válido"
+
+msgid "This workspace has reached its limit of triggers."
+msgstr "Este workspace ha alcanzado su límite de activadores."
 
 msgid "Trigger"
 msgstr "Activador"
