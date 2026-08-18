@@ -681,7 +681,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
             match_type=Trigger.MATCH_ONLY_WORD,
         )
 
-        update_url = reverse("triggers.trigger_update", args=[trigger.id])
+        update_url = reverse("triggers.trigger_update", args=[trigger.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
@@ -753,7 +753,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         trigger = Trigger.create(self.org, self.admin, Trigger.TYPE_INBOUND_CALL, flow2, channel=call_channel)
 
-        update_url = reverse("triggers.trigger_update", args=[trigger.id])
+        update_url = reverse("triggers.trigger_update", args=[trigger.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(
@@ -823,7 +823,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         next_fire = trigger.schedule.calculate_next_fire(datetime(2021, 6, 23, 12, 0, 0, 0, tzone.utc))  # Wed 23rd
         self.assertEqual(datetime(2021, 6, 25, 12, 0, 0, 0).replace(tzinfo=tz), next_fire)  # Fri 25th
 
-        update_url = reverse("triggers.trigger_update", args=[trigger.id])
+        update_url = reverse("triggers.trigger_update", args=[trigger.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(

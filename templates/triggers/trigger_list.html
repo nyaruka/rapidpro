@@ -60,8 +60,8 @@
       {% if org_perms.triggers.trigger_update %}
       list.addEventListener("temba-row-click", function(event) {
         var trigger = event.detail.item;
-        if (trigger && trigger.id) {
-          showModax("{{ _("Update Trigger")|escapejs }}", "/trigger/update/" + trigger.id + "/", {
+        if (trigger && trigger.uuid) {
+          showModax("{{ _("Update Trigger")|escapejs }}", "/trigger/update/" + trigger.uuid + "/", {
             onSubmit: "handleTriggerUpdated()"
           });
         }

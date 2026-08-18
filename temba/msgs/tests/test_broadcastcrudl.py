@@ -284,7 +284,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             ],
         )
 
-        update_url = reverse("msgs.broadcast_update", args=[broadcast.id])
+        update_url = reverse("msgs.broadcast_update", args=[broadcast.uuid])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
         self.assertUpdateFetch(update_url, [self.editor, self.admin], form_fields=("contact_search",))
@@ -388,11 +388,11 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             contacts=[self.joe],
             schedule=Schedule.create(self.org, timezone.now(), Schedule.REPEAT_DAILY),
         )
-        update_url = reverse("msgs.broadcast_update", args=[broadcast.id])
+        update_url = reverse("msgs.broadcast_update", args=[broadcast.uuid])
 
         self.org.flow_languages = ["eng", "esp"]
         self.org.save()
-        update_url = reverse("msgs.broadcast_update", args=[broadcast.id])
+        update_url = reverse("msgs.broadcast_update", args=[broadcast.uuid])
 
         def get_languages(response):
             return json.loads(response.context["form"]["compose"].field.widget.attrs["languages"])
@@ -656,7 +656,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             schedule=schedule,
         )
 
-        delete_url = reverse("msgs.broadcast_scheduled_delete", args=[broadcast.id])
+        delete_url = reverse("msgs.broadcast_scheduled_delete", args=[broadcast.uuid])
 
         self.assertRequestDisallowed(delete_url, [None, self.agent, self.admin2])
 
@@ -710,7 +710,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             status=Broadcast.STATUS_PENDING,
         )
 
-        interrupt_url = reverse("msgs.broadcast_interrupt", args=[broadcast.id])
+        interrupt_url = reverse("msgs.broadcast_interrupt", args=[broadcast.uuid])
         self.assertRequestDisallowed(interrupt_url, [None, self.agent])
         self.requestView(interrupt_url, self.admin, post_data={})
 

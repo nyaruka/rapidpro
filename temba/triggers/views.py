@@ -358,6 +358,8 @@ class TriggerCRUDL(SmartCRUDL):
         trigger_type = Trigger.TYPE_CLOSED_TICKET
 
     class Update(ModalFormMixin, ComponentFormMixin, OrgObjPermsMixin, SmartUpdateView):
+        slug_url_kwarg = "uuid"
+
         def get_form_class(self):
             return self.object.type.form
 

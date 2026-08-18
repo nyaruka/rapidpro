@@ -384,13 +384,11 @@ class Trigger(TembaUUIDMixin, SmartModel):
         """
         Internal API shape, consumed by the temba-trigger-list component. The type slug drives the row icon and
         which of the per-type fields (keywords, schedule, referrer) the details cell renders; channel/groups/contacts
-        render as filter pills. The numeric id is included alongside the uuid for the page's update modal, whose URL
-        is still pk based.
+        render as filter pills.
         """
 
         return {
             "uuid": str(self.uuid),
-            "id": self.id,
             "type": self.type.slug,
             "flow": {"uuid": str(self.flow.uuid), "name": self.flow.name},
             "channel": (

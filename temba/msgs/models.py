@@ -379,8 +379,7 @@ class Broadcast(LegacyIDMixin, models.Model):
         """
         Internal API shape, consumed by the temba-broadcast-list component. Content fields carry the base
         translation; `msg_count` relies on BroadcastMsgCount.bulk_annotate having run for the page (falling back to
-        a per-row count). The numeric id is included alongside the uuid for the scheduled list's edit and delete
-        modals, whose URLs are still pk based.
+        a per-row count).
         """
 
         translation = self.get_translation()
@@ -395,7 +394,6 @@ class Broadcast(LegacyIDMixin, models.Model):
 
         return {
             "uuid": str(self.uuid),
-            "id": self.id,
             "status": self.get_status_display().lower(),
             "text": translation["text"],
             "attachments": translation["attachments"],
