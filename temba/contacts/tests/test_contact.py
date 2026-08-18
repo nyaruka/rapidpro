@@ -13,7 +13,7 @@ from temba import mailroom
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactFire, ContactGroup, ContactURN
-from temba.flows.models import Flow
+from temba.flows.models import Flow, FlowRun
 from temba.locations.models import AdminBoundary
 from temba.mailroom import modifiers
 from temba.msgs.models import Msg, MsgFolder
@@ -293,6 +293,51 @@ class ContactTest(TembaTest):
         Flow.objects.get(id=msg_flow.id)
         Flow.objects.get(id=ivr_flow.id)
         self.assertEqual(1, Ticket.objects.count())
+
+    @mock_mailroom
+    def test_release_interrupts_waiting_runs(self, mr_mocks):
+        flow = self.create_flow("Test")
+        contact = self.create_contact("Joe", phone="+12065551212")
+
+        MockSessionWriter(contact, flow).wait().save()
+
+        self.assertEqual({"status:W": 1}, flow.counts.prefix("status:").scope_totals())
+
+        with patch("temba.contacts.models.Contact._full_release"):
+            contact.release(self.admin)
+
+        self.assertEqual([call(self.org, self.admin, [contact])], mr_mocks.calls["contact_interrupt"])
+
+        # run is now interrupted rather than still waiting
+        self.assertEqual({FlowRun.STATUS_INTERRUPTED}, {r.status for r in flow.runs.all()})
+        self.assertEqual({"status:W": 0, "status:I": 1}, flow.counts.prefix("status:").scope_totals())
+
+        # and deleting it leaves that as the historical record
+        contact.refresh_from_db()
+        contact._full_release()
+
+        self.assertEqual(0, flow.runs.count())
+        self.assertEqual({"status:W": 0, "status:I": 1}, flow.counts.prefix("status:").scope_totals())
+
+    @mock_mailroom
+    def test_release_without_interrupt(self, mr_mocks):
+        flow = self.create_flow("Test")
+        contact = self.create_contact("Joe", phone="+12065551212")
+
+        MockSessionWriter(contact, flow).wait().save()
+
+        # org deletion releases contacts without interrupting as flows have already been released
+        with patch("temba.contacts.models.Contact._full_release"):
+            contact.release(self.admin, interrupt=False)
+
+        self.assertEqual([], mr_mocks.calls["contact_interrupt"])
+        self.assertEqual({FlowRun.STATUS_WAITING}, {r.status for r in flow.runs.all()})
+
+        # so the db trigger is left to decrement the waiting count when the run is deleted
+        contact.refresh_from_db()
+        contact._full_release()
+
+        self.assertEqual({"status:W": 0}, flow.counts.prefix("status:").scope_totals())
 
     @mock_mailroom
     def test_status_changes_and_release(self, mr_mocks):

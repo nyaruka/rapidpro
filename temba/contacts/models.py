@@ -1183,12 +1183,17 @@ class Contact(LegacyIDMixin, LegacyUUIDMixin, SmartModel):
         Contact.bulk_change_status(user, [self], modifiers.Status.ACTIVE)
         self.refresh_from_db()
 
-    def release(self, user, *, immediately=False, deindex=True) -> dict:
+    def release(self, user, *, immediately=False, deindex=True, interrupt=True) -> dict:
         """
         Releases this contact. Note that we clear all identifying data but don't hard delete the contact because we need
         to expose deleted contacts over the API to allow external systems to know that contacts have been deleted.
         """
         from .tasks import full_release_contact
+
+        # end any waiting session so that its runs are exited rather than being deleted whilst still active, and has to
+        # happen before we deactivate this contact because mailroom only loads active contacts
+        if interrupt:
+            self.interrupt(user)
 
         # do de-indexing first so if it fails for some reason, we don't go through with the delete
         if deindex:
