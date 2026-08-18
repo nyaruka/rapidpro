@@ -1,3 +1,8 @@
+v26.3.48 (2026-08-18)
+-------------------------
+ * Only offer subflows that the engine will actually let us enter
+ * Have the list pages identify their objects by uuid throughout
+
 v26.3.47 (2026-08-17)
 -------------------------
  * Add unrestricted_webhooks org feature
