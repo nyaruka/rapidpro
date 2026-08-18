@@ -7,8 +7,8 @@ from temba.utils.uuid import uuid4
 
 class FixActivityCountsTest(MigrationTest):
     app = "flows"
-    migrate_from = "0407_update_triggers"
-    migrate_to = "0408_fix_activity_counts"
+    migrate_from = "0408_flowrun_active_index"
+    migrate_to = "0409_fix_activity_counts"
 
     def create_run(self, flow, contact, status, node_uuid):
         return FlowRun.objects.create(
