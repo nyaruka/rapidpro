@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-18 18:23+0000\n"
+"POT-Creation-Date: 2026-08-19 15:06+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -1376,14 +1376,17 @@ msgstr "O URL Base para o PlayMobile"
 msgid "Shortcode"
 msgstr "Código curto"
 
+msgid "Unable to create a Plivo application for that number, please try again."
+msgstr "Não foi possível criar um aplicativo Plivo para esse número, tente novamente."
+
+msgid "There was a problem updating that number, please try again."
+msgstr "Ocorreu um problema ao atualizar esse número, tente novamente."
+
 msgid "That number is not currently supported."
 msgstr "No momento, esse número não é suportado."
 
 msgid "There was a problem claiming that number, please check the balance on your account."
 msgstr "Houve um problema ao requisitar este número, por favor confira os créditos de sua conta."
-
-msgid "There was a problem updating that number, please try again."
-msgstr "Ocorreu um problema ao atualizar esse número, tente novamente."
 
 msgid "Your Plivo auth ID"
 msgstr "Seu ID de autenticação da Plivo"

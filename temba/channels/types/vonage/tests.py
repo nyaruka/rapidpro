@@ -218,14 +218,11 @@ class VonageTypeTest(TembaTest):
     def test_search(self, mock_search_numbers):
         self.login(self.admin)
         self.org.channels.update(is_active=False)
-        self.channel = Channel.create(
-            self.org,
-            self.admin,
-            "RW",
+        self.channel = self.create_channel(
             "NX",
             "Vonage",
             "+250788123123",
-            uuid="00000000-0000-0000-0000-000000001234",
+            country="RW",
             config={VonageType.CONFIG_API_KEY: "1234", VonageType.CONFIG_API_SECRET: "secret"},
         )
 

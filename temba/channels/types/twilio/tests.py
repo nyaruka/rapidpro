@@ -108,10 +108,10 @@ class TwilioTypeTest(TembaTest):
             )
 
         with patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers:
-            mock_numbers.return_value = iter([MockTwilioClient.MockPhoneNumber("+12062345678")])
+            mock_numbers.side_effect = lambda *args, **kwargs: iter([MockTwilioClient.MockPhoneNumber("+12062345678")])
 
             with patch("temba.tests.twilio.MockTwilioClient.MockShortCodes.stream") as mock_short_codes:
-                mock_short_codes.return_value = iter([])
+                mock_short_codes.side_effect = lambda *args, **kwargs: iter([])
 
                 response = self.client.get(claim_twilio)
                 self.assertContains(response, "206-234-5678")
@@ -157,10 +157,10 @@ class TwilioTypeTest(TembaTest):
         session.save()
 
         with patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers:
-            mock_numbers.return_value = iter([MockTwilioClient.MockPhoneNumber("+12062345678")])
+            mock_numbers.side_effect = lambda *args, **kwargs: iter([MockTwilioClient.MockPhoneNumber("+12062345678")])
 
             with patch("temba.tests.twilio.MockTwilioClient.MockShortCodes.stream") as mock_short_codes:
-                mock_short_codes.return_value = iter([])
+                mock_short_codes.side_effect = lambda *args, **kwargs: iter([])
 
                 response = self.client.get(claim_twilio)
                 self.assertContains(response, "206-234-5678")
@@ -201,10 +201,12 @@ class TwilioTypeTest(TembaTest):
 
         # voice only number
         with patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers:
-            mock_numbers.return_value = iter([MockTwilioClient.MockPhoneNumber("+554139087835", sms=False, voice=True)])
+            mock_numbers.side_effect = lambda *args, **kwargs: iter(
+                [MockTwilioClient.MockPhoneNumber("+554139087835", sms=False, voice=True)]
+            )
 
             with patch("temba.tests.twilio.MockTwilioClient.MockShortCodes.stream") as mock_short_codes:
-                mock_short_codes.return_value = iter([])
+                mock_short_codes.side_effect = lambda *args, **kwargs: iter([])
                 Channel.objects.all().delete()
 
                 with patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.get") as mock_numbers_get:
@@ -216,7 +218,7 @@ class TwilioTypeTest(TembaTest):
                     self.assertContains(response, "+55 41 3908-7835")
 
                     # claim it
-                    mock_numbers.return_value = iter(
+                    mock_numbers.side_effect = lambda *args, **kwargs: iter(
                         [MockTwilioClient.MockPhoneNumber("+554139087835", sms=False, voice=True)]
                     )
                     response = self.client.post(claim_twilio, dict(country="BR", phone_number="554139087835"))
@@ -233,10 +235,10 @@ class TwilioTypeTest(TembaTest):
         session.save()
 
         with patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers:
-            mock_numbers.return_value = iter([MockTwilioClient.MockPhoneNumber("+4545335500")])
+            mock_numbers.side_effect = lambda *args, **kwargs: iter([MockTwilioClient.MockPhoneNumber("+4545335500")])
 
             with patch("temba.tests.twilio.MockTwilioClient.MockShortCodes.stream") as mock_short_codes:
-                mock_short_codes.return_value = iter([])
+                mock_short_codes.side_effect = lambda *args, **kwargs: iter([])
 
                 Channel.objects.all().delete()
 
@@ -258,10 +260,10 @@ class TwilioTypeTest(TembaTest):
         session.save()
 
         with patch("temba.tests.twilio.MockTwilioClient.MockPhoneNumbers.stream") as mock_numbers:
-            mock_numbers.return_value = iter([])
+            mock_numbers.side_effect = lambda *args, **kwargs: iter([])
 
             with patch("temba.tests.twilio.MockTwilioClient.MockShortCodes.stream") as mock_short_codes:
-                mock_short_codes.return_value = iter([MockTwilioClient.MockShortCode("8080")])
+                mock_short_codes.side_effect = lambda *args, **kwargs: iter([MockTwilioClient.MockShortCode("8080")])
 
                 with patch("temba.tests.twilio.MockTwilioClient.MockShortCodes.get") as mock_short_codes_get:
                     mock_short_codes_get.return_value = MockTwilioClient.MockShortCode("8080")
@@ -276,7 +278,9 @@ class TwilioTypeTest(TembaTest):
                     self.assertContains(response, 'class="country">US')  # we look up the country from the timezone
 
                     # claim it
-                    mock_short_codes.return_value = iter([MockTwilioClient.MockShortCode("8080")])
+                    mock_short_codes.side_effect = lambda *args, **kwargs: iter(
+                        [MockTwilioClient.MockShortCode("8080")]
+                    )
                     response = self.client.post(claim_twilio, dict(country="US", phone_number="8080"))
                     self.assertRedirects(response, reverse("public.public_welcome") + "?success")
                     self.assertEqual(mock_numbers.call_args_list[0][1], {"page_size": 1000})

@@ -162,7 +162,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         channel1 = Channel.create(
             self.org, self.admin, "RW", "A", "Test Channel", "0785551212", config={Channel.CONFIG_FCM_ID: "123"}
         )
-        channel2 = Channel.create(self.org, self.admin, "", "T", "Test Channel", "0785553333")
+        channel2 = self.create_channel("T", "Test Channel", "0785553333")
 
         # add channel trigger
         flow = self.create_flow("Test")

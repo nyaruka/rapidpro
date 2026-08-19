@@ -12,7 +12,6 @@ from django.utils.translation import gettext_lazy as _
 from temba.channels.types.twilio.views import SUPPORTED_COUNTRIES, UpdateForm as TwilioUpdateForm
 from temba.contacts.models import URN
 from temba.utils.fields import InputWidget, SelectWidget
-from temba.utils.uuid import uuid4
 
 from ...models import Channel
 from ...views import ALL_COUNTRIES, BaseClaimNumberMixin, ClaimViewMixin
@@ -161,9 +160,6 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         org = self.request.org
         client = self.get_twilio_client()
         twilio_phones = client.api.incoming_phone_numbers.stream(phone_number=phone_number)
-        channel_uuid = uuid4()
-
-        callback_domain = org.get_brand_domain()
 
         twilio_phone = next(twilio_phones, None)
         if twilio_phone:
@@ -187,7 +183,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             Channel.CONFIG_NUMBER_SID: number_sid,
             Channel.CONFIG_ACCOUNT_SID: self.request.session.get(self.channel_type.SESSION_ACCOUNT_SID),
             Channel.CONFIG_AUTH_TOKEN: self.request.session.get(self.channel_type.SESSION_AUTH_TOKEN),
-            Channel.CONFIG_CALLBACK_DOMAIN: callback_domain,
+            Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain(),
         }
 
         role = Channel.ROLE_SEND + Channel.ROLE_RECEIVE
@@ -201,7 +197,6 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             address=phone_number,
             role=role,
             config=config,
-            uuid=channel_uuid,
             schemes=[URN.WHATSAPP_SCHEME],
         )
 

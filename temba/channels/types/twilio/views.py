@@ -7,7 +7,6 @@ from twilio.base.exceptions import TwilioException, TwilioRestException
 from twilio.rest import Client as TwilioClient
 
 from django import forms
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
@@ -17,7 +16,6 @@ from temba.orgs.views.mixins import OrgPermsMixin
 from temba.utils import countries
 from temba.utils.fields import InputWidget, SelectWidget
 from temba.utils.timezones import timezone_to_country_code
-from temba.utils.uuid import uuid4
 
 from ...models import Channel
 from ...views import ALL_COUNTRIES, BaseClaimNumberMixin, ChannelTypeMixin, ClaimViewMixin, UpdateChannelForm
@@ -179,27 +177,6 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
     def claim_number(self, user, phone_number, country, role):
         org = self.request.org
         client = self.get_twilio_client()
-        twilio_phones = client.api.incoming_phone_numbers.stream(phone_number=phone_number)
-        channel_uuid = uuid4()
-
-        # create new TwiML app
-        callback_domain = org.get_brand_domain()
-        base_url = "https://" + callback_domain
-        receive_url = base_url + self.channel_type.courier_path(channel_uuid, "receive")
-        status_url = base_url + reverse("mailroom.ivr_handler", args=[channel_uuid, "status"])
-        voice_url = base_url + reverse("mailroom.ivr_handler", args=[channel_uuid, "incoming"])
-
-        new_app = client.api.applications.create(
-            friendly_name="%s/%s" % (callback_domain.lower(), channel_uuid),
-            sms_method="POST",
-            sms_url=receive_url,
-            voice_method="POST",
-            voice_url=voice_url,
-            status_callback_method="POST",
-            status_callback=status_url,
-            voice_fallback_method="GET",
-            voice_fallback_url=f"{settings.STORAGE_URL}/voice_unavailable.xml",
-        )
 
         is_short_code = len(phone_number) <= 6
         tps = 10
@@ -212,9 +189,6 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
             if short_code:
                 number_sid = short_code.sid
-                app_url = "https://" + callback_domain + self.channel_type.courier_path(channel_uuid, "receive")
-                client.api.short_codes.get(number_sid).update(sms_url=app_url, sms_method="POST")
-
                 role = Channel.ROLE_SEND + Channel.ROLE_RECEIVE
                 phone = phone_number
                 tps = 100
@@ -224,16 +198,10 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
                     _("Short code not found on your Twilio Account. Please check you own the short code and Try again")
                 )
         else:
+            twilio_phones = client.api.incoming_phone_numbers.stream(phone_number=phone_number)
             twilio_phone = next(twilio_phones, None)
-            if twilio_phone:
-                client.api.incoming_phone_numbers.get(twilio_phone.sid).update(
-                    voice_application_sid=new_app.sid, sms_application_sid=new_app.sid
-                )
-
-            else:  # pragma: needs cover
-                twilio_phone = client.api.incoming_phone_numbers.create(
-                    phone_number=phone_number, voice_application_sid=new_app.sid, sms_application_sid=new_app.sid
-                )
+            if not twilio_phone:  # pragma: needs cover
+                twilio_phone = client.api.incoming_phone_numbers.create(phone_number=phone_number)
 
             phone = phonenumbers.format_number(
                 phonenumbers.parse(phone_number, None), phonenumbers.PhoneNumberFormat.NATIONAL
@@ -248,11 +216,10 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             number_sid = twilio_phone.sid
 
         config = {
-            Channel.CONFIG_APPLICATION_SID: new_app.sid,
             Channel.CONFIG_NUMBER_SID: number_sid,
             Channel.CONFIG_ACCOUNT_SID: self.request.session.get(self.channel_type.SESSION_ACCOUNT_SID),
             Channel.CONFIG_AUTH_TOKEN: self.request.session.get(self.channel_type.SESSION_AUTH_TOKEN),
-            Channel.CONFIG_CALLBACK_DOMAIN: callback_domain,
+            Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain(),
         }
 
         channel = Channel.create(
@@ -264,7 +231,6 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             address=phone_number,
             role=role,
             config=config,
-            uuid=channel_uuid,
             tps=tps,
         )
 
