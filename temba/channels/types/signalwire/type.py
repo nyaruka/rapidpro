@@ -119,7 +119,7 @@ class SignalWireType(ChannelType):
             )
 
         channel_uuid = channel.uuid
-        sms_url = "https://" + callback_domain + channel.type.courier_path(channel_uuid, "receive")
+        sms_url = channel.courier_url("receive")
         status_url = "https://" + callback_domain + reverse("mailroom.ivr_handler", args=[channel_uuid, "status"])
         voice_url = "https://" + callback_domain + reverse("mailroom.ivr_handler", args=[channel_uuid, "incoming"])
 

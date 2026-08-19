@@ -35,8 +35,8 @@ class BandwidthType(ChannelType):
         url = f"https://dashboard.bandwidth.com/api/accounts/{account_id}/applications"
 
         if Channel.ROLE_SEND in channel.role:
-            receive_url = "https://" + domain + channel.type.courier_path(channel.uuid, "receive")
-            status_url = "https://" + domain + channel.type.courier_path(channel.uuid, "status")
+            receive_url = channel.courier_url("receive")
+            status_url = channel.courier_url("status")
 
             application_xml = f"<Application><ServiceType>Messaging-V2</ServiceType><AppName>{domain}/{channel.uuid}/messaging</AppName><InboundCallbackUrl>{receive_url}</InboundCallbackUrl><OutboundCallbackUrl>{status_url}</OutboundCallbackUrl><RequestedCallbackTypes><CallbackType>message-delivered</CallbackType><CallbackType>message-failed</CallbackType><CallbackType>message-sending</CallbackType></RequestedCallbackTypes></Application>"
 

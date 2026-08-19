@@ -36,7 +36,7 @@ class TelegramType(ChannelType):
 
         response = requests.post(
             f"https://api.telegram.org/bot{config['auth_token']}/setWebhook",
-            data={"url": "https://" + channel.callback_domain + channel.type.courier_path(channel.uuid, "receive")},
+            data={"url": channel.courier_url("receive")},
         )
         response.raise_for_status()
 

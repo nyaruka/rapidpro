@@ -83,14 +83,13 @@ class ZenviaWhatsAppType(ChannelType):
             raise ValidationError(_("Unable to remove webhook subscriptions: %(resp)s"), params={"resp": resp.content})
 
     def activate(self, channel):
-        domain = channel.org.get_brand_domain()
 
-        receive_url = "https://" + domain + channel.type.courier_path(channel.uuid, "receive")
+        receive_url = channel.courier_url("receive")
         messageSubscriptionId = self.update_webhook(channel, receive_url, "MESSAGE")
 
         channel.config[ZENVIA_MESSAGE_SUBSCRIPTION_ID] = messageSubscriptionId
 
-        status_url = "https://" + domain + channel.type.courier_path(channel.uuid, "status")
+        status_url = channel.courier_url("status")
         statusSubscriptionId = self.update_webhook(channel, status_url, "MESSAGE_STATUS")
 
         channel.config[ZENVIA_STATUS_SUBSCRIPTION_ID] = statusSubscriptionId

@@ -37,10 +37,8 @@ class Dialog360Type(ChannelType):
         return {"D360-API-KEY": channel.config[Channel.CONFIG_AUTH_TOKEN], "Content-Type": "application/json"}
 
     def activate(self, channel):
-        domain = channel.org.get_brand_domain()
-
         # first set our callbacks
-        payload = {"url": "https://" + domain + channel.type.courier_path(channel.uuid, "receive")}
+        payload = {"url": channel.courier_url("receive")}
         resp = requests.post(
             channel.config[Channel.CONFIG_BASE_URL] + "/v1/configs/webhook",
             json=payload,

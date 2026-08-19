@@ -38,7 +38,7 @@ class ViberType(ChannelType):
 
     def activate(self, channel):
         auth_token = channel.config["auth_token"]
-        handler_url = "https://" + channel.callback_domain + channel.type.courier_path(channel.uuid, "receive")
+        handler_url = channel.courier_url("receive")
 
         requests.post(
             "https://chatapi.viber.com/pa/set_webhook",

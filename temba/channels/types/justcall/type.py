@@ -30,10 +30,8 @@ class JustCallType(ChannelType):
         api_key = channel.config[Channel.CONFIG_API_KEY]
         api_secret = channel.config[Channel.CONFIG_SECRET]
 
-        domain = channel.org.get_brand_domain()
-
-        receive_url = "https://" + domain + channel.type.courier_path(channel.uuid, "receive")
-        status_url = "https://" + domain + channel.type.courier_path(channel.uuid, "status")
+        receive_url = channel.courier_url("receive")
+        status_url = channel.courier_url("status")
 
         resp = requests.post(
             "https://api.justcall.io/v1/webhooks/add",

@@ -51,8 +51,7 @@ class TurnType(ChannelType):
         }
 
     def activate(self, channel):
-        domain = channel.org.get_brand_domain()
-        receive_url = "https://" + domain + channel.type.courier_path(channel.uuid, "receive")
+        receive_url = channel.courier_url("receive")
 
         resp = requests.patch(
             channel.config[Channel.CONFIG_BASE_URL] + "/v1/settings/application",

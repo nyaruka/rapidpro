@@ -68,7 +68,7 @@ class MtnType(ChannelType):
         domain = channel.org.get_brand_domain()
 
         payload = {
-            "notifyUrl": "https://" + domain + channel.type.courier_path(channel.uuid, "receive"),
+            "notifyUrl": channel.courier_url("receive"),
             "targetSystem": domain,
         }
 

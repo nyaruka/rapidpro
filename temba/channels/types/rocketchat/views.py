@@ -122,9 +122,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
         )
 
         client = Client(config[RocketChatType.CONFIG_BASE_URL], config[RocketChatType.CONFIG_SECRET])
-        webhook_url = (
-            "https://" + self.object.callback_domain + self.channel_type.courier_path(self.object.uuid, "receive")
-        )
+        webhook_url = self.object.courier_url("receive")
 
         try:
             client.settings(webhook_url, bot_username)
