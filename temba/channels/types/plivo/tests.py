@@ -114,11 +114,10 @@ class PlivoTypeTest(TembaTest):
                 mock_get.side_effect = [
                     MockJsonResponse(200, {}),  # get account
                     MockJsonResponse(400, {}),  # failed get number
-                    MockJsonResponse(200, {}),  # successful get number after buying it
                 ]
                 mock_post.side_effect = [
-                    MockJsonResponse(200, {"app_id": "app-id"}),  # create application
                     MockJsonResponse(201, {}),  # buy number
+                    MockJsonResponse(200, {"app_id": "app-id"}),  # create application
                     MockJsonResponse(202, response_body),  # update number
                 ]
 
@@ -155,16 +154,13 @@ class PlivoTypeTest(TembaTest):
                 self.assertEqual(
                     mock_get.call_args_list[1][0][0], "https://api.plivo.com/v1/Account/auth-id/Number/16062681440/"
                 )
-                self.assertEqual(
-                    mock_get.call_args_list[2][0][0], "https://api.plivo.com/v1/Account/auth-id/Number/16062681440/"
-                )
 
                 self.assertEqual(
-                    mock_post.call_args_list[0][0][0], "https://api.plivo.com/v1/Account/auth-id/Application/"
+                    mock_post.call_args_list[0][0][0],
+                    "https://api.plivo.com/v1/Account/auth-id/PhoneNumber/16062681440/",
                 )
                 self.assertEqual(
-                    mock_post.call_args_list[1][0][0],
-                    "https://api.plivo.com/v1/Account/auth-id/PhoneNumber/16062681440/",
+                    mock_post.call_args_list[1][0][0], "https://api.plivo.com/v1/Account/auth-id/Application/"
                 )
                 self.assertEqual(
                     mock_post.call_args_list[2][0][0], "https://api.plivo.com/v1/Account/auth-id/Number/16062681440/"

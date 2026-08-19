@@ -1,7 +1,8 @@
 from twilio.base.exceptions import TwilioRestException
 from twilio.rest import Client as TwilioClient
 
-from django.urls import re_path
+from django.conf import settings
+from django.urls import re_path, reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
@@ -44,8 +45,40 @@ class TwilioType(ChannelType):
     claim_view = ClaimView
     update_form = UpdateForm
 
+    async_activation = False
+
     def is_recommended_to(self, org, user):
         return timezone_to_country_code(org.timezone) in SUPPORTED_COUNTRIES
+
+    def activate(self, channel):
+        config = channel.config
+        client = TwilioClient(config[Channel.CONFIG_ACCOUNT_SID], config[Channel.CONFIG_AUTH_TOKEN])
+        callback_domain = channel.callback_domain
+        base_url = "https://" + callback_domain
+
+        # create a TwiML app to handle messaging and voice for this channel
+        new_app = client.api.applications.create(
+            friendly_name="%s/%s" % (callback_domain.lower(), channel.uuid),
+            sms_method="POST",
+            sms_url=channel.courier_url("receive"),
+            voice_method="POST",
+            voice_url=base_url + reverse("mailroom.ivr_handler", args=[channel.uuid, "incoming"]),
+            status_callback_method="POST",
+            status_callback=base_url + reverse("mailroom.ivr_handler", args=[channel.uuid, "status"]),
+            voice_fallback_method="GET",
+            voice_fallback_url=f"{settings.STORAGE_URL}/voice_unavailable.xml",
+        )
+
+        channel.config[Channel.CONFIG_APPLICATION_SID] = new_app.sid
+        channel.save(update_fields=("config",))
+
+        number_sid = config[Channel.CONFIG_NUMBER_SID]
+        if len(channel.address) <= 6:  # short codes can't use TwiML apps and point directly at our receive URL
+            client.api.short_codes.get(number_sid).update(sms_url=channel.courier_url("receive"), sms_method="POST")
+        else:
+            client.api.incoming_phone_numbers.get(number_sid).update(
+                voice_application_sid=new_app.sid, sms_application_sid=new_app.sid
+            )
 
     def deactivate(self, channel):
         config = channel.config

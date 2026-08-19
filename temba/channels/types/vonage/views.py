@@ -10,7 +10,6 @@ from django.utils.translation import gettext_lazy as _
 from temba.orgs.views.mixins import OrgPermsMixin
 from temba.utils import countries
 from temba.utils.fields import InputWidget, SelectWidget
-from temba.utils.models import generate_uuid
 
 from ...models import Channel
 from ...views import BaseClaimNumberMixin, ChannelTypeMixin, ClaimViewMixin
@@ -367,30 +366,6 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         if supports_voice:
             role += Channel.ROLE_ANSWER + Channel.ROLE_CALL
 
-        channel_uuid = generate_uuid()
-        callback_domain = org.get_brand_domain()
-        receive_url = "https://" + callback_domain + self.channel_type.courier_path(channel_uuid, "receive")
-
-        # if it supports voice, create new voice app for this number
-        if supports_voice:
-            app_id, app_private_key = client.create_application(org.get_brand_domain(), channel_uuid)
-        else:
-            app_id = None
-            app_private_key = None
-
-        # update the delivery URLs for it
-        try:
-            client.update_number(country, phone_number, receive_url, app_id)
-
-        except Exception as e:  # pragma: no cover
-            # shortcodes don't seem to claim correctly, move forward anyways
-            if not is_shortcode:
-                raise Exception(
-                    _("There was a problem claiming that number, please check the balance on your account.")
-                    + "\n"
-                    + str(e)
-                )
-
         if is_shortcode:
             phone = phone_number
         else:
@@ -398,11 +373,11 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             phone = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
 
         config = {
-            self.channel_type.CONFIG_APP_ID: app_id,
-            self.channel_type.CONFIG_APP_PRIVATE_KEY: app_private_key,
+            self.channel_type.CONFIG_APP_ID: None,
+            self.channel_type.CONFIG_APP_PRIVATE_KEY: None,
             self.channel_type.CONFIG_API_KEY: self.request.session.get(self.channel_type.SESSION_API_KEY),
             self.channel_type.CONFIG_API_SECRET: self.request.session.get(self.channel_type.SESSION_API_SECRET),
-            Channel.CONFIG_CALLBACK_DOMAIN: callback_domain,
+            Channel.CONFIG_CALLBACK_DOMAIN: org.get_brand_domain(),
         }
 
         return Channel.create(
@@ -414,7 +389,6 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             address=phone_number,
             role=role,
             config=config,
-            uuid=channel_uuid,
             tps=1,
         )
 

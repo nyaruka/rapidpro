@@ -117,9 +117,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
                 Channel.CONFIG_AUTH_TOKEN: "123456789",
             },
         )
-        Channel.create(
-            self.org, self.admin, "RW", "NX", "", "+250788123123", schemes=[URN.TEL_SCHEME], role=Channel.ROLE_SEND
-        )
+        self.create_channel("NX", "", "+250788123123", country="RW", role=Channel.ROLE_SEND)
 
         # claim our channel
         response = self.client.post(
