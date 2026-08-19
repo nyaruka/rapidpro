@@ -137,7 +137,6 @@ class BroadcastCRUDL(SmartCRUDL):
         "scheduled_delete",
         "preview",
         "to_node",
-        "status",
         "interrupt",
     )
     model = Broadcast
@@ -504,37 +503,6 @@ class BroadcastCRUDL(SmartCRUDL):
             )
 
             return self.render_modal_response(form)
-
-    class Status(BaseListView):
-        permission = "msgs.broadcast_list"
-
-        def derive_queryset(self, **kwargs):
-            qs = super().derive_queryset(**kwargs)
-
-            id = self.request.GET.get("id", None)
-            if id:
-                qs = qs.filter(id=id)
-
-            status = self.request.GET.get("status", None)
-            if status:
-                qs = qs.filter(status=status)
-
-            return qs.order_by("-created_on")
-
-        def render_to_response(self, context, **response_kwargs):
-            results = []
-            for obj in context["object_list"]:
-                # created_on as an iso date
-                results.append(
-                    {
-                        "id": obj.id,
-                        "status": obj.get_status_display(),
-                        "created_on": obj.created_on.isoformat(),
-                        "modified_on": obj.modified_on.isoformat(),
-                        "progress": {"total": obj.contact_count, "current": obj.get_message_count()},
-                    }
-                )
-            return JsonResponse({"results": results})
 
     class Interrupt(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         default_template = "smartmin/delete_confirm.html"
