@@ -1,3 +1,10 @@
+v26.3.52 (2026-08-19)
+-------------------------
+ * Remove channel type courier_url patterns and their placeholder URL routes
+ * Add channel_callback template tag and Channel.courier_url() and use for all courier endpoint URLs
+ * Move provider registration into activate() for Plivo, Twilio and Vonage so failures release the channel
+ * Fix rendering of activation errors on number claim pages
+
 v26.3.51 (2026-08-18)
 -------------------------
  * Interrupt a contact's waiting session before deleting their runs
