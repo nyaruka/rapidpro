@@ -135,6 +135,11 @@ export const split_by_ticket: NodeConfig = {
       existingCases
     );
 
+    // This node doesn't expose a result name, but preserve one set elsewhere
+    if (originalNode.router?.result_name) {
+      (router as any).result_name = originalNode.router.result_name;
+    }
+
     // Return the complete node
     return {
       uuid: originalNode.uuid,

@@ -270,13 +270,18 @@ export const split_by_subflow: NodeConfig = {
     ];
 
     // Create the router
-    const router = {
+    const router: any = {
       type: 'switch' as const,
       categories: categories,
       default_category_uuid: expiredCategoryUuid,
       operand: '@child.status',
       cases: cases
     };
+
+    // This node doesn't expose a result name, but preserve one set elsewhere
+    if (originalNode.router?.result_name) {
+      router.result_name = originalNode.router.result_name;
+    }
 
     // Return the complete node
     return {
