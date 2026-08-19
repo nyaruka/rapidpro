@@ -170,6 +170,65 @@ class PlivoTypeTest(TembaTest):
             channel.type.deactivate(channel)
             mock_delete.assert_called_once()
 
+        # if activation fails after the application is created, the channel is released and the app deleted
+        Channel.objects.all().delete()
+
+        with (
+            patch("temba.channels.views.requests.get") as mock_get,
+            patch("temba.channels.views.requests.post") as mock_post,
+            patch("requests.delete") as mock_delete,
+        ):
+            mock_get.side_effect = [
+                MockJsonResponse(200, {}),  # get account
+                MockJsonResponse(200, {}),  # get number
+            ]
+            mock_post.side_effect = [
+                MockJsonResponse(200, {"app_id": "app-id"}),  # create application
+                MockJsonResponse(400, {}),  # failed number link
+            ]
+            mock_delete.return_value = MockJsonResponse(204, {})
+
+            session = self.client.session
+            session[PlivoType.CONFIG_AUTH_ID] = "auth-id"
+            session[PlivoType.CONFIG_AUTH_TOKEN] = "auth-token"
+            session.save()
+
+            response = self.client.post(claim_plivo_url, dict(phone_number="+1 606-268-1440", country="US"))
+            self.assertContains(response, "There was a problem updating that number, please try again.")
+            self.assertNotContains(response, "[&#x27;")  # message should not be wrapped in list repr
+            self.assertFalse(Channel.objects.filter(is_active=True).exists())
+
+            # the just-created application was deleted during release
+            self.assertEqual(
+                mock_delete.call_args_list[0][0][0], "https://api.plivo.com/v1/Account/auth-id/Application/app-id/"
+            )
+
+        # if creating the application fails, the channel is released and there's no app to clean up
+        Channel.objects.all().delete()
+
+        with (
+            patch("temba.channels.views.requests.get") as mock_get,
+            patch("temba.channels.views.requests.post") as mock_post,
+            patch("requests.delete") as mock_delete,
+        ):
+            mock_get.side_effect = [
+                MockJsonResponse(200, {}),  # get account
+                MockJsonResponse(200, {}),  # get number
+            ]
+            mock_post.side_effect = [
+                MockJsonResponse(400, {}),  # failed application creation
+            ]
+
+            session = self.client.session
+            session[PlivoType.CONFIG_AUTH_ID] = "auth-id"
+            session[PlivoType.CONFIG_AUTH_TOKEN] = "auth-token"
+            session.save()
+
+            response = self.client.post(claim_plivo_url, dict(phone_number="+1 606-268-1440", country="US"))
+            self.assertContains(response, "Unable to create a Plivo application for that number, please try again.")
+            self.assertFalse(Channel.objects.filter(is_active=True).exists())
+            mock_delete.assert_not_called()
+
     @patch("requests.get")
     def test_search(self, mock_get):
         self.login(self.admin)

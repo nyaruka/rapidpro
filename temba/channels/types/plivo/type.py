@@ -53,7 +53,7 @@ class PlivoType(ChannelType):
             headers=headers,
             auth=(auth_id, auth_token),
         )
-        if response.status_code not in (200, 201, 202):  # pragma: no cover
+        if response.status_code not in (200, 201, 202):
             raise ValidationError(_("Unable to create a Plivo application for that number, please try again."))
 
         channel.config[self.CONFIG_APP_ID] = response.json()["app_id"]
@@ -66,7 +66,7 @@ class PlivoType(ChannelType):
             headers=headers,
             auth=(auth_id, auth_token),
         )
-        if response.status_code != 202:  # pragma: no cover
+        if response.status_code != 202:
             raise ValidationError(_("There was a problem updating that number, please try again."))
 
     def deactivate(self, channel):

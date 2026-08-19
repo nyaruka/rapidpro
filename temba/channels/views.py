@@ -365,6 +365,10 @@ class BaseClaimNumberMixin(ClaimViewMixin):
             logger.warning(f"Unable to claim a number: {str(e)}", exc_info=True)
             error_message = form.error_class([str(e)])
 
+        except ValidationError as e:
+            logger.warning(f"Unable to claim a number: {str(e)}", exc_info=True)
+            error_message = form.error_class(e.messages)
+
         except Exception as e:  # pragma: needs cover
             logger.error(f"Unable to claim a number: {str(e)}", exc_info=True)
 
