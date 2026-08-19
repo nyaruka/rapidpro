@@ -157,5 +157,50 @@ describe('split_by_ticket node config', () => {
         name: 'Bob Smith'
       });
     });
+
+    it('should preserve an existing result name', () => {
+      const originalNode: Node = {
+        uuid: 'test-node',
+        actions: [],
+        router: {
+          type: 'switch',
+          categories: [],
+          operand: '@locals._new_ticket',
+          result_name: 'My Ticket'
+        },
+        exits: []
+      };
+
+      const formData = {
+        uuid: 'test-node',
+        topic: [{ uuid: 'topic-1', name: 'General' }],
+        assignee: [],
+        note: ''
+      };
+
+      const resultNode = split_by_ticket.fromFormData!(formData, originalNode);
+
+      expect(resultNode.router!.result_name).to.equal('My Ticket');
+    });
+
+    it('should not add a result name when there was none', () => {
+      const originalNode: Node = {
+        uuid: 'test-node',
+        actions: [],
+        exits: []
+      };
+
+      const resultNode = split_by_ticket.fromFormData!(
+        {
+          uuid: 'test-node',
+          topic: [{ uuid: 'topic-1', name: 'General' }],
+          assignee: [],
+          note: ''
+        },
+        originalNode
+      );
+
+      expect(resultNode.router).to.not.have.property('result_name');
+    });
   });
 });

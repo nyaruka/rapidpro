@@ -28,6 +28,81 @@ describe('split_by_random node config', () => {
       expect(split_by_random.router).to.exist;
       expect(split_by_random.router.type).to.equal('random');
     });
+
+    it('has a result name field', () => {
+      expect(split_by_random.form.result_name).to.exist;
+      expect(split_by_random.layout).to.have.lengthOf(2);
+    });
+  });
+
+  describe('form data transformation', () => {
+    const node = (result_name?: string): Node =>
+      ({
+        uuid: 'test-node-uuid',
+        actions: [],
+        router: {
+          type: 'random',
+          categories: [
+            { uuid: 'cat-1', name: 'Bucket A', exit_uuid: 'exit-1' },
+            { uuid: 'cat-2', name: 'Bucket B', exit_uuid: 'exit-2' }
+          ],
+          ...(result_name ? { result_name } : {})
+        },
+        exits: [
+          { uuid: 'exit-1', destination_uuid: null },
+          { uuid: 'exit-2', destination_uuid: null }
+        ]
+      }) as Node;
+
+    it('reads the result name from the router', () => {
+      const formData = split_by_random.toFormData!(node('My Bucket'));
+
+      expect(formData.uuid).to.equal('test-node-uuid');
+      expect(formData.categories).to.have.lengthOf(2);
+      expect(formData.result_name).to.equal('My Bucket');
+    });
+
+    it('defaults the result name to empty when not set', () => {
+      expect(split_by_random.toFormData!(node()).result_name).to.equal('');
+    });
+
+    it('writes the result name onto the router', () => {
+      const resultNode = split_by_random.fromFormData!(
+        {
+          uuid: 'test-node-uuid',
+          categories: [{ name: 'Bucket A' }, { name: 'Bucket B' }],
+          result_name: '  My Bucket  '
+        },
+        { uuid: 'test-node-uuid', actions: [], exits: [] } as Node
+      );
+
+      expect(resultNode.router!.type).to.equal('random');
+      expect(resultNode.router!.categories).to.have.lengthOf(2);
+      expect(resultNode.router!.result_name).to.equal('My Bucket');
+    });
+
+    it('omits the result name when empty', () => {
+      const resultNode = split_by_random.fromFormData!(
+        {
+          uuid: 'test-node-uuid',
+          categories: [{ name: 'Bucket A' }, { name: 'Bucket B' }],
+          result_name: '  '
+        },
+        { uuid: 'test-node-uuid', actions: [], exits: [] } as Node
+      );
+
+      expect(resultNode.router).to.not.have.property('result_name');
+    });
+
+    it('preserves an existing result name through a round trip', () => {
+      const original = node('My Bucket');
+      const resultNode = split_by_random.fromFormData!(
+        split_by_random.toFormData!(original),
+        original
+      );
+
+      expect(resultNode.router!.result_name).to.equal('My Bucket');
+    });
   });
 
   describe('node scenarios', () => {

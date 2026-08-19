@@ -161,6 +161,42 @@ describe('split_by_subflow node config', () => {
   });
 
   describe('fromFormData', () => {
+    it('preserves an existing result name', () => {
+      const originalNode: Node = {
+        uuid: 'test-node',
+        actions: [],
+        router: {
+          type: 'switch',
+          categories: [],
+          operand: '@child.status',
+          result_name: 'My Subflow'
+        },
+        exits: []
+      };
+
+      const node = split_by_subflow.fromFormData(
+        {
+          uuid: 'test-node',
+          flow: [{ uuid: 'flow-123', name: 'Registration Flow' }]
+        },
+        originalNode
+      );
+
+      expect(node.router.result_name).to.equal('My Subflow');
+    });
+
+    it('does not add a result name when there was none', () => {
+      const node = split_by_subflow.fromFormData(
+        {
+          uuid: 'test-node',
+          flow: [{ uuid: 'flow-123', name: 'Registration Flow' }]
+        },
+        { uuid: 'test-node', actions: [], exits: [] } as Node
+      );
+
+      expect(node.router).to.not.have.property('result_name');
+    });
+
     it('creates node with enter_flow action and router from form data', () => {
       const formData = {
         uuid: 'test-node',

@@ -2,7 +2,11 @@ import { msg, str } from '@lit/localize';
 import { SPLIT_GROUPS, FormData, NodeConfig, FlowTypes } from '../types';
 import { Node } from '../../store/flow-definition.d';
 import { validateWith } from '../utils';
-import { buildCategoriesExitsCases } from './shared';
+import {
+  resultNameField,
+  nodeOptionsAccordionSimple,
+  buildCategoriesExitsCases
+} from './shared';
 
 export const split_by_random: NodeConfig = {
   type: 'split_by_random',
@@ -29,9 +33,10 @@ export const split_by_random: NodeConfig = {
           maxLength: 36
         }
       }
-    }
+    },
+    result_name: resultNameField
   },
-  layout: ['categories'],
+  layout: ['categories', nodeOptionsAccordionSimple],
   validate: validateWith((formData, errors) => {
     if (!formData.categories || !Array.isArray(formData.categories)) return;
 
@@ -76,7 +81,8 @@ export const split_by_random: NodeConfig = {
 
     return {
       uuid: node.uuid,
-      categories: categories
+      categories: categories,
+      result_name: node.router?.result_name || ''
     };
   },
   fromFormData: (formData: FormData, originalNode: Node): Node => {
@@ -93,13 +99,20 @@ export const split_by_random: NodeConfig = {
       existingExits
     );
 
+    const router: any = {
+      type: 'random',
+      categories
+    };
+
+    // Only set result_name if provided
+    if (formData.result_name && formData.result_name.trim() !== '') {
+      router.result_name = formData.result_name.trim();
+    }
+
     return {
       uuid: originalNode.uuid,
       actions: originalNode.actions || [],
-      router: {
-        type: 'random',
-        categories
-      },
+      router,
       exits
     };
   },
