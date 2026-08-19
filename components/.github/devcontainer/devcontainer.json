@@ -10,10 +10,11 @@
   "workspaceFolder": "/workspaces/temba/components",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/temba,type=bind,consistency=cached",
   "runArgs": [
-    // deterministic per-workspace name, and the label Docker Desktop groups dev
-    // containers on (DEVCON_GROUP lets a launcher choose the grouping; defaults
-    // to one shared "dev" group)
-    "--name", "components-${localWorkspaceFolderBasename}",
+    // deterministic per-workspace name (DEVCON_WS: the worktree dir name, "main" for
+    // a primary checkout — the fallback also applies in CI), and the label Docker
+    // Desktop groups dev containers on (DEVCON_GROUP lets a launcher choose the
+    // grouping; defaults to one shared "dev" group)
+    "--name", "components-${localEnv:DEVCON_WS:main}",
     "--label", "com.docker.compose.project=${localEnv:DEVCON_GROUP:dev}",
     // Chromium needs a larger /dev/shm than docker's 64MB default or it crashes
     // rendering big screenshots
