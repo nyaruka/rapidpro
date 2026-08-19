@@ -33,17 +33,13 @@ class MessageHistory(OrgPermsMixin, ChartViewMixin, SmartTemplateView):
     default_chart_period = (-timedelta(days=30), timedelta(days=1))
 
     def get_chart_data(self, since, until) -> tuple[list, list]:
-        orgs = []
-        org = self.derive_org()
-        if org:
-            orgs = Org.objects.filter(Q(id=org.id) | Q(parent=org))
+        org = self.request.org
+        orgs = Org.objects.filter(Q(id=org.id) | Q(parent=org))
 
         # get all our counts for that period
         daily_counts = ChannelCount.objects.filter(scope__in=[ChannelCount.SCOPE_TEXT_IN, ChannelCount.SCOPE_TEXT_OUT])
         daily_counts = daily_counts.filter(day__gte=since).filter(day__lte=until)
-
-        if orgs or not self.request.user.is_support:
-            daily_counts = daily_counts.filter(channel__org__in=orgs)
+        daily_counts = daily_counts.filter(channel__org__in=orgs)
 
         daily_counts = list(
             daily_counts.values("day", "scope").order_by("day", "scope").annotate(count_sum=Sum("count"))
@@ -94,10 +90,8 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
         return since, until
 
     def render_to_response(self, context, **response_kwargs):
-        orgs = []
-        org = self.derive_org()
-        if org:
-            orgs = Org.objects.filter(Q(id=org.id) | Q(parent=org))
+        org = self.request.org
+        orgs = Org.objects.filter(Q(id=org.id) | Q(parent=org))
 
         since, until = self.get_period()
 
@@ -110,9 +104,7 @@ class WorkspaceStats(OrgPermsMixin, SmartTemplateView):
         )
 
         daily_counts = daily_counts.filter(day__gte=since).filter(day__lte=until)
-
-        if orgs or not self.request.user.is_support:
-            daily_counts = daily_counts.filter(channel__org__in=orgs)
+        daily_counts = daily_counts.filter(channel__org__in=orgs)
 
         categories = []
         inbound = []
