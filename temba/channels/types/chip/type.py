@@ -15,7 +15,6 @@ class ChipType(ChannelType):
     category = ChannelType.Category.SOCIAL_MEDIA
 
     schemes = [URN.WEBCHAT_SCHEME]
-    courier_url = r"^chp/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
 
     claim_blurb = "Web chat!"
     claim_view = ClaimView

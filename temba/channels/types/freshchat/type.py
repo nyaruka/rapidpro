@@ -17,7 +17,6 @@ class FreshChatType(ChannelType):
 
     unique_addresses = True
 
-    courier_url = r"^fc/(?P<uuid>[a-z0-9\-]+)/receive$"
     schemes = [URN.FRESHCHAT_SCHEME]
 
     claim_blurb = _("Connect your approved %(link)s channel") % {

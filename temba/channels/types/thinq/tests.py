@@ -50,5 +50,5 @@ class ThinQTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.tq", args=[channel.uuid, "receive"]))
-        self.assertContains(response, reverse("courier.tq", args=[channel.uuid, "status"]))
+        self.assertContains(response, f"/c/tq/{channel.uuid}/receive")
+        self.assertContains(response, f"/c/tq/{channel.uuid}/status")

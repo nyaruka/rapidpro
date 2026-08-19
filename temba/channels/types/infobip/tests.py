@@ -47,8 +47,8 @@ class InfobipTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.ib", args=[channel.uuid, "receive"]))
-        self.assertContains(response, reverse("courier.ib", args=[channel.uuid, "delivered"]))
+        self.assertContains(response, f"/c/ib/{channel.uuid}/receive")
+        self.assertContains(response, f"/c/ib/{channel.uuid}/delivered")
 
         Channel.objects.all().delete()
 

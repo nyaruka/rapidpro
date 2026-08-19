@@ -17,7 +17,6 @@ class KaleyraType(ChannelType):
     name = "Kaleyra WhatsApp"
     category = ChannelType.Category.SOCIAL_MEDIA
 
-    courier_url = r"^kwa/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
     schemes = [URN.WHATSAPP_SCHEME]
 
     claim_blurb = _(

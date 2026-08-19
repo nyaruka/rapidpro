@@ -59,11 +59,9 @@ class ConfigUI:
 
         def get_url(self, channel) -> str:
             if self.courier is not None:
-                path = f"/c/{channel.type.code.lower()}/{channel.uuid}/{self.courier}"
-            elif self.mailroom is not None:
-                path = f"/mr/ivr/c/{channel.uuid}/{self.mailroom}"
+                return channel.courier_url(self.courier)
 
-            return f"https://{channel.callback_domain}{path}"
+            return f"https://{channel.callback_domain}/mr/ivr/c/{channel.uuid}/{self.mailroom}"
 
     blurb: str = None
     endpoints: tuple[Endpoint] = ()
@@ -93,9 +91,6 @@ class ChannelType(metaclass=ABCMeta):
     category = None
 
     unique_addresses = False
-
-    # the courier handling URL, will be wired automatically for use in templates, but wired to a null handler
-    courier_url = None
 
     schemes = None
     available_timezones = None
@@ -155,6 +150,13 @@ class ChannelType(metaclass=ABCMeta):
         Gets the blurb for use on the claim page list of channel types
         """
         return Engine.get_default().from_string(self.claim_blurb)
+
+    @classmethod
+    def courier_path(cls, channel_uuid, action: str) -> str:
+        """
+        Gets the path on which courier handles the given action for a channel of this type.
+        """
+        return f"/c/{cls.code.lower()}/{channel_uuid}/{action}"
 
     def get_urls(self):
         """
@@ -552,6 +554,12 @@ class Channel(LegacyIDMixin, TembaModel, DependencyMixin):
             return callback_domain
         else:
             return self.org.get_brand_domain()
+
+    def courier_url(self, action: str) -> str:
+        """
+        Gets the URL on which courier handles the given action for this channel
+        """
+        return f"https://{self.callback_domain}{self.type.courier_path(self.uuid, action)}"
 
     def supports_ivr(self):
         return Channel.ROLE_CALL in self.role or Channel.ROLE_ANSWER in self.role

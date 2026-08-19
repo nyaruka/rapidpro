@@ -20,7 +20,6 @@ class ThinQType(ChannelType):
     name = "ThinQ"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^tq/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
     schemes = [URN.TEL_SCHEME]
 
     claim_blurb = _(

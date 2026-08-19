@@ -48,7 +48,7 @@ class SMSCentralTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.sc", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/sc/{channel.uuid}/receive")
 
         Channel.objects.all().delete()
 

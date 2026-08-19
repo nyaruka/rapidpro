@@ -40,7 +40,7 @@ class JioChatTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.jc", args=[channel.uuid]))
+        self.assertContains(response, f"/c/jc/{channel.uuid}/")
         self.assertContains(response, channel.config[Channel.CONFIG_SECRET])
 
         # make sure we our jiochat channel satisfies as a send channel

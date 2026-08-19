@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n channels %}
 
 {% blocktrans trimmed %}
   To finish configuring your Novo connection you'll need to set the following callback URLs on your
@@ -6,7 +6,7 @@
 {% endblocktrans %}
 <div class="card">
   <div class="subtitle">{% trans "Received URL" %}</div>
-  <div class="code inline-block">https://{{ channel.callback_domain }}{% url 'courier.nv' channel.uuid 'receive' %}</div>
+  <div class="code inline-block">{% channel_callback channel "receive" %}</div>
   <div class="mt-2">
     {% blocktrans trimmed %}
       When a new message is received by your service, it should notify us with a POST to the following URL, passing
@@ -18,7 +18,7 @@
       <b>
         POST
       </b>
-      https://{{ channel.callback_domain }}{% url 'courier.nv' channel.uuid 'receive' %}
+      {% channel_callback channel "receive" %}
       <div class="mt-3 text-gray-400">from=%2B250788123123&text=Love+is+patient.+Love+is+kind.</div>
     </div>
   </div>

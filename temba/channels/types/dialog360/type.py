@@ -1,7 +1,6 @@
 import requests
 
 from django.forms import ValidationError
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -24,7 +23,6 @@ class Dialog360Type(ChannelType):
 
     unique_addresses = True
 
-    courier_url = r"^d3c/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.WHATSAPP_SCHEME]
     template_type = "whatsapp"
 
@@ -39,10 +37,8 @@ class Dialog360Type(ChannelType):
         return {"D360-API-KEY": channel.config[Channel.CONFIG_AUTH_TOKEN], "Content-Type": "application/json"}
 
     def activate(self, channel):
-        domain = channel.org.get_brand_domain()
-
         # first set our callbacks
-        payload = {"url": "https://" + domain + reverse("courier.d3c", args=[channel.uuid, "receive"])}
+        payload = {"url": channel.courier_url("receive")}
         resp = requests.post(
             channel.config[Channel.CONFIG_BASE_URL] + "/v1/configs/webhook",
             json=payload,

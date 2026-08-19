@@ -14,7 +14,6 @@ class PlayMobileType(ChannelType):
     name = "Play Mobile"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^pm/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = ["Asia/Tashkent", "Asia/Samarkand"]
 

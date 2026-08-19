@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n channels %}
 
 <div class="card flex-shrink-0">
   {% blocktrans trimmed %}
@@ -19,7 +19,7 @@
 </div>
 <div class="card flex-shrink-0">
   <div class="subtitle">{% trans "Webhook URL" %}</div>
-  <div class="code">https://{{ channel.callback_domain }}{% url 'courier.vk' channel.uuid %}</div>
+  <div class="code">{% channel_callback channel "receive" %}</div>
   <div class="subtitle mt-4">{% trans "Verify Token" %}</div>
   <div class="code">{{ channel.config.secret }}</div>
 </div>

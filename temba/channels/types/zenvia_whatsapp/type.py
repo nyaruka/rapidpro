@@ -1,7 +1,6 @@
 import requests
 
 from django.forms import ValidationError
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
@@ -22,7 +21,6 @@ class ZenviaWhatsAppType(ChannelType):
     name = "Zenvia WhatsApp"
     category = ChannelType.Category.SOCIAL_MEDIA
 
-    courier_url = r"^zvw/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
     schemes = [URN.WHATSAPP_SCHEME]
 
     claim_blurb = _("If you have a %(link)s number, you can connect it to communicate with your WhatsApp contacts.") % {
@@ -85,14 +83,13 @@ class ZenviaWhatsAppType(ChannelType):
             raise ValidationError(_("Unable to remove webhook subscriptions: %(resp)s"), params={"resp": resp.content})
 
     def activate(self, channel):
-        domain = channel.org.get_brand_domain()
 
-        receive_url = "https://" + domain + reverse("courier.zvw", args=[channel.uuid, "receive"])
+        receive_url = channel.courier_url("receive")
         messageSubscriptionId = self.update_webhook(channel, receive_url, "MESSAGE")
 
         channel.config[ZENVIA_MESSAGE_SUBSCRIPTION_ID] = messageSubscriptionId
 
-        status_url = "https://" + domain + reverse("courier.zvw", args=[channel.uuid, "status"])
+        status_url = channel.courier_url("status")
         statusSubscriptionId = self.update_webhook(channel, status_url, "MESSAGE_STATUS")
 
         channel.config[ZENVIA_STATUS_SUBSCRIPTION_ID] = statusSubscriptionId

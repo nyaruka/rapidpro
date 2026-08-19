@@ -15,7 +15,6 @@ class WeChatType(ChannelType):
     name = "WeChat"
     category = ChannelType.Category.SOCIAL_MEDIA
 
-    courier_url = r"^wc/(?P<uuid>[a-z0-9\-]+)/?$"
     schemes = [URN.WECHAT_SCHEME]
 
     claim_blurb = _(

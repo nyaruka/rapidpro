@@ -55,7 +55,7 @@ class KannelTypeTest(TembaTest):
             self.assertEqual(200, response.status_code)
 
             # our configuration page should list our receive URL
-            self.assertContains(response, "https://temba.io" + reverse("courier.kn", args=[channel.uuid, "receive"]))
+            self.assertContains(response, "https://temba.io" + f"/c/kn/{channel.uuid}/receive")
 
         with override_settings(ORG_LIMIT_DEFAULTS={"channels": 1}):
             response = self.client.get(claim_url)

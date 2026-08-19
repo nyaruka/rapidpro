@@ -47,7 +47,7 @@ class JasminTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.js", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/js/{channel.uuid}/receive")
 
         Channel.objects.all().delete()
 

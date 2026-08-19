@@ -16,7 +16,6 @@ class HighConnectionType(ChannelType):
     name = "High Connection"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^hx/(?P<uuid>[a-z0-9\-]+)/(?P<action>status|receive)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = ["Europe/Paris"]
 

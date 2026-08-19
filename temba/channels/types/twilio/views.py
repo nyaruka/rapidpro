@@ -185,7 +185,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
         # create new TwiML app
         callback_domain = org.get_brand_domain()
         base_url = "https://" + callback_domain
-        receive_url = base_url + reverse("courier.t", args=[channel_uuid, "receive"])
+        receive_url = base_url + self.channel_type.courier_path(channel_uuid, "receive")
         status_url = base_url + reverse("mailroom.ivr_handler", args=[channel_uuid, "status"])
         voice_url = base_url + reverse("mailroom.ivr_handler", args=[channel_uuid, "incoming"])
 
@@ -212,7 +212,7 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
 
             if short_code:
                 number_sid = short_code.sid
-                app_url = "https://" + callback_domain + "%s" % reverse("courier.t", args=[channel_uuid, "receive"])
+                app_url = "https://" + callback_domain + self.channel_type.courier_path(channel_uuid, "receive")
                 client.api.short_codes.get(number_sid).update(sms_url=app_url, sms_method="POST")
 
                 role = Channel.ROLE_SEND + Channel.ROLE_RECEIVE

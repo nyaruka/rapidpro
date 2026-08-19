@@ -15,7 +15,6 @@ class I2SMSType(ChannelType):
     name = "I2SMS"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^i2/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.TEL_SCHEME]
 
     claim_blurb = _("If you have a long number or short code with %(link)s you can connect it in a few easy steps.") % {

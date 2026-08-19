@@ -59,4 +59,4 @@ class MessangiTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.mg", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/mg/{channel.uuid}/receive")

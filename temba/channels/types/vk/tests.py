@@ -62,3 +62,6 @@ class VKTypeTest(TembaTest):
         self.assertEqual(channel.config[CONFIG_COMMUNITY_NAME], "Temba")
         self.assertEqual(channel.config[CONFIG_CALLBACK_VERIFICATION_STRING], "123456")
         self.assertEqual(channel.address, "123456")
+
+        response = self.client.get(reverse("channels.channel_configuration", args=[channel.uuid]))
+        self.assertContains(response, f"/c/vk/{channel.uuid}/receive")

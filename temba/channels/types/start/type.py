@@ -15,7 +15,6 @@ class StartType(ChannelType):
     name = "Start Mobile"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^st/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = ["Europe/Kiev"]
 

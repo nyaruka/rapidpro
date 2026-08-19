@@ -80,7 +80,7 @@ class SomlengTypeTest(TembaTest):
         self.assertEqual(channel.config, expected_data)
 
         response = self.client.get(reverse("channels.channel_configuration", args=[channel.uuid]))
-        self.assertContains(response, reverse("courier.tw", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/tw/{channel.uuid}/receive")
 
     @patch("twilio.rest.Client", MockTwilioClient)
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
@@ -115,7 +115,7 @@ class SomlengTypeTest(TembaTest):
         )
 
         response = self.client.get(reverse("channels.channel_configuration", args=[channel.uuid]))
-        self.assertContains(response, reverse("courier.tw", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/tw/{channel.uuid}/receive")
 
     @patch("twilio.rest.Client", MockTwilioClient)
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
@@ -150,7 +150,7 @@ class SomlengTypeTest(TembaTest):
         )
 
         response = self.client.get(reverse("channels.channel_configuration", args=[channel.uuid]))
-        self.assertContains(response, reverse("courier.tw", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/tw/{channel.uuid}/receive")
 
     def test_config(self):
         channel = self.create_channel("TW", "Somleng", "1234", role="SR")

@@ -15,7 +15,6 @@ class TelesomType(ChannelType):
     name = "Telesom"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^ts/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = ["Africa/Mogadishu"]
 

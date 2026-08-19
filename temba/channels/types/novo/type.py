@@ -17,7 +17,6 @@ class NovoType(ChannelType):
     name = "Novo"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^nv/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = ["America/Port_of_Spain"]
 

@@ -1,6 +1,5 @@
 import requests
 
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from temba.contacts.models import URN
@@ -20,7 +19,6 @@ class ViberType(ChannelType):
 
     unique_addresses = True
 
-    courier_url = r"^vp/(?P<uuid>[a-z0-9\-]+)/receive$"
     schemes = [URN.VIBER_SCHEME]
 
     update_form = UpdateForm
@@ -40,7 +38,7 @@ class ViberType(ChannelType):
 
     def activate(self, channel):
         auth_token = channel.config["auth_token"]
-        handler_url = "https://" + channel.callback_domain + reverse("courier.vp", args=[channel.uuid])
+        handler_url = channel.courier_url("receive")
 
         requests.post(
             "https://chatapi.viber.com/pa/set_webhook",

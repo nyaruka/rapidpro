@@ -15,7 +15,6 @@ class DartMediaType(ChannelType):
     name = "DartMedia"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^da/(?P<uuid>[a-z0-9\-]+)/(?P<action>delivered|received|receive)$"
     schemes = [URN.TEL_SCHEME, URN.EXTERNAL_SCHEME]
     available_timezones = ["Asia/Jakarta"]
 

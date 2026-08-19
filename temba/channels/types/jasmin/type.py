@@ -15,7 +15,6 @@ class JasminType(ChannelType):
     name = "Jasmin"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^js/(?P<uuid>[a-z0-9\-]+)/(?P<action>status|receive)$"
     schemes = [URN.TEL_SCHEME]
 
     claim_blurb = _("Connect your %(link)s instance that you have already connected to an SMSC.") % {

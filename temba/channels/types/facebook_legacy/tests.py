@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from django.urls import reverse
+
 from temba.tests import MockResponse, TembaTest
 from temba.triggers.models import Trigger
 from temba.utils import json
@@ -22,6 +24,12 @@ class FacebookLegacyTypeTest(TembaTest):
             schemes=["facebook"],
             config={"auth_token": "09876543"},
         )
+
+    def test_config(self):
+        self.login(self.admin)
+
+        response = self.client.get(reverse("channels.channel_configuration", args=[self.channel.uuid]))
+        self.assertContains(response, f"/c/fb/{self.channel.uuid}/receive")
 
     @patch("requests.delete")
     def test_release(self, mock_delete):

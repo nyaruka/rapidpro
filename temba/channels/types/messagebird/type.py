@@ -15,7 +15,6 @@ class MessageBirdType(ChannelType):
     name = "Messagebird"
     category = ChannelType.Category.PHONE
 
-    courier_url = r"^mbd/(?P<uuid>[a-z0-9\-]+)/(?P<action>receive|status)$"
     schemes = [URN.TEL_SCHEME]
     available_timezones = SUPPORTED_TIMEZONES
 

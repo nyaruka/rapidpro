@@ -52,7 +52,7 @@ class ClickMobileTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.cm", args=[channel.uuid, "receive"]))
+        self.assertContains(response, f"/c/cm/{channel.uuid}/receive")
 
         Channel.objects.all().delete()
 

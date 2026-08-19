@@ -69,5 +69,5 @@ class FirebaseCloudMessagingTypeTest(TembaTest):
         )
 
         response = self.client.get(reverse("channels.channel_configuration", args=[channel.uuid]))
-        self.assertContains(response, reverse("courier.fcm", args=[channel.uuid, "receive"]))
-        self.assertContains(response, reverse("courier.fcm", args=[channel.uuid, "register"]))
+        self.assertContains(response, f"/c/fcm/{channel.uuid}/receive")
+        self.assertContains(response, f"/c/fcm/{channel.uuid}/register")

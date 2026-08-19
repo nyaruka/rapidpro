@@ -48,10 +48,10 @@ class M3TechTypeTest(TembaTest):
         response = self.client.get(config_url)
         self.assertEqual(200, response.status_code)
 
-        self.assertContains(response, reverse("courier.m3", args=[channel.uuid, "receive"]))
-        self.assertContains(response, reverse("courier.m3", args=[channel.uuid, "sent"]))
-        self.assertContains(response, reverse("courier.m3", args=[channel.uuid, "delivered"]))
-        self.assertContains(response, reverse("courier.m3", args=[channel.uuid, "failed"]))
+        self.assertContains(response, f"/c/m3/{channel.uuid}/receive")
+        self.assertContains(response, f"/c/m3/{channel.uuid}/sent")
+        self.assertContains(response, f"/c/m3/{channel.uuid}/delivered")
+        self.assertContains(response, f"/c/m3/{channel.uuid}/failed")
 
         Channel.objects.all().delete()
 
