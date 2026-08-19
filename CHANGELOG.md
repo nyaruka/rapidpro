@@ -1,3 +1,9 @@
+v26.3.53 (2026-08-19)
+-------------------------
+ * Let random splits save a result, and stop discarding existing ones
+ * Remove unused broadcast status endpoint
+ * Remove vestigial is_support branches from dashboard views
+
 v26.3.52 (2026-08-19)
 -------------------------
  * Remove channel type courier_url patterns and their placeholder URL routes
