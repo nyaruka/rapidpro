@@ -3,6 +3,7 @@
 .DS_Store
 .vscode/
 .devcontainer
+devcontainer-lock.json
 deploy
 fabfile.py
 
