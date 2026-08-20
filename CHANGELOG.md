@@ -1,3 +1,11 @@
+v26.3.54 (2026-08-20)
+-------------------------
+ * Replace ffmpeg-python and iptools with stdlib equivalents
+ * Prune dependencies not used by this project and update Django
+ * Remove the chip channel type
+ * Allow servicing staff to resolve asset names in the flow editor
+ * Seed a separate staff user in dev_db instead of making org admins staff
+
 v26.3.53 (2026-08-19)
 -------------------------
  * Let random splits save a result, and stop discarding existing ones
