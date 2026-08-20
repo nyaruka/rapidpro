@@ -1,13 +1,14 @@
 import os
 import sys
 from datetime import timedelta
+from ipaddress import ip_network
 
-import iptools
 from celery.schedules import crontab
 
 from django.utils.translation import gettext_lazy as _
 
-INTERNAL_IPS = iptools.IpRangeList("127.0.0.1", "192.168.0.10", "192.168.0.0/24", "0.0.0.0")  # network block
+# Django tests these by string membership, so the network block is expanded rather than kept as a range
+INTERNAL_IPS = ["127.0.0.1", "0.0.0.0"] + [str(ip) for ip in ip_network("192.168.0.0/24")]
 HOSTNAME = "localhost"
 
 # HTTP Headers using for outgoing requests to other services
