@@ -182,6 +182,10 @@ class AssetsEndpoint(BaseEndpoint):
 
     permission = "flows.flow_editor"
 
+    # this endpoint uses POST purely to carry its payload - it doesn't write anything, so
+    # servicing staff viewing a flow can still resolve names
+    readonly_servicing = False
+
     # the supported asset types, in the order in which they're resolved and returned
     ASSET_TYPES = {
         "channel": _asset_by_field(Channel, "uuid"),
