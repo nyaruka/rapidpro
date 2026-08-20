@@ -758,7 +758,6 @@ CHANNEL_TYPES = [
     "temba.channels.types.arabiacell.ArabiaCellType",
     "temba.channels.types.bandwidth.BandwidthType",
     "temba.channels.types.burstsms.BurstSMSType",
-    "temba.channels.types.chip.ChipType",
     "temba.channels.types.clickatell.ClickatellType",
     "temba.channels.types.clickmobile.ClickMobileType",
     "temba.channels.types.clicksend.ClickSendType",

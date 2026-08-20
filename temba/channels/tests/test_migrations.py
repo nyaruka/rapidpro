@@ -140,3 +140,67 @@ class ReleaseLegacyWhatsAppChannelsTest(MigrationTest):
         # template with no remaining translations is left without a base
         self.template3.refresh_from_db()
         self.assertIsNone(self.template3.base_translation)
+
+
+class ReleaseChipChannelsTest(MigrationTest):
+    app = "channels"
+    migrate_from = "0215_release_legacy_whatsapp_channels"
+    migrate_to = "0216_release_chip_channels"
+
+    def setUpBeforeMigration(self, apps):
+        # the chip type no longer exists so this channel has to be created directly
+        self.chip = Channel.objects.create(
+            org=self.org,
+            channel_type="CHP",
+            name="Web Chat",
+            config={"secret": "1234"},
+            role=Channel.DEFAULT_ROLE,
+            schemes=[URN.WEBCHAT_SCHEME],
+            created_by=self.admin,
+            modified_by=self.admin,
+        )
+        self.fba = self.create_channel("FBA", "Facebook", "1234")
+
+        flow = self.create_flow("Test")
+        self.chip_trigger = self._create_trigger(flow, self.chip)
+        self.fba_trigger = self._create_trigger(flow, self.fba)
+
+        self.chip_incident = self._create_incident(self.chip)
+        self.fba_incident = self._create_incident(self.fba)
+
+    def _create_trigger(self, flow, channel):
+        return Trigger.objects.create(
+            org=self.org,
+            trigger_type=Trigger.TYPE_NEW_CONVERSATION,
+            flow=flow,
+            channel=channel,
+            priority=0,
+            created_by=self.admin,
+            modified_by=self.admin,
+        )
+
+    def _create_incident(self, channel):
+        return Incident.objects.create(
+            org=self.org, incident_type="channel:disconnected", scope=str(channel.uuid), channel=channel
+        )
+
+    def test_migration(self):
+        self.chip.refresh_from_db()
+        self.fba.refresh_from_db()
+
+        self.assertFalse(self.chip.is_active)
+        self.assertTrue(self.fba.is_active)  # not a chip channel so untouched
+
+        self.chip_trigger.refresh_from_db()
+        self.fba_trigger.refresh_from_db()
+
+        self.assertFalse(self.chip_trigger.is_active)
+        self.assertTrue(self.chip_trigger.is_archived)
+        self.assertTrue(self.fba_trigger.is_active)
+        self.assertFalse(self.fba_trigger.is_archived)
+
+        self.chip_incident.refresh_from_db()
+        self.fba_incident.refresh_from_db()
+
+        self.assertIsNotNone(self.chip_incident.ended_on)
+        self.assertIsNone(self.fba_incident.ended_on)
