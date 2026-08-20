@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.test.utils import override_settings
 from django.urls import reverse
 
@@ -5,6 +7,7 @@ from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 from ..models import Channel, ChannelLog
+from ..types.external.type import ExternalType
 
 
 class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
@@ -87,6 +90,25 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][2].code, "IG")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-2].code, "WAC")
         self.assertEqual(response.context["channel_types"]["SOCIAL_MEDIA"][-1].code, "ZVW")
+
+    def test_claim_view_availability(self):
+        claim_url = reverse("channels.types.external.claim")
+
+        self.login(self.admin)
+
+        # a type which isn't available to the org at all can't be claimed
+        with patch.object(ExternalType, "is_available_to", lambda self, org, user: (False, False)):
+            self.assertEqual(404, self.client.get(claim_url).status_code)
+            self.assertEqual(404, self.client.post(claim_url, {}).status_code)
+
+        # but a type which is only unavailable because of the org's region is still claimable, because the claim all
+        # page lists those
+        with patch.object(ExternalType, "is_available_to", lambda self, org, user: (False, True)):
+            self.assertEqual(200, self.client.get(claim_url).status_code)
+
+        # e.g. SMSCentral is only available to orgs in Nepal but this org is in Rwanda
+        self.assertEqual("Africa/Kigali", str(self.org.timezone))
+        self.assertEqual(200, self.client.get(reverse("channels.types.smscentral.claim")).status_code)
 
     def test_configuration(self):
         config_url = reverse("channels.channel_configuration", args=[self.ex_channel.uuid])

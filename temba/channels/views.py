@@ -15,7 +15,7 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template import Context, Engine, TemplateDoesNotExist
 from django.urls import reverse
@@ -85,8 +85,16 @@ class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
             return super().clean()
 
     def pre_process(self, request, *args, **kwargs):
-        if request.org and Channel.is_limit_reached(request.org):
-            return HttpResponseRedirect(reverse("orgs.org_workspace"))
+        if request.org:
+            # only the region ignoring flag is a real gate - the region aware one just decides whether the type is
+            # listed on the default claim page, and the claim all page deliberately lists types which fail it
+            # note that staff aren't exempt - types which want to allow servicing staff do so in is_available_to
+            available = self.channel_type.is_available_to(request.org, request.user)[1]
+            if not available:
+                raise Http404()
+
+            if Channel.is_limit_reached(request.org):
+                return HttpResponseRedirect(reverse("orgs.org_workspace"))
 
         return super().pre_process(request, *args, **kwargs)
 
