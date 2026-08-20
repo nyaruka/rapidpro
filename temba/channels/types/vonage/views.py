@@ -442,7 +442,9 @@ class Connect(ChannelTypeMixin, OrgPermsMixin, SmartFormView):
             api_key = self.cleaned_data.get("api_key")
             api_secret = self.cleaned_data.get("api_secret")
 
-            if not VonageClient(api_key, api_secret).check_credentials():
+            # only check with Vonage if both fields were actually provided, as the field level errors already
+            # tell the user what's missing
+            if api_key and api_secret and not VonageClient(api_key, api_secret).check_credentials():
                 raise ValidationError(_("Your API key and secret seem invalid. Please check them again and retry."))
 
             return self.cleaned_data

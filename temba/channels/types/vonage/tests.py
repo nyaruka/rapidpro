@@ -1,6 +1,14 @@
 from unittest.mock import call, patch
 
-import vonage
+from vonage_application.responses import ApplicationData
+from vonage_http_client.errors import AuthenticationError, HttpRequestError, NotFoundError, RateLimitedError
+from vonage_numbers.requests import (
+    ListOwnedNumbersFilter,
+    NumberParams,
+    SearchAvailableNumbersFilter,
+    UpdateNumberParams,
+)
+from vonage_numbers.responses import AvailableNumber, OwnedNumber
 
 from django.urls import reverse
 
@@ -82,7 +90,7 @@ class VonageTypeTest(TembaTest):
 
         # try failing to buy a number not on the account
         mock_get_numbers.side_effect = [[], []]
-        mock_buy_number.side_effect = vonage.ClientError("nope")
+        mock_buy_number.side_effect = HttpRequestError(MockResponse(400, '{"error": "nope"}'))
 
         response = self.client.post(claim_url, {"country": "US", "phone_number": "+12065551212"})
         self.assertTrue(response.context["form"].errors)
@@ -258,8 +266,8 @@ class VonageTypeTest(TembaTest):
         channel.save(update_fields=("channel_type", "config"))
 
         # mock a 404 response from Vonage during deactivation
-        with patch("vonage.application.Application.delete_application") as mock_delete_application:
-            mock_delete_application.side_effect = vonage.ClientError("404 response")
+        with patch("vonage_application.Application.delete_application") as mock_delete_application:
+            mock_delete_application.side_effect = NotFoundError(MockResponse(404, '{"error": "not found"}'))
 
             # releasing shouldn't blow up on auth failures
             channel.release(self.admin, interrupt=False)
@@ -267,7 +275,7 @@ class VonageTypeTest(TembaTest):
 
             self.assertFalse(channel.is_active)
 
-            mock_delete_application.assert_called_once_with(application_id="myappid")
+            mock_delete_application.assert_called_once_with("myappid")
 
     def test_update(self):
         update_url = reverse("channels.channel_update", args=[self.channel.id])
@@ -296,9 +304,9 @@ class ClientTest(TembaTest):
 
         self.client = VonageClient("abc123", "asecret")
 
-    @patch("vonage.account.Account.get_balance")
+    @patch("vonage_account.Account.get_balance")
     def test_check_credentials(self, mock_get_balance):
-        mock_get_balance.side_effect = vonage.AuthenticationError("401 not allowed")
+        mock_get_balance.side_effect = AuthenticationError(MockResponse(401, '{"error": "not allowed"}'))
 
         self.assertFalse(self.client.check_credentials())
 
@@ -307,102 +315,124 @@ class ClientTest(TembaTest):
 
         self.assertTrue(self.client.check_credentials())
 
-    @patch("vonage.number_management.Numbers.get_account_numbers")
-    def test_get_numbers(self, mock_get_account_numbers):
-        mock_get_account_numbers.return_value = {"count": 2, "numbers": ["23463", "568658"]}
+    @patch("vonage_numbers.Numbers.list_owned_numbers")
+    def test_get_numbers(self, mock_list_owned_numbers):
+        mock_list_owned_numbers.return_value = (
+            [OwnedNumber(msisdn="23463", country="EC"), OwnedNumber(msisdn="568658", country="EC")],
+            2,
+            None,
+        )
 
-        self.assertEqual(self.client.get_numbers(pattern="+593"), ["23463", "568658"])
+        self.assertEqual(["23463", "568658"], [n["msisdn"] for n in self.client.get_numbers(pattern="+593")])
 
-        mock_get_account_numbers.assert_called_once_with(params={"size": 10, "pattern": "593"})
+        mock_list_owned_numbers.assert_called_once_with(
+            ListOwnedNumbersFilter(size=10, pattern="593", search_pattern=0)
+        )
 
-    @patch("vonage.number_management.Numbers.get_available_numbers")
-    def test_search_numbers(self, mock_get_available_numbers):
-        mock_get_available_numbers.side_effect = [
-            {"count": 2, "numbers": ["23463", "568658"]},
-            {"count": 1, "numbers": ["34636"]},
+    @patch("vonage_numbers.Numbers.search_available_numbers")
+    def test_search_numbers(self, mock_search_available_numbers):
+        mock_search_available_numbers.side_effect = [
+            ([AvailableNumber(msisdn="23463"), AvailableNumber(msisdn="568658")], 2, None),
+            ([AvailableNumber(msisdn="34636")], 1, None),
         ]
 
-        self.assertEqual(["23463", "568658", "34636"], self.client.search_numbers(country="EC", pattern="+593"))
+        self.assertEqual(
+            ["23463", "568658", "34636"],
+            [n["msisdn"] for n in self.client.search_numbers(country="EC", pattern="+593")],
+        )
 
-        mock_get_available_numbers.assert_has_calls(
+        mock_search_available_numbers.assert_has_calls(
             [
-                call(country_code="EC", pattern="+593", search_pattern=1, features="SMS", country="EC"),
-                call(country_code="EC", pattern="+593", search_pattern=1, features="VOICE", country="EC"),
+                call(SearchAvailableNumbersFilter(country="EC", pattern="+593", search_pattern=1, features="SMS")),
+                call(SearchAvailableNumbersFilter(country="EC", pattern="+593", search_pattern=1, features="VOICE")),
             ]
         )
 
-    @patch("vonage.number_management.Numbers.buy_number")
+    @patch("vonage_numbers.Numbers.buy_number")
     def test_buy_number(self, mock_buy_number):
-        self.client.buy_number(country="US", number="+12345")
+        self.client.buy_number(country="US", number="+12065551212")
 
-        mock_buy_number.assert_called_once_with(params={"msisdn": "12345", "country": "US"})
+        mock_buy_number.assert_called_once_with(NumberParams(country="US", msisdn="12065551212"))
 
-    @patch("vonage.number_management.Numbers.update_number")
+    @patch("vonage_numbers.Numbers.update_number")
     def test_update_number(self, mock_update_number):
         self.client.update_number(country="US", number="+12345", mo_url="http://test", app_id="ID123")
 
         mock_update_number.assert_called_once_with(
-            params={"moHttpUrl": "http://test", "msisdn": "12345", "country": "US", "app_id": "ID123"}
+            UpdateNumberParams(country="US", msisdn="12345", mo_http_url="http://test", app_id="ID123")
         )
 
-    @patch("vonage.application.Application.create_application")
+        # short codes are fine to update even though they're too short to buy
+        self.client.update_number(country="US", number="8080", mo_url="http://test", app_id=None)
+
+        mock_update_number.assert_called_with(
+            UpdateNumberParams(country="US", msisdn="8080", mo_http_url="http://test")
+        )
+
+    @patch("vonage_application.Application.create_application")
     def test_create_application(self, mock_create_application):
-        mock_create_application.return_value = {"id": "myappid", "keys": {"private_key": "tejh42gf3"}}
+        mock_create_application.return_value = ApplicationData(
+            id="myappid", name="rapidpro.io/702cb3b5", keys={"private_key": "tejh42gf3"}
+        )
 
         app_id, app_private_key = self.client.create_application("rapidpro.io", "702cb3b5-8fec-4974-a87a-75234117c768")
         self.assertEqual(app_id, "myappid")
         self.assertEqual(app_private_key, "tejh42gf3")
 
-        app_data = {
-            "name": "rapidpro.io/702cb3b5-8fec-4974-a87a-75234117c768",
-            "capabilities": {
-                "voice": {
-                    "webhooks": {
-                        "answer_url": {
-                            "address": "https://rapidpro.io/mr/ivr/c/702cb3b5-8fec-4974-a87a-75234117c768/incoming",
-                            "http_method": "POST",
-                        },
-                        "event_url": {
-                            "address": "https://rapidpro.io/mr/ivr/c/702cb3b5-8fec-4974-a87a-75234117c768/status",
-                            "http_method": "POST",
-                        },
-                    }
-                }
-            },
-        }
+        config = mock_create_application.call_args[0][0]
 
-        mock_create_application.assert_called_once_with(application_data=app_data)
+        self.assertEqual("rapidpro.io/702cb3b5-8fec-4974-a87a-75234117c768", config.name)
+        self.assertEqual(
+            "https://rapidpro.io/mr/ivr/c/702cb3b5-8fec-4974-a87a-75234117c768/incoming",
+            config.capabilities.voice.webhooks.answer_url.address,
+        )
+        self.assertEqual("POST", config.capabilities.voice.webhooks.answer_url.http_method)
+        self.assertEqual(
+            "https://rapidpro.io/mr/ivr/c/702cb3b5-8fec-4974-a87a-75234117c768/status",
+            config.capabilities.voice.webhooks.event_url.address,
+        )
+        self.assertEqual("POST", config.capabilities.voice.webhooks.event_url.http_method)
 
-    @patch("vonage.application.Application.delete_application")
+    @patch("vonage_application.Application.delete_application")
     def test_delete_application(self, mock_delete_application):
         self.client.delete_application("myappid")
 
-        mock_delete_application.assert_called_once_with(application_id="myappid")
+        mock_delete_application.assert_called_once_with("myappid")
 
     @patch("temba.channels.types.vonage.client.VonageClient.RATE_LIMIT_BACKOFFS", [0.1, 0.1])
-    @patch("requests.sessions.Session.get")
-    def test_retry(self, mock_get):
-        mock_get.side_effect = [
-            MockResponse(429, "<html>429 Too Many Requests</html>", headers={"Content-Type": "text/html"}),
-            MockResponse(429, "<html>429 Too Many Requests</html>", headers={"Content-Type": "text/html"}),
-            MockResponse(429, "<html>429 Too Many Requests</html>", headers={"Content-Type": "text/html"}),
-            MockResponse(429, "<html>429 Too Many Requests</html>", headers={"Content-Type": "text/html"}),
-            MockResponse(200, '{"count": 1, "numbers": ["12345"]}', headers={"Content-Type": "application/json"}),
-            MockResponse(200, '{"count": 1, "numbers": ["23456"]}', headers={"Content-Type": "application/json"}),
+    @patch("requests.sessions.Session.request")
+    def test_retry(self, mock_request):
+        def rate_limited():
+            return MockResponse(429, "<html>429 Too Many Requests</html>", headers={"Content-Type": "text/html"})
+
+        def numbers(msisdn):
+            return MockResponse(
+                200,
+                '{"count": 1, "numbers": [{"msisdn": "%s"}]}' % msisdn,
+                headers={"Content-Type": "application/json"},
+            )
+
+        mock_request.side_effect = [
+            rate_limited(),
+            rate_limited(),
+            rate_limited(),
+            rate_limited(),
+            numbers("12345"),
+            numbers("23456"),
         ]
 
         # should retry twice and give up
-        with self.assertRaises(vonage.ClientError):
+        with self.assertRaises(RateLimitedError):
             self.client.get_numbers()
 
-        self.assertEqual(3, mock_get.call_count)
-        mock_get.reset_mock()
+        self.assertEqual(3, mock_request.call_count)
+        mock_request.reset_mock()
 
         # should retry once and then succeed
-        self.assertEqual(["12345"], self.client.get_numbers())
-        self.assertEqual(2, mock_get.call_count)
-        mock_get.reset_mock()
+        self.assertEqual(["12345"], [n["msisdn"] for n in self.client.get_numbers()])
+        self.assertEqual(2, mock_request.call_count)
+        mock_request.reset_mock()
 
         # should succeed without any retries
-        self.assertEqual(["23456"], self.client.get_numbers())
-        self.assertEqual(1, mock_get.call_count)
+        self.assertEqual(["23456"], [n["msisdn"] for n in self.client.get_numbers()])
+        self.assertEqual(1, mock_request.call_count)

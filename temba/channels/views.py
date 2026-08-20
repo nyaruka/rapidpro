@@ -7,9 +7,9 @@ from uuid import UUID
 import phonenumbers
 import requests
 import twilio.base.exceptions
-import vonage
 from smartmin.views import SmartCRUDL, SmartFormView, SmartModelActionView, SmartTemplateView, SmartUpdateView
 from twilio.base.exceptions import TwilioRestException
+from vonage_http_client.errors import HttpRequestError
 
 from django import forms
 from django.conf import settings
@@ -358,8 +358,7 @@ class BaseClaimNumberMixin(ClaimViewMixin):
             return HttpResponseRedirect("%s?success" % reverse("public.public_welcome"))
 
         except (
-            vonage.AuthenticationError,
-            vonage.ClientError,
+            HttpRequestError,
             twilio.base.exceptions.TwilioRestException,
         ) as e:  # pragma: no cover
             logger.warning(f"Unable to claim a number: {str(e)}", exc_info=True)

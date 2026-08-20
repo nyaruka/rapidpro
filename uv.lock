@@ -484,18 +484,6 @@ wheels = [
 ]
 
 [[package]]
-name = "deprecated"
-version = "1.3.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "wrapt" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/49/85/12f0a49a7c4ffb70572b6c2ef13c90c88fd190debda93b23f026b25f9634/deprecated-1.3.1.tar.gz", hash = "sha256:b1b50e0ff0c1fddaa5708a2c6b0a6588bb09b892825ab2b214ac9ea9d92a5223", size = 2932523, upload-time = "2025-10-30T08:19:02.757Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/84/d0/205d54408c08b13550c733c4b85429e7ead111c7f0014309637425520a9a/deprecated-1.3.1-py2.py3-none-any.whl", hash = "sha256:597bfef186b6f60181535a29fbe44865ce137a5079f295b479886c82729d5f3f", size = 11298, upload-time = "2025-10-30T08:19:00.758Z" },
-]
-
-[[package]]
 name = "distro"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1397,15 +1385,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytz"
-version = "2026.1.post1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/56/db/b8721d71d945e6a8ac63c0fc900b2067181dbb50805958d4d4661cf7d277/pytz-2026.1.post1.tar.gz", hash = "sha256:3378dde6a0c3d26719182142c56e60c7f9af7e968076f31aae569d72a0358ee1", size = 321088, upload-time = "2026-03-03T07:47:50.683Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/99/781fe0c827be2742bcc775efefccb3b048a3a9c6ce9aec0cbf4a101677e5/pytz-2026.1.post1-py2.py3-none-any.whl", hash = "sha256:f2fd16142fda348286a75e1a524be810bb05d444e5a081f37f7affc635035f7a", size = 510489, upload-time = "2026-03-03T07:47:49.167Z" },
-]
-
-[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1770,7 +1749,7 @@ requires-dist = [
     { name = "smartmin", specifier = ">=6.1.0,<7.0.0" },
     { name = "twilio", specifier = ">=9.10.9,<10.0.0" },
     { name = "tzdata", specifier = ">=2025.2" },
-    { name = "vonage", specifier = "~=3.17.4" },
+    { name = "vonage", specifier = ">=4.8.2,<5.0.0" },
     { name = "xlsxlite", specifier = "~=1.0.0" },
 ]
 
@@ -1878,18 +1857,89 @@ wheels = [
 
 [[package]]
 name = "vonage"
-version = "3.17.4"
+version = "4.8.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "deprecated" },
-    { name = "pydantic" },
-    { name = "pytz" },
-    { name = "requests" },
-    { name = "vonage-jwt" },
+    { name = "vonage-account" },
+    { name = "vonage-application" },
+    { name = "vonage-http-client" },
+    { name = "vonage-identity-insights" },
+    { name = "vonage-messages" },
+    { name = "vonage-network-auth" },
+    { name = "vonage-network-number-verification" },
+    { name = "vonage-network-sim-swap" },
+    { name = "vonage-number-insight" },
+    { name = "vonage-numbers" },
+    { name = "vonage-sms" },
+    { name = "vonage-subaccounts" },
+    { name = "vonage-users" },
+    { name = "vonage-utils" },
+    { name = "vonage-verify" },
+    { name = "vonage-verify-legacy" },
+    { name = "vonage-video" },
+    { name = "vonage-voice" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2c/16/ec08c1fab947872a104232a0550cdc7f60932c58cf19adacca7e1130be96/vonage-3.17.4.tar.gz", hash = "sha256:be0fe06c808afef1e2f4f8e4adb1894f9e0a0e73e0e2d20ffe24869f020f62f4", size = 124170, upload-time = "2024-10-30T13:46:39.558Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/7d/c42077986a484aa0546645875f1245d4b0b41391e24270791812ae928fd3/vonage-4.8.2.tar.gz", hash = "sha256:fb8695a630247929a03dfa8c44c0a327c5e747e92b39299d314c9f870aef6fba", size = 3636, upload-time = "2026-07-20T15:20:56.942Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/39/4c/71f800273b1fa4a201142a7c68a4a49a43707f1a7f59175961dd223b11cf/vonage-3.17.4-py2.py3-none-any.whl", hash = "sha256:4aa7b624e1f7741fcf77cbc287f276e8ee099583a7fbf52c6b275460bc10801e", size = 46888, upload-time = "2024-10-30T13:46:37.592Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/19/333b335c9a6e2b51d1adb16c8e0900fbd334ea42191b9250d6219020fab1/vonage-4.8.2-py3-none-any.whl", hash = "sha256:dc700f1a096e770156e42382190630b6e5955db7e9dff6e4bba2dbaa5f34b008", size = 3480, upload-time = "2026-07-20T15:20:55.95Z" },
+]
+
+[[package]]
+name = "vonage-account"
+version = "1.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bd/1e/220e49767f3f8521e32024d72a3b03425997de06ea98b82f1df7bb49d5f4/vonage_account-1.1.2.tar.gz", hash = "sha256:35bd195538f7a892f662eeade7660bb4b7c8e1eda5d98690d3a532e3f6ff683c", size = 6611, upload-time = "2026-04-22T13:30:15.769Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/61/56e8963f879001618044585f0059218984c727e6295e54b45a5531481644/vonage_account-1.1.2-py3-none-any.whl", hash = "sha256:2e12c248a276813bb54aa269f00029ab3493ae4aff606794fba58499be97f270", size = 6727, upload-time = "2026-04-22T13:30:14.591Z" },
+]
+
+[[package]]
+name = "vonage-application"
+version = "2.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/58/71/1295a035f2111afad96906b26f17765d3e17374d367b595fd972b1df8707/vonage_application-2.0.2.tar.gz", hash = "sha256:90493467117084fad4dccaf4215c7c69db3b49490a22ffc3e1cf41d8b96f3b60", size = 7294, upload-time = "2026-04-22T13:30:17.949Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3e/41/e2de517fbcb308e013de9a200790eed13cc6f18c5975b351314c12ddb2fd/vonage_application-2.0.2-py3-none-any.whl", hash = "sha256:d623d4be45cbcc9b9e46421fd11f7e142ad263ffa328b69c53d7f4af8204464c", size = 8108, upload-time = "2026-04-22T13:30:17.073Z" },
+]
+
+[[package]]
+name = "vonage-http-client"
+version = "1.5.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "requests" },
+    { name = "typing-extensions" },
+    { name = "vonage-jwt" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/8a/1456896a5ea1c8136b378288847eea33ef3db44d57e501fd39e5462c7cdb/vonage_http_client-1.5.2.tar.gz", hash = "sha256:252dc672365159ba48b6b63134032561dfa34616e4ccb1d12785e81e09ccff37", size = 9732, upload-time = "2026-04-22T13:30:20.362Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/24/99c81ff988987cbf0adc3236164466d1f9319aabdb5d2486b4eb6b7e0f93/vonage_http_client-1.5.2-py3-none-any.whl", hash = "sha256:2fbdc700c82380ce1568affa72c9524877cd69e5e967ebec8e913bbad5b890c6", size = 9447, upload-time = "2026-04-22T13:30:19.272Z" },
+]
+
+[[package]]
+name = "vonage-identity-insights"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/eb/6a/822eb135546d3326aaa72c245ad3a6ec78ad838380146fe2dcbb88f94fab/vonage_identity_insights-1.0.0.tar.gz", hash = "sha256:f927071678ab10d7ea43ba7d46b57459481aea31c5d9291b88526cdc374603a2", size = 6036, upload-time = "2026-04-22T13:30:22.882Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/83/28/1087b50575e1c56de8664ed6afddb4f6387fbe60fe17d50614c8dff73536/vonage_identity_insights-1.0.0-py3-none-any.whl", hash = "sha256:d827a36e0b4b91e3c16d70d652072d46981578f9062c55c96033b076273a6d5e", size = 6614, upload-time = "2026-04-22T13:30:21.817Z" },
 ]
 
 [[package]]
@@ -1906,6 +1956,134 @@ wheels = [
 ]
 
 [[package]]
+name = "vonage-messages"
+version = "1.7.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f0/3b/63ad5587b5af1244965441f5239968819aeb7b346de4ffebfa28f10778ae/vonage_messages-1.7.1.tar.gz", hash = "sha256:3c9fac57bb26c636d6f41664d211ac7a5069a8429d30f27ccde3e81b2a891691", size = 14747, upload-time = "2026-05-29T10:38:15.821Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/d3/638708087cc64210c5229fad131ee9d562c3852a0680b7847543d43c2622/vonage_messages-1.7.1-py3-none-any.whl", hash = "sha256:5d5f00a2abb890571032f5bf5b0b7658dcd40dbbddfc1281866ed29085ff9956", size = 18759, upload-time = "2026-05-29T10:38:15.011Z" },
+]
+
+[[package]]
+name = "vonage-network-auth"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7b/41/fa292f9c38475cdd1ecd577c7fef71585ae19ae71cae50d5823fb0304743/vonage_network_auth-1.0.2.tar.gz", hash = "sha256:3341fdb7017746e760d6ddca5186adf78bf18516f7989a01a47e363ad5c1f26c", size = 4809, upload-time = "2024-11-29T09:23:23.053Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/21/79/71fcd7483cae7d43581e3819236692dd73435ac798555ff570790a9632b3/vonage_network_auth-1.0.2-py3-none-any.whl", hash = "sha256:9ac38843051c4858d3723501fd86437f871c08e5d24d2a12bf7e38fb40415536", size = 5019, upload-time = "2024-11-29T09:23:21.348Z" },
+]
+
+[[package]]
+name = "vonage-network-number-verification"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-network-auth" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/41/1b/e51dc0482da370cf736e5a8a178a7afe99ec2874a39e37dd7bfc28644b4f/vonage_network_number_verification-1.0.2.tar.gz", hash = "sha256:b67fdeb760f80adc203f735a7ee8f5a07f6f45f35365e496f620c5300a0703ec", size = 5640, upload-time = "2024-11-29T09:23:53.65Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8a/ed/2c6bad16f220f63ec39ab128ac9fa61d809ecb13194c360d0b1b119c38c5/vonage_network_number_verification-1.0.2-py3-none-any.whl", hash = "sha256:da28cd262c0b74f078b6b6d31f36736b270365f532cfe0d2f21b383fb5340d77", size = 5870, upload-time = "2024-11-29T09:23:52.719Z" },
+]
+
+[[package]]
+name = "vonage-network-sim-swap"
+version = "1.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-network-auth" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/50/c11fbcd674fb38cf9857e19a7a9785cceda65670db799ae67227f9386ca6/vonage_network_sim_swap-1.1.2.tar.gz", hash = "sha256:18aa004fc36b015e151b68e3830647295924ff37d3bfd923801dc2fe74b5d1c0", size = 3948, upload-time = "2024-11-29T09:23:51.188Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fb/f2/b192af4717ba11128853eac17333ec2813274ce250cc0cfaecfbdee9e7fa/vonage_network_sim_swap-1.1.2-py3-none-any.whl", hash = "sha256:e75e8ec2d8cb9d3f2d18acdc8540d57c340b38b8a85c1b129e7860ec3ad7b3a1", size = 4608, upload-time = "2024-11-29T09:23:50.278Z" },
+]
+
+[[package]]
+name = "vonage-number-insight"
+version = "1.0.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2d/67/c7563c78a2e0df9ba1a593d387a296db69ba96c5099eca514d9bab64a41c/vonage_number_insight-1.0.7.tar.gz", hash = "sha256:dc88c83a75f75689cf824dba144ade2dfa43941ee229bf376c5a1e8df31506d1", size = 6475, upload-time = "2025-05-09T15:16:19.138Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/5d/c18551248c31d583ca24dc8a9c2d358e991a7a5bd80742d9b62550f2813c/vonage_number_insight-1.0.7-py3-none-any.whl", hash = "sha256:477d3e31bb51bc05076798c3cef220e43fb625d5de604975b20325a93c99bad7", size = 6709, upload-time = "2025-05-09T15:16:17.819Z" },
+]
+
+[[package]]
+name = "vonage-numbers"
+version = "1.0.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/63/41/fc363b49e317245b627b62ef7b14c2323f1d4ff973dad4b7336c3d8b0436/vonage_numbers-1.0.5.tar.gz", hash = "sha256:d5eaa360fdaaebc833759492732d8d11b16548ca799d2d93b9822b351836e519", size = 6653, upload-time = "2025-10-09T19:32:19.444Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fb/05/3dabd059b309de4d277e8c07e1b0de9f9f17f96401d26514b68289fb383e/vonage_numbers-1.0.5-py3-none-any.whl", hash = "sha256:ca4232e80fc6bb1a273dece9a49a4aac3fed5110424091bf1702014aa537f401", size = 7316, upload-time = "2025-10-09T19:32:18.709Z" },
+]
+
+[[package]]
+name = "vonage-sms"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/3c/81c51f508c5c73c8181b2fb1880ba87adeb43ac5b16331bf279fb5ac7cb2/vonage_sms-1.2.0.tar.gz", hash = "sha256:ed6695090a31ac88a11e607bd090aea8bc4d75583ea67c9c183205d141665770", size = 6092, upload-time = "2026-04-22T13:30:27.824Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/96/33/786aff30834f515411f92058efe0e5bdf5b65e27215d2668ac2669636639/vonage_sms-1.2.0-py3-none-any.whl", hash = "sha256:15280dbd962179a13790f85518701a018580d5959f4d3c66fe7f081d4586baee", size = 6626, upload-time = "2026-04-22T13:30:26.626Z" },
+]
+
+[[package]]
+name = "vonage-subaccounts"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f0/f7/ae476f7a9a01f925f0c58838833253b1b954a848c65c5c5f2a54b1f22735/vonage_subaccounts-1.0.4.tar.gz", hash = "sha256:2fe5af046765224783e26c110702adaf79fd3e4c7d4388e98fdf840cff898479", size = 6424, upload-time = "2024-11-06T18:16:37.43Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/2d/d79bedb13aea4132a1c6efeba8ceaad8e01928429314cfc7cff0127e6426/vonage_subaccounts-1.0.4-py3-none-any.whl", hash = "sha256:c8ec1b78e9e975ae29939e426412f4e4eb662dbdef799de60dc1ff5da007cea9", size = 6914, upload-time = "2024-11-06T18:16:36.344Z" },
+]
+
+[[package]]
+name = "vonage-users"
+version = "1.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f4/0c/609709adaa680062a9676d4cadff2656f1184fce0dfd7392893333574e8e/vonage_users-1.2.2.tar.gz", hash = "sha256:8885955f1add802459fde9fc26595b88d4e4b21e63ee0f35213dba835331df79", size = 6478, upload-time = "2026-04-22T13:30:30.585Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/67/26/de4911a656e0ee22a257db074d424114b916d3636e21c1a06d642e491f92/vonage_users-1.2.2-py3-none-any.whl", hash = "sha256:3701b3887c4f41d9acad5ef468619bd2dfb2fb49a4b37ac8ca50fae55c708c47", size = 6761, upload-time = "2026-04-22T13:30:29.428Z" },
+]
+
+[[package]]
 name = "vonage-utils"
 version = "1.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1915,6 +2093,62 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/26/cb/3f584cb37639f93fd6a47076d272ecab1f49e8231d1bf6e77566fe58232b/vonage_utils-1.1.4.tar.gz", hash = "sha256:950b802dc93f8440717fba6e183d2ae39f6e0316dc19a3f1f41ca81f9af24bf8", size = 3914, upload-time = "2024-10-21T11:49:48.247Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c5/44/dbd70b0fbf7b8c025209f4ec708ca67c45796d2ee5d23ecc222d39751058/vonage_utils-1.1.4-py3-none-any.whl", hash = "sha256:438b0bc8da25e8026ec6789cd9a113b4f41636c70c4d84b2d9ab0e92ed23a665", size = 4448, upload-time = "2024-10-21T11:49:47.208Z" },
+]
+
+[[package]]
+name = "vonage-verify"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f3/a4/ef917777b69dfb970396dec5bda4a02da72dd9723f50a62bf53b89f85271/vonage_verify-2.2.0.tar.gz", hash = "sha256:a34765042dee45b892e2776c84878630c74140bc13d1d52dcd10acd444c5e419", size = 6660, upload-time = "2026-04-22T13:30:32.728Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4f/d7/4068237145ca16e13390cc4d84a09b751619114394924112ebc2091dfab0/vonage_verify-2.2.0-py3-none-any.whl", hash = "sha256:0b90e4cf00ac510d62f6763a595eea0e8b9e4384275a46217c7553414c402755", size = 6895, upload-time = "2026-04-22T13:30:31.902Z" },
+]
+
+[[package]]
+name = "vonage-verify-legacy"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a5/7e/c81e61ceb7b58b63af0a31f2ca035470d1ee3019a4df3dcd13f7e50aaedb/vonage_verify_legacy-1.1.0.tar.gz", hash = "sha256:e08fbf57a8264c65a6e8024067e238f3363f97e80b18776d7930c9d5d97c7406", size = 8472, upload-time = "2026-04-22T13:30:35.461Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dd/0b/d8667dcbb9877434c95dd289590f8d2aa224492cd78d75669becc29a07eb/vonage_verify_legacy-1.1.0-py3-none-any.whl", hash = "sha256:51689afc5cadf6dcc8239a16fe617e5b57c55a6700529d1cbee870cf8ce76c45", size = 8807, upload-time = "2026-04-22T13:30:34.315Z" },
+]
+
+[[package]]
+name = "vonage-video"
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b0/4b/c69137b1690441a5341de8f0e1718441013bc9936338789cfcb848e5eecc/vonage_video-1.5.1.tar.gz", hash = "sha256:dd74ff0f58d16a0fcadec02bf81b8bc92bcacce2975752d9d7e56cf6472bc5c8", size = 19369, upload-time = "2025-09-26T14:18:51.531Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/30/6f/25b09404686af7d4b007ca66067a7deaa2de9e9f0b1b4c055c9cf276beaa/vonage_video-1.5.1-py3-none-any.whl", hash = "sha256:62312a9b42e863e9ae7e068c30a2880fb19e1801a1ecfee63f99b76c3bb08ac1", size = 23539, upload-time = "2025-09-26T14:18:50.318Z" },
+]
+
+[[package]]
+name = "vonage-voice"
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vonage-http-client" },
+    { name = "vonage-utils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/23/41/43cfa4df3a9c9bd5f491d6739c0186017eadc7a4694d5959c153dda11c71/vonage_voice-1.5.1.tar.gz", hash = "sha256:c3eff0f8e647470d70f3c05bcdc27b04a0fa1c0b0076dc43ce84772767a88085", size = 16530, upload-time = "2026-07-20T15:20:54.319Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f9/72/7f0e59d4ea8df6738e81496e5990c5d6a280814024b68c5f569b79f118af/vonage_voice-1.5.1-py3-none-any.whl", hash = "sha256:30b356c072006eb6040f969654823e3065159bd751f933f4235c98520e95a203", size = 19492, upload-time = "2026-07-20T15:20:53.271Z" },
 ]
 
 [[package]]
@@ -1933,37 +2167,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/21/e6/26d09fab466b7ca9c7737474c52be4f76a40301b08362eb2dbc19dcc16c1/websockets-15.0.1.tar.gz", hash = "sha256:82544de02076bafba038ce055ee6412d68da13ab47f0c60cab827346de828dee", size = 177016, upload-time = "2025-03-05T20:03:41.606Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/a8/5b41e0da817d64113292ab1f8247140aac61cbf6cfd085d6a0fa77f4984f/websockets-15.0.1-py3-none-any.whl", hash = "sha256:f7a866fbc1e97b5c617ee4116daaa09b722101d4a3c170c787450ba409f9736f", size = 169743, upload-time = "2025-03-05T20:03:39.41Z" },
-]
-
-[[package]]
-name = "wrapt"
-version = "2.1.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2e/64/925f213fdcbb9baeb1530449ac71a4d57fc361c053d06bf78d0c5c7cd80c/wrapt-2.1.2.tar.gz", hash = "sha256:3996a67eecc2c68fd47b4e3c564405a5777367adfd9b8abb58387b63ee83b21e", size = 81678, upload-time = "2026-03-06T02:53:25.134Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/39/25/e7ea0b417db02bb796182a5316398a75792cd9a22528783d868755e1f669/wrapt-2.1.2-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:1370e516598854e5b4366e09ce81e08bfe94d42b0fd569b88ec46cc56d9164a9", size = 61418, upload-time = "2026-03-06T02:53:55.706Z" },
-    { url = "https://files.pythonhosted.org/packages/ec/0f/fa539e2f6a770249907757eaeb9a5ff4deb41c026f8466c1c6d799088a9b/wrapt-2.1.2-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:6de1a3851c27e0bd6a04ca993ea6f80fc53e6c742ee1601f486c08e9f9b900a9", size = 61914, upload-time = "2026-03-06T02:52:53.37Z" },
-    { url = "https://files.pythonhosted.org/packages/53/37/02af1867f5b1441aaeda9c82deed061b7cd1372572ddcd717f6df90b5e93/wrapt-2.1.2-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:de9f1a2bbc5ac7f6012ec24525bdd444765a2ff64b5985ac6e0692144838542e", size = 120417, upload-time = "2026-03-06T02:54:30.74Z" },
-    { url = "https://files.pythonhosted.org/packages/c3/b7/0138a6238c8ba7476c77cf786a807f871672b37f37a422970342308276e7/wrapt-2.1.2-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:970d57ed83fa040d8b20c52fe74a6ae7e3775ae8cff5efd6a81e06b19078484c", size = 122797, upload-time = "2026-03-06T02:54:51.539Z" },
-    { url = "https://files.pythonhosted.org/packages/e1/ad/819ae558036d6a15b7ed290d5b14e209ca795dd4da9c58e50c067d5927b0/wrapt-2.1.2-cp314-cp314-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:3969c56e4563c375861c8df14fa55146e81ac11c8db49ea6fb7f2ba58bc1ff9a", size = 117350, upload-time = "2026-03-06T02:54:37.651Z" },
-    { url = "https://files.pythonhosted.org/packages/8b/2d/afc18dc57a4600a6e594f77a9ae09db54f55ba455440a54886694a84c71b/wrapt-2.1.2-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:57d7c0c980abdc5f1d98b11a2aa3bb159790add80258c717fa49a99921456d90", size = 121223, upload-time = "2026-03-06T02:54:35.221Z" },
-    { url = "https://files.pythonhosted.org/packages/b9/5b/5ec189b22205697bc56eb3b62aed87a1e0423e9c8285d0781c7a83170d15/wrapt-2.1.2-cp314-cp314-musllinux_1_2_riscv64.whl", hash = "sha256:776867878e83130c7a04237010463372e877c1c994d449ca6aaafeab6aab2586", size = 116287, upload-time = "2026-03-06T02:54:19.654Z" },
-    { url = "https://files.pythonhosted.org/packages/f7/2d/f84939a7c9b5e6cdd8a8d0f6a26cabf36a0f7e468b967720e8b0cd2bdf69/wrapt-2.1.2-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:fab036efe5464ec3291411fabb80a7a39e2dd80bae9bcbeeca5087fdfa891e19", size = 119593, upload-time = "2026-03-06T02:54:16.697Z" },
-    { url = "https://files.pythonhosted.org/packages/0b/fe/ccd22a1263159c4ac811ab9374c061bcb4a702773f6e06e38de5f81a1bdc/wrapt-2.1.2-cp314-cp314-win32.whl", hash = "sha256:e6ed62c82ddf58d001096ae84ce7f833db97ae2263bff31c9b336ba8cfe3f508", size = 58631, upload-time = "2026-03-06T02:53:06.498Z" },
-    { url = "https://files.pythonhosted.org/packages/65/0a/6bd83be7bff2e7efaac7b4ac9748da9d75a34634bbbbc8ad077d527146df/wrapt-2.1.2-cp314-cp314-win_amd64.whl", hash = "sha256:467e7c76315390331c67073073d00662015bb730c566820c9ca9b54e4d67fd04", size = 60875, upload-time = "2026-03-06T02:53:50.252Z" },
-    { url = "https://files.pythonhosted.org/packages/6c/c0/0b3056397fe02ff80e5a5d72d627c11eb885d1ca78e71b1a5c1e8c7d45de/wrapt-2.1.2-cp314-cp314-win_arm64.whl", hash = "sha256:da1f00a557c66225d53b095a97eace0fc5349e3bfda28fa34ffae238978ee575", size = 59164, upload-time = "2026-03-06T02:53:59.128Z" },
-    { url = "https://files.pythonhosted.org/packages/71/ed/5d89c798741993b2371396eb9d4634f009ff1ad8a6c78d366fe2883ea7a6/wrapt-2.1.2-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:62503ffbc2d3a69891cf29beeaccdb4d5e0a126e2b6a851688d4777e01428dbb", size = 63163, upload-time = "2026-03-06T02:52:54.873Z" },
-    { url = "https://files.pythonhosted.org/packages/c6/8c/05d277d182bf36b0a13d6bd393ed1dec3468a25b59d01fba2dd70fe4d6ae/wrapt-2.1.2-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:c7e6cd120ef837d5b6f860a6ea3745f8763805c418bb2f12eeb1fa6e25f22d22", size = 63723, upload-time = "2026-03-06T02:52:56.374Z" },
-    { url = "https://files.pythonhosted.org/packages/f4/27/6c51ec1eff4413c57e72d6106bb8dec6f0c7cdba6503d78f0fa98767bcc9/wrapt-2.1.2-cp314-cp314t-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:3769a77df8e756d65fbc050333f423c01ae012b4f6731aaf70cf2bef61b34596", size = 152652, upload-time = "2026-03-06T02:53:23.79Z" },
-    { url = "https://files.pythonhosted.org/packages/db/4c/d7dd662d6963fc7335bfe29d512b02b71cdfa23eeca7ab3ac74a67505deb/wrapt-2.1.2-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a76d61a2e851996150ba0f80582dd92a870643fa481f3b3846f229de88caf044", size = 158807, upload-time = "2026-03-06T02:53:35.742Z" },
-    { url = "https://files.pythonhosted.org/packages/b4/4d/1e5eea1a78d539d346765727422976676615814029522c76b87a95f6bcdd/wrapt-2.1.2-cp314-cp314t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:6f97edc9842cf215312b75fe737ee7c8adda75a89979f8e11558dfff6343cc4b", size = 146061, upload-time = "2026-03-06T02:52:57.574Z" },
-    { url = "https://files.pythonhosted.org/packages/89/bc/62cabea7695cd12a288023251eeefdcb8465056ddaab6227cb78a2de005b/wrapt-2.1.2-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:4006c351de6d5007aa33a551f600404ba44228a89e833d2fadc5caa5de8edfbf", size = 155667, upload-time = "2026-03-06T02:53:39.422Z" },
-    { url = "https://files.pythonhosted.org/packages/e9/99/6f2888cd68588f24df3a76572c69c2de28287acb9e1972bf0c83ce97dbc1/wrapt-2.1.2-cp314-cp314t-musllinux_1_2_riscv64.whl", hash = "sha256:a9372fc3639a878c8e7d87e1556fa209091b0a66e912c611e3f833e2c4202be2", size = 144392, upload-time = "2026-03-06T02:54:22.41Z" },
-    { url = "https://files.pythonhosted.org/packages/40/51/1dfc783a6c57971614c48e361a82ca3b6da9055879952587bc99fe1a7171/wrapt-2.1.2-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:3144b027ff30cbd2fca07c0a87e67011adb717eb5f5bd8496325c17e454257a3", size = 150296, upload-time = "2026-03-06T02:54:07.848Z" },
-    { url = "https://files.pythonhosted.org/packages/6c/38/cbb8b933a0201076c1f64fc42883b0023002bdc14a4964219154e6ff3350/wrapt-2.1.2-cp314-cp314t-win32.whl", hash = "sha256:3b8d15e52e195813efe5db8cec156eebe339aaf84222f4f4f051a6c01f237ed7", size = 60539, upload-time = "2026-03-06T02:54:00.594Z" },
-    { url = "https://files.pythonhosted.org/packages/82/dd/e5176e4b241c9f528402cebb238a36785a628179d7d8b71091154b3e4c9e/wrapt-2.1.2-cp314-cp314t-win_amd64.whl", hash = "sha256:08ffa54146a7559f5b8df4b289b46d963a8e74ed16ba3687f99896101a3990c5", size = 63969, upload-time = "2026-03-06T02:54:39Z" },
-    { url = "https://files.pythonhosted.org/packages/5c/99/79f17046cf67e4a95b9987ea129632ba8bcec0bc81f3fb3d19bdb0bd60cd/wrapt-2.1.2-cp314-cp314t-win_arm64.whl", hash = "sha256:72aaa9d0d8e4ed0e2e98019cea47a21f823c9dd4b43c7b77bba6679ffcca6a00", size = 60554, upload-time = "2026-03-06T02:53:14.132Z" },
-    { url = "https://files.pythonhosted.org/packages/1a/c7/8528ac2dfa2c1e6708f647df7ae144ead13f0a31146f43c7264b4942bf12/wrapt-2.1.2-py3-none-any.whl", hash = "sha256:b8fd6fa2b2c4e7621808f8c62e8317f4aae56e59721ad933bac5239d913cf0e8", size = 43993, upload-time = "2026-03-06T02:53:12.905Z" },
 ]
 
 [[package]]
