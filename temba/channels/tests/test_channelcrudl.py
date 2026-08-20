@@ -96,10 +96,14 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
+        num_channels = self.org.channels.count()
+
         # a type which isn't available to the org at all can't be claimed
         with patch.object(ExternalType, "is_available_to", lambda self, org, user: (False, False)):
             self.assertEqual(404, self.client.get(claim_url).status_code)
             self.assertEqual(404, self.client.post(claim_url, {}).status_code)
+
+        self.assertEqual(num_channels, self.org.channels.count())
 
         # but a type which is only unavailable because of the org's region is still claimable, because the claim all
         # page lists those
