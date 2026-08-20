@@ -30,6 +30,10 @@ class BaseAPIView(NonAtomicMixin, generics.GenericAPIView):
     model_manager = "objects"
     lookup_params = {"uuid": "uuid"}
 
+    # whether servicing staff are limited to GET requests - endpoints whose POSTs are actually
+    # reads (e.g. resolving references) can set this to False
+    readonly_servicing = True
+
     def derive_queryset(self):
         return getattr(self.model, self.model_manager).filter(org=self.request.org)
 

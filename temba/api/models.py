@@ -86,9 +86,10 @@ class APIPermission(BasePermission):
         if not has_perm:
             return False
 
-        # servicing staff can only ever GET from the API
+        # servicing staff can only ever read from the API - which for most endpoints means GET
+        # only, but endpoints whose POSTs don't write can declare that
         if request.user.is_staff and not role:
-            return request.method == "GET"
+            return request.method == "GET" or not getattr(view, "readonly_servicing", True)
 
         return True
 

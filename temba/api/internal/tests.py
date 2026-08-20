@@ -758,6 +758,20 @@ class EndpointsTest(APITestMixin, TembaTest):
             self.assertEqual(200, response.status_code)
             self.assertEqual(expected, response.json()["results"])
 
+        # staff servicing the org can also resolve names - this endpoint's POSTs are reads, so the
+        # GET-only rule for servicing staff doesn't apply
+        self.login(self.customer_support, choose_org=self.org)
+        with self.mockReadOnly(assert_models={Flow}):
+            response = self.client.post(
+                endpoint_url,
+                {"flow": [str(flow.uuid)]},
+                content_type="application/json",
+                HTTP_X_FORWARDED_HTTPS="https",
+            )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual([{"type": "flow", "uuid": str(flow.uuid), "name": "Welcome"}], response.json()["results"])
+        self.client.logout()
+
         # a payload of a single type only queries for that type, and duplicate references are only resolved once
         with self.mockReadOnly(assert_models={Flow}):
             response = self._postJSON(endpoint_url, self.editor, {"flow": [str(flow.uuid), str(flow.uuid)]})
