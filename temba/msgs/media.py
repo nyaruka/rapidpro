@@ -10,6 +10,8 @@ from .models import Media
 
 logger = logging.getLogger(__name__)
 
+PROCESSING_TIMEOUT = 120  # seconds to allow ffmpeg/ffprobe to process an upload
+
 
 def process_upload(media: Media):
     media_type, sub_type = media.content_type.split("/")
@@ -71,7 +73,7 @@ def _create_alternate_audio(original: Media, file, new_content_type: str, new_ex
     """
 
     def transform(in_name, out_name):
-        _ffmpeg("-i", in_name, "-acodec", codec, "-y", out_name)
+        _ffmpeg("ffmpeg", "-i", in_name, "-acodec", codec, "-y", out_name)
 
     return _create_alternate(original, file, transform, new_content_type, new_extension, duration=original.duration)
 
@@ -82,7 +84,7 @@ def _create_video_thumbnail(original: Media, file) -> str:
     """
 
     def transform(in_name, out_name):
-        _ffmpeg("-ss", "00:00:00", "-i", in_name, "-vframes", "1", "-y", out_name)
+        _ffmpeg("ffmpeg", "-ss", "00:00:00", "-i", in_name, "-vframes", "1", "-y", out_name)
 
     return _create_alternate(
         original, file, transform, "image/jpeg", "jpg", width=original.width, height=original.height
@@ -107,23 +109,16 @@ def _get_stream_info(filename: str, stream_id: str) -> dict:
     Probes a file for a given stream type
     """
     probe = json.loads(
-        _run("ffprobe", "-show_format", "-show_streams", "-of", "json", "-select_streams", stream_id, filename)
+        _ffmpeg("ffprobe", "-show_format", "-show_streams", "-of", "json", "-select_streams", stream_id, filename)
     )
     return probe["streams"][0] if probe["streams"] else {}
 
 
-def _ffmpeg(*args: str):
+def _ffmpeg(program: str, *args: str) -> str:
     """
-    Runs ffmpeg with the given arguments
+    Runs the given program from the ffmpeg toolchain, returning its stdout, and raising if it fails or takes too long
     """
-    _run("ffmpeg", *args)
-
-
-def _run(program: str, *args: str) -> str:
-    """
-    Runs the given program, returning its stdout, and raising if it exits non-zero
-    """
-    proc = subprocess.run([program, "-hide_banner", *args], capture_output=True, text=True)
+    proc = subprocess.run([program, "-hide_banner", *args], capture_output=True, text=True, timeout=PROCESSING_TIMEOUT)
     if proc.returncode != 0:
         raise RuntimeError(f"{program} exited with code {proc.returncode}: {proc.stderr.strip()}")
 
