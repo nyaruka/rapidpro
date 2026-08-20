@@ -1,13 +1,31 @@
 import os
 import sys
 from datetime import timedelta
+from ipaddress import ip_address, ip_network
 
-import iptools
 from celery.schedules import crontab
 
 from django.utils.translation import gettext_lazy as _
 
-INTERNAL_IPS = iptools.IpRangeList("127.0.0.1", "192.168.0.10", "192.168.0.0/24", "0.0.0.0")  # network block
+
+class IPRangeList:
+    """
+    List of IP networks which can be tested for membership by address string, e.g. `"10.1.0.3" in ranges`
+    """
+
+    def __init__(self, *ranges: str):
+        self.networks = [ip_network(r) for r in ranges]
+
+    def __contains__(self, addr: str) -> bool:
+        try:
+            ip = ip_address(addr)
+        except ValueError:
+            return False
+
+        return any(ip in network for network in self.networks)
+
+
+INTERNAL_IPS = IPRangeList("127.0.0.1", "192.168.0.10", "192.168.0.0/24", "0.0.0.0")  # network block
 HOSTNAME = "localhost"
 
 # HTTP Headers using for outgoing requests to other services

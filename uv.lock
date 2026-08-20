@@ -740,18 +740,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ffmpeg-python"
-version = "0.2.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "future" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/dd/5e/d5f9105d59c1325759d838af4e973695081fbbc97182baf73afc78dec266/ffmpeg-python-0.2.0.tar.gz", hash = "sha256:65225db34627c578ef0e11c8b1eb528bb35e024752f6f10b78c011f6f64c4127", size = 21543, upload-time = "2019-07-06T00:19:08.989Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/0c/56be52741f75bad4dc6555991fabd2e07b432d333da82c11ad701123888a/ffmpeg_python-0.2.0-py3-none-any.whl", hash = "sha256:ac441a0404e053f8b6a1113a77c0f452f1cfc62f6344a769475ffdc0f56c23c5", size = 25024, upload-time = "2019-07-06T00:19:07.215Z" },
-]
-
-[[package]]
 name = "fido2"
 version = "2.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -802,15 +790,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/89/76/c615883b7b521ead2944bb3480398cbb07e12b7b4e4d073d3752eb721558/frozenlist-1.8.0-cp314-cp314t-win_amd64.whl", hash = "sha256:06be8f67f39c8b1dc671f5d83aaefd3358ae5cdcf8314552c57e7ed3e6475bdd", size = 49451, upload-time = "2025-10-06T05:37:53.425Z" },
     { url = "https://files.pythonhosted.org/packages/e0/a3/5982da14e113d07b325230f95060e2169f5311b1017ea8af2a29b374c289/frozenlist-1.8.0-cp314-cp314t-win_arm64.whl", hash = "sha256:102e6314ca4da683dca92e3b1355490fed5f313b768500084fbe6371fddfdb79", size = 42507, upload-time = "2025-10-06T05:37:54.513Z" },
     { url = "https://files.pythonhosted.org/packages/9a/9a/e35b4a917281c0b8419d4207f4334c8e8c5dbf4f3f5f9ada73958d937dcc/frozenlist-1.8.0-py3-none-any.whl", hash = "sha256:0c18a16eab41e82c295618a77502e17b195883241c563b00f0aa5106fc4eaa0d", size = 13409, upload-time = "2025-10-06T05:38:16.721Z" },
-]
-
-[[package]]
-name = "future"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a7/b2/4140c69c6a66432916b26158687e821ba631a4c9273c474343badf84d3ba/future-1.0.0.tar.gz", hash = "sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05", size = 1228490, upload-time = "2024-02-21T11:52:38.461Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/71/ae30dadffc90b9006d77af76b393cb9dfbfc9629f339fc1574a1c52e6806/future-1.0.0-py3-none-any.whl", hash = "sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216", size = 491326, upload-time = "2024-02-21T11:52:35.956Z" },
 ]
 
 [[package]]
@@ -917,15 +896,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/82/77/7b3966d0b9d1d31a36ddf1746926a11dface89a83409bf1483f0237aa758/idna-3.15.tar.gz", hash = "sha256:ca962446ea538f7092a95e057da437618e886f4d349216d2b1e294abfdb65fdc", size = 199245, upload-time = "2026-05-12T22:45:57.011Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d2/23/408243171aa9aaba178d3e2559159c24c1171a641aa83b67bdd3394ead8e/idna-3.15-py3-none-any.whl", hash = "sha256:048adeaf8c2d788c40fee287673ccaa74c24ffd8dcf09ffa555a2fbb59f10ac8", size = 72340, upload-time = "2026-05-12T22:45:55.733Z" },
-]
-
-[[package]]
-name = "iptools"
-version = "0.7.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/26/f8/c0aed5193cf9e3f38bf5e7505f5581fd0718e2529896e0c0ada9d038b92f/iptools-0.7.0.tar.gz", hash = "sha256:118a4f638bb5fa0123df56fe3be703b112a689167539bcc194f8698ccdd9e2ea", size = 17741, upload-time = "2019-01-07T05:00:24.363Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7c/0b/b8d60db9ba18b386ee95e48bd04f51fccba28680c6e2b49b68b1af4a1c6d/iptools-0.7.0-py2.py3-none-any.whl", hash = "sha256:a91fc7478fd795ac6b2d47c869fb46db7666ffec817bcb0560ef119e204237f0", size = 16189, upload-time = "2019-01-07T05:00:22.617Z" },
 ]
 
 [[package]]
@@ -1722,12 +1692,10 @@ dependencies = [
     { name = "django-valkey" },
     { name = "djangorestframework" },
     { name = "elasticsearch" },
-    { name = "ffmpeg-python" },
     { name = "fido2" },
     { name = "geojson" },
     { name = "google-genai" },
     { name = "gunicorn" },
-    { name = "iptools" },
     { name = "iso639-lang" },
     { name = "iso8601" },
     { name = "markdown" },
@@ -1779,12 +1747,10 @@ requires-dist = [
     { name = "django-valkey", specifier = ">=0.4.1,<0.5.0" },
     { name = "djangorestframework", specifier = "~=3.16.0" },
     { name = "elasticsearch", specifier = ">=9.0.0,<10.0.0" },
-    { name = "ffmpeg-python", specifier = "~=0.2.0" },
     { name = "fido2", specifier = ">=2.0.0,<3.0.0" },
     { name = "geojson", specifier = "~=2.5.0" },
     { name = "google-genai", specifier = ">=1.10.0,<2.0.0" },
     { name = "gunicorn", specifier = ">=23.0.0,<24.0.0" },
-    { name = "iptools", specifier = "~=0.7.0" },
     { name = "iso639-lang", specifier = "~=2.6.0" },
     { name = "iso8601", specifier = "~=2.1.0" },
     { name = "markdown", specifier = "~=3.8.0" },
