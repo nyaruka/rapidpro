@@ -12,6 +12,7 @@ import {
   findCategoryByName,
   isSystemCategory
 } from './flow/categoryUtils';
+import { checkWorkspaceResponse } from './workspace';
 
 export { isSystemCategory } from './flow/categoryUtils';
 
@@ -148,6 +149,8 @@ export const getUrl = (
 
     fetch(url, options)
       .then((response) => {
+        checkWorkspaceResponse(options.headers, response);
+
         if (response.status < 200 || response.status >= 300) {
           reject(response);
           return;
@@ -302,6 +305,8 @@ export const postUrl = (
   return new Promise<WebResponse>((resolve, reject) => {
     fetch(url, options)
       .then(async (response) => {
+        checkWorkspaceResponse(fetchHeaders, response);
+
         if (response.status >= 500) {
           reject(response);
           return;
@@ -342,7 +347,18 @@ export const postJSON = (url: string, payload: any): Promise<WebResponse> => {
 };
 
 export const deleteRequest = (url: string): Promise<Response> => {
-  return fetch(url, { method: 'DELETE', headers: getHeaders() });
+  const headers = getHeaders();
+  const request = fetch(url, { method: 'DELETE', headers });
+
+  // watch the response rather than chaining onto it, so callers still receive
+  // the fetch promise itself and settle in the same turn they always have
+  request
+    .then((response) => checkWorkspaceResponse(headers, response))
+    .catch(() => {
+      // the caller owns the failure, we're only here for the workspace
+    });
+
+  return request;
 };
 
 export const postFormData = (
