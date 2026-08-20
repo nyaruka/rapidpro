@@ -14,6 +14,9 @@ from temba.users.models import User
 # by default every user (including the admins) gets this password
 USER_PASSWORD = "Qwerty123"
 
+# the staff user, who belongs to no org and services them all
+STAFF_EMAIL = "support@temba.io"
+
 # contact fields created for each org, as (key, label, value_type)
 FIELDS = (
     ("age", "Age", ContactField.TYPE_NUMBER),
@@ -27,7 +30,8 @@ NAMES = ("Ann", "Bob", "Cat", "Dan", "Eve", "Fay", "Gil", "Hal", "Ivy", "Jay")
 class Command(BaseCommand):
     help = (
         "Creates a simple database for local development: N orgs each with an admin, a couple of fields, a group, "
-        "and a share of M contacts spread across them. Requires an empty database (run migrate first)."
+        "and a share of M contacts spread across them, plus a staff user. Requires an empty database (run migrate "
+        "first)."
     )
 
     def add_arguments(self, parser):
@@ -46,15 +50,18 @@ class Command(BaseCommand):
 
         orgs = [self.create_org(i, password) for i in range(num_orgs)]
         self.create_contacts(orgs, num_contacts)
+        self.create_staff(password)
 
         admin = orgs[0].get_admins().first()
-        self._log("\n" + self.style.SUCCESS("Done!") + f" Log in as {admin.email} / {password}\n")
+        self._log(
+            "\n" + self.style.SUCCESS("Done!") + f" Log in as {admin.email} / {password} (or {STAFF_EMAIL} for staff)\n"
+        )
 
     def create_org(self, index, password):
         name = f"Org {index + 1}"
         self._log(f"Creating {name}... ")
 
-        admin = User.objects.create_user(f"admin{index + 1}@temba.io", password, is_staff=True, first_name="Admin")
+        admin = User.objects.create_user(f"admin{index + 1}@temba.io", password, first_name="Admin")
 
         # Org.create adds the admin, sets up system groups/fields, and imports the sample flows
         org = Org.create(admin, name, ZoneInfo("America/Los_Angeles"))
@@ -68,6 +75,14 @@ class Command(BaseCommand):
 
         self._ok()
         return org
+
+    def create_staff(self, password):
+        self._log("Creating staff user... ")
+
+        # staff belong to no org: they get the /staff/ area and read-only servicing access to every workspace
+        User.objects.create_user(STAFF_EMAIL, password, is_staff=True, first_name="Support")
+
+        self._ok()
 
     def create_contacts(self, orgs, num_contacts):
         self._log(f"Creating {num_contacts} contacts... ")
