@@ -1,6 +1,15 @@
 import time
 
-import vonage
+from vonage import Auth, Vonage
+from vonage_application.common import Capabilities, Voice, VoiceUrl, VoiceWebhooks
+from vonage_application.requests import ApplicationConfig
+from vonage_http_client.errors import AuthenticationError, HttpRequestError, RateLimitedError
+from vonage_numbers.requests import (
+    ListOwnedNumbersFilter,
+    NumberParams,
+    SearchAvailableNumbersFilter,
+    UpdateNumberParams,
+)
 
 from django.urls import reverse
 
@@ -13,114 +22,88 @@ class VonageClient:
     RATE_LIMIT_BACKOFFS = [1, 3, 6]  # backoff times in seconds when we're rate limited
 
     def __init__(self, api_key: str, api_secret: str):
-        self.base = vonage.Client(api_key, api_secret)
+        self.base = Vonage(Auth(api_key=api_key, api_secret=api_secret))
 
     def check_credentials(self) -> bool:
         try:
             self.base.account.get_balance()
             return True
-        except vonage.AuthenticationError:
+        except AuthenticationError:
             return False
 
     def get_numbers(self, pattern: str = None, size: int = 10) -> list:
-        params = {"size": size}
-        if pattern:
-            params["pattern"] = str(pattern).strip("+")
+        # v4 requires a search strategy whenever a pattern is given, and 0 (starts with) is the narrowest, which
+        # suits us because we're always looking for a specific number rather than browsing
+        pattern = str(pattern).strip("+") if pattern else None
+        filter = ListOwnedNumbersFilter(size=size, pattern=pattern, search_pattern=0 if pattern is not None else None)
 
-        response = self._with_retry(self.base.numbers.get_account_numbers, params=params)
+        numbers, _, _ = self._with_retry(self.base.numbers.list_owned_numbers, filter)
 
-        return response["numbers"] if int(response.get("count", 0)) else []
+        return [n.model_dump() for n in numbers]
 
     def search_numbers(self, country, pattern):
-        response = self._with_retry(
-            self.base.numbers.get_available_numbers,
-            country_code=country,
-            pattern=pattern,
-            search_pattern=1,
-            features="SMS",
-            country=country,
-        )
-
         numbers = []
-        if int(response.get("count", 0)):
-            numbers += response["numbers"]
 
-        response = self._with_retry(
-            self.base.numbers.get_available_numbers,
-            country_code=country,
-            pattern=pattern,
-            search_pattern=1,
-            features="VOICE",
-            country=country,
-        )
-
-        if int(response.get("count", 0)):
-            numbers += response["numbers"]
+        for features in ("SMS", "VOICE"):
+            found, _, _ = self._with_retry(
+                self.base.numbers.search_available_numbers,
+                SearchAvailableNumbersFilter(country=country, pattern=pattern, search_pattern=1, features=features),
+            )
+            numbers += [n.model_dump() for n in found]
 
         return numbers
 
     def buy_number(self, country, number):
-        params = dict(msisdn=number.lstrip("+"), country=country)
-
-        self._with_retry(self.base.numbers.buy_number, params=params)
+        self._with_retry(self.base.numbers.buy_number, NumberParams(country=country, msisdn=number.lstrip("+")))
 
     def update_number(self, country, number, mo_url, app_id):
-        number = number.lstrip("+")
-        params = dict(moHttpUrl=mo_url, msisdn=number, country=country)
+        params = UpdateNumberParams(country=country, msisdn=number.lstrip("+"), mo_http_url=mo_url, app_id=app_id)
 
-        if app_id:
-            params["app_id"] = app_id
-
-        self._with_retry(self.base.numbers.update_number, params=params)
+        self._with_retry(self.base.numbers.update_number, params)
 
     def create_application(self, domain, channel_uuid):
         name = "%s/%s" % (domain, channel_uuid)
         answer_url = reverse("mailroom.ivr_handler", args=[channel_uuid, "incoming"])
         event_url = reverse("mailroom.ivr_handler", args=[channel_uuid, "status"])
 
-        app_data = {
-            "name": name,
-            "capabilities": {
-                "voice": {
-                    "webhooks": {
-                        "answer_url": {"address": f"https://{domain}{answer_url}", "http_method": "POST"},
-                        "event_url": {"address": f"https://{domain}{event_url}", "http_method": "POST"},
-                    }
-                }
-            },
-        }
+        config = ApplicationConfig(
+            name=name,
+            capabilities=Capabilities(
+                voice=Voice(
+                    webhooks=VoiceWebhooks(
+                        answer_url=VoiceUrl(address=f"https://{domain}{answer_url}", http_method="POST"),
+                        event_url=VoiceUrl(address=f"https://{domain}{event_url}", http_method="POST"),
+                    )
+                )
+            ),
+        )
 
-        response = self._with_retry(self.base.application.create_application, application_data=app_data)
+        app = self._with_retry(self.base.application.create_application, config)
 
-        app_id = response.get("id")
-        app_private_key = response.get("keys", {}).get("private_key")
-        return app_id, app_private_key
+        # the private key is only returned when the application is created and isn't a field on the keys model
+        return app.id, getattr(app.keys, "private_key", None) if app.keys else None
 
     def delete_application(self, app_id):
         try:
-            self._with_retry(self.base.application.delete_application, application_id=app_id)
-        except vonage.ClientError:
+            self._with_retry(self.base.application.delete_application, app_id)
+        except HttpRequestError:
             # possible application no longer exists
             pass
 
-    def _with_retry(self, func, **kwargs):
+    def _with_retry(self, func, *args):
         """
         Utility to perform something using the API, and if it errors with a rate-limit response, try again
         after a small delay.
         """
 
-        def can_retry(e):
-            message = str(e)
-            return message.startswith("420") or message.startswith("429")
-
         backoffs = self.RATE_LIMIT_BACKOFFS.copy()
 
         while True:
             try:
-                return func(**kwargs)
-            except vonage.ClientError as ex:
-                if can_retry(ex) and backoffs:
-                    time.sleep(backoffs[0])
-                    backoffs = backoffs[1:]
-                else:
-                    raise ex
+                return func(*args)
+            except RateLimitedError:
+                if not backoffs:
+                    raise
+
+                time.sleep(backoffs[0])
+                backoffs = backoffs[1:]

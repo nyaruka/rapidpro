@@ -36,6 +36,12 @@ class MockResponse:
         # mock up a request object on our response as well
         self.request = Mock(Request, method=method, url=url, body="request body", headers=headers)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return False
+
     def add_header(self, key, value):
         self.headers[key] = value
 
