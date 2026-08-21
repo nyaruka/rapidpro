@@ -148,12 +148,22 @@ MEDIA_URL = "/media/"
 # -----------------------------------------------------------------------------------
 # Email
 # -----------------------------------------------------------------------------------
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_HOST_USER = "server@temba.io"
+# Mailers are how email is sent. There must always be a "default" mailer, and additional mailers can be added for
+# specific types of email - see temba.utils.email.EmailSender.from_email_type.
+MAILERS = {
+    "default": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": "smtp.gmail.com",
+            "username": "server@temba.io",
+            "password": "mypassword",
+            "use_tls": True,
+            "timeout": 10,
+        },
+    },
+}
+
 DEFAULT_FROM_EMAIL = "Temba <server@temba.io>"
-EMAIL_HOST_PASSWORD = "mypassword"
-EMAIL_USE_TLS = True
-EMAIL_TIMEOUT = 10
 
 # Used when sending email from within a flow and the user hasn't configured
 # their own SMTP server.

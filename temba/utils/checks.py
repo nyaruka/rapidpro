@@ -27,3 +27,20 @@ def storage(app_configs, **kwargs):
             Error("Storage URL shouldn't end with trailing slash.", hint="Remove trailing slash in STORAGE_URL.")
         )
     return errors
+
+
+@register()
+def branding_emails(app_configs, **kwargs):
+    errors = []
+
+    for email_type, from_email in settings.BRAND.get("emails", {}).items():
+        if from_email.startswith("smtp://"):
+            errors.append(
+                Error(
+                    f"Branding email address for '{email_type}' is an SMTP URL.",
+                    hint=f"Email addresses in BRAND are from addresses only. Move the SMTP configuration to a "
+                    f"'{email_type}' entry in MAILERS in Django settings.",
+                )
+            )
+
+    return errors
