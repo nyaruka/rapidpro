@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import subprocess
 import tempfile
 import tomllib
@@ -42,7 +43,11 @@ if __name__ == "__main__":
 
     packages = " ".join(config["packages"])
     locale_dir = config["locale"]
-    ignores = " ".join(f"--ignore='{i}'" for i in config.get("ignore", []))
+
+    # makemessages only ever writes to a `locale` directory directly under its working directory, so it has to be
+    # run from the parent of the configured locale directory - with the ignore globs rebased to be relative to it
+    msg_dir = os.path.dirname(locale_dir) or "."
+    ignores = " ".join(f"--ignore='{i.removeprefix(msg_dir + '/')}'" for i in config.get("ignore", []))
 
     if config.get("migrations", False):
         status("Check for missing migrations")
@@ -58,6 +63,7 @@ if __name__ == "__main__":
         # run without django settings so makemessages only sees locale directories under the current directory -
         # with settings configured, LOCALE_PATHS could pull other projects' catalogs into scope
         cmd(
+            f"cd '{msg_dir}' && "
             f"DJANGO_SETTINGS_MODULE= django-admin makemessages -a -e haml,html,txt,py --no-location --no-wrap "
             f"{ignores} 2>&1"
         )
