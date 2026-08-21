@@ -317,13 +317,34 @@ class ClientTest(TembaTest):
 
     @patch("vonage_numbers.Numbers.list_owned_numbers")
     def test_get_numbers(self, mock_list_owned_numbers):
+        # as the client library parses them from the API response
         mock_list_owned_numbers.return_value = (
-            [OwnedNumber(msisdn="23463", country="EC"), OwnedNumber(msisdn="568658", country="EC")],
+            [
+                OwnedNumber(
+                    **{
+                        "country": "EC",
+                        "msisdn": "23463",
+                        "type": "mobile-lvn",
+                        "features": ["SMS", "VOICE"],
+                        "moHttpUrl": "http://acme.com/mo",
+                    }
+                ),
+                OwnedNumber(**{"country": "EC", "msisdn": "568658", "type": "mobile-shortcode", "features": ["SMS"]}),
+            ],
             2,
             None,
         )
 
-        self.assertEqual(["23463", "568658"], [n["msisdn"] for n in self.client.get_numbers(pattern="+593")])
+        numbers = self.client.get_numbers(pattern="+593")
+
+        self.assertEqual(["23463", "568658"], [n["msisdn"] for n in numbers])
+
+        # claiming reads these keys off each number so check they survive being parsed and dumped again
+        self.assertEqual("EC", numbers[0]["country"])
+        self.assertEqual("mobile-lvn", numbers[0]["type"])
+        self.assertEqual(["SMS", "VOICE"], numbers[0]["features"])
+        self.assertEqual("mobile-shortcode", numbers[1]["type"])
+        self.assertEqual(["SMS"], numbers[1]["features"])
 
         mock_list_owned_numbers.assert_called_once_with(
             ListOwnedNumbersFilter(size=10, pattern="593", search_pattern=0)
