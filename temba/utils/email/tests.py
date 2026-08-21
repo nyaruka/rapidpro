@@ -1,7 +1,15 @@
+import smtplib
+from unittest.mock import patch
+
+from django.core import mail
+from django.test.utils import override_settings
+
 from temba.tests import TembaTest
 
 from .conf import make_smtp_url, parse_smtp_url
-from .send import EmailSender
+from .send import EmailSender, send_via_smtp
+
+LOCMEM = {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}
 
 
 class EmailTest(TembaTest):
@@ -9,21 +17,71 @@ class EmailTest(TembaTest):
         branding = {"name": "Test", "emails": {"spam": "no-reply@acme.com"}}
         sender = EmailSender.from_email_type(branding, "spam")
         self.assertEqual(branding, sender.branding)
-        self.assertIsNone(sender.connection)  # use default
         self.assertEqual("no-reply@acme.com", sender.from_email)
+        self.assertEqual("default", sender.mailer)  # no mailer of that name so use default
 
         # test email type not defined in branding
         sender = EmailSender.from_email_type(branding, "marketing")
         self.assertEqual(branding, sender.branding)
-        self.assertIsNone(sender.connection)
         self.assertEqual("Temba <server@temba.io>", sender.from_email)  # from settings
+        self.assertEqual("default", sender.mailer)
 
-        # test full SMTP url in branding
-        branding = {"name": "Test", "emails": {"spam": "smtp://foo:sesame@acme.com/?tls=true&from=no-reply%40acme.com"}}
-        sender = EmailSender.from_email_type(branding, "spam")
-        self.assertEqual(branding, sender.branding)
-        self.assertIsNotNone(sender.connection)
-        self.assertEqual("no-reply@acme.com", sender.from_email)
+        # test email type which has its own mailer
+        with override_settings(MAILERS={"default": LOCMEM, "spam": LOCMEM}):
+            sender = EmailSender.from_email_type(branding, "spam")
+            self.assertEqual("no-reply@acme.com", sender.from_email)
+            self.assertEqual("spam", sender.mailer)
+
+    def test_send(self):
+        branding = {"name": "Test", "emails": {"notifications": "no-reply@acme.com"}}
+        sender = EmailSender.from_email_type(branding, "notifications")
+        sender.send(["bob@acme.com"], "orgs/email/smtp_test", {}, "Hello")
+
+        self.assertEqual(1, len(mail.outbox))
+        self.assertEqual("Hello", mail.outbox[0].subject)
+        self.assertEqual("no-reply@acme.com", mail.outbox[0].from_email)
+        self.assertEqual(["bob@acme.com"], mail.outbox[0].to)
+        self.assertEqual("text/html", mail.outbox[0].alternatives[0].mimetype)
+
+    def test_send_via_smtp(self):
+        branding = {"name": "Test", "emails": {}}
+        message = EmailSender(branding, from_email="no-reply@acme.com").compose(
+            ["bob@acme.com"], "orgs/email/smtp_test", {}, "Hello"
+        )
+
+        with patch("smtplib.SMTP") as mock_smtp:
+            send_via_smtp("smtp://jim%40acme.com:sesame@mail.acme.com:587/?tls=true", message)
+
+            self.assertEqual(("mail.acme.com", 587), mock_smtp.call_args.args)
+
+            conn = mock_smtp.return_value.__enter__.return_value
+            conn.starttls.assert_called_once()
+            conn.login.assert_called_once_with("jim@acme.com", "sesame")
+
+            sent = conn.send_message.call_args.args[0]
+            self.assertEqual("Hello", sent["Subject"])
+            self.assertEqual("no-reply@acme.com", sent["From"])
+            self.assertEqual("bob@acme.com", sent["To"])
+
+        # SMTP config without TLS or credentials
+        with patch("smtplib.SMTP") as mock_smtp:
+            send_via_smtp("smtp://mail.acme.com:25/", message)
+
+            conn = mock_smtp.return_value.__enter__.return_value
+            conn.starttls.assert_not_called()
+            conn.login.assert_not_called()
+            conn.send_message.assert_called_once()
+
+        # errors from the server are not swallowed
+        with patch("smtplib.SMTP") as mock_smtp:
+            mock_smtp.return_value.__enter__.return_value.login.side_effect = smtplib.SMTPAuthenticationError(
+                535, "nope"
+            )
+
+            with self.assertRaises(smtplib.SMTPAuthenticationError):
+                send_via_smtp("smtp://jim:sesame@mail.acme.com:587/?tls=true", message)
+
+        self.assertEqual(0, len(mail.outbox))  # nothing sent via a configured mailer
 
     def test_make_smtp_url(self):
         self.assertEqual(

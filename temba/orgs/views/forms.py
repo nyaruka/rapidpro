@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.translation import gettext_lazy as _
 
-from temba.utils.email import EmailSender, make_smtp_url, parse_smtp_url
+from temba.utils.email import EmailSender, make_smtp_url, parse_smtp_url, send_via_smtp
 from temba.utils.fields import InputWidget
 from temba.utils.timezones import TimeZoneFormField
 
@@ -81,11 +81,11 @@ class SMTPForm(forms.Form):
             password = self.cleaned_data["password"]
 
             smtp_url = make_smtp_url(host, port, username, password, from_email, tls=True)
-            sender = EmailSender.from_smtp_url(self.org.branding, smtp_url)
+            sender = EmailSender(self.org.branding, from_email=from_email)
             recipients = [admin.email for admin in self.org.get_admins().order_by("email")]
             subject = _("%(name)s SMTP settings test") % self.org.branding
             try:
-                sender.send(recipients, "orgs/email/smtp_test", {}, subject)
+                send_via_smtp(smtp_url, sender.compose(recipients, "orgs/email/smtp_test", {}, subject))
             except smtplib.SMTPException as e:
                 raise ValidationError(_("SMTP settings test failed with error: %s") % str(e))
             except Exception:

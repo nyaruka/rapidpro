@@ -260,9 +260,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFormError(response.context["form"], "from_email", "Not a valid email address.")
         self.assertEqual(len(mail.outbox), 0)
 
-        # mock email sending so test send fails
-        with patch("temba.utils.email.send.send_email") as mock_send:
-            mock_send.side_effect = smtplib.SMTPException("boom")
+        # mock the SMTP connection used to test the settings so that the test send fails
+        with patch("smtplib.SMTP") as mock_smtp:
+            mock_smtp.return_value.__enter__.return_value.send_message.side_effect = smtplib.SMTPException("boom")
 
             response = self.client.post(
                 config_url,
@@ -277,7 +277,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertFormError(response.context["form"], None, "SMTP settings test failed with error: boom")
             self.assertEqual(len(mail.outbox), 0)
 
-            mock_send.side_effect = Exception("Unexpected Error")
+            mock_smtp.return_value.__enter__.return_value.send_message.side_effect = Exception("Unexpected Error")
             response = self.client.post(
                 config_url,
                 {
@@ -293,17 +293,30 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertEqual(len(mail.outbox), 0)
 
         # submit with valid fields
-        self.client.post(
-            config_url,
-            {
-                "from_email": "  foo@bar.com  ",  # check trimming
-                "host": "smtp.example.com",
-                "username": "support@example.com",
-                "password": " secret ",
-                "port": "465",
-            },
-        )
-        self.assertEqual(len(mail.outbox), 1)
+        with patch("smtplib.SMTP") as mock_smtp:
+            self.client.post(
+                config_url,
+                {
+                    "from_email": "  foo@bar.com  ",  # check trimming
+                    "host": "smtp.example.com",
+                    "username": "support@example.com",
+                    "password": " secret ",
+                    "port": "465",
+                },
+            )
+
+            # the test email is sent using the settings just entered, not one of the configured mailers
+            self.assertEqual(("smtp.example.com", 465), mock_smtp.call_args.args)
+
+            conn = mock_smtp.return_value.__enter__.return_value
+            conn.login.assert_called_once_with("support@example.com", "secret")
+
+            sent = conn.send_message.call_args.args[0]
+            self.assertEqual("RapidPro SMTP settings test", sent["Subject"])
+            self.assertEqual("foo@bar.com", sent["From"])
+            self.assertEqual("admin@textit.com", sent["To"])
+
+        self.assertEqual(len(mail.outbox), 0)
 
         self.org.refresh_from_db()
         self.assertEqual(
