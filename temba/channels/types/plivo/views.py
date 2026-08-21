@@ -111,9 +111,11 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             data = response.json()
             for number_dict in data["objects"]:
                 region = number_dict["region"]
-                country_name = region.split(",")[-1].strip().title()
-                country = pycountry.countries.get(name=country_name)
-                if not country:  # ignore numbers in regions we can't match to a country
+                country_name = region.split(",")[-1].strip()
+                try:
+                    # matches case-insensitively on name, official name or code
+                    country = pycountry.countries.lookup(country_name)
+                except LookupError:  # ignore numbers in regions we can't match to a country
                     continue
 
                 if len(number_dict["number"]) <= 6:
