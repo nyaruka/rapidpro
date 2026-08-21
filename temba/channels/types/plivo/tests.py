@@ -50,6 +50,7 @@ class PlivoTypeTest(TembaTest):
                         objects=[
                             dict(number="16062681435", region="California, UNITED STATES"),
                             dict(number="8080", region="GUADALAJARA, MEXICO"),
+                            dict(number="88160000000", region="XANADU"),  # not a real country
                         ]
                     ),
                 )
@@ -61,6 +62,10 @@ class PlivoTypeTest(TembaTest):
                 self.assertContains(response, "8080")
                 self.assertContains(response, "US")
                 self.assertContains(response, "MX")
+
+                # the number whose region doesn't match a country is ignored rather than erroring
+                self.assertNotContains(response, "88160000000")
+                self.assertNotIn("error", response.context)
 
                 # claim it the US number
                 session = self.client.session

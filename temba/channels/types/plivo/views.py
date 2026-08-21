@@ -112,13 +112,16 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             for number_dict in data["objects"]:
                 region = number_dict["region"]
                 country_name = region.split(",")[-1].strip().title()
-                country = pycountry.countries.get(name=country_name).alpha_2
+                country = pycountry.countries.get(name=country_name)
+                if not country:  # ignore numbers in regions we can't match to a country
+                    continue
+
                 if len(number_dict["number"]) <= 6:
                     phone_number = number_dict["number"]
                 else:
                     parsed = phonenumbers.parse("+" + number_dict["number"], None)
                     phone_number = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
-                account_numbers.append(dict(number=phone_number, country=country))
+                account_numbers.append(dict(number=phone_number, country=country.alpha_2))
 
         return account_numbers
 
