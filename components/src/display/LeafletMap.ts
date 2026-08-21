@@ -256,7 +256,7 @@ export class LeafletMap extends LitElement {
     return html`
       <link
         rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       />
       <div id="alias-map"></div>
     `;

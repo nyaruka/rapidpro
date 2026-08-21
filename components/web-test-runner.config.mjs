@@ -104,7 +104,7 @@ import dynamicpixelmatch from 'dynamicpixelmatch';
 import pixelmatch from 'pixelmatch';
 import sizeOf from 'image-size';
 
-import rimraf from 'rimraf';
+import { rimrafSync } from 'rimraf';
 
 import replace from '@rollup/plugin-replace';
 import { fromRollup } from '@web/dev-server-rollup';
@@ -237,8 +237,8 @@ const checkScreenshot = async (filename, excluded, threshold) => {
 // clear out any past tests once per process — clearing per-page would race
 // with other concurrent pages that have already written test screenshots and
 // are about to read them back, causing intermittent ENOENT failures.
-rimraf.sync(path.resolve(SCREENSHOTS, DIFF));
-rimraf.sync(path.resolve(SCREENSHOTS, TEST));
+rimrafSync(path.resolve(SCREENSHOTS, DIFF));
+rimrafSync(path.resolve(SCREENSHOTS, TEST));
 
 const wireScreenshots = async (page, context, wait, replaceScreenshots) => {
 

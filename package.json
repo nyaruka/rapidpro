@@ -9,14 +9,8 @@
     ]
   },
   "dependencies": {
-    "codemirror": "5.58.2",
-    "colorette": "1.2.2",
     "croppie": "2.6.5",
-    "fa-icons": "0.2.0",
-    "is-core-module": "2.4.0",
-    "qrious": "4.0.2",
-    "queue-microtask": "1.2.3",
-    "sortablejs": "1.8.4"
+    "qrious": "4.0.2"
   },
   "scripts": {
     "tw-build": "postcss static/scss/tailwind.scss -o static/css/tailwind.css",
@@ -24,8 +18,6 @@
   },
   "devDependencies": {
     "autoprefixer": "10.2.5",
-    "bower": "1.8.8",
-    "jasmine-core": "2.5.0",
     "postcss": "8.5.23",
     "postcss-cli": "11.0.0",
     "postcss-import": "14.0.2",
