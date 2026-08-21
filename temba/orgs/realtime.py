@@ -48,8 +48,8 @@ class AssetNameMixin:
     asset_type = None
 
     @classmethod
-    def from_db(cls, db, field_names, values):
-        obj = super().from_db(db, field_names, values)
+    def from_db(cls, db, field_names, values, *, fetch_mode=None):
+        obj = super().from_db(db, field_names, values, fetch_mode=fetch_mode)
 
         if "name" in field_names:  # won't be if name was deferred, in which case we can't detect renames
             obj._loaded_name = obj.name
