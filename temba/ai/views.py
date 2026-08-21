@@ -83,7 +83,7 @@ class CredentialsForm(ModelWizardForm):
         if not api_key:
             api_key = self.get_existing_api_key()
 
-        api_key_hash = salted_hmac("temba.ai.credentials", api_key).hexdigest()
+        api_key_hash = salted_hmac("temba.ai.credentials", api_key, algorithm="sha256").hexdigest()
         cache = self.validation_cache
         if (
             cache
