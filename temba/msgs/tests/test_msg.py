@@ -100,6 +100,17 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         msg = self.create_incoming_msg(self.joe, "hi")
         self.assertIsNone(msg._get_logs_url({"unrelated": "value"}))
 
+    def test_as_json_logs_url_for_deleted(self):
+        # a deleted message has had its content cleared so we don't link to its logs which still contain it
+        msg = self.create_incoming_msg(self.joe, "hi")
+        context = {"user": self.admin, "org": self.org}
+
+        self.assertIsNotNone(msg._get_logs_url(context))
+
+        for visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER):
+            msg.visibility = visibility
+            self.assertIsNone(msg._get_logs_url(context))
+
     @patch("django.core.files.storage.default_storage.delete")
     @mock_mailroom
     def test_bulk_soft_delete(self, mr_mocks, mock_storage_delete):

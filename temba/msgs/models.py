@@ -654,14 +654,16 @@ class Msg(models.Model):
         """
         Mirrors the channel_log_link template tag — returns the URL of
         this message's channel log only when the viewer can read logs,
-        the channel is still active, and the message is within the
-        channel-log retention window.
+        the message hasn't been deleted, the channel is still active,
+        and the message is within the channel-log retention window.
         """
         user = context.get("user")
         org = context.get("org")
         if not (user and org):
             return None
         if not (user.has_org_perm(org, "channels.channel_logs") or user.is_staff):
+            return None
+        if self.visibility not in (self.VISIBILITY_VISIBLE, self.VISIBILITY_ARCHIVED):
             return None
         if not (self.channel and self.channel.is_active and self.created_on):
             return None

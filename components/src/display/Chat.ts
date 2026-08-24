@@ -1996,15 +1996,20 @@ export class Chat extends RapidElement {
         ? getStatusReasonMessage(statusReason)
         : null;
 
+    // handle deleted messages
+    const isDeleted = message._deleted;
+
+    // a deleted message has had its content cleared, so we don't link
+    // to its channel log which still holds that content (the log view
+    // itself refuses it too)
     const logsURL =
+      !isDeleted &&
       this.showMessageLogsAfter &&
       message.created_on >= this.showMessageLogsAfter &&
       message.msg.channel
         ? `/channels/channel/logs/${message.msg.channel.uuid}/msg/${event.uuid}/`
         : null;
 
-    // handle deleted messages
-    const isDeleted = message._deleted;
     const deletedByText = isDeleted
       ? message._deleted.by_contact
         ? msg('contact')

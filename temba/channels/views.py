@@ -859,7 +859,14 @@ class ChannelCRUDL(SmartCRUDL):
         @cached_property
         def owner(self) -> Msg | Call | None:
             if self.kwargs["reftype"] == "msg":
-                return get_object_or_404(Msg, uuid=UUID(self.kwargs["refid"]), org=self.request.org)
+                # deleted messages have had their content cleared so their logs - which still contain that content -
+                # are no longer viewable
+                return get_object_or_404(
+                    Msg,
+                    uuid=UUID(self.kwargs["refid"]),
+                    org=self.request.org,
+                    visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED),
+                )
             elif self.kwargs["reftype"] == "call":
                 return get_object_or_404(Call, uuid=UUID(self.kwargs["refid"]), org=self.request.org)
             return None
