@@ -516,16 +516,16 @@ wheels = [
 
 [[package]]
 name = "django"
-version = "6.0.8"
+version = "6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "sqlparse" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3c/28/5fee292e588dbdb782582436d1eb62ac8809ec55b98ef27f5b9676a00e9a/django-6.0.8.tar.gz", hash = "sha256:cb0bd962d27fc866f3c514b20aae6a7df56ec80b488f9899da46d675cd051526", size = 10924565, upload-time = "2026-08-04T15:03:39.469Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e2/42/6cb20996733984c1f6661daeda3877990836c76c633c6c8879d39f7120eb/django-6.1.tar.gz", hash = "sha256:86a2aacd59b817e4d6ac2ebfe22356c58f66f7b24e503f71b7c2fead677ee48b", size = 11223034, upload-time = "2026-08-05T19:21:53.789Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2e/b4/23e74d261eebfa9c8baed5e8810f09858b9afd613d1037f42ff7aa95c87f/django-6.0.8-py3-none-any.whl", hash = "sha256:9b98b7e1902e0e575ea4f42c175fc9512784f7f2580898286aee3388b322219d", size = 8376956, upload-time = "2026-08-04T15:03:35.138Z" },
+    { url = "https://files.pythonhosted.org/packages/91/9c/ce847620134cfab903e75690c498af73b46abbede2912ea89bd76d5c1e76/django-6.1-py3-none-any.whl", hash = "sha256:6c132cd980c9392b06807d4ca52d72530d631dc65a85d9dacede00a780cefbbe", size = 8417399, upload-time = "2026-08-05T19:21:47.285Z" },
 ]
 
 [[package]]
@@ -1684,7 +1684,7 @@ wheels = [
 
 [[package]]
 name = "smartmin"
-version = "6.1.0"
+version = "6.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
@@ -1692,9 +1692,9 @@ dependencies = [
     { name = "xlrd" },
     { name = "xlwt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/87/64/1b50519259470b9a5dcfb7f9cbdab7d9d8b40638343ec74eae59b3c6349d/smartmin-6.1.0.tar.gz", hash = "sha256:38e2cf29567cb578f7f589f083351c93c8a87985e0e3e07572640d0461e43bd9", size = 485925, upload-time = "2026-07-27T19:29:02.605Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/42/b4/e815508e3456f2816ed35d4456a780651419fd12cd06b11c640cc50021f1/smartmin-6.2.1.tar.gz", hash = "sha256:ae6b8d533a469f53adf9c56d1e98cdfa630951096fdb28b90cb4777a5b18e5d0", size = 474623, upload-time = "2026-08-21T15:13:23.217Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3c/b3/6a47e64f4d6b415f73a8aae9186fb9f435fa133a516911dc7fb2e55d3b7c/smartmin-6.1.0-py3-none-any.whl", hash = "sha256:525e989c40185d8a9ef2ef3db26a74b0c133fcd826784cda0f3bf388fce94d23", size = 351035, upload-time = "2026-07-27T19:29:01.304Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/df/4c6f83c20d363f4469e555d8100d6c2e21d1eabe105383864cb351aaa4c0/smartmin-6.2.1-py3-none-any.whl", hash = "sha256:1f9d01fda0bdc0dd7f5a69d9134b739889aa099a5183445b38814af75dbc7253", size = 351118, upload-time = "2026-08-21T15:13:22.034Z" },
 ]
 
 [[package]]
@@ -1726,7 +1726,7 @@ wheels = [
 
 [[package]]
 name = "temba"
-version = "26.3.54"
+version = "26.3.55"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
@@ -1790,7 +1790,7 @@ requires-dist = [
     { name = "celery-redbeat", specifier = "~=2.4.2" },
     { name = "colorama", specifier = "~=0.4.6" },
     { name = "cryptography", specifier = "~=50.0.0" },
-    { name = "django", specifier = "~=6.0.7" },
+    { name = "django", specifier = "~=6.1.0" },
     { name = "django-allauth", extras = ["mfa"], specifier = ">=65.8.1,<66.0.0" },
     { name = "django-compressor", specifier = "~=4.6.0" },
     { name = "django-countries", specifier = "~=9.0.0" },
@@ -1821,7 +1821,7 @@ requires-dist = [
     { name = "python-magic", specifier = "~=0.4.27" },
     { name = "requests-toolbelt", specifier = "~=1.0.0" },
     { name = "slack-sdk", specifier = "~=3.43.0" },
-    { name = "smartmin", specifier = ">=6.1.0,<7.0.0" },
+    { name = "smartmin", specifier = ">=6.2.1,<7.0.0" },
     { name = "twilio", specifier = ">=9.10.9,<10.0.0" },
     { name = "tzdata", specifier = ">=2025.2" },
     { name = "vonage", specifier = ">=4.8.2,<5.0.0" },

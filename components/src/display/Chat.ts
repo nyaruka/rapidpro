@@ -118,7 +118,6 @@ export interface MsgEvent extends ContactEvent {
     by_contact: boolean;
     user?: { name: string; uuid: string };
   };
-  _logs_url?: string;
 }
 
 export interface TypingEvent extends ContactEvent {
@@ -1266,12 +1265,9 @@ export class Chat extends RapidElement {
         // first add messages to the map
         const newMessages = [];
         for (const m of messages) {
-          // filter out metadata events - they aren't rendered but cached for later reference
+          // metadata events aren't rendered themselves - they update the message they reference
           if (m.type === 'msg_deleted' || m.type === 'msg_status_changed') {
-            const msgUuid = (m as any).msg_uuid;
-            if (msgUuid) {
-              this.metadataCache.set(msgUuid, m);
-            }
+            this.applyMetadataEvent(m);
             continue;
           }
 
@@ -1363,10 +1359,7 @@ export class Chat extends RapidElement {
     const newMessageIds: string[] = [];
     for (const m of messages) {
       if (m.type === 'msg_deleted' || m.type === 'msg_status_changed') {
-        const msgUuid = (m as any).msg_uuid;
-        if (msgUuid) {
-          this.metadataCache.set(msgUuid, m);
-        }
+        this.applyMetadataEvent(m);
         continue;
       }
       if (this.addMessage(m)) {
@@ -1379,9 +1372,60 @@ export class Chat extends RapidElement {
     }
   }
 
+  /**
+   * Applies a metadata event (deletion, status change) to the message it
+   * references, or caches it for when that message is loaded.
+   */
+  private applyMetadataEvent(event: ContactEvent) {
+    const msgUuid = (event as any).msg_uuid;
+    if (!msgUuid) {
+      return;
+    }
+    const message = this.msgMap.get(msgUuid) as MsgEvent;
+    if (message) {
+      this.applyMetadata(message, event);
+      this.requestUpdate();
+    } else {
+      this.metadataCache.set(msgUuid, event);
+    }
+  }
+
+  private applyMetadata(message: MsgEvent, event: ContactEvent) {
+    const data = event as any;
+    const createdOn =
+      data.created_on instanceof Date
+        ? data.created_on.toISOString()
+        : data.created_on;
+
+    if (event.type === 'msg_deleted') {
+      message._deleted = {
+        created_on: createdOn,
+        by_contact: !!data.by_contact,
+        user: event._user
+      };
+
+      // mirror the server, which clears the content of deleted messages
+      message.msg.text = '';
+      message.msg.attachments = [];
+    } else if (event.type === 'msg_status_changed') {
+      message._status = {
+        created_on: createdOn,
+        status: data.status,
+        reason: data.reason
+      };
+    }
+  }
+
   private addMessage(msg: ContactEvent): boolean {
     const isNew = !this.messageExists(msg);
     this.msgMap.set(msg.uuid, msg);
+
+    // apply any metadata that arrived before the message itself
+    const pending = this.metadataCache.get(msg.uuid);
+    if (pending) {
+      this.metadataCache.delete(msg.uuid);
+      this.applyMetadata(msg as MsgEvent, pending);
+    }
     return isNew;
   }
 
@@ -1996,15 +2040,17 @@ export class Chat extends RapidElement {
         ? getStatusReasonMessage(statusReason)
         : null;
 
+    const isDeleted = message._deleted;
+
+    // a deleted message has its channel logs deleted too, so no log link
     const logsURL =
+      !isDeleted &&
       this.showMessageLogsAfter &&
       message.created_on >= this.showMessageLogsAfter &&
       message.msg.channel
         ? `/channels/channel/logs/${message.msg.channel.uuid}/msg/${event.uuid}/`
         : null;
 
-    // handle deleted messages
-    const isDeleted = message._deleted;
     const deletedByText = isDeleted
       ? message._deleted.by_contact
         ? msg('contact')

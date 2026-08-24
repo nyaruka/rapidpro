@@ -1,3 +1,13 @@
+v26.3.55 (2026-08-24)
+-------------------------
+ * Enforce channel type availability when claiming a channel
+ * Don't show channel log links for deleted messages and apply deletions to open chats
+ * Fix listing existing Plivo numbers when a number's region isn't a known country
+ * Update Django to 6.1
+ * Migrate to version 4 of the Vonage client library
+ * Fix locale check in code_check.py for projects with a nested locale directory
+ * Update dependencies
+
 v26.3.54 (2026-08-20)
 -------------------------
  * Replace ffmpeg-python and iptools with stdlib equivalents
