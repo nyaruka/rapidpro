@@ -9,7 +9,7 @@
     {% trans "Sign Up Closed" %}
   {% endelement %}
   {% element p %}
-    {% if request.GET.invite %}
+    {% if request.GET.invite or request.session.invite_secret %}
       {% trans "Sorry, your invitation is no longer valid. Please request a new invite." %}
     {% else %}
       {% trans "We are sorry, but the sign up is currently closed." %}

@@ -48,7 +48,7 @@ class TembaSignupForm(InviteFormMixin, SignupForm):
         if self.invite:
             return self.invite.email
 
-        # this is tested by allauth
+        # only reachable on deployments whose adapters reopen signup without an invite
         return super().clean_email()  # pragma: no cover
 
     def save(self, request):

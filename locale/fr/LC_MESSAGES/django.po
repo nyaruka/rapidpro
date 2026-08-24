@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-21 14:15+0000\n"
+"POT-Creation-Date: 2026-08-24 22:47+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -4071,6 +4071,9 @@ msgstr "Cet e-mail peut être ignoré sans risque si vous n'êtes pas à l'origi
 
 msgid "If it was you, you can sign up for an account using the link below."
 msgstr "S'il s'agissait bien de vous, vous pouvez créer un compte à l'aide du lien ci-dessous."
+
+msgid "If it was you, note that accounts are created by invitation - please contact a workspace administrator."
+msgstr "Si c'était vous, notez que les comptes sont créés sur invitation - veuillez contacter un administrateur de l'espace de travail."
 
 msgid "Unknown Account"
 msgstr "Compte inconnu"

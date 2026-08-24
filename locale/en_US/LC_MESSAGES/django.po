@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-21 14:15+0000\n"
+"POT-Creation-Date: 2026-08-24 22:47+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -4042,6 +4042,9 @@ msgid "This mail can be safely ignored if you did not initiate this action."
 msgstr ""
 
 msgid "If it was you, you can sign up for an account using the link below."
+msgstr ""
+
+msgid "If it was you, note that accounts are created by invitation - please contact a workspace administrator."
 msgstr ""
 
 msgid "Unknown Account"

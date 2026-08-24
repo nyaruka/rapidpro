@@ -12,6 +12,20 @@ from temba.users.models import User
 
 class UserAuthTest(TembaTest):
     # Auth is handled by allauth, only test things we override in any way
+    def test_no_workspace_alert(self):
+        # users with a workspace don't see the invitation-needed alert on account pages
+        self.login(self.admin)
+        response = self.client.get(reverse("account_change_password"))
+        self.assertNotContains(response, "need an invitation to continue")
+
+        # but users without one do
+        user = User.create(
+            email="noworkspace@temba.io", first_name="Nelly", last_name="Noworkspace", password="Qwerty123"
+        )
+        self.login(user)
+        response = self.client.get(reverse("account_change_password"))
+        self.assertContains(response, "need an invitation to continue")
+
     def test_login_with_invalid_invite(self):
         response = self.client.get(f"{reverse('account_login')}?invite=invalid")
         self.assertContains(response, "Sorry, your invitation is no longer valid. Please request a new invite.")
@@ -129,9 +143,10 @@ class UserAuthTest(TembaTest):
         response = self.client.get(invite_signup)
         self.assertNotContains(response, "Sign Up Closed")
 
-        # and we should be able to post.. but we handle tampering with the invite
+        # and we should be able to post - to the bare URL as browsers do, relying on the invite secret stored in the
+        # session by the GET above.. and we handle tampering with the invite
         response = self.client.post(
-            invite_signup,
+            signup_url,
             {
                 "first_name": "Bobby",
                 "last_name": "Burgers",
