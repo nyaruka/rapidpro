@@ -1158,8 +1158,8 @@ class OrgCRUDL(SmartCRUDL):
                     return HttpResponseRedirect(reverse("orgs.org_start"))
 
             if not org:
-                # deployments that offer self-serve signup can redirect users without a workspace there
-                return HttpResponseRedirect(settings.SIGNUP_URL or reverse("orgs.user_edit"))
+                # brands that offer self-serve signup can redirect users without a workspace there
+                return HttpResponseRedirect(request.branding.get("signup_url") or reverse("orgs.user_edit"))
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)

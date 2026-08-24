@@ -3,6 +3,7 @@ from datetime import timezone as tzone
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core import mail
 from django.test.utils import override_settings
@@ -906,8 +907,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(choose_url, self.non_org_user)
         self.assertRedirect(response, reverse("orgs.user_edit"))
 
-        # unless the deployment offers self-serve signup
-        with override_settings(SIGNUP_URL="/org/signup/"):
+        # unless the brand offers self-serve signup
+        with override_settings(BRAND={**settings.BRAND, "signup_url": "/org/signup/"}):
             self.assertRedirect(self.requestView(choose_url, self.non_org_user), "/org/signup/")
 
         # unless they are staff

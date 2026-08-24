@@ -2,6 +2,7 @@ from urllib.parse import urlencode
 
 from allauth.account.models import EmailAddress
 
+from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
@@ -25,6 +26,11 @@ class UserAuthTest(TembaTest):
         self.login(user)
         response = self.client.get(reverse("account_change_password"))
         self.assertContains(response, "need an invitation to continue")
+
+        # unless the brand offers self-serve signup
+        with override_settings(BRAND={**settings.BRAND, "signup_url": "/org/signup/"}):
+            response = self.client.get(reverse("account_change_password"))
+            self.assertNotContains(response, "need an invitation to continue")
 
     def test_login_with_invalid_invite(self):
         response = self.client.get(f"{reverse('account_login')}?invite=invalid")
