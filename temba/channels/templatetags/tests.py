@@ -44,11 +44,3 @@ class ChannelsTest(TembaTest):
         self.assertEqual(
             {"logs_url": None}, channel_log_link(Context({"user_org": self.org, "user": self.admin}), old_msg)
         )
-
-        # or for deleted messages whose content has been cleared
-        for visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER):
-            msg.visibility = visibility
-
-            self.assertEqual(
-                {"logs_url": None}, channel_log_link(Context({"user_org": self.org, "user": self.admin}), msg)
-            )

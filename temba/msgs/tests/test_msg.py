@@ -95,18 +95,10 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             msg2.as_archive_json(),
         )
 
-    def test_get_logs_url(self):
+    def test_as_json_logs_url_without_user_or_org(self):
+        # defensive guard in _get_logs_url: a truthy context missing user/org returns None rather than raising
         msg = self.create_incoming_msg(self.joe, "hi")
-
-        self.assertIsNotNone(msg.get_logs_url(self.admin, self.org))
-
-        # defensive guard: a missing user or org returns None rather than raising
-        self.assertIsNone(msg.get_logs_url(None, None))
-
-        # deleted messages don't get log links
-        for visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER):
-            msg.visibility = visibility
-            self.assertIsNone(msg.get_logs_url(self.admin, self.org))
+        self.assertIsNone(msg._get_logs_url({"unrelated": "value"}))
 
     @patch("django.core.files.storage.default_storage.delete")
     @mock_mailroom

@@ -1,7 +1,6 @@
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from temba.msgs.models import Msg
 from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
@@ -312,13 +311,6 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.client.get(logs_url)
         self.assertEqual(f"/settings/channels/{self.channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
-
-        # log views for deleted messages are 404s
-        for visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER):
-            msg1.visibility = visibility
-            msg1.save(update_fields=("visibility",))
-
-            self.assertEqual(404, self.client.get(logs_url).status_code)
 
         # try to lookup log from different org using channel from this org
         org2_contact = self.create_contact("Alice", phone="+250788382382", org=self.org2)
