@@ -25,13 +25,7 @@
     {% endelement %}
   {% endif %}
   {% if not SOCIALACCOUNT_ONLY %}
-    {% setvar link %}
-    <a href="{{ signup_url }}">
-    {% endsetvar %}
-    {% setvar end_link %}
-  </a>
-{% endsetvar %}
-{% url 'account_login' as login_url %}
+    {% url 'account_login' as login_url %}
 {% element form form=form method="post" action=login_url tags="entrance,login" %}
   {% slot body %}
     {% csrf_token %}
@@ -68,9 +62,6 @@
 {% endif %}
 {% if SOCIALACCOUNT_ENABLED and "sso" in request.branding.features %}
   {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
-{% endif %}
-{% if "signups" in request.branding.features and not invite %}
-  <div class="sign-in-notice mt-4">{% blocktranslate %}Don't have an account yet? {{ link }}Sign up{{ end_link }}{% endblocktranslate %}</div>
 {% endif %}
 {% endblock content %}
 {% block extra_body %}

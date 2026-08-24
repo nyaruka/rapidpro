@@ -1,0 +1,18 @@
+{% extends "account/base_entrance.html" %}
+{% load allauth i18n %}
+
+{% block head_title %}
+  {% trans "Sign Up Closed" %}
+{% endblock head_title %}
+{% block content %}
+  {% element h1 %}
+    {% trans "Sign Up Closed" %}
+  {% endelement %}
+  {% element p %}
+    {% if request.GET.invite %}
+      {% trans "Sorry, your invitation is no longer valid. Please request a new invite." %}
+    {% else %}
+      {% trans "We are sorry, but the sign up is currently closed." %}
+    {% endif %}
+  {% endelement %}
+{% endblock content %}

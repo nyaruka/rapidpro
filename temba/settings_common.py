@@ -311,7 +311,7 @@ BRAND = {
     "landing": {
         "hero": "brands/rapidpro/splash.jpg",
     },
-    "features": ["signups", "sso"],
+    "features": ["sso"],
 }
 
 FEATURES = {"locations"}
@@ -369,7 +369,6 @@ PERMISSIONS = {
         "prometheus",
         "resthooks",
         "service",
-        "signup",
         "spa",
         "switch",
         "trial",
@@ -992,6 +991,10 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1"]
+
+# account creation is invite-only, but deployments that offer open signup can set this to the URL where
+# authenticated users without a workspace should be sent to create one
+SIGNUP_URL = None
 
 if TESTING:
     ACCOUNT_RATE_LIMITS = False  # rate limit state in the cache would otherwise persist between test runs

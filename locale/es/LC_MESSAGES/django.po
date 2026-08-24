@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 15:06+0000\n"
+"POT-Creation-Date: 2026-08-21 14:15+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -3228,18 +3228,6 @@ msgstr "estos pueden no funcionar como se esperaba"
 msgid "these will be removed"
 msgstr "estos serán eliminados"
 
-msgid "The timezone for your workspace"
-msgstr "La zona horaria de tu workspace"
-
-msgid "Workspace"
-msgstr "Workspace"
-
-msgid "A workspace is usually the name of a company or project"
-msgstr "Un workspace suele ser el nombre de una empresa o proyecto."
-
-msgid "My Company, Inc."
-msgstr "Mi Empresa, Inc."
-
 msgid "From Address"
 msgstr "Dirección de remitente"
 
@@ -3341,6 +3329,9 @@ msgstr "Archivos"
 msgid "New Workspace"
 msgstr "Nuevo Workspace"
 
+msgid "Workspace"
+msgstr "Workspace"
+
 msgid "Account"
 msgstr "Cuenta"
 
@@ -3430,9 +3421,6 @@ msgstr "Crear Cuenta de Workspace"
 
 msgid "Workspace successfully created."
 msgstr "Workspace creado correctamente."
-
-msgid "Sign Up"
-msgstr "Registrarse"
 
 msgid "Enter a name for your event. ex: new-registration"
 msgstr "Ingrese un nombre para su evento. ej: new-registration"
@@ -4112,10 +4100,6 @@ msgstr "Iniciar sesión con una clave de acceso"
 msgid "Mail me a sign-in code"
 msgstr "Envíeme un código de inicio de sesión por correo"
 
-#, python-format
-msgid "Don't have an account yet? %(link)sSign up%(end_link)s"
-msgstr "¿Aún no tiene una cuenta? %(link)sRegístrese%(end_link)s"
-
 msgid "Change Password"
 msgstr "Cambiar contraseña"
 
@@ -4136,12 +4120,21 @@ msgstr "Crear Cuenta"
 msgid "Creating a %(brand)s account is free and only takes a minute."
 msgstr "Crear una cuenta %(brand)s es gratis y solo toma un minuto."
 
+msgid "Sign Up"
+msgstr "Registrarse"
+
 msgid "Sign up using a passkey"
 msgstr "Registrarse con una clave de acceso"
 
 #, python-format
 msgid "Already have an account? %(link)sSign in%(end_link)s"
 msgstr "¿Ya tiene una cuenta? %(link)sInicie sesión%(end_link)s"
+
+msgid "Sign Up Closed"
+msgstr "Registro cerrado"
+
+msgid "We are sorry, but the sign up is currently closed."
+msgstr "Lo sentimos, pero el registro está cerrado actualmente."
 
 msgid "Verify Email Address"
 msgstr "Verificar dirección de correo electrónico"
@@ -5958,10 +5951,6 @@ msgid "You have been invited to join the <b>%(org)s</b> workspace."
 msgstr "Ha sido invitado a unirse al workspace <b>%(org)s</b>."
 
 #, python-format
-msgid "Create a new login to join the <b>%(org)s</b> workspace."
-msgstr "Cree un nuevo inicio de sesión para unirse al workspace <b>%(org)s</b>."
-
-#, python-format
 msgid "The default flow language is <b>%(lang)s</b>."
 msgstr "El idioma de flujo predeterminado es <b>%(lang)s</b>."
 
@@ -6011,10 +6000,6 @@ msgstr "Puede crear eventos de flujo a los que se puedan suscribir servicios ext
 
 msgid "Flow Event"
 msgstr "Evento De Flujo"
-
-#, python-format
-msgid "You need a workspace to use %(brand)s. Give it a name that best describes your organization or project."
-msgstr "Necesita un workspace para utilizar %(brand)s. Asígnele un nombre que describa mejor su organización o proyecto."
 
 msgid "Different Workspace"
 msgstr "Workspace diferente"
