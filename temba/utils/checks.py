@@ -34,7 +34,7 @@ def branding_emails(app_configs, **kwargs):
     errors = []
 
     for email_type, from_email in settings.BRAND.get("emails", {}).items():
-        if from_email.startswith("smtp://"):
+        if isinstance(from_email, str) and from_email.startswith("smtp://"):
             errors.append(
                 Error(
                     f"Branding email address for '{email_type}' is an SMTP URL.",

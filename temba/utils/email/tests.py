@@ -10,6 +10,7 @@ from .conf import make_smtp_url, parse_smtp_url
 from .send import EmailSender, send_via_smtp
 
 LOCMEM = {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}
+DUMMY = {"BACKEND": "django.core.mail.backends.dummy.EmailBackend"}
 
 
 class EmailTest(TembaTest):
@@ -42,6 +43,23 @@ class EmailTest(TembaTest):
         self.assertEqual("no-reply@acme.com", mail.outbox[0].from_email)
         self.assertEqual(["bob@acme.com"], mail.outbox[0].to)
         self.assertEqual("text/html", mail.outbox[0].alternatives[0].mimetype)
+
+        # if there's a mailer named after the email type, it's used instead of the default
+        with override_settings(MAILERS={"default": DUMMY, "notifications": LOCMEM}):
+            EmailSender.from_email_type(branding, "notifications").send(
+                ["bob@acme.com"], "orgs/email/smtp_test", {}, "Via notifications"
+            )
+
+            self.assertEqual(2, len(mail.outbox))
+            self.assertEqual("Via notifications", mail.outbox[1].subject)
+
+        # and the default mailer isn't used for that email type even if it could deliver
+        with override_settings(MAILERS={"default": LOCMEM, "notifications": DUMMY}):
+            EmailSender.from_email_type(branding, "notifications").send(
+                ["bob@acme.com"], "orgs/email/smtp_test", {}, "Not delivered here"
+            )
+
+            self.assertEqual(2, len(mail.outbox))  # went to the notifications mailer which discards
 
     def test_send_via_smtp(self):
         branding = {"name": "Test", "emails": {}}
