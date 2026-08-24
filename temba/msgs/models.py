@@ -547,6 +547,10 @@ class Msg(models.Model):
         (VISIBILITY_DELETED_BY_SENDER, "Deleted by sender"),
     )
 
+    # deleted messages have their content cleared, so anything that would still expose that content - e.g. their
+    # channel logs - should be restricted to these visibilities
+    VISIBILITY_NOT_DELETED = (VISIBILITY_VISIBLE, VISIBILITY_ARCHIVED)
+
     DIRECTION_IN = "I"
     DIRECTION_OUT = "O"
     DIRECTION_CHOICES = ((DIRECTION_IN, "Incoming"), (DIRECTION_OUT, "Outgoing"))
@@ -647,23 +651,19 @@ class Msg(models.Model):
             "labels": [{"uuid": str(lb.uuid), "name": lb.name} for lb in self.labels.all()],
             "flow": {"uuid": str(self.flow.uuid), "name": self.flow.name} if self.flow else None,
             "created_on": self.created_on.isoformat() if self.created_on else None,
-            "logs_url": self._get_logs_url(context) if context else None,
+            "logs_url": self.get_logs_url(context.get("user"), context.get("org")) if context else None,
         }
 
-    def _get_logs_url(self, context):
+    def get_logs_url(self, user, org) -> str | None:
         """
-        Mirrors the channel_log_link template tag — returns the URL of
-        this message's channel log only when the viewer can read logs,
-        the message hasn't been deleted, the channel is still active,
-        and the message is within the channel-log retention window.
+        Returns the URL of this message's channel log only when the viewer can read logs, the message hasn't been
+        deleted, the channel is still active, and the message is within the channel-log retention window.
         """
-        user = context.get("user")
-        org = context.get("org")
         if not (user and org):
             return None
         if not (user.has_org_perm(org, "channels.channel_logs") or user.is_staff):
             return None
-        if self.visibility not in (self.VISIBILITY_VISIBLE, self.VISIBILITY_ARCHIVED):
+        if self.visibility not in self.VISIBILITY_NOT_DELETED:
             return None
         if not (self.channel and self.channel.is_active and self.created_on):
             return None

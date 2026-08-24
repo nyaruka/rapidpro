@@ -1,7 +1,13 @@
 import '../temba-modules';
 import { fixture, assert } from '@open-wc/testing';
 import { useFakeTimers } from 'sinon';
-import { Chat, ContactEvent, MsgEvent, TypingEvent } from '../src/display/Chat';
+import {
+  Chat,
+  ContactEvent,
+  MsgEvent,
+  ObjectReference,
+  TypingEvent
+} from '../src/display/Chat';
 import { TembaUser } from '../src/display/TembaUser';
 
 const createChat = async (attrs = ''): Promise<Chat> => {
@@ -224,12 +230,22 @@ describe('temba-chat typing indicators', () => {
 });
 
 describe('temba-chat channel logs', () => {
-  const CHANNEL = { uuid: 'channel-1', name: 'Twilio' };
+  const CHANNEL: ObjectReference = { uuid: 'channel-1', name: 'Twilio' };
 
-  const withChannel = (event: ContactEvent): ContactEvent => {
-    (event as MsgEvent).msg.channel = CHANNEL as any;
-    return event;
+  const withChannel = (event: ContactEvent): MsgEvent => {
+    const msgEvent = event as MsgEvent;
+    msgEvent.msg.channel = CHANNEL;
+    return msgEvent;
   };
+
+  const deleted = (msgUuid: string): ContactEvent =>
+    ({
+      uuid: 'event-1',
+      type: 'msg_deleted',
+      created_on: new Date(),
+      msg_uuid: msgUuid,
+      by_contact: true
+    }) as unknown as ContactEvent;
 
   const getLogLink = async (chat: Chat): Promise<HTMLAnchorElement> => {
     await chat.updateComplete;
@@ -253,7 +269,7 @@ describe('temba-chat channel logs', () => {
     const chat = await createChat();
     chat.showMessageLogsAfter = new Date(0);
 
-    const event = withChannel(received('msg-1', '')) as MsgEvent;
+    const event = withChannel(received('msg-1', ''));
     event._deleted = {
       created_on: new Date().toISOString(),
       by_contact: true
@@ -261,5 +277,34 @@ describe('temba-chat channel logs', () => {
     chat.loadMessages([event]);
 
     assert.isNull(await getLogLink(chat));
+  });
+
+  it('removes the log link when a message is deleted while loaded', async () => {
+    const chat = await createChat();
+    chat.showMessageLogsAfter = new Date(0);
+    const event = withChannel(received('msg-1', 'hello there'));
+    chat.loadMessages([event]);
+
+    assert.isNotNull(await getLogLink(chat));
+
+    chat.loadMessages([deleted('msg-1')]);
+
+    assert.isNull(await getLogLink(chat));
+    assert.isNotNull(
+      chat.shadowRoot.querySelector('.message-deleted'),
+      'message should render as deleted'
+    );
+    assert.equal(event.msg.text, '');
+  });
+
+  it('applies a deletion that arrives before its message', async () => {
+    const chat = await createChat();
+    chat.showMessageLogsAfter = new Date(0);
+
+    chat.loadMessages([deleted('msg-1')]);
+    chat.loadMessages([withChannel(received('msg-1', 'hello there'))]);
+
+    assert.isNull(await getLogLink(chat));
+    assert.isNotNull(chat.shadowRoot.querySelector('.message-deleted'));
   });
 });

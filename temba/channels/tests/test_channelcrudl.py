@@ -320,9 +320,6 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
 
             self.assertEqual(404, self.client.get(logs_url).status_code)
 
-        msg1.visibility = Msg.VISIBILITY_VISIBLE
-        msg1.save(update_fields=("visibility",))
-
         # try to lookup log from different org using channel from this org
         org2_contact = self.create_contact("Alice", phone="+250788382382", org=self.org2)
         org2_channel = self.create_channel("A", "Other Channel", "+250785551212", org=self.org2)
