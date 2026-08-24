@@ -313,7 +313,7 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(logs_url)
         self.assertEqual(f"/settings/channels/{self.channel.uuid}", response.headers[TEMBA_MENU_SELECTION])
 
-        # a deleted message has had its content cleared so its logs are no longer viewable
+        # log views for deleted messages are 404s
         for visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER):
             msg1.visibility = visibility
             msg1.save(update_fields=("visibility",))

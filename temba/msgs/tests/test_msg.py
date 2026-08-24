@@ -103,7 +103,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         # defensive guard: a missing user or org returns None rather than raising
         self.assertIsNone(msg.get_logs_url(None, None))
 
-        # a deleted message has had its content cleared so we don't link to its logs which still contain it
+        # deleted messages don't get log links
         for visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER):
             msg.visibility = visibility
             self.assertIsNone(msg.get_logs_url(self.admin, self.org))

@@ -547,8 +547,8 @@ class Msg(models.Model):
         (VISIBILITY_DELETED_BY_SENDER, "Deleted by sender"),
     )
 
-    # deleted messages have their content cleared, so anything that would still expose that content - e.g. their
-    # channel logs - should be restricted to these visibilities
+    # deleted messages have their content cleared and their channel logs deleted, so log links and the log views
+    # they point to are restricted to these visibilities
     VISIBILITY_NOT_DELETED = (VISIBILITY_VISIBLE, VISIBILITY_ARCHIVED)
 
     DIRECTION_IN = "I"

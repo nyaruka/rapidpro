@@ -2042,8 +2042,7 @@ export class Chat extends RapidElement {
 
     const isDeleted = message._deleted;
 
-    // a deleted message has had its content cleared, so we don't link
-    // to its channel log which still holds that content
+    // a deleted message has its channel logs deleted too, so no log link
     const logsURL =
       !isDeleted &&
       this.showMessageLogsAfter &&
