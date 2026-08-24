@@ -873,6 +873,16 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
         self.assertRedirect(self.client.get(start_url), "/msg/")
 
+    def test_check_login(self):
+        check_url = reverse("orgs.check_login")
+
+        # anonymous users are sent to the login page
+        self.assertRedirect(self.client.get(check_url), reverse("account_login"))
+
+        # authenticated users are sent to the org chooser
+        self.login(self.admin)
+        self.assertRedirect(self.client.get(check_url), reverse("orgs.org_choose"))
+
     def test_choose(self):
         choose_url = reverse("orgs.org_choose")
 

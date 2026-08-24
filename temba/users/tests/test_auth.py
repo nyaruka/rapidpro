@@ -12,6 +12,10 @@ from temba.users.models import User
 
 class UserAuthTest(TembaTest):
     # Auth is handled by allauth, only test things we override in any way
+    def test_login_with_invalid_invite(self):
+        response = self.client.get(f"{reverse('account_login')}?invite=invalid")
+        self.assertContains(response, "Sorry, your invitation is no longer valid. Please request a new invite.")
+
     def test_change_password(self):
         # make sure we get the correct help text on change password page
         self.login(self.admin)
