@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.checks import Error, register
+from django.core.mail import DEFAULT_MAILER_ALIAS
 
 
 @register()
@@ -42,5 +43,21 @@ def branding_emails(app_configs, **kwargs):
                     f"'{email_type}' entry in MAILERS in Django settings.",
                 )
             )
+
+    return errors
+
+
+@register()
+def default_mailer(app_configs, **kwargs):
+    errors = []
+
+    if DEFAULT_MAILER_ALIAS not in getattr(settings, "MAILERS", {}):
+        errors.append(
+            Error(
+                f"Missing '{DEFAULT_MAILER_ALIAS}' mailer config.",
+                hint=f"Add configuration for '{DEFAULT_MAILER_ALIAS}' to MAILERS in Django settings. It sends emails "
+                f"of any type which doesn't have a mailer of its own.",
+            )
+        )
 
     return errors
