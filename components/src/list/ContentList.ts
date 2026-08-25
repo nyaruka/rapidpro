@@ -3978,7 +3978,9 @@ export class ContentList<T = any> extends RapidElement {
    * header's actions cluster. The status (shown whenever the response
    * carried a count) is the plain total from {@link totalLabel} until
    * there's a position worth reporting — the "N–M of Total" range only
-   * appears once a page-counted list has stepped past its first page.
+   * appears once a page-counted list has stepped past its first page,
+   * keeping a "matches" suffix when the rows are a search result so
+   * the filtered-set context isn't lost on later pages.
    * A cursor list never has a position, so it always shows the total;
    * an uncounted cursor list falls back to chevrons only, gated on
    * whether the last response handed back a cursor for that direction.
@@ -4014,11 +4016,17 @@ export class ContentList<T = any> extends RapidElement {
           ? html`<span class="pager-status"
               >${this.cursorMode || this.page <= 1
                 ? this.totalLabel()
-                : msg(
-                    str`${formatCount(first)}–${formatCount(
-                      last
-                    )} of ${formatCount(this.total)}`
-                  )}</span
+                : this.search
+                  ? msg(
+                      str`${formatCount(first)}–${formatCount(
+                        last
+                      )} of ${formatCount(this.total)} matches`
+                    )
+                  : msg(
+                      str`${formatCount(first)}–${formatCount(
+                        last
+                      )} of ${formatCount(this.total)}`
+                    )}</span
             >`
           : null}
         <span

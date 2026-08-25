@@ -1530,6 +1530,10 @@
   <source><x id="0" equiv-text="${formatCount(this.total)}"/> total</source>
   <target><x id="0" equiv-text="${formatCount(this.total)}"/> au total</target>
 </trans-unit>
+<trans-unit id="sffa5678575ddbe46">
+  <source><x id="0" equiv-text="${formatCount(first)}"/>–<x id="1" equiv-text="${formatCount(last)}"/> of <x id="2" equiv-text="${formatCount(this.total)}"/> matches</source>
+  <target><x id="0" equiv-text="${formatCount(first)}"/>–<x id="1" equiv-text="${formatCount(last)}"/> sur <x id="2" equiv-text="${formatCount(this.total)}"/> correspondances</target>
+</trans-unit>
 </body>
 </file>
 </xliff>

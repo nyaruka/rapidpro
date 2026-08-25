@@ -2093,6 +2093,14 @@ describe('temba-content-list', () => {
     expect(status.textContent!.replace(/\s+/g, ' ').trim()).to.equal(
       '11–20 of 42'
     );
+
+    // and a searched list keeps its filtered-set context in the range
+    (list as any).search = 'flow';
+    (list as any).requestUpdate();
+    await list.updateComplete;
+    expect(status.textContent!.replace(/\s+/g, ' ').trim()).to.equal(
+      '11–20 of 42 matches'
+    );
   });
 
   it('stays in cursor mode when a count is returned alongside cursor URLs', async () => {

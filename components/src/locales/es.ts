@@ -387,6 +387,7 @@
 'sfcebd18506f1e535': `Flujo`,
 'sfd2f0eff00a2081c': `No se pudo iniciar la simulación`,
 'sff18240c8caabe4b': `Buscar difusiones`,
+'sffa5678575ddbe46': str`${0}–${1} de ${2} coincidencias`,
 'sffa721bb6aa3128d': `Buscar...`,
 'sffd4b3e04453c6a7': `Eliminar nodo`,
     };

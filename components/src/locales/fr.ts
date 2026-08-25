@@ -387,6 +387,7 @@
 'sfcebd18506f1e535': `Flux`,
 'sfd2f0eff00a2081c': `Échec du démarrage de la simulation`,
 'sff18240c8caabe4b': `Rechercher des diffusions`,
+'sffa5678575ddbe46': str`${0}–${1} sur ${2} correspondances`,
 'sffa721bb6aa3128d': `Rechercher...`,
 'sffd4b3e04453c6a7': `Supprimer le nœud`,
     };

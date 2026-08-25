@@ -387,6 +387,7 @@
 'sfcebd18506f1e535': `Fluxo`,
 'sfd2f0eff00a2081c': `Falha ao iniciar a simulação`,
 'sff18240c8caabe4b': `Pesquisar transmissões`,
+'sffa5678575ddbe46': str`${0}–${1} de ${2} correspondências`,
 'sffa721bb6aa3128d': `Pesquisar...`,
 'sffd4b3e04453c6a7': `Remover nó`,
     };
