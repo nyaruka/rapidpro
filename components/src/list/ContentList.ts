@@ -108,6 +108,10 @@ interface FetchResponse<T = any> {
   count?: number;
   next?: string;
   previous?: string;
+  /** How the endpoint paginates — `cursor` or `page`. The internal API
+   * always says; it's the only thing that distinguishes the two when
+   * the results fit on one page. See {@link detectCursorMode}. */
+  paged_by?: string;
   /** Server-adjusted/normalized form of the search that produced these
    * results (rapidpro's contact search echoes the parsed `query`).
    * When present after a search, it's adopted as the basis of the
@@ -1171,10 +1175,10 @@ export class ContentList<T = any> extends RapidElement {
         --icon-color: var(--danger);
       }
 
-      /* Pager — a compact "‹ 1–N of Total ›" stepper that lives in
-         the header's actions cluster: chevron-only paging buttons
-         bracketing a plain count, no borders or labels, matching the
-         quiet Search action it sits beside. */
+      /* Pager — a compact stepper that lives in the header's actions
+         cluster: chevron-only paging buttons bracketing a plain count,
+         no borders or labels, matching the quiet Search action it sits
+         beside. */
       .pager {
         display: flex;
         align-items: center;
@@ -1449,13 +1453,16 @@ export class ContentList<T = any> extends RapidElement {
   }
 
   /** Label for the pager's total when the list is cursor-paginated.
-   * A cursor slice has no ordinal position — the rows it holds keep
-   * their identity while the total moves underneath them — so the
-   * pager reports how many rows exist rather than which of them you
-   * are looking at. Subclasses override to name their own rows, for
-   * the same reason they override {@link defaultEmptyMessage}. */
-  protected defaultTotalLabel(total: number): string {
-    return msg(str`${formatCount(total)} items`);
+   * A cursor slice has no ordinal position — the rows keep their
+   * identity while the total moves underneath them — so the pager
+   * reports how many rows exist rather than which of them you are
+   * looking at. Says "matches" when the rows are the result of a
+   * search, plain "total" otherwise — what the rows *are* is already
+   * evident from the list itself. */
+  protected totalLabel(): string {
+    return this.search
+      ? msg(str`${formatCount(this.total)} matches`)
+      : msg(str`${formatCount(this.total)} total`);
   }
 
   /** Bump to force a refetch — useful after a bulk action so the host
@@ -2080,15 +2087,22 @@ export class ContentList<T = any> extends RapidElement {
     return url.pathname + url.search;
   }
 
-  /** Tell a cursor list from a page-counted one by inspecting the
-   * server's nav URLs. DRF CursorPagination always emits a `cursor=`
-   * query param; PageNumberPagination uses `page=`. A response that
-   * carries `count` alongside cursor URLs — e.g. a searched cursor
-   * endpoint that returns a result tally for the UI indicator — must
-   * still be navigated by following the cursor URLs, so we can't use
-   * count presence alone. Falls back to the count-absent heuristic
-   * for single-page responses where neither nav URL is populated. */
+  /** Tell a cursor list from a page-counted one. The internal API
+   * says which it used in `paged_by`, and that's authoritative —
+   * nothing else in the response distinguishes the two once the
+   * results fit on a single page, since a lone page carries no nav
+   * URLs to inspect.
+   *
+   * Without it, fall back to those URLs — DRF CursorPagination always
+   * emits a `cursor=` query param, PageNumberPagination uses `page=`.
+   * A response that carries `count` alongside cursor URLs — e.g. a
+   * searched cursor endpoint that returns a result tally for the UI
+   * indicator — must still be navigated by following the cursor URLs,
+   * so we can't use count presence alone. Last of all comes the
+   * count-absent heuristic, which is the ambiguous single-page case
+   * `paged_by` exists to settle. */
   private detectCursorMode(data: FetchResponse<T>): boolean {
+    if (data.paged_by) return data.paged_by === 'cursor';
     const hasCursor = (raw: string | undefined | null): boolean => {
       if (!raw) return false;
       try {
@@ -3971,15 +3985,20 @@ export class ContentList<T = any> extends RapidElement {
     `;
   }
 
-  /** The pager — a compact "‹ 1–N of Total ›" stepper for the
-   * header's actions cluster. The "N–M of Total" status shows whenever
-   * the response carried a count (`hasCount`) — in cursor mode too,
-   * using the synthetic page for the range; an uncounted cursor list
-   * falls back to chevrons only, gated on whether the last response
-   * handed back a cursor for that direction. Both buttons disable
-   * while a fetch is in flight so a second step can't fire until the
-   * first comes back (or fails). Returns nothing when there is neither
-   * a page to move to nor a count worth showing. */
+  /** The pager — chevron paging buttons bracketing a count, for the
+   * header's actions cluster. The status (shown whenever the response
+   * carried a count) depends on the pagination style: a page-counted
+   * list has a real position, so it shows the "N–M of Total" range —
+   * with a "matches" suffix when the rows are a search result — while
+   * a cursor list has none and shows the plain total from
+   * {@link totalLabel} whatever the folder size, so a folder that fits
+   * on one page frames its count the same way as one that doesn't.
+   * An uncounted cursor list falls back to chevrons only, gated on
+   * whether the last response handed back a cursor for that direction.
+   * Both buttons disable while a fetch is in flight so a second step
+   * can't fire until the first comes back (or fails). Returns nothing
+   * when there is neither a page to move to nor a count worth
+   * showing. */
   private renderPager(): TemplateResult {
     const lastPage = Math.max(1, Math.ceil(this.total / this.pageSize));
     const first = this.total === 0 ? 0 : (this.page - 1) * this.pageSize + 1;
@@ -4007,12 +4026,18 @@ export class ContentList<T = any> extends RapidElement {
         ${this.hasCount
           ? html`<span class="pager-status"
               >${this.cursorMode
-                ? this.defaultTotalLabel(this.total)
-                : msg(
-                    str`${formatCount(first)}–${formatCount(
-                      last
-                    )} of ${formatCount(this.total)}`
-                  )}</span
+                ? this.totalLabel()
+                : this.search
+                  ? msg(
+                      str`${formatCount(first)}–${formatCount(
+                        last
+                      )} of ${formatCount(this.total)} matches`
+                    )
+                  : msg(
+                      str`${formatCount(first)}–${formatCount(
+                        last
+                      )} of ${formatCount(this.total)}`
+                    )}</span
             >`
           : null}
         <span

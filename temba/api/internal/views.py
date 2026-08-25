@@ -42,6 +42,17 @@ class BaseEndpoint(BaseAPIView):
     authentication_classes = (APISessionAuthentication,)
     permission_classes = (SSLPermission, APIPermission)
 
+    def get_paginated_response(self, data):
+        response = super().get_paginated_response(data)
+
+        # Tell the client how this list is paginated. It can't reliably infer it: a single page of results carries no
+        # `next`/`previous` URLs to inspect, leaving a cursor list indistinguishable from a page-numbered one - and the
+        # list component pages them differently (a cursor slice has no ordinal position to report). Only the internal
+        # API says this; the public API's response shape is unchanged.
+        response.data["paged_by"] = "cursor" if isinstance(self.paginator, CursorPagination) else "page"
+
+        return response
+
 
 # ============================================================
 # Endpoints (A-Z)

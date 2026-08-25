@@ -1522,13 +1522,17 @@
   <source>Flow</source>
   <target>Flujo</target>
 </trans-unit>
-<trans-unit id="s125a86b2f45bbb25">
-  <source><x id="0" equiv-text="${formatCount(total)}"/> items</source>
-  <target><x id="0" equiv-text="${formatCount(total)}"/> elementos</target>
+<trans-unit id="s967a20ee323b6f60">
+  <source><x id="0" equiv-text="${formatCount(this.total)}"/> matches</source>
+  <target><x id="0" equiv-text="${formatCount(this.total)}"/> coincidencias</target>
 </trans-unit>
-<trans-unit id="sd94e4de48e8973cb">
-  <source><x id="0" equiv-text="${formatCount(total)}"/> messages</source>
-  <target><x id="0" equiv-text="${formatCount(total)}"/> mensajes</target>
+<trans-unit id="s2f190c25dc2a7653">
+  <source><x id="0" equiv-text="${formatCount(this.total)}"/> total</source>
+  <target><x id="0" equiv-text="${formatCount(this.total)}"/> en total</target>
+</trans-unit>
+<trans-unit id="sffa5678575ddbe46">
+  <source><x id="0" equiv-text="${formatCount(first)}"/>–<x id="1" equiv-text="${formatCount(last)}"/> of <x id="2" equiv-text="${formatCount(this.total)}"/> matches</source>
+  <target><x id="0" equiv-text="${formatCount(first)}"/>–<x id="1" equiv-text="${formatCount(last)}"/> de <x id="2" equiv-text="${formatCount(this.total)}"/> coincidencias</target>
 </trans-unit>
 </body>
 </file>
