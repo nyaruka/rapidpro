@@ -8,27 +8,6 @@ from django.utils.translation import gettext_lazy as _
 
 from temba.utils.email import EmailSender, make_smtp_url, parse_smtp_url
 from temba.utils.fields import InputWidget
-from temba.utils.timezones import TimeZoneFormField
-
-from ..models import Org
-
-
-class SignupForm(forms.ModelForm):
-    """
-    Signup for new organizations
-    """
-
-    timezone = TimeZoneFormField(help_text=_("The timezone for your workspace"), widget=forms.widgets.HiddenInput())
-
-    name = forms.CharField(
-        label=_("Workspace"),
-        help_text=_("A workspace is usually the name of a company or project"),
-        widget=InputWidget(attrs={"widget_only": True, "placeholder": _("My Company, Inc.")}),
-    )
-
-    class Meta:
-        model = Org
-        fields = ("timezone", "name")
 
 
 class SMTPForm(forms.Form):

@@ -2,52 +2,39 @@ from urllib.parse import urlencode
 
 from allauth.account.models import EmailAddress
 
-from django.core import mail
+from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 
-from temba.orgs.models import Invitation, OrgMembership, OrgRole
+from temba.orgs.models import Invitation, OrgRole
 from temba.tests.base import TembaTest
 from temba.users.models import User
 
 
 class UserAuthTest(TembaTest):
     # Auth is handled by allauth, only test things we override in any way
-    def test_signup(self):
-        signup_url = reverse("account_signup")
-        success_url = reverse("account_email_verification_sent")
+    def test_no_workspace_alert(self):
+        # users with a workspace don't see the invitation-needed alert on account pages
+        self.login(self.admin)
+        response = self.client.get(reverse("account_change_password"))
+        self.assertNotContains(response, "need an invitation to continue")
 
-        response = self.client.get(signup_url)
-        self.assertEqual(200, response.status_code)
-
-        # bad inputs
-        response = self.client.post(signup_url, {"email": "invalid"})
-        self.assertEqual(200, response.status_code)
-        form = response.context.get("form")
-        self.assertFormError(form, "email", "Enter a valid email address.")
-        self.assertFormError(form, "first_name", "This field is required.")
-        self.assertFormError(form, "last_name", "This field is required.")
-
-        # test valid signup
-        response = self.client.post(
-            signup_url,
-            {
-                "first_name": "Bobby",
-                "last_name": "Burgers",
-                "password1": "arstqwfp",
-                "email": "bobbyburgers@burgers.com",
-            },
+        # but users without one do
+        user = User.create(
+            email="noworkspace@temba.io", first_name="Nelly", last_name="Noworkspace", password="Qwerty123"
         )
+        self.login(user)
+        response = self.client.get(reverse("account_change_password"))
+        self.assertContains(response, "need an invitation to continue")
 
-        self.assertRedirect(response, success_url)
+        # unless the brand offers self-serve signup
+        with override_settings(BRAND={**settings.BRAND, "signup_url": "/org/signup/"}):
+            response = self.client.get(reverse("account_change_password"))
+            self.assertNotContains(response, "need an invitation to continue")
 
-        self.assertEqual(1, len(mail.outbox))
-        self.assertEqual("Please Confirm Your Email Address", mail.outbox[0].subject)
-        self.assertEqual(["bobbyburgers@burgers.com"], mail.outbox[0].recipients())
-
-        # user should exist but have no org membership (workspace created after email verification)
-        user = User.objects.get(email="bobbyburgers@burgers.com")
-        self.assertFalse(OrgMembership.objects.filter(user=user).exists())
+    def test_login_with_invalid_invite(self):
+        response = self.client.get(f"{reverse('account_login')}?invite=invalid")
+        self.assertContains(response, "Sorry, your invitation is no longer valid. Please request a new invite.")
 
     def test_change_password(self):
         # make sure we get the correct help text on change password page
@@ -136,11 +123,10 @@ class UserAuthTest(TembaTest):
         self.assertContains(response, "sso-login-warning")
         self.assertContains(response, 'header="Use Single Sign-On"')
 
-    @override_settings(BRAND={"features": []})
-    def test_invite_with_closed_signups(self):
+    def test_signup(self):
         signup_url = reverse("account_signup")
 
-        # make sure we can't access the signup page
+        # signup without an invite is closed
         response = self.client.get(signup_url)
         self.assertContains(response, "Sign Up Closed")
 
@@ -163,9 +149,10 @@ class UserAuthTest(TembaTest):
         response = self.client.get(invite_signup)
         self.assertNotContains(response, "Sign Up Closed")
 
-        # and we should be able to post.. but we handle tampering with the invite
+        # and we should be able to post - to the bare URL as browsers do, relying on the invite secret stored in the
+        # session by the GET above.. and we handle tampering with the invite
         response = self.client.post(
-            invite_signup,
+            signup_url,
             {
                 "first_name": "Bobby",
                 "last_name": "Burgers",

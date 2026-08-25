@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 15:06+0000\n"
+"POT-Creation-Date: 2026-08-24 22:47+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -3202,18 +3202,6 @@ msgstr ""
 msgid "these will be removed"
 msgstr ""
 
-msgid "The timezone for your workspace"
-msgstr ""
-
-msgid "Workspace"
-msgstr ""
-
-msgid "A workspace is usually the name of a company or project"
-msgstr ""
-
-msgid "My Company, Inc."
-msgstr ""
-
 msgid "From Address"
 msgstr ""
 
@@ -3315,6 +3303,9 @@ msgstr ""
 msgid "New Workspace"
 msgstr ""
 
+msgid "Workspace"
+msgstr ""
+
 msgid "Account"
 msgstr ""
 
@@ -3403,9 +3394,6 @@ msgid "Create Workspace Account"
 msgstr ""
 
 msgid "Workspace successfully created."
-msgstr ""
-
-msgid "Sign Up"
 msgstr ""
 
 msgid "Enter a name for your event. ex: new-registration"
@@ -4056,6 +4044,9 @@ msgstr ""
 msgid "If it was you, you can sign up for an account using the link below."
 msgstr ""
 
+msgid "If it was you, note that accounts are created by invitation - please contact a workspace administrator."
+msgstr ""
+
 msgid "Unknown Account"
 msgstr ""
 
@@ -4084,10 +4075,6 @@ msgstr ""
 msgid "Mail me a sign-in code"
 msgstr ""
 
-#, python-format
-msgid "Don't have an account yet? %(link)sSign up%(end_link)s"
-msgstr ""
-
 msgid "Change Password"
 msgstr ""
 
@@ -4108,11 +4095,20 @@ msgstr ""
 msgid "Creating a %(brand)s account is free and only takes a minute."
 msgstr ""
 
+msgid "Sign Up"
+msgstr ""
+
 msgid "Sign up using a passkey"
 msgstr ""
 
 #, python-format
 msgid "Already have an account? %(link)sSign in%(end_link)s"
+msgstr ""
+
+msgid "Sign Up Closed"
+msgstr ""
+
+msgid "We are sorry, but the sign up is currently closed."
 msgstr ""
 
 msgid "Verify Email Address"
@@ -5871,10 +5867,6 @@ msgid "You have been invited to join the <b>%(org)s</b> workspace."
 msgstr ""
 
 #, python-format
-msgid "Create a new login to join the <b>%(org)s</b> workspace."
-msgstr ""
-
-#, python-format
 msgid "The default flow language is <b>%(lang)s</b>."
 msgstr ""
 
@@ -5923,10 +5915,6 @@ msgid "You can create flow events which external services can subscribe to. For 
 msgstr ""
 
 msgid "Flow Event"
-msgstr ""
-
-#, python-format
-msgid "You need a workspace to use %(brand)s. Give it a name that best describes your organization or project."
 msgstr ""
 
 msgid "Different Workspace"

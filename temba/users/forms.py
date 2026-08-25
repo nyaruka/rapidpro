@@ -47,7 +47,9 @@ class TembaSignupForm(InviteFormMixin, SignupForm):
     def clean_email(self):
         if self.invite:
             return self.invite.email
-        return super().clean_email()
+
+        # only reachable on deployments whose adapters reopen signup without an invite
+        return super().clean_email()  # pragma: no cover
 
     def save(self, request):
         # deferred for the same reason as in temba/users/adapter.py — keep this

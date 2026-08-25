@@ -181,7 +181,7 @@
   {% endif %}
 {% endblock top-right %}
 {% block content-wrapper %}
-  {% if user.is_authenticated and not org and 'signups' not in branding.features %}
+  {% if user.is_authenticated and not user_org and not branding.signup_url %}
     <div class="mb-6">
       <temba-alert>
         {% blocktrans trimmed %}

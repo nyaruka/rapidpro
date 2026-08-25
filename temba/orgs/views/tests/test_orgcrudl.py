@@ -3,6 +3,7 @@ from datetime import timezone as tzone
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core import mail
 from django.test.utils import override_settings
@@ -650,98 +651,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             response.context["form"], None, "This password is too short. It must contain at least 8 characters."
         )
 
-    def test_signup(self):
-        signup_url = reverse("orgs.org_signup")
-
-        # if we are not logged in, we should redirect to full account signup
-        self.assertRedirect(self.client.get(signup_url), reverse("account_signup"))
-
-        # create a user without a workspace
-        user = User.create(
-            email="noworkspace@temba.io", first_name="Nelly", last_name="Noworkspace", password="Qwerty123"
-        )
-
-        # we don't have a workspace, redirect to signup to create one
-        self.login(user)
-        response = self.client.get(reverse("orgs.org_choose"))
-        self.assertRedirect(response, signup_url)
-
-        # fetch the signup url
-        response = self.client.get(signup_url)
-        self.assertIn("name", response.context["form"].fields)
-
-        # submit with missing fields
-        response = self.client.post(signup_url, {})
-        self.assertFormError(response.context["form"], "name", "This field is required.")
-        self.assertFormError(response.context["form"], "timezone", "This field is required.")
-
-        # submit with valid form
-        response = self.client.post(
-            signup_url,
-            {
-                "name": "Signup Org",
-                "timezone": "Africa/Kigali",
-            },
-        )
-
-        # should have a new org
-        org = Org.objects.get(name="Signup Org")
-        self.assertEqual(org.timezone, ZoneInfo("Africa/Kigali"))
-        self.assertEqual(str(org), "Signup Org")
-
-        # if signup is re-submitted without an org in session, we shouldn't create a duplicate org
-        session = self.client.session
-        session["org_id"] = None
-        session.save()
-
-        response = self.client.post(
-            signup_url,
-            {
-                "name": "Signup Org",
-                "timezone": "Africa/Kigali",
-            },
-        )
-        self.assertRedirect(response, reverse("orgs.org_start"))
-        self.assertEqual(1, Org.objects.filter(name="Signup Org", users=user).count())
-
-        # now if we go to signup, we should redirect to the org start page
-        self.login(user)
-        response = self.client.get(signup_url)
-        self.assertRedirect(response, reverse("orgs.org_start"))
-
-        # our user should be an admin of the new org
-        self.assertIn(user, org.get_admins())
-
-        # check default org content was created correctly
-        system_fields = set(org.fields.filter(is_system=True).values_list("key", flat=True))
-        system_groups = set(org.groups.filter(is_system=True).values_list("name", flat=True))
-        sample_flows = set(org.flows.values_list("name", flat=True))
-
-        self.assertEqual({"created_on", "last_seen_on"}, system_fields)
-        self.assertEqual({"\\Active", "\\Archived", "\\Blocked", "\\Stopped", "Open Tickets"}, system_groups)
-        self.assertEqual(
-            {"Sample Flow - Order Status Checker", "Sample Flow - Satisfaction Survey", "Sample Flow - Simple Poll"},
-            sample_flows,
-        )
-
-        # should now be able to go to channels page
-        response = self.client.get(reverse("channels.channel_claim"))
-        self.assertEqual(200, response.status_code)
-
-        # if we hit /login we'll get redirected
-        response = self.client.get(reverse("orgs.check_login"))
-        self.assertRedirect(response, reverse("orgs.org_choose"))
-
-        # but if we log out, same thing takes us to the login page
-        self.client.logout()
-
-        response = self.client.get(reverse("orgs.check_login"))
-        self.assertLoginRedirect(response)
-
-        # try going to the org home page, no dice
-        response = self.client.get(reverse("orgs.org_workspace"))
-        self.assertLoginRedirect(response)
-
     def test_create_new(self):
         create_url = reverse("orgs.org_create")
 
@@ -965,6 +874,16 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
         self.assertRedirect(self.client.get(start_url), "/msg/")
 
+    def test_check_login(self):
+        check_url = reverse("orgs.check_login")
+
+        # anonymous users are sent to the login page
+        self.assertRedirect(self.client.get(check_url), reverse("account_login"))
+
+        # authenticated users are sent to the org chooser
+        self.login(self.admin)
+        self.assertRedirect(self.client.get(check_url), reverse("orgs.org_choose"))
+
     def test_choose(self):
         choose_url = reverse("orgs.org_choose")
 
@@ -984,11 +903,13 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(self.requestView(choose_url, self.editor), "/org/start/")
         self.assertRedirect(self.requestView(choose_url, self.agent), "/org/start/")
 
-        # users with no org are redirected back to the login page
+        # users with no org are redirected to their account page
         response = self.requestView(choose_url, self.non_org_user)
-        self.assertRedirect(response, "/org/signup/")
-        response = self.client.get("/org/signup/")
-        self.assertContains(response, "You need a workspace to use RapidPro")
+        self.assertRedirect(response, reverse("orgs.user_edit"))
+
+        # unless the brand offers self-serve signup
+        with override_settings(BRAND={**settings.BRAND, "signup_url": "/org/signup/"}):
+            self.assertRedirect(self.requestView(choose_url, self.non_org_user), "/org/signup/")
 
         # unless they are staff
         self.assertRedirect(self.requestView(choose_url, self.customer_support), "/staff/org/")

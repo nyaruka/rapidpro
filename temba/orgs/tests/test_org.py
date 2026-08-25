@@ -53,6 +53,20 @@ class OrgTest(TembaTest):
             set(new_org.knowledge.filter(is_system=True).values_list("name", "knowledge_type")),
         )
 
+        # as well as system fields, system groups and the sample flows
+        self.assertEqual(
+            {"created_on", "last_seen_on"},
+            set(new_org.fields.filter(is_system=True).values_list("key", flat=True)),
+        )
+        self.assertEqual(
+            {"\\Active", "\\Archived", "\\Blocked", "\\Stopped", "Open Tickets"},
+            set(new_org.groups.filter(is_system=True).values_list("name", flat=True)),
+        )
+        self.assertEqual(
+            {"Sample Flow - Order Status Checker", "Sample Flow - Satisfaction Survey", "Sample Flow - Simple Poll"},
+            set(new_org.flows.values_list("name", flat=True)),
+        )
+
         # if timezone is US, should get MMDDYYYY dates
         new_org = Org.create(self.admin, "Cool Stuff", ZoneInfo("America/Los_Angeles"))
         self.assertEqual("M", new_org.date_format)

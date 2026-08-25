@@ -52,13 +52,10 @@ class InviteAdapterMixin:
         )
 
     def is_open_for_signup(self, request, sociallogin=None):
-        # if we have a signup invite, we need to allow signups
+        # only users with a valid invite can create accounts
         secret = request.GET.get("invite", request.session.get("invite_secret", None))
 
-        if secret and Invitation.objects.filter(secret=secret, is_active=True).exists():
-            return True
-
-        return "signups" in request.branding.get("features")
+        return bool(secret and Invitation.objects.filter(secret=secret, is_active=True).exists())
 
 
 class TembaAccountAdapter(InviteAdapterMixin, DefaultAccountAdapter):

@@ -311,7 +311,9 @@ BRAND = {
     "landing": {
         "hero": "brands/rapidpro/splash.jpg",
     },
-    "features": ["signups", "sso"],
+    "features": ["sso"],
+    # brands that offer self-serve signup can set "signup_url" to where users without a workspace should be
+    # sent to create one - account creation itself is invite-only unless the adapters say otherwise
 }
 
 FEATURES = {"locations"}
@@ -369,7 +371,6 @@ PERMISSIONS = {
         "prometheus",
         "resthooks",
         "service",
-        "signup",
         "spa",
         "switch",
         "trial",

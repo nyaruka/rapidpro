@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-19 15:06+0000\n"
+"POT-Creation-Date: 2026-08-24 22:47+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -3232,18 +3232,6 @@ msgstr "estes podem não funcionar como esperado"
 msgid "these will be removed"
 msgstr "estes serão removidos"
 
-msgid "The timezone for your workspace"
-msgstr "O fuso horário da sua área de trabalho"
-
-msgid "Workspace"
-msgstr "Área de trabalho"
-
-msgid "A workspace is usually the name of a company or project"
-msgstr "A área de trabalho é usualmente o nome da companhia ou projeto"
-
-msgid "My Company, Inc."
-msgstr "Minha Companhia, Inc."
-
 msgid "From Address"
 msgstr "Endereço do remetente"
 
@@ -3345,6 +3333,9 @@ msgstr "Arquivos"
 msgid "New Workspace"
 msgstr "Nova Área de trabalho"
 
+msgid "Workspace"
+msgstr "Área de trabalho"
+
 msgid "Account"
 msgstr "Conta"
 
@@ -3434,9 +3425,6 @@ msgstr "Crie uma conta para a Área de trabalho"
 
 msgid "Workspace successfully created."
 msgstr "Área de trabalho criada com sucesso."
-
-msgid "Sign Up"
-msgstr "Cadastrar-se"
 
 msgid "Enter a name for your event. ex: new-registration"
 msgstr "Digite um nome para o seu evento, ex: novo-cadastro"
@@ -4088,6 +4076,9 @@ msgstr "Este e-mail pode ser ignorado com segurança se você não iniciou esta 
 msgid "If it was you, you can sign up for an account using the link below."
 msgstr "Se foi você, você pode criar uma conta usando o link abaixo."
 
+msgid "If it was you, note that accounts are created by invitation - please contact a workspace administrator."
+msgstr "Se foi você, observe que as contas são criadas por convite - entre em contato com um administrador da área de trabalho."
+
 msgid "Unknown Account"
 msgstr "Conta desconhecida"
 
@@ -4116,10 +4107,6 @@ msgstr "Entrar com uma chave de acesso"
 msgid "Mail me a sign-in code"
 msgstr "Envie-me um código de login por e-mail"
 
-#, python-format
-msgid "Don't have an account yet? %(link)sSign up%(end_link)s"
-msgstr "Ainda não tem uma conta? %(link)sCadastre-se%(end_link)s"
-
 msgid "Change Password"
 msgstr "Alterar senha"
 
@@ -4140,12 +4127,21 @@ msgstr "Criar uma Conta"
 msgid "Creating a %(brand)s account is free and only takes a minute."
 msgstr "Criar uma conta %(brand)s é gratuito e leva somente um minuto."
 
+msgid "Sign Up"
+msgstr "Cadastrar-se"
+
 msgid "Sign up using a passkey"
 msgstr "Cadastre-se usando uma chave de acesso"
 
 #, python-format
 msgid "Already have an account? %(link)sSign in%(end_link)s"
 msgstr "Já tem uma conta? %(link)sEntre%(end_link)s"
+
+msgid "Sign Up Closed"
+msgstr "Cadastro encerrado"
+
+msgid "We are sorry, but the sign up is currently closed."
+msgstr "Lamentamos, mas o cadastro está fechado no momento."
 
 msgid "Verify Email Address"
 msgstr "Verificar endereço de e-mail"
@@ -5962,10 +5958,6 @@ msgid "You have been invited to join the <b>%(org)s</b> workspace."
 msgstr "Você foi convidado a entrar na área de trabalho <b>%(org)s</b>."
 
 #, python-format
-msgid "Create a new login to join the <b>%(org)s</b> workspace."
-msgstr "Crie um novo login para entrar na área de trabalho <b>%(org)s</b>."
-
-#, python-format
 msgid "The default flow language is <b>%(lang)s</b>."
 msgstr "O idioma padrão do fluxo é <b>%(lang)s</b>."
 
@@ -6015,10 +6007,6 @@ msgstr "Você pode criar eventos de fluxo aos quais os serviços externos podem 
 
 msgid "Flow Event"
 msgstr "Evento de fluxo"
-
-#, python-format
-msgid "You need a workspace to use %(brand)s. Give it a name that best describes your organization or project."
-msgstr "Você precisa de uma área de trabalho para usar o %(brand)s. Dê a ela um nome que melhor descreva a sua organização ou projeto."
 
 msgid "Different Workspace"
 msgstr "Área de trabalho diferente"
