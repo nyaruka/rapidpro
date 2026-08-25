@@ -1107,17 +1107,20 @@ class MsgIterator:
     Queryset wrapper to chunk queries and reduce in-memory footprint
     """
 
-    def __init__(self, ids, order_by=None, select_related=None, prefetch_related=None, max_obj_num=1000):
+    def __init__(
+        self, ids, order_by=None, select_related=None, prefetch_related=None, using="default", max_obj_num=1000
+    ):
         self._ids = ids
         self._order_by = order_by
         self._select_related = select_related
         self._prefetch_related = prefetch_related
+        self._using = using
         self._generator = self._setup()
         self.max_obj_num = max_obj_num
 
     def _setup(self):
         for i in range(0, len(self._ids), self.max_obj_num):
-            chunk_queryset = Msg.objects.filter(id__in=self._ids[i : i + self.max_obj_num])
+            chunk_queryset = Msg.objects.using(self._using).filter(id__in=self._ids[i : i + self.max_obj_num])
 
             if self._order_by:
                 chunk_queryset = chunk_queryset.order_by(*self._order_by)
@@ -1240,15 +1243,18 @@ class MessageExport(ExportType):
 
         all_message_ids = array(str("l"), messages.values_list("id", flat=True))
 
+        # Django 6.1 no longer routes custom Prefetch querysets by the parent queryset's database so the
+        # prefetches need their own explicit .using(..)
         for msg_batch in MsgIterator(
             all_message_ids,
             order_by=("created_on",),
             select_related=("channel", "contact_urn"),
             prefetch_related=(
-                Prefetch("contact", queryset=Contact.objects.only("uuid", "name")),
-                Prefetch("flow", queryset=Flow.objects.only("uuid", "name")),
-                Prefetch("labels", queryset=Label.objects.only("uuid", "name").order_by("name")),
+                Prefetch("contact", queryset=Contact.objects.only("uuid", "name").using("readonly")),
+                Prefetch("flow", queryset=Flow.objects.only("uuid", "name").using("readonly")),
+                Prefetch("labels", queryset=Label.objects.only("uuid", "name").order_by("name").using("readonly")),
             ),
+            using="readonly",
         ):
             # convert this batch of msgs to same format as records in our archives
             yield [msg.as_archive_json() for msg in msg_batch]

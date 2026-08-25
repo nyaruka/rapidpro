@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from temba.archives.models import Archive
 from temba.contacts.models import Contact, ContactURN
-from temba.flows.models import FlowRun, ResultsExport
+from temba.flows.models import Flow, FlowRun, ResultsExport
 from temba.orgs.models import Export
 from temba.tests import TembaTest, mock_mailroom
 from temba.tests.engine import MockSessionWriter
@@ -42,6 +42,7 @@ class ResultsExportTest(TembaTest):
 
         readonly_models = {FlowRun}
         if has_results:
+            readonly_models.add(Flow)
             readonly_models.add(Contact)
             readonly_models.add(ContactURN)
 
