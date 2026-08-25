@@ -1,3 +1,9 @@
+v26.3.58 (2026-08-25)
+-------------------------
+ * Report a total rather than a synthesized position when a list is cursor-paginated
+ * Add nullable folder field to Msg
+ * Order message list folders by created_on so pages read straight off the folder indexes
+
 v26.3.57 (2026-08-25)
 -------------------------
  * Route custom prefetch querysets to the same database as their parent queryset in the API and exports
