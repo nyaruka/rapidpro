@@ -1689,6 +1689,9 @@ class OrgImportCRUDL(SmartCRUDL):
                 except DjangoUnicodeDecodeError, ValueError:
                     raise ValidationError(_("This file is not a valid flow definition file."))
 
+                if not isinstance(json_data, dict):
+                    raise ValidationError(_("This file is not a valid flow definition file."))
+
                 if Version(str(json_data.get("version", 0))) < Version(Org.EARLIEST_IMPORT_VERSION):
                     raise ValidationError(_("This file is no longer valid. Please export a new version and try again."))
 
