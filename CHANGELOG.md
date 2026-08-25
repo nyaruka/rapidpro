@@ -1,3 +1,7 @@
+v26.3.56 (2026-08-25)
+-------------------------
+ * Simplify signup views
+
 v26.3.55 (2026-08-24)
 -------------------------
  * Enforce channel type availability when claiming a channel
