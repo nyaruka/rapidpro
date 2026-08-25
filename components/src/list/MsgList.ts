@@ -1,9 +1,9 @@
 import { css, html, TemplateResult } from 'lit';
-import { msg } from '@lit/localize';
+import { msg, str } from '@lit/localize';
 import { ContentList, ContentListColumn } from './ContentList';
 import { Icon } from '../Icons';
 import { Msg } from '../interfaces';
-import { attachmentAsString } from '../utils';
+import { attachmentAsString, formatCount } from '../utils';
 
 /**
  * Message CRUDL list — drop-in replacement for the rapidpro
@@ -97,6 +97,10 @@ export class MsgList extends ContentList<Msg> {
 
   protected defaultEmptyMessage(): string {
     return msg('No messages');
+  }
+
+  protected defaultTotalLabel(total: number): string {
+    return msg(str`${formatCount(total)} messages`);
   }
 
   protected defaultSearchPlaceholder(): string {

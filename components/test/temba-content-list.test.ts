@@ -1725,7 +1725,9 @@ describe('temba-content-list', () => {
       const restash = events.find((e) => e.replace && e.state?.url);
       assert.exists(restash, 'restore should re-bubble a replacing stash');
       expect(restash.state.url).to.equal('/msgs.json?cursor=abc');
-      expect(restash.state.page).to.equal(2);
+      // the cursor URL is the whole restoration mechanism — `page` is
+      // pinned to 1 in cursor mode, where it carries no meaning
+      expect(restash.state.page).to.equal(1);
     } finally {
       history.replaceState({}, '');
     }
@@ -1989,8 +1991,10 @@ describe('temba-content-list', () => {
       endpoint: '/test-assets/content-list/items.json'
     })) as ContentList;
     // Cursor list that also carries a count (e.g. the message list's
-    // cheap folder count) — the pager should still show "N–M of Total".
-    // `last` is derived from the rows shown, so seed a full page of items.
+    // cheap folder count) — the pager reports how many rows exist, not
+    // which of them you're looking at, because a cursor slice has no
+    // ordinal position. `page` is seeded non-1 to prove it no longer
+    // reaches the label.
     Object.assign(list as any, {
       cursorMode: true,
       hasCount: true,
@@ -2009,9 +2013,10 @@ describe('temba-content-list', () => {
     ) as HTMLElement;
     assert.exists(status, 'pager status should render in counted cursor mode');
     const text = status.textContent!.replace(/\s+/g, ' ').trim();
-    expect(text).to.contain('11');
-    expect(text).to.contain('20');
-    expect(text).to.contain('of 42');
+    expect(text).to.contain('42');
+    // no synthesized position: not "11–20", and not "of 42"
+    expect(text).to.not.contain('11');
+    expect(text).to.not.contain('of 42');
   });
 
   it('stays in cursor mode when a count is returned alongside cursor URLs', async () => {
@@ -2065,7 +2070,10 @@ describe('temba-content-list', () => {
     const pageEvent = events[events.length - 1];
     expect(pageEvent.key).to.equal('msgs');
     expect(pageEvent.replace).to.equal(false);
-    expect(pageEvent.state.page).to.equal(2);
+    // stepping a cursor list advances the stashed cursor URL, not a page
+    // number — `page` stays pinned at 1
+    expect(pageEvent.state.page).to.equal(1);
+    expect(pageEvent.state.url).to.contain('cursor-page2');
     // list position stays out of the address-bar URL — it restores
     // from the history stash instead
     expect(pageEvent.url).to.not.contain('page=');

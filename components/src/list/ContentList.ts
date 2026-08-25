@@ -1448,6 +1448,16 @@ export class ContentList<T = any> extends RapidElement {
     return msg('Nothing to show');
   }
 
+  /** Label for the pager's total when the list is cursor-paginated.
+   * A cursor slice has no ordinal position — the rows it holds keep
+   * their identity while the total moves underneath them — so the
+   * pager reports how many rows exist rather than which of them you
+   * are looking at. Subclasses override to name their own rows, for
+   * the same reason they override {@link defaultEmptyMessage}. */
+  protected defaultTotalLabel(total: number): string {
+    return msg(str`${formatCount(total)} items`);
+  }
+
   /** Bump to force a refetch — useful after a bulk action so the host
    * can re-pull from the server. */
   @property({ type: String })
@@ -2146,14 +2156,12 @@ export class ContentList<T = any> extends RapidElement {
       this.cursorMode = this.detectCursorMode(data);
       this.hasCount = data.count != null;
       this.total = data.count ?? this.items.length;
-      // A cursor endpoint has no way to honor `?page=N` on first
-      // load, so a hard refresh that lands with a stale synthetic
-      // page param would leave the URL out of sync with what the
-      // server actually returned (the first slice). Snap the
-      // synthetic page back to 1 and rewrite the URL in place.
-      if (this.cursorMode && !this.prevCursor && this.page !== 1) {
+      // `page` carries no meaning for a cursor list, and nothing
+      // reads it in that mode. Pin it so a stale value restored from
+      // an older history entry can't leak into a request URL or a
+      // later page-mode render.
+      if (this.cursorMode) {
         this.page = 1;
-        this.writeUrlState(true);
       }
       // drop any selected ids that aren't visible anymore — selection
       // is per-page, not cross-page, so users don't accidentally bulk
@@ -2466,15 +2474,13 @@ export class ContentList<T = any> extends RapidElement {
     // A cursor list has no page numbers — step by following the
     // opaque next/previous URL the last response handed back. Call
     // fetchPage first so currentUrl is updated synchronously, then
-    // bubble state so the saved URL points at the new view. The
-    // synthetic page number is bumped only to position the pager's
-    // "N–M of Total" window (it never reaches the URL in cursor
-    // mode); the cursor URL stashed in history.state is what actually
+    // bubble state so the saved URL points at the new view. `page` is
+    // deliberately left alone: a cursor slice has no ordinal position
+    // to track, and the cursor URL stashed in history.state is what
     // drives restoration.
     if (this.cursorMode) {
       const target = delta > 0 ? this.nextCursor : this.prevCursor;
       if (target) {
-        this.page = Math.max(1, this.page + delta);
         this.fetchPage(target);
         this.writeUrlState();
       }
@@ -3978,16 +3984,13 @@ export class ContentList<T = any> extends RapidElement {
     const lastPage = Math.max(1, Math.ceil(this.total / this.pageSize));
     const first = this.total === 0 ? 0 : (this.page - 1) * this.pageSize + 1;
     // Derive `last` from the rows actually shown rather than page*pageSize,
-    // so a short slice (a partial cursor page, or the final page) reports
-    // the true position instead of overshooting the total.
+    // so a short final page reports the true position instead of
+    // overshooting the total.
     const last = first === 0 ? 0 : first + this.items.length - 1;
     const atStart = this.cursorMode ? !this.prevCursor : this.page <= 1;
     const atEnd = this.cursorMode ? !this.nextCursor : this.page >= lastPage;
     // Nothing to show: an empty counted list (the .list-state covers it),
-    // or an uncounted cursor list with no other page to step to. When the
-    // endpoint provides a count we show the "N–M of Total" status in both
-    // page and cursor mode (the synthetic page tracks position in cursor
-    // mode too).
+    // or an uncounted cursor list with no other page to step to.
     if (this.hasCount ? this.total === 0 : atStart && atEnd) {
       return html``;
     }
@@ -4003,11 +4006,13 @@ export class ContentList<T = any> extends RapidElement {
         </span>
         ${this.hasCount
           ? html`<span class="pager-status"
-              >${msg(
-                str`${formatCount(first)}–${formatCount(last)} of ${formatCount(
-                  this.total
-                )}`
-              )}</span
+              >${this.cursorMode
+                ? this.defaultTotalLabel(this.total)
+                : msg(
+                    str`${formatCount(first)}–${formatCount(
+                      last
+                    )} of ${formatCount(this.total)}`
+                  )}</span
             >`
           : null}
         <span
