@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from smartmin.views import SmartCRUDL
 
 from django.db import transaction
+from django.db.models import Prefetch
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -168,6 +169,15 @@ class ListAPIMixin(mixins.ListModelMixin):
         return queryset
 
     def paginate_queryset(self, queryset):
+        # Django 6.1 no longer routes custom Prefetch querysets on forward FK/O2O fields to the same database as
+        # the parent queryset (regression from django/django@821619aa87) so route them explicitly
+        queryset._prefetch_related_lookups = tuple(
+            Prefetch(lookup.prefetch_through, queryset=lookup.queryset.using(queryset.db), to_attr=lookup.to_attr)
+            if isinstance(lookup, Prefetch) and lookup.queryset is not None and lookup.queryset._db is None
+            else lookup
+            for lookup in queryset._prefetch_related_lookups
+        )
+
         page = super().paginate_queryset(queryset)
 
         # give views a chance to prepare objects for serialization
