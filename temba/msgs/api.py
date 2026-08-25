@@ -96,10 +96,13 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
 
     class Pagination(SearchCountMixin, CreatedOnCursorPagination):
         """
-        The sent folder is ordered by sent date; all other folders by UUID, which (since msg.uuid is uuid7) is itself
-        time-ordered and already uniquely indexed — so we get the same newest-first semantics as `-created_on, -id`
-        without the composite sort. The response always carries a `count` so the list UI can show "N of Total": a
-        search count via SearchCountMixin, otherwise the folder/label's cheap pre-calculated count (see
+        Folders are ordered by `-created_on, -id`, and the sent folder by `-sent_on, -id`. Those are the orderings
+        the partial folder indexes are built on (`msgs_inbox`, `msgs_flows`, `msgs_archived`,
+        `msgs_outbox_and_failed`, `msgs_sent` — see Msg.Meta.indexes), so a page is an index-ordered read rather
+        than a sort. Ordering by `-uuid` instead would be time-ordered too (msg.uuid is uuid7) but uuid isn't part
+        of any folder index, leaving the database to either sort the whole folder or walk the global uuid index
+        filtering by folder. The response always carries a `count` so the list UI can show "N of Total": a search
+        count via SearchCountMixin, otherwise the folder/label's cheap pre-calculated count (see
         `get_total_count`) — never a COUNT(*) on the messages table.
         """
 
@@ -109,8 +112,6 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         page_size = 50
         page_size_query_param = "page_size"
         max_page_size = 500
-
-        ordering = ("-uuid",)
 
         def get_ordering(self, request, queryset, view=None):
             if request.query_params.get("folder", "").lower() == "sent":
