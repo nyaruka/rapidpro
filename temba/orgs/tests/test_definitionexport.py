@@ -131,6 +131,11 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(create_url, post_data)
         self.assertFormError(response.context["form"], "file", "This file is not a valid flow definition file.")
 
+        # test import using JSON that isn't an object
+        non_dict_data = io.BytesIO(b'[{"version": 7, "action_sets": []}]')
+        response = self.client.post(create_url, {"file": non_dict_data})
+        self.assertFormError(response.context["form"], "file", "This file is not a valid flow definition file.")
+
     def test_import_errors(self):
         self.login(self.admin)
         OrgImport.objects.all().delete()
