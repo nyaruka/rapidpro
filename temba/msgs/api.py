@@ -101,7 +101,7 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         `msgs_outbox_and_failed`, `msgs_sent` — see Msg.Meta.indexes), so a page is an index-ordered read rather
         than a sort. Ordering by `-uuid` instead would be time-ordered too (msg.uuid is uuid7) but uuid isn't part
         of any folder index, leaving the database to either sort the whole folder or walk the global uuid index
-        filtering by folder. The response always carries a `count` so the list UI can show "N of Total": a search
+        filtering by folder. The response always carries a `count` so the list UI can show a total: a search
         count via SearchCountMixin, otherwise the folder/label's cheap pre-calculated count (see
         `get_total_count`) — never a COUNT(*) on the messages table.
         """

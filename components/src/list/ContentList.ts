@@ -1171,10 +1171,10 @@ export class ContentList<T = any> extends RapidElement {
         --icon-color: var(--danger);
       }
 
-      /* Pager — a compact "‹ 1–N of Total ›" stepper that lives in
-         the header's actions cluster: chevron-only paging buttons
-         bracketing a plain count, no borders or labels, matching the
-         quiet Search action it sits beside. */
+      /* Pager — a compact stepper that lives in the header's actions
+         cluster: chevron-only paging buttons bracketing a plain count,
+         no borders or labels, matching the quiet Search action it sits
+         beside. */
       .pager {
         display: flex;
         align-items: center;
@@ -1448,14 +1448,17 @@ export class ContentList<T = any> extends RapidElement {
     return msg('Nothing to show');
   }
 
-  /** Label for the pager's total when the list is cursor-paginated.
-   * A cursor slice has no ordinal position — the rows it holds keep
-   * their identity while the total moves underneath them — so the
-   * pager reports how many rows exist rather than which of them you
-   * are looking at. Subclasses override to name their own rows, for
-   * the same reason they override {@link defaultEmptyMessage}. */
-  protected defaultTotalLabel(total: number): string {
-    return msg(str`${formatCount(total)} items`);
+  /** Label for the pager's total when it has no position to report:
+   * any cursor-paginated response (a cursor slice has no ordinal
+   * position — the rows keep their identity while the total moves
+   * underneath them) and the first page of a page-counted list, where
+   * "1–N of Total" would just restate the total. Says "matches" when
+   * the rows are the result of a search, plain "total" otherwise —
+   * what the rows *are* is already evident from the list itself. */
+  protected totalLabel(): string {
+    return this.search
+      ? msg(str`${formatCount(this.total)} matches`)
+      : msg(str`${formatCount(this.total)} total`);
   }
 
   /** Bump to force a refetch — useful after a bulk action so the host
@@ -3971,15 +3974,18 @@ export class ContentList<T = any> extends RapidElement {
     `;
   }
 
-  /** The pager — a compact "‹ 1–N of Total ›" stepper for the
-   * header's actions cluster. The "N–M of Total" status shows whenever
-   * the response carried a count (`hasCount`) — in cursor mode too,
-   * using the synthetic page for the range; an uncounted cursor list
-   * falls back to chevrons only, gated on whether the last response
-   * handed back a cursor for that direction. Both buttons disable
-   * while a fetch is in flight so a second step can't fire until the
-   * first comes back (or fails). Returns nothing when there is neither
-   * a page to move to nor a count worth showing. */
+  /** The pager — chevron paging buttons bracketing a count, for the
+   * header's actions cluster. The status (shown whenever the response
+   * carried a count) is the plain total from {@link totalLabel} until
+   * there's a position worth reporting — the "N–M of Total" range only
+   * appears once a page-counted list has stepped past its first page.
+   * A cursor list never has a position, so it always shows the total;
+   * an uncounted cursor list falls back to chevrons only, gated on
+   * whether the last response handed back a cursor for that direction.
+   * Both buttons disable while a fetch is in flight so a second step
+   * can't fire until the first comes back (or fails). Returns nothing
+   * when there is neither a page to move to nor a count worth
+   * showing. */
   private renderPager(): TemplateResult {
     const lastPage = Math.max(1, Math.ceil(this.total / this.pageSize));
     const first = this.total === 0 ? 0 : (this.page - 1) * this.pageSize + 1;
@@ -4006,8 +4012,8 @@ export class ContentList<T = any> extends RapidElement {
         </span>
         ${this.hasCount
           ? html`<span class="pager-status"
-              >${this.cursorMode
-                ? this.defaultTotalLabel(this.total)
+              >${this.cursorMode || this.page <= 1
+                ? this.totalLabel()
                 : msg(
                     str`${formatCount(first)}–${formatCount(
                       last

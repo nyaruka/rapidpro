@@ -2035,10 +2035,64 @@ describe('temba-content-list', () => {
     ) as HTMLElement;
     assert.exists(status, 'pager status should render in counted cursor mode');
     const text = status.textContent!.replace(/\s+/g, ' ').trim();
-    expect(text).to.contain('42');
-    // no synthesized position: not "11–20", and not "of 42"
-    expect(text).to.not.contain('11');
-    expect(text).to.not.contain('of 42');
+    expect(text).to.equal('42 total');
+  });
+
+  it('shows matches instead of total when the rows are a search result', async () => {
+    const list = (await getList({
+      endpoint: '/test-assets/content-list/items.json'
+    })) as ContentList;
+    Object.assign(list as any, {
+      cursorMode: true,
+      hasCount: true,
+      total: 42,
+      search: 'flow',
+      items: Array.from({ length: 10 }, (_, i) => ({ uuid: `u-${i}` })),
+      nextCursor: '/x?cursor=b'
+    });
+    (list as any).requestUpdate();
+    await list.updateComplete;
+
+    const status = list.shadowRoot!.querySelector(
+      '.pager-status'
+    ) as HTMLElement;
+    expect(status.textContent!.replace(/\s+/g, ' ').trim()).to.equal(
+      '42 matches'
+    );
+  });
+
+  it('shows the plain total on the first page of a page-counted list', async () => {
+    const list = (await getList({
+      endpoint: '/test-assets/content-list/items.json'
+    })) as ContentList;
+    // A position range like "1–10 of 42" on the first page just
+    // restates the total, so the pager shows the total alone until
+    // the list has actually stepped somewhere.
+    Object.assign(list as any, {
+      cursorMode: false,
+      hasCount: true,
+      total: 42,
+      pageSize: 10,
+      page: 1,
+      items: Array.from({ length: 10 }, (_, i) => ({ uuid: `u-${i}` }))
+    });
+    (list as any).requestUpdate();
+    await list.updateComplete;
+
+    const status = list.shadowRoot!.querySelector(
+      '.pager-status'
+    ) as HTMLElement;
+    expect(status.textContent!.replace(/\s+/g, ' ').trim()).to.equal(
+      '42 total'
+    );
+
+    // past the first page there's a position worth reporting
+    (list as any).page = 2;
+    (list as any).requestUpdate();
+    await list.updateComplete;
+    expect(status.textContent!.replace(/\s+/g, ' ').trim()).to.equal(
+      '11–20 of 42'
+    );
   });
 
   it('stays in cursor mode when a count is returned alongside cursor URLs', async () => {

@@ -1522,13 +1522,13 @@
   <source>Flow</source>
   <target>Fluxo</target>
 </trans-unit>
-<trans-unit id="s125a86b2f45bbb25">
-  <source><x id="0" equiv-text="${formatCount(total)}"/> items</source>
-  <target><x id="0" equiv-text="${formatCount(total)}"/> itens</target>
+<trans-unit id="s967a20ee323b6f60">
+  <source><x id="0" equiv-text="${formatCount(this.total)}"/> matches</source>
+  <target><x id="0" equiv-text="${formatCount(this.total)}"/> correspondências</target>
 </trans-unit>
-<trans-unit id="sd94e4de48e8973cb">
-  <source><x id="0" equiv-text="${formatCount(total)}"/> messages</source>
-  <target><x id="0" equiv-text="${formatCount(total)}"/> mensagens</target>
+<trans-unit id="s2f190c25dc2a7653">
+  <source><x id="0" equiv-text="${formatCount(this.total)}"/> total</source>
+  <target><x id="0" equiv-text="${formatCount(this.total)}"/> no total</target>
 </trans-unit>
 </body>
 </file>
