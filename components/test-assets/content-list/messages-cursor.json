@@ -1,5 +1,6 @@
 {
   "count": 12345,
+  "paged_by": "cursor",
   "next": "/test-assets/content-list/messages.json?cursor=next",
   "previous": null,
   "results": [

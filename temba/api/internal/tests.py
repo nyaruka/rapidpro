@@ -98,7 +98,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         msg2_logs_url = reverse("channels.channel_logs_read", args=[self.channel.uuid, "msg", msg2.uuid])
 
         # admin has `channels.channel_logs` so as_json resolves logs_url to a real path
-        self.assertGet(
+        response = self.assertGet(
             endpoint_url,
             [self.admin],
             results=[
@@ -126,6 +126,10 @@ class EndpointsTest(APITestMixin, TembaTest):
                 },
             ],
         )
+
+        # responses say how they're paginated so the list UI knows a single page of a cursor list isn't page one of a
+        # page-numbered one - the two are otherwise indistinguishable when everything fits on one page
+        self.assertEqual("cursor", response.json()["paged_by"])
 
         # editor lacks `channels.channel_logs` so logs_url is gated to None
         self.assertGet(
@@ -572,7 +576,9 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual([3, 5], flow1.get_activity_series()[-2:])
 
         # default folder is `active`, most recently saved first
-        self.assertGet(endpoint_url, [self.editor, self.admin], results=[flow2, flow1])
+        response = self.assertGet(endpoint_url, [self.editor, self.admin], results=[flow2, flow1])
+        self.assertEqual("page", response.json()["paged_by"])  # unlike messages, flows are page-numbered
+
         self.assertGet(endpoint_url + "?folder=active", [self.admin], results=[flow2, flow1])
 
         # archived flows live in their own folder, newest first

@@ -108,6 +108,10 @@ interface FetchResponse<T = any> {
   count?: number;
   next?: string;
   previous?: string;
+  /** How the endpoint paginates — `cursor` or `page`. The internal API
+   * always says; it's the only thing that distinguishes the two when
+   * the results fit on one page. See {@link detectCursorMode}. */
+  paged_by?: string;
   /** Server-adjusted/normalized form of the search that produced these
    * results (rapidpro's contact search echoes the parsed `query`).
    * When present after a search, it's adopted as the basis of the
@@ -1448,13 +1452,13 @@ export class ContentList<T = any> extends RapidElement {
     return msg('Nothing to show');
   }
 
-  /** Label for the pager's total when it has no position to report:
-   * any cursor-paginated response (a cursor slice has no ordinal
-   * position — the rows keep their identity while the total moves
-   * underneath them) and the first page of a page-counted list, where
-   * "1–N of Total" would just restate the total. Says "matches" when
-   * the rows are the result of a search, plain "total" otherwise —
-   * what the rows *are* is already evident from the list itself. */
+  /** Label for the pager's total when the list is cursor-paginated.
+   * A cursor slice has no ordinal position — the rows keep their
+   * identity while the total moves underneath them — so the pager
+   * reports how many rows exist rather than which of them you are
+   * looking at. Says "matches" when the rows are the result of a
+   * search, plain "total" otherwise — what the rows *are* is already
+   * evident from the list itself. */
   protected totalLabel(): string {
     return this.search
       ? msg(str`${formatCount(this.total)} matches`)
@@ -2083,15 +2087,22 @@ export class ContentList<T = any> extends RapidElement {
     return url.pathname + url.search;
   }
 
-  /** Tell a cursor list from a page-counted one by inspecting the
-   * server's nav URLs. DRF CursorPagination always emits a `cursor=`
-   * query param; PageNumberPagination uses `page=`. A response that
-   * carries `count` alongside cursor URLs — e.g. a searched cursor
-   * endpoint that returns a result tally for the UI indicator — must
-   * still be navigated by following the cursor URLs, so we can't use
-   * count presence alone. Falls back to the count-absent heuristic
-   * for single-page responses where neither nav URL is populated. */
+  /** Tell a cursor list from a page-counted one. The internal API
+   * says which it used in `paged_by`, and that's authoritative —
+   * nothing else in the response distinguishes the two once the
+   * results fit on a single page, since a lone page carries no nav
+   * URLs to inspect.
+   *
+   * Without it, fall back to those URLs — DRF CursorPagination always
+   * emits a `cursor=` query param, PageNumberPagination uses `page=`.
+   * A response that carries `count` alongside cursor URLs — e.g. a
+   * searched cursor endpoint that returns a result tally for the UI
+   * indicator — must still be navigated by following the cursor URLs,
+   * so we can't use count presence alone. Last of all comes the
+   * count-absent heuristic, which is the ambiguous single-page case
+   * `paged_by` exists to settle. */
   private detectCursorMode(data: FetchResponse<T>): boolean {
+    if (data.paged_by) return data.paged_by === 'cursor';
     const hasCursor = (raw: string | undefined | null): boolean => {
       if (!raw) return false;
       try {
@@ -3976,13 +3987,13 @@ export class ContentList<T = any> extends RapidElement {
 
   /** The pager — chevron paging buttons bracketing a count, for the
    * header's actions cluster. The status (shown whenever the response
-   * carried a count) is the plain total from {@link totalLabel} until
-   * there's a position worth reporting — the "N–M of Total" range only
-   * appears once a page-counted list has stepped past its first page,
-   * keeping a "matches" suffix when the rows are a search result so
-   * the filtered-set context isn't lost on later pages.
-   * A cursor list never has a position, so it always shows the total;
-   * an uncounted cursor list falls back to chevrons only, gated on
+   * carried a count) depends on the pagination style: a page-counted
+   * list has a real position, so it shows the "N–M of Total" range —
+   * with a "matches" suffix when the rows are a search result — while
+   * a cursor list has none and shows the plain total from
+   * {@link totalLabel} whatever the folder size, so a folder that fits
+   * on one page frames its count the same way as one that doesn't.
+   * An uncounted cursor list falls back to chevrons only, gated on
    * whether the last response handed back a cursor for that direction.
    * Both buttons disable while a fetch is in flight so a second step
    * can't fire until the first comes back (or fails). Returns nothing
@@ -4014,7 +4025,7 @@ export class ContentList<T = any> extends RapidElement {
         </span>
         ${this.hasCount
           ? html`<span class="pager-status"
-              >${this.cursorMode || this.page <= 1
+              >${this.cursorMode
                 ? this.totalLabel()
                 : this.search
                   ? msg(

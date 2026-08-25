@@ -2061,13 +2061,12 @@ describe('temba-content-list', () => {
     );
   });
 
-  it('shows the plain total on the first page of a page-counted list', async () => {
+  it('shows a position range on a page-counted list', async () => {
     const list = (await getList({
       endpoint: '/test-assets/content-list/items.json'
     })) as ContentList;
-    // A position range like "1–10 of 42" on the first page just
-    // restates the total, so the pager shows the total alone until
-    // the list has actually stepped somewhere.
+    // Page-counted lists have a real position, so the range framing
+    // holds on every page — including the first.
     Object.assign(list as any, {
       cursorMode: false,
       hasCount: true,
@@ -2083,10 +2082,9 @@ describe('temba-content-list', () => {
       '.pager-status'
     ) as HTMLElement;
     expect(status.textContent!.replace(/\s+/g, ' ').trim()).to.equal(
-      '42 total'
+      '1–10 of 42'
     );
 
-    // past the first page there's a position worth reporting
     (list as any).page = 2;
     (list as any).requestUpdate();
     await list.updateComplete;
@@ -2094,13 +2092,29 @@ describe('temba-content-list', () => {
       '11–20 of 42'
     );
 
-    // and a searched list keeps its filtered-set context in the range
+    // a searched list carries its filtered-set context in the range
     (list as any).search = 'flow';
     (list as any).requestUpdate();
     await list.updateComplete;
     expect(status.textContent!.replace(/\s+/g, ' ').trim()).to.equal(
       '11–20 of 42 matches'
     );
+  });
+
+  it('keeps cursor framing for a single-page response the server marks as cursor-paged', async () => {
+    // A single-page cursor response has no nav URLs to inspect, so
+    // without `paged_by` it would be mistaken for a page-counted one
+    // and flip the pager into "1–N of N" framing — jarring next to a
+    // bigger folder on the same endpoint showing a plain total.
+    const list = (await getList({
+      endpoint: '/test-assets/content-list/messages.json'
+    })) as ContentList;
+    expect((list as any).cursorMode).to.equal(true);
+
+    const status = list.shadowRoot!.querySelector(
+      '.pager-status'
+    ) as HTMLElement;
+    expect(status.textContent!.replace(/\s+/g, ' ').trim()).to.equal('7 total');
   });
 
   it('stays in cursor mode when a count is returned alongside cursor URLs', async () => {
@@ -2122,6 +2136,27 @@ describe('temba-content-list', () => {
         results: [],
         count: 42,
         next: '/x/?page=2',
+        previous: null
+      })
+    ).to.equal(false);
+
+    // `paged_by` is authoritative — it settles the single-page case
+    // that has no nav URLs to inspect, in both directions.
+    expect(
+      (list as any).detectCursorMode({
+        results: [],
+        count: 7,
+        paged_by: 'cursor',
+        next: null,
+        previous: null
+      })
+    ).to.equal(true);
+    expect(
+      (list as any).detectCursorMode({
+        results: [],
+        count: 7,
+        paged_by: 'page',
+        next: null,
         previous: null
       })
     ).to.equal(false);
