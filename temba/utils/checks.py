@@ -4,7 +4,7 @@ from django.core.checks.mail import NON_PRODUCTION_EMAIL_BACKENDS
 from django.core.mail import DEFAULT_MAILER_ALIAS
 from django.utils.module_loading import import_string
 
-from temba.utils.email.backend import DYNAMIC_MAILER_ALIAS, DynamicEmailBackend
+from temba.utils.email.backend import CUSTOM_SMTP_MAILER_ALIAS, CustomSMTPBackend
 
 
 @register()
@@ -39,7 +39,7 @@ def mailers(app_configs, **kwargs):
     errors = []
     config = getattr(settings, "MAILERS", {})
 
-    for alias in (DEFAULT_MAILER_ALIAS, DYNAMIC_MAILER_ALIAS):
+    for alias in (DEFAULT_MAILER_ALIAS, CUSTOM_SMTP_MAILER_ALIAS):
         if alias not in config:
             errors.append(
                 Error(
@@ -48,21 +48,21 @@ def mailers(app_configs, **kwargs):
                 )
             )
 
-    # the dynamic mailer must use a backend which reads SMTP configuration off each message, tho we also allow the
+    # the custom SMTP mailer must use a backend which reads SMTP configuration off each message, tho we also allow the
     # non-production backends so that tests and dev environments work as usual
-    dynamic = config.get(DYNAMIC_MAILER_ALIAS)
-    if dynamic is not None:
-        backend = dynamic.get("BACKEND", "")
+    custom_smtp = config.get(CUSTOM_SMTP_MAILER_ALIAS)
+    if custom_smtp is not None:
+        backend = custom_smtp.get("BACKEND", "")
         try:
-            valid = backend in NON_PRODUCTION_EMAIL_BACKENDS or issubclass(import_string(backend), DynamicEmailBackend)
+            valid = backend in NON_PRODUCTION_EMAIL_BACKENDS or issubclass(import_string(backend), CustomSMTPBackend)
         except ImportError:
             valid = False
 
         if not valid:
             errors.append(
                 Error(
-                    f"Mailer '{DYNAMIC_MAILER_ALIAS}' must use a backend which supports per-message SMTP configuration.",
-                    hint=f"Set BACKEND for '{DYNAMIC_MAILER_ALIAS}' in MAILERS to temba.utils.email.backend.DynamicEmailBackend.",
+                    f"Mailer '{CUSTOM_SMTP_MAILER_ALIAS}' must use a backend which supports per-message SMTP configuration.",
+                    hint=f"Set BACKEND for '{CUSTOM_SMTP_MAILER_ALIAS}' in MAILERS to temba.utils.email.backend.CustomSMTPBackend.",
                 )
             )
 

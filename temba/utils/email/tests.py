@@ -12,7 +12,7 @@ from .send import EmailSender
 
 LOCMEM = {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}
 DUMMY = {"BACKEND": "django.core.mail.backends.dummy.EmailBackend"}
-DYNAMIC = {"BACKEND": "temba.utils.email.backend.DynamicEmailBackend"}
+CUSTOM_SMTP = {"BACKEND": "temba.utils.email.backend.CustomSMTPBackend"}
 
 
 class EmailTest(TembaTest):
@@ -39,7 +39,7 @@ class EmailTest(TembaTest):
     def test_send(self):
         # a sender without SMTP config sends via the default mailer
         branding = {"name": "Test", "emails": {"notifications": "no-reply@acme.com"}}
-        with override_settings(MAILERS={"default": LOCMEM, "dynamic": DUMMY}):
+        with override_settings(MAILERS={"default": LOCMEM, "custom_smtp": DUMMY}):
             EmailSender.from_email_type(branding, "notifications").send(
                 ["bob@acme.com"], "orgs/email/smtp_test", {}, "Hello"
             )
@@ -50,26 +50,26 @@ class EmailTest(TembaTest):
         self.assertEqual(["bob@acme.com"], mail.outbox[0].to)
         self.assertEqual("text/html", mail.outbox[0].alternatives[0].mimetype)
 
-        # a sender with SMTP config attaches it to the message and sends via the dynamic mailer
+        # a sender with SMTP config attaches it to the message and sends via the custom SMTP mailer
         smtp_url = "smtp://foo:sesame@acme.com/?tls=true&from=no-reply%40acme.com"
         branding = {"name": "Test", "emails": {"notifications": smtp_url}}
-        with override_settings(MAILERS={"default": DUMMY, "dynamic": LOCMEM}):
+        with override_settings(MAILERS={"default": DUMMY, "custom_smtp": LOCMEM}):
             EmailSender.from_email_type(branding, "notifications").send(
-                ["bob@acme.com"], "orgs/email/smtp_test", {}, "Via dynamic"
+                ["bob@acme.com"], "orgs/email/smtp_test", {}, "Via custom SMTP"
             )
 
         self.assertEqual(2, len(mail.outbox))
-        self.assertEqual("Via dynamic", mail.outbox[1].subject)
+        self.assertEqual("Via custom SMTP", mail.outbox[1].subject)
         self.assertEqual(smtp_url, mail.outbox[1].smtp_url)
 
-    def test_dynamic_backend(self):
+    def test_custom_smtp_backend(self):
         def compose(subject: str) -> EmailMultiAlternatives:
             message = EmailMultiAlternatives(subject, "hi", "no-reply@acme.com", ["bob@acme.com"])
             message.attach_alternative("<p>hi</p>", "text/html")
             return message
 
-        with override_settings(MAILERS={"default": LOCMEM, "dynamic": DYNAMIC}):
-            backend = mailers["dynamic"]
+        with override_settings(MAILERS={"default": LOCMEM, "custom_smtp": CUSTOM_SMTP}):
+            backend = mailers["custom_smtp"]
 
             # messages are sent using the SMTP configuration attached to them
             message = compose("Hello")

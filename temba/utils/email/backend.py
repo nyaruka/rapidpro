@@ -9,7 +9,7 @@ from django.core.mail.backends.base import BaseEmailBackend
 
 from .conf import parse_smtp_url
 
-DYNAMIC_MAILER_ALIAS = "dynamic"
+CUSTOM_SMTP_MAILER_ALIAS = "custom_smtp"
 
 
 @cache
@@ -18,7 +18,7 @@ def get_ssl_context():
     return ssl.create_default_context()
 
 
-class DynamicEmailBackend(BaseEmailBackend):
+class CustomSMTPBackend(BaseEmailBackend):
     """
     An email backend which sends each message using the SMTP configuration URL attached to it. Used for email which
     needs to be sent with per-workspace SMTP configuration rather than by the statically configured default mailer.
@@ -34,7 +34,7 @@ class DynamicEmailBackend(BaseEmailBackend):
         for message in email_messages:
             host, port, username, password, _, tls = parse_smtp_url(getattr(message, "smtp_url", None))
             if not host:
-                raise ValueError("Messages sent with the dynamic mailer require an attached SMTP URL.")
+                raise ValueError("Messages sent with the custom SMTP mailer require an attached SMTP URL.")
             to_send.append((message, host, port, username, password, tls))
 
         num_sent = 0

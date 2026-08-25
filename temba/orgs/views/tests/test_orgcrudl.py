@@ -305,7 +305,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual(len(mail.outbox), 1)
 
-        # the test email carries the SMTP settings just entered, for sending by the dynamic mailer
+        # the test email carries the SMTP settings just entered, for sending by the custom SMTP mailer
         self.assertEqual(
             r"smtp://support%40example.com:secret@smtp.example.com:465/?from=foo%40bar.com&tls=true",
             mail.outbox[0].smtp_url,

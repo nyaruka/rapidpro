@@ -3,7 +3,7 @@ from django.core.mail import DEFAULT_MAILER_ALIAS, EmailMultiAlternatives
 from django.template import loader
 from django.utils import timezone
 
-from .backend import DYNAMIC_MAILER_ALIAS
+from .backend import CUSTOM_SMTP_MAILER_ALIAS
 from .conf import parse_smtp_url
 
 
@@ -21,7 +21,7 @@ class EmailSender:
     def from_email_type(cls, branding: dict, email_type: str):
         """
         Creates a sender from the given email type setting in the given branding - which can be a from address, or a
-        complete SMTP configuration URL for sending via the dynamic mailer.
+        complete SMTP configuration URL for sending via the custom SMTP mailer.
         """
         email_cfg = branding.get("emails", {}).get(email_type)
         if email_cfg and email_cfg.startswith("smtp://"):
@@ -49,7 +49,7 @@ class EmailSender:
         """
         Sends a multi-part email rendered from templates for the text and html parts. `template` should be the name of
         the template, without .html or .txt (e.g. 'channels/email/power_charging'). If this sender has its own SMTP
-        configuration, the message carries it and is sent by the dynamic mailer, otherwise by the default mailer.
+        configuration, the message carries it and is sent by the custom SMTP mailer, otherwise by the default mailer.
         """
         context["branding"] = self.branding
         context["now"] = timezone.now()
@@ -73,6 +73,6 @@ class EmailSender:
 
         if self.smtp_url:
             message.smtp_url = self.smtp_url
-            message.send(using=DYNAMIC_MAILER_ALIAS)
+            message.send(using=CUSTOM_SMTP_MAILER_ALIAS)
         else:
             message.send(using=DEFAULT_MAILER_ALIAS)
