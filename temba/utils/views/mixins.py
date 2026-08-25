@@ -12,6 +12,7 @@ from django.db import IntegrityError, transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils import timezone
 from django.utils.functional import cached_property
+from django.utils.translation import gettext_lazy as _
 
 from temba import __version__ as temba_version
 from temba.utils.fields import CheckboxWidget, DateWidget, InputWidget, SelectMultipleWidget, SelectWidget
@@ -224,6 +225,8 @@ class ModalFormMixin(SmartFormView):
     """
     TODO rework this to be an actual mixin
     """
+
+    submit_button_name = _("Submit")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

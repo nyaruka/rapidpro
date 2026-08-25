@@ -53,6 +53,7 @@ class Forgetme(NoNavMixin, ComponentFormMixin, SmartFormView):
             return code
 
     form_class = Form
+    submit_button_name = _("Submit")
 
     template_name = "public/public_forgetme.html"
 

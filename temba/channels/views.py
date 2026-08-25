@@ -60,6 +60,7 @@ class ChannelTypeMixin(SpaMixin):
 class ClaimViewMixin(ChannelTypeMixin, OrgPermsMixin, ComponentFormMixin):
     permission = "channels.channel_claim"
     menu_path = "/settings/channels/new-channel"
+    submit_button_name = _("Submit")
 
     class Form(forms.Form):
         def __init__(self, **kwargs):
@@ -699,6 +700,7 @@ class ChannelCRUDL(SmartCRUDL):
             return response
 
     class Update(ComponentFormMixin, ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
+        submit_button_name = _("Save")
         field_config = {
             "is_enabled": {
                 "help": _("Makes channel available for sending. Incoming messages will be archived if not enabled.")

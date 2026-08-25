@@ -363,6 +363,7 @@ class FlowCRUDL(SmartCRUDL):
 
         form_class = Form
         success_url = "uuid@flows.flow_editor"
+        submit_button_name = _("Create")
         field_config = {"name": {"help": _("Choose a unique name to describe this flow, e.g. Registration")}}
 
         def derive_exclude(self):
@@ -1559,6 +1560,7 @@ class FlowLabelCRUDL(SmartCRUDL):
     class Update(ModalFormMixin, OrgObjPermsMixin, SmartUpdateView):
         form_class = FlowLabelForm
         success_url = "uuid@flows.flow_filter"
+        submit_button_name = _("Save")
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
