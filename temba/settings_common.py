@@ -148,8 +148,9 @@ MEDIA_URL = "/media/"
 # -----------------------------------------------------------------------------------
 # Email
 # -----------------------------------------------------------------------------------
-# Mailers are how email is sent. There must always be a "default" mailer, and additional mailers can be added for
-# specific types of email - see temba.utils.email.EmailSender.from_email_type.
+# Mailers are how email is sent. The default mailer sends most email, but messages which carry their own SMTP
+# configuration URL - e.g. notifications for workspaces with their own branding and SMTP settings - are sent by the
+# dynamic mailer. Both must always be configured.
 MAILERS = {
     "default": {
         "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
@@ -160,6 +161,9 @@ MAILERS = {
             "use_tls": True,
             "timeout": 10,
         },
+    },
+    "dynamic": {
+        "BACKEND": "temba.utils.email.backend.DynamicEmailBackend",
     },
 }
 

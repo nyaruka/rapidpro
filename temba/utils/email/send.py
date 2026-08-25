@@ -1,16 +1,10 @@
-import email.policy
-import smtplib
-import ssl
-
 from django.conf import settings
-from django.core.mail import DEFAULT_MAILER_ALIAS, DNS_NAME, EmailMultiAlternatives, mailers
+from django.core.mail import DEFAULT_MAILER_ALIAS, EmailMultiAlternatives
 from django.template import loader
 from django.utils import timezone
 
+from .backend import DYNAMIC_MAILER_ALIAS
 from .conf import parse_smtp_url
-
-# how long we wait when checking SMTP settings which a user has just entered
-SMTP_CHECK_TIMEOUT = 10
 
 
 class EmailSender:
@@ -18,21 +12,29 @@ class EmailSender:
     Sends template based branded emails.
     """
 
-    def __init__(self, branding: dict, from_email: str = None, mailer: str = DEFAULT_MAILER_ALIAS):
+    def __init__(self, branding: dict, from_email: str = None, smtp_url: str = None):
         self.branding = branding
         self.from_email = from_email if from_email else getattr(settings, "DEFAULT_FROM_EMAIL", "website@rapidpro.io")
-        self.mailer = mailer  # alias of the mailer in the MAILERS setting used to send
+        self.smtp_url = smtp_url  # optional SMTP configuration URL to send with instead of the default mailer
 
     @classmethod
     def from_email_type(cls, branding: dict, email_type: str):
         """
-        Creates a sender for the given type of email. The from address comes from the branding, and the email is sent
-        by the mailer of the same name as the email type if one is configured, or the default mailer otherwise.
+        Creates a sender from the given email type setting in the given branding - which can be a from address, or a
+        complete SMTP configuration URL for sending via the dynamic mailer.
         """
-        from_email = branding.get("emails", {}).get(email_type)
-        mailer = email_type if email_type in mailers else DEFAULT_MAILER_ALIAS
+        email_cfg = branding.get("emails", {}).get(email_type)
+        if email_cfg and email_cfg.startswith("smtp://"):
+            return cls.from_smtp_url(branding, email_cfg)
 
-        return cls(branding, from_email, mailer)
+        return cls(branding, from_email=email_cfg)
+
+    @classmethod
+    def from_smtp_url(cls, branding: dict, smtp_url: str):
+        """
+        Creates a sender from the given SMTP configuration URL.
+        """
+        return cls(branding, from_email=parse_smtp_url(smtp_url)[4], smtp_url=smtp_url)
 
     def render_template(self, template_path: str, postfixes, context: dict):
         for postfix in postfixes:
@@ -43,10 +45,11 @@ class EmailSender:
                 pass
         return None
 
-    def compose(self, recipients: list, template: str, context: dict, subject: str = None) -> EmailMultiAlternatives:
+    def send(self, recipients: list, template: str, context: dict, subject: str = None):
         """
-        Composes a multi-part message rendered from templates for the text and html parts. `template` should be the
-        name of the template, without .html or .txt (e.g. 'channels/email/power_charging').
+        Sends a multi-part email rendered from templates for the text and html parts. `template` should be the name of
+        the template, without .html or .txt (e.g. 'channels/email/power_charging'). If this sender has its own SMTP
+        configuration, the message carries it and is sent by the dynamic mailer, otherwise by the default mailer.
         """
         context["branding"] = self.branding
         context["now"] = timezone.now()
@@ -67,26 +70,9 @@ class EmailSender:
 
         message = EmailMultiAlternatives(subject, text, self.from_email, recipients)
         message.attach_alternative(html, "text/html")
-        return message
 
-    def send(self, recipients: list, template: str, context: dict, subject: str = None):
-        """
-        Composes and sends a message using this sender's mailer.
-        """
-        self.compose(recipients, template, context, subject).send(using=self.mailer)
-
-
-def send_via_smtp(smtp_url: str, message: EmailMultiAlternatives):
-    """
-    Sends an already composed message using the given SMTP configuration, rather than one of the configured mailers.
-    Used to check SMTP settings which a user has just entered and which aren't part of this instance's configuration.
-    """
-    host, port, username, password, _, tls = parse_smtp_url(smtp_url)
-
-    with smtplib.SMTP(host, port, local_hostname=DNS_NAME.get_fqdn(), timeout=SMTP_CHECK_TIMEOUT) as conn:
-        if tls:
-            conn.starttls(context=ssl.create_default_context())
-        if username and password:
-            conn.login(username, password)
-
-        conn.send_message(message.message(policy=email.policy.SMTP))
+        if self.smtp_url:
+            message.smtp_url = self.smtp_url
+            message.send(using=DYNAMIC_MAILER_ALIAS)
+        else:
+            message.send(using=DEFAULT_MAILER_ALIAS)
