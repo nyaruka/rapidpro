@@ -1,3 +1,10 @@
+v26.3.59 (2026-08-25)
+-------------------------
+ * Frame list pager counts on how the endpoint paginates
+ * Migrate email sending to mailers
+ * Reject import files whose top-level JSON is not an object
+ * Make form submit button labels translatable
+
 v26.3.58 (2026-08-25)
 -------------------------
  * Report a total rather than a synthesized position when a list is cursor-paginated
