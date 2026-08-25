@@ -557,6 +557,27 @@ class Msg(models.Model):
     TYPE_CHOICES = ((TYPE_TEXT, "Text"), (TYPE_OPTIN, "Opt-In Request"), (TYPE_VOICE, "Interactive Voice Response"))
     TYPE_SLUGS = {TYPE_TEXT: "text", TYPE_OPTIN: "optin", TYPE_VOICE: "voice"}
 
+    # which folder this message belongs to. the first six are the user facing folders defined by MsgFolder - the last
+    # two exist so that every message has a folder, and so that a null folder means only "not yet written".
+    FOLDER_INBOX = "I"
+    FOLDER_HANDLED = "W"
+    FOLDER_ARCHIVED = "A"
+    FOLDER_OUTBOX = "O"
+    FOLDER_SENT = "S"
+    FOLDER_FAILED = "X"
+    FOLDER_PENDING = "P"  # incoming and not yet handled
+    FOLDER_DELETED = "D"  # deleted by the user or the sender
+    FOLDER_CHOICES = (
+        (FOLDER_INBOX, "Inbox"),
+        (FOLDER_HANDLED, "Handled"),
+        (FOLDER_ARCHIVED, "Archived"),
+        (FOLDER_OUTBOX, "Outbox"),
+        (FOLDER_SENT, "Sent"),
+        (FOLDER_FAILED, "Failed"),
+        (FOLDER_PENDING, "Pending"),
+        (FOLDER_DELETED, "Deleted"),
+    )
+
     FAILED_NO_DESTINATION = "D"
     FAILED_CONTACT = "C"
     FAILED_SUSPENDED = "S"
@@ -614,6 +635,10 @@ class Msg(models.Model):
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
     visibility = models.CharField(max_length=1, choices=VISIBILITY_CHOICES, default=VISIBILITY_VISIBLE)
+    # denormalized folder, derived from direction/visibility/status/flow, maintained by mailroom and courier. null
+    # means not yet written, not "in no folder" - see derive_folder.
+    folder = models.CharField(max_length=1, null=True, choices=FOLDER_CHOICES)
+
     is_android = models.BooleanField()
     labels = models.ManyToManyField("Label", related_name="msgs")
 
@@ -710,6 +735,25 @@ class Msg(models.Model):
         """
 
         mailroom.get_client().msg_handle(self.org, [self])
+
+    def derive_folder(self) -> str:
+        """
+        Derives the folder code for this message. Nothing reads this yet - it exists to pin down the contract that
+        mailroom and courier implement, in particular the precedence, which matters for states that fall outside the
+        user facing folders entirely: a message can be archived or deleted while still pending, and such messages
+        must not appear in the Archived folder.
+        """
+
+        if self.visibility in (self.VISIBILITY_DELETED_BY_USER, self.VISIBILITY_DELETED_BY_SENDER):
+            return self.FOLDER_DELETED
+        if self.direction == self.DIRECTION_IN and self.status == self.STATUS_PENDING:
+            return self.FOLDER_PENDING
+
+        folder = MsgFolder.from_msg(self)
+
+        assert folder is not None, f"unable to derive folder for msg #{self.id}"
+
+        return folder.code
 
     def archive(self):
         """
@@ -908,7 +952,7 @@ class MsgFolder(Enum):
     """
 
     INBOX = (
-        "I",
+        Msg.FOLDER_INBOX,
         dict(
             direction=Msg.DIRECTION_IN,
             visibility=Msg.VISIBILITY_VISIBLE,
@@ -918,7 +962,7 @@ class MsgFolder(Enum):
         dict(direction="in", visibility="visible", status="handled", flow__isnull=True),
     )
     HANDLED = (
-        "W",
+        Msg.FOLDER_HANDLED,
         dict(
             direction=Msg.DIRECTION_IN,
             visibility=Msg.VISIBILITY_VISIBLE,
@@ -928,7 +972,7 @@ class MsgFolder(Enum):
         dict(direction="in", visibility="visible", status="handled", flow__isnull=False),
     )
     ARCHIVED = (
-        "A",
+        Msg.FOLDER_ARCHIVED,
         dict(
             direction=Msg.DIRECTION_IN,
             visibility=Msg.VISIBILITY_ARCHIVED,
@@ -937,7 +981,7 @@ class MsgFolder(Enum):
         dict(direction="in", visibility="archived", status="handled"),
     )
     OUTBOX = (
-        "O",
+        Msg.FOLDER_OUTBOX,
         dict(
             direction=Msg.DIRECTION_OUT,
             visibility=Msg.VISIBILITY_VISIBLE,
@@ -946,7 +990,7 @@ class MsgFolder(Enum):
         dict(direction="out", visibility="visible", status__in=("initializing", "queued", "errored")),
     )
     SENT = (
-        "S",
+        Msg.FOLDER_SENT,
         dict(
             direction=Msg.DIRECTION_OUT,
             visibility=Msg.VISIBILITY_VISIBLE,
@@ -955,7 +999,7 @@ class MsgFolder(Enum):
         dict(direction="out", visibility="visible", status__in=("wired", "sent", "delivered", "read")),
     )
     FAILED = (
-        "X",
+        Msg.FOLDER_FAILED,
         dict(direction=Msg.DIRECTION_OUT, visibility=Msg.VISIBILITY_VISIBLE, status=Msg.STATUS_FAILED),
         dict(direction="out", visibility="visible", status="failed"),
     )
@@ -968,6 +1012,32 @@ class MsgFolder(Enum):
     @classmethod
     def from_code(cls, code):
         return next(f for f in cls if f.code == code)
+
+    @classmethod
+    def from_msg(cls, msg):
+        """
+        Derives the folder that the given message belongs to, or None if it isn't in one (e.g. an unhandled incoming
+        message, or one deleted by its sender).
+        """
+
+        def matches(lookup: str, expected) -> bool:
+            field, _, op = lookup.partition("__")
+            actual = getattr(msg, Msg._meta.get_field(field).attname)
+
+            if op == "in":
+                return actual in expected
+            elif op == "isnull":
+                return (actual is None) == expected
+
+            assert op == "", f"unsupported lookup: {lookup}"
+
+            return actual == expected
+
+        for folder in cls:
+            if all(matches(lookup, expected) for lookup, expected in folder.query.items()):
+                return folder
+
+        return None
 
     def get_queryset(self, org):
         # we don't use org.msgs here because it causes problems when the API is using different db connections
