@@ -262,7 +262,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(len(mail.outbox), 0)
 
         # mock email sending so test send fails
-        with patch("temba.utils.email.send.send_email") as mock_send:
+        with patch("temba.utils.email.send.EmailSender.send") as mock_send:
             mock_send.side_effect = smtplib.SMTPException("boom")
 
             response = self.client.post(
@@ -305,6 +305,12 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             },
         )
         self.assertEqual(len(mail.outbox), 1)
+
+        # the test email carries the SMTP settings just entered, for sending by the custom SMTP mailer
+        self.assertEqual(
+            r"smtp://support%40example.com:secret@smtp.example.com:465/?from=foo%40bar.com&tls=true",
+            mail.outbox[0].smtp_url,
+        )
 
         self.org.refresh_from_db()
         self.assertEqual(

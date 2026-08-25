@@ -32,7 +32,7 @@ def parse_smtp_url(smtp_url: str) -> tuple:
         parsed.hostname,
         parsed.port or 25,
         unquote(parsed.username) if parsed.username else None,
-        unquote(parsed.password) if parsed.username else None,
+        unquote(parsed.password) if parsed.password else None,
         from_param[0] if from_param else None,
         tls_param[0] == "true" if tls_param else False,
     )

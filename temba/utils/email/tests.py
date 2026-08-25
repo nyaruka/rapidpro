@@ -1,7 +1,18 @@
+import smtplib
+from unittest.mock import patch
+
+from django.core import mail
+from django.core.mail import EmailMultiAlternatives, mailers
+from django.test.utils import override_settings
+
 from temba.tests import TembaTest
 
 from .conf import make_smtp_url, parse_smtp_url
 from .send import EmailSender
+
+LOCMEM = {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}
+DUMMY = {"BACKEND": "django.core.mail.backends.dummy.EmailBackend"}
+CUSTOM_SMTP = {"BACKEND": "temba.utils.email.backend.CustomSMTPBackend"}
 
 
 class EmailTest(TembaTest):
@@ -9,21 +20,132 @@ class EmailTest(TembaTest):
         branding = {"name": "Test", "emails": {"spam": "no-reply@acme.com"}}
         sender = EmailSender.from_email_type(branding, "spam")
         self.assertEqual(branding, sender.branding)
-        self.assertIsNone(sender.connection)  # use default
         self.assertEqual("no-reply@acme.com", sender.from_email)
+        self.assertIsNone(sender.smtp_url)  # will use default mailer
 
         # test email type not defined in branding
         sender = EmailSender.from_email_type(branding, "marketing")
         self.assertEqual(branding, sender.branding)
-        self.assertIsNone(sender.connection)
         self.assertEqual("Temba <server@temba.io>", sender.from_email)  # from settings
+        self.assertIsNone(sender.smtp_url)
 
         # test full SMTP url in branding
         branding = {"name": "Test", "emails": {"spam": "smtp://foo:sesame@acme.com/?tls=true&from=no-reply%40acme.com"}}
         sender = EmailSender.from_email_type(branding, "spam")
         self.assertEqual(branding, sender.branding)
-        self.assertIsNotNone(sender.connection)
         self.assertEqual("no-reply@acme.com", sender.from_email)
+        self.assertEqual("smtp://foo:sesame@acme.com/?tls=true&from=no-reply%40acme.com", sender.smtp_url)
+
+    def test_send(self):
+        # a sender without SMTP config sends via the default mailer
+        branding = {"name": "Test", "emails": {"notifications": "no-reply@acme.com"}}
+        with override_settings(MAILERS={"default": LOCMEM, "custom_smtp": DUMMY}):
+            EmailSender.from_email_type(branding, "notifications").send(
+                ["bob@acme.com"], "orgs/email/smtp_test", {}, "Hello"
+            )
+
+        self.assertEqual(1, len(mail.outbox))
+        self.assertEqual("Hello", mail.outbox[0].subject)
+        self.assertEqual("no-reply@acme.com", mail.outbox[0].from_email)
+        self.assertEqual(["bob@acme.com"], mail.outbox[0].to)
+        self.assertEqual("text/html", mail.outbox[0].alternatives[0].mimetype)
+
+        # a sender with SMTP config attaches it to the message and sends via the custom SMTP mailer
+        smtp_url = "smtp://foo:sesame@acme.com/?tls=true&from=no-reply%40acme.com"
+        branding = {"name": "Test", "emails": {"notifications": smtp_url}}
+        with override_settings(MAILERS={"default": DUMMY, "custom_smtp": LOCMEM}):
+            EmailSender.from_email_type(branding, "notifications").send(
+                ["bob@acme.com"], "orgs/email/smtp_test", {}, "Via custom SMTP"
+            )
+
+        self.assertEqual(2, len(mail.outbox))
+        self.assertEqual("Via custom SMTP", mail.outbox[1].subject)
+        self.assertEqual(smtp_url, mail.outbox[1].smtp_url)
+
+    def test_custom_smtp_backend(self):
+        def compose(subject: str) -> EmailMultiAlternatives:
+            message = EmailMultiAlternatives(subject, "hi", "no-reply@acme.com", ["bob@acme.com"])
+            message.attach_alternative("<p>hi</p>", "text/html")
+            return message
+
+        with override_settings(MAILERS={"default": LOCMEM, "custom_smtp": CUSTOM_SMTP}):
+            backend = mailers["custom_smtp"]
+
+            # messages are sent using the SMTP configuration attached to them
+            message = compose("Hello")
+            message.from_email = "Acme <no-reply@acme.com>"
+            message.bcc = ["sue@acme.com"]
+            message.smtp_url = "smtp://jim%40acme.com:sesame@mail.acme.com:587/?tls=true"
+
+            with patch("smtplib.SMTP") as mock_smtp:
+                self.assertEqual(1, backend.send_messages([message]))
+
+                self.assertEqual(("mail.acme.com", 587), mock_smtp.call_args.args)
+
+                conn = mock_smtp.return_value.__enter__.return_value
+                conn.starttls.assert_called_once()
+                conn.login.assert_called_once_with("jim@acme.com", "sesame")
+
+                sent = conn.send_message.call_args.args[0]
+                self.assertEqual("Hello", sent["Subject"])
+                self.assertEqual("Acme <no-reply@acme.com>", sent["From"])
+                self.assertEqual("bob@acme.com", sent["To"])
+
+                # the envelope is passed explicitly so that bcc recipients are included
+                self.assertEqual("no-reply@acme.com", conn.send_message.call_args.kwargs["from_addr"])
+                self.assertEqual(["bob@acme.com", "sue@acme.com"], conn.send_message.call_args.kwargs["to_addrs"])
+
+            # SMTP configuration without TLS or credentials
+            message = compose("Hello")
+            message.smtp_url = "smtp://mail.acme.com:25/"
+
+            with patch("smtplib.SMTP") as mock_smtp:
+                self.assertEqual(1, backend.send_messages([message]))
+
+                conn = mock_smtp.return_value.__enter__.return_value
+                conn.starttls.assert_not_called()
+                conn.login.assert_not_called()
+                conn.send_message.assert_called_once()
+
+            # errors from the server are not swallowed
+            message = compose("Hello")
+            message.smtp_url = "smtp://jim:sesame@mail.acme.com:587/?tls=true"
+
+            with patch("smtplib.SMTP") as mock_smtp:
+                mock_smtp.return_value.__enter__.return_value.login.side_effect = smtplib.SMTPAuthenticationError(
+                    535, "nope"
+                )
+
+                with self.assertRaises(smtplib.SMTPAuthenticationError):
+                    backend.send_messages([message])
+
+            # messages without attached SMTP configuration - or with a URL that has no host - can't be sent, and a
+            # bad message fails the batch before anything is sent
+            message = compose("Hello")
+            message.smtp_url = "smtp://mail.acme.com:25/"
+
+            with patch("smtplib.SMTP") as mock_smtp:
+                with self.assertRaises(ValueError):
+                    backend.send_messages([message, compose("Hello")])
+
+                bad = compose("Hello")
+                bad.smtp_url = "smtp://?from=no-reply%40acme.com"
+                with self.assertRaises(ValueError):
+                    backend.send_messages([bad])
+
+                mock_smtp.assert_not_called()
+
+            # messages without recipients are skipped rather than sent
+            message = compose("Hello")
+            message.to = []
+            message.smtp_url = "smtp://mail.acme.com:25/"
+
+            with patch("smtplib.SMTP") as mock_smtp:
+                self.assertEqual(0, backend.send_messages([message]))
+
+                mock_smtp.assert_not_called()
+
+        self.assertEqual(0, len(mail.outbox))  # nothing sent via the default mailer
 
     def test_make_smtp_url(self):
         self.assertEqual(
@@ -41,6 +163,10 @@ class EmailTest(TembaTest):
         self.assertEqual(
             ("gmail.com", 25, "foo", "sesame", None, False),
             parse_smtp_url("smtp://foo:sesame@gmail.com/?tls=false"),
+        )
+        self.assertEqual(
+            ("gmail.com", 25, "foo", None, None, False),
+            parse_smtp_url("smtp://foo@gmail.com/"),  # username but no password
         )
         self.assertEqual(
             ("gmail.com", 25, "foo", "sesame", None, True),
