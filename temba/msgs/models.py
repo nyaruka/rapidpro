@@ -1028,6 +1028,9 @@ class MsgFolder(Enum):
                 return actual in expected
             elif op == "isnull":
                 return (actual is None) == expected
+
+            assert op == "", f"unsupported lookup: {lookup}"
+
             return actual == expected
 
         for folder in cls:
