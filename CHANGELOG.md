@@ -1,3 +1,8 @@
+v26.3.57 (2026-08-25)
+-------------------------
+ * Route custom prefetch querysets to the same database as their parent queryset in the API and exports
+ * Use shared pagination and search length mixin for the campaigns list endpoint
+
 v26.3.56 (2026-08-25)
 -------------------------
  * Simplify signup views
