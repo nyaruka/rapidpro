@@ -842,6 +842,7 @@ class LabelCRUDL(SmartCRUDL):
         form_class = LabelForm
         success_url = "uuid@msgs.msg_filter"
         title = _("Update Label")
+        submit_button_name = _("Save")
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()

@@ -67,6 +67,8 @@ class BaseCreateModal(ComponentFormMixin, ModalFormMixin, LimitAwareMixin, OrgPe
     Base create modal view
     """
 
+    submit_button_name = _("Create")
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["org"] = self.request.org
@@ -85,6 +87,7 @@ class BaseUpdateView(OrgObjPermsMixin, SmartUpdateView):
 
     slug_url_kwarg = "uuid"
     model_org_lookup = "org"
+    submit_button_name = _("Save")
 
     def derive_queryset(self, **kwargs):
         qs = super().derive_queryset(**kwargs).filter(**{self.model_org_lookup: self.request.org})
@@ -102,6 +105,8 @@ class BaseUpdateModal(ComponentFormMixin, ModalFormMixin, BaseUpdateView):
     """
     Base update modal view
     """
+
+    submit_button_name = _("Save")
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-24 22:47+0000\n"
+"POT-Creation-Date: 2026-08-25 19:35+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -1954,6 +1954,9 @@ msgid "The API token for your integration as provided by Zenvia"
 msgstr ""
 
 msgid "Invalid token. Please check your Zenvia account settings."
+msgstr ""
+
+msgid "Submit"
 msgstr ""
 
 msgid "This channel is already connected in this workspace."
@@ -3914,9 +3917,6 @@ msgid "The unique identifier for this object"
 msgstr ""
 
 msgid "and"
-msgstr ""
-
-msgid "Submit"
 msgstr ""
 
 msgid "Confirm Access"

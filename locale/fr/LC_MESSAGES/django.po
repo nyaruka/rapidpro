@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-24 22:47+0000\n"
+"POT-Creation-Date: 2026-08-25 19:35+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -1969,6 +1969,9 @@ msgstr "Le jeton API pour votre intégration tel que fourni par Zenvia."
 
 msgid "Invalid token. Please check your Zenvia account settings."
 msgstr "Jeton invalide. Veuillez vérifier les paramètres de votre compte Zenvia."
+
+msgid "Submit"
+msgstr "Envoyer"
 
 msgid "This channel is already connected in this workspace."
 msgstr "Ce canal est déjà connecté dans cet espace de travail."
@@ -3941,9 +3944,6 @@ msgstr "L'identifiant unique pour cet objet"
 
 msgid "and"
 msgstr "et"
-
-msgid "Submit"
-msgstr "Envoyer"
 
 msgid "Confirm Access"
 msgstr "Confirmer l'accès"

@@ -193,6 +193,7 @@ class OrgCRUDL(SmartCRUDL):
 
         form_class = Form
         success_url = "id@staff.org_read"
+        submit_button_name = _("Save")
 
         def derive_title(self):
             return None
@@ -318,6 +319,7 @@ class UserCRUDL(SmartCRUDL):
         form_class = Form
         success_message = _("User updated successfully.")
         title = _("Update User")
+        submit_button_name = _("Save")
 
         def post(self, request, *args, **kwargs):
             obj = self.get_object()

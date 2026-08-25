@@ -690,6 +690,7 @@ class TicketCRUDL(SmartCRUDL):
         fields = ("topic",)
         slug_url_kwarg = "uuid"
         success_url = "hide"
+        submit_button_name = _("Save")
 
     class Note(ModalFormMixin, ComponentFormMixin, OrgObjPermsMixin, SmartUpdateView):
         """
@@ -712,6 +713,7 @@ class TicketCRUDL(SmartCRUDL):
         fields = ("note",)
         success_url = "hide"
         slug_url_kwarg = "uuid"
+        submit_button_name = _("Save")
 
         def form_valid(self, form):
             self.get_object().add_note(self.request.user, note=form.cleaned_data["note"])

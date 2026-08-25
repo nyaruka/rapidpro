@@ -272,6 +272,7 @@ class TriggerCRUDL(SmartCRUDL):
         trigger_type = None
         permission = "triggers.trigger_create"
         success_url = "@triggers.trigger_list"
+        submit_button_name = _("Create")
 
         @property
         def type(self):
@@ -360,6 +361,7 @@ class TriggerCRUDL(SmartCRUDL):
 
     class Update(ModalFormMixin, ComponentFormMixin, OrgObjPermsMixin, SmartUpdateView):
         slug_url_kwarg = "uuid"
+        submit_button_name = _("Save")
 
         def get_form_class(self):
             return self.object.type.form

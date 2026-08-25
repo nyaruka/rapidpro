@@ -182,6 +182,7 @@ class CampaignCRUDL(SmartCRUDL):
         fields = ("name", "group")
         form_class = CampaignForm
         success_url = "uuid@campaigns.campaign_read"
+        submit_button_name = _("Create")
 
         def pre_save(self, obj):
             obj = super().pre_save(obj)
@@ -766,6 +767,7 @@ class CampaignEventCRUDL(SmartCRUDL):
         )
         form_class = CampaignEventForm
         template_name = "campaigns/campaignevent_update.html"
+        submit_button_name = _("Create")
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)

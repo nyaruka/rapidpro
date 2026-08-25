@@ -238,6 +238,7 @@ class UserCRUDL(SmartCRUDL):
 
         form_class = Form
         require_feature = Org.FEATURE_USERS
+        submit_button_name = _("Save")
 
         def get_object_org(self):
             return self.request.org
@@ -347,6 +348,7 @@ class UserCRUDL(SmartCRUDL):
         form_class = Form
         success_url = "@orgs.user_edit"
         success_message = _("Your profile has been updated successfully.")
+        submit_button_name = _("Save")
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
@@ -921,6 +923,7 @@ class OrgCRUDL(SmartCRUDL):
 
         form_class = Form
         success_url = "@orgs.org_list"
+        submit_button_name = _("Save")
 
         def get_object_org(self):
             return self.request.org
@@ -997,6 +1000,7 @@ class OrgCRUDL(SmartCRUDL):
 
         form_class = Form
         require_feature = (Org.FEATURE_NEW_ORGS, Org.FEATURE_CHILD_ORGS)
+        submit_button_name = _("Create")
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
@@ -1128,6 +1132,7 @@ class OrgCRUDL(SmartCRUDL):
         form_class = Form
         fields = ("organization",)
         title = _("Select your Workspace")
+        submit_button_name = _("Submit")
 
         def pre_process(self, request, *args, **kwargs):
             user = self.request.user
@@ -1503,6 +1508,7 @@ class OrgCRUDL(SmartCRUDL):
 
         success_url = "@orgs.org_languages"
         form_class = LanguageForm
+        submit_button_name = _("Save")
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
