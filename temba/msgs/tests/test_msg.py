@@ -21,6 +21,34 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         self.just_joe = self.create_group("Just Joe", [self.joe])
         self.joe_and_frank = self.create_group("Joe and Frank", [self.joe, self.frank])
 
+    def test_derive_folder(self):
+        flow = self.create_flow("Test")
+
+        def assert_folder(msg, expected):
+            self.assertEqual(expected, msg.derive_folder(), f"folder mismatch for msg #{msg.id}")
+
+        assert_folder(self.create_incoming_msg(self.joe, "Hi"), Msg.FOLDER_INBOX)
+        assert_folder(self.create_incoming_msg(self.joe, "Hi", flow=flow), Msg.FOLDER_HANDLED)
+        assert_folder(self.create_incoming_msg(self.joe, "Hi", visibility=Msg.VISIBILITY_ARCHIVED), Msg.FOLDER_ARCHIVED)
+        assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=Msg.STATUS_QUEUED), Msg.FOLDER_OUTBOX)
+        assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=Msg.STATUS_SENT), Msg.FOLDER_SENT)
+        assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=Msg.STATUS_FAILED), Msg.FOLDER_FAILED)
+
+        # incoming messages which haven't been handled yet are pending, whatever their visibility
+        assert_folder(self.create_incoming_msg(self.joe, "Hi", status=Msg.STATUS_PENDING), Msg.FOLDER_PENDING)
+        assert_folder(
+            self.create_incoming_msg(self.joe, "Hi", status=Msg.STATUS_PENDING, visibility=Msg.VISIBILITY_ARCHIVED),
+            Msg.FOLDER_PENDING,
+        )
+
+        # being deleted takes precedence over everything else
+        for visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER):
+            assert_folder(self.create_incoming_msg(self.joe, "Hi", visibility=visibility), Msg.FOLDER_DELETED)
+            assert_folder(
+                self.create_incoming_msg(self.joe, "Hi", status=Msg.STATUS_PENDING, visibility=visibility),
+                Msg.FOLDER_DELETED,
+            )
+
     def test_as_archive_json(self):
         flow = self.create_flow("Color Flow")
         msg1 = self.create_incoming_msg(self.joe, "i'm having a problem", flow=flow)
