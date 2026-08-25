@@ -1522,6 +1522,14 @@
   <source>Flow</source>
   <target>Fluxo</target>
 </trans-unit>
+<trans-unit id="s125a86b2f45bbb25">
+  <source><x id="0" equiv-text="${formatCount(total)}"/> items</source>
+  <target><x id="0" equiv-text="${formatCount(total)}"/> itens</target>
+</trans-unit>
+<trans-unit id="sd94e4de48e8973cb">
+  <source><x id="0" equiv-text="${formatCount(total)}"/> messages</source>
+  <target><x id="0" equiv-text="${formatCount(total)}"/> mensagens</target>
+</trans-unit>
 </body>
 </file>
 </xliff>
