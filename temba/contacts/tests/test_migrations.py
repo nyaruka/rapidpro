@@ -1,7 +1,11 @@
 from datetime import datetime, timedelta, timezone as tzone
 
+from django.db import connection
+from django.utils import timezone
+
 from temba.channels.models import ChannelEvent
 from temba.tests import MigrationTest
+from temba.utils.uuid import uuid7
 
 
 class FixBadLastSeenOnsTest(MigrationTest):
@@ -9,13 +13,41 @@ class FixBadLastSeenOnsTest(MigrationTest):
     migrate_from = "0214_alter_contactimport_uuid"
     migrate_to = "0215_fix_bad_last_seen_ons"
 
+    def create_msg(self, contact, text: str):
+        """
+        Creates an incoming message and returns its created_on. Rolling back to migrate_from also unapplies the msgs
+        migrations which follow it, so neither the live model (it has columns which don't exist at this point) nor the
+        historical one (at this project state it has no relation fields at all) can be used here.
+        """
+
+        now = timezone.now()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """INSERT INTO msgs_msg (uuid, org_id, contact_id, contact_urn_id, channel_id, text, created_on,
+                   modified_on, msg_type, direction, status, visibility, is_android, msg_count, error_count)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'T', 'I', 'H', 'V', FALSE, 1, 0)""",
+                [
+                    uuid7(now),
+                    contact.org_id,
+                    contact.id,
+                    contact.urns.first().id,
+                    self.channel.id,
+                    text,
+                    now,
+                    now,
+                ],
+            )
+
+        return now
+
     def setUpBeforeMigration(self, apps):
         zero_date = datetime(1, 1, 1, 0, 0, tzinfo=tzone.utc)
         good_date = datetime(2025, 6, 15, 12, 0, tzinfo=tzone.utc)
 
         # contact with bad last_seen_on and a message
         self.contact1 = self.create_contact("Bob", urns=["tel:+593979000001"])
-        self.msg1 = self.create_incoming_msg(self.contact1, "Hello")
+        self.msg1_on = self.create_msg(self.contact1, "Hello")
         self.contact1.last_seen_on = zero_date
         self.contact1.save(update_fields=["last_seen_on"])
 
@@ -31,14 +63,14 @@ class FixBadLastSeenOnsTest(MigrationTest):
 
         # contact with bad last_seen_on, message and event - should pick newest
         self.contact4 = self.create_contact("Eve", urns=["tel:+593979000004"])
-        self.msg4 = self.create_incoming_msg(self.contact4, "Hi")
+        self.msg4_on = self.create_msg(self.contact4, "Hi")
         self.evt4 = self.create_channel_event(
             self.channel,
             "tel:+593979000004",
             ChannelEvent.TYPE_CALL_IN_MISSED,
         )
         # set event's created_on to be later than message's created_on
-        self.evt4.created_on = self.msg4.created_on + timedelta(hours=1)
+        self.evt4.created_on = self.msg4_on + timedelta(hours=1)
         self.evt4.save(update_fields=["created_on"])
         self.contact4.last_seen_on = zero_date
         self.contact4.save(update_fields=["last_seen_on"])
@@ -47,7 +79,7 @@ class FixBadLastSeenOnsTest(MigrationTest):
 
     def test_migration(self):
         self.contact1.refresh_from_db()
-        self.assertEqual(self.msg1.created_on, self.contact1.last_seen_on)
+        self.assertEqual(self.msg1_on, self.contact1.last_seen_on)
         self.assertGreater(self.contact1.modified_on, self.start)
 
         # contact with no messages/events falls back to modified_on
