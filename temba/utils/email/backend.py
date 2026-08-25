@@ -1,6 +1,8 @@
 import email.policy
 import smtplib
 import ssl
+from email.utils import getaddresses
+from functools import cache
 
 from django.core.mail import DNS_NAME
 from django.core.mail.backends.base import BaseEmailBackend
@@ -8,6 +10,12 @@ from django.core.mail.backends.base import BaseEmailBackend
 from .conf import parse_smtp_url
 
 DYNAMIC_MAILER_ALIAS = "dynamic"
+
+
+@cache
+def get_ssl_context():
+    # loads the system CA bundle so worth caching, and MAILERS constructs a new backend instance per send
+    return ssl.create_default_context()
 
 
 class DynamicEmailBackend(BaseEmailBackend):
@@ -21,22 +29,33 @@ class DynamicEmailBackend(BaseEmailBackend):
         self.timeout = timeout
 
     def send_messages(self, email_messages) -> int:
-        num_sent = 0
-
+        # parse configs up front so that a bad message can't abort a batch part way through sending
+        to_send = []
         for message in email_messages:
-            smtp_url = getattr(message, "smtp_url", None)
-            if not smtp_url:
+            host, port, username, password, _, tls = parse_smtp_url(getattr(message, "smtp_url", None))
+            if not host:
                 raise ValueError("Messages sent with the dynamic mailer require an attached SMTP URL.")
+            to_send.append((message, host, port, username, password, tls))
 
-            host, port, username, password, _, tls = parse_smtp_url(smtp_url)
+        num_sent = 0
+        for message, host, port, username, password, tls in to_send:
+            recipients = [a for _, a in getaddresses(message.recipients()) if a]
+            if not recipients:
+                continue
 
             with smtplib.SMTP(host, port, local_hostname=DNS_NAME.get_fqdn(), timeout=self.timeout) as conn:
                 if tls:
-                    conn.starttls(context=ssl.create_default_context())
+                    conn.starttls(context=get_ssl_context())
                 if username and password:
                     conn.login(username, password)
 
-                conn.send_message(message.message(policy=email.policy.SMTP))
+                # pass the envelope explicitly as smtplib would otherwise derive it from the message headers which
+                # never include bcc recipients
+                conn.send_message(
+                    message.message(policy=email.policy.SMTP),
+                    from_addr=getaddresses([message.from_email])[0][1],
+                    to_addrs=recipients,
+                )
                 num_sent += 1
 
         return num_sent

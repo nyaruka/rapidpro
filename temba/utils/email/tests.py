@@ -73,6 +73,8 @@ class EmailTest(TembaTest):
 
             # messages are sent using the SMTP configuration attached to them
             message = compose("Hello")
+            message.from_email = "Acme <no-reply@acme.com>"
+            message.bcc = ["sue@acme.com"]
             message.smtp_url = "smtp://jim%40acme.com:sesame@mail.acme.com:587/?tls=true"
 
             with patch("smtplib.SMTP") as mock_smtp:
@@ -86,8 +88,12 @@ class EmailTest(TembaTest):
 
                 sent = conn.send_message.call_args.args[0]
                 self.assertEqual("Hello", sent["Subject"])
-                self.assertEqual("no-reply@acme.com", sent["From"])
+                self.assertEqual("Acme <no-reply@acme.com>", sent["From"])
                 self.assertEqual("bob@acme.com", sent["To"])
+
+                # the envelope is passed explicitly so that bcc recipients are included
+                self.assertEqual("no-reply@acme.com", conn.send_message.call_args.kwargs["from_addr"])
+                self.assertEqual(["bob@acme.com", "sue@acme.com"], conn.send_message.call_args.kwargs["to_addrs"])
 
             # SMTP configuration without TLS or credentials
             message = compose("Hello")
@@ -113,9 +119,31 @@ class EmailTest(TembaTest):
                 with self.assertRaises(smtplib.SMTPAuthenticationError):
                     backend.send_messages([message])
 
-            # messages without attached SMTP configuration can't be sent
-            with self.assertRaises(ValueError):
-                backend.send_messages([compose("Hello")])
+            # messages without attached SMTP configuration - or with a URL that has no host - can't be sent, and a
+            # bad message fails the batch before anything is sent
+            message = compose("Hello")
+            message.smtp_url = "smtp://mail.acme.com:25/"
+
+            with patch("smtplib.SMTP") as mock_smtp:
+                with self.assertRaises(ValueError):
+                    backend.send_messages([message, compose("Hello")])
+
+                bad = compose("Hello")
+                bad.smtp_url = "smtp://?from=no-reply%40acme.com"
+                with self.assertRaises(ValueError):
+                    backend.send_messages([bad])
+
+                mock_smtp.assert_not_called()
+
+            # messages without recipients are skipped rather than sent
+            message = compose("Hello")
+            message.to = []
+            message.smtp_url = "smtp://mail.acme.com:25/"
+
+            with patch("smtplib.SMTP") as mock_smtp:
+                self.assertEqual(0, backend.send_messages([message]))
+
+                mock_smtp.assert_not_called()
 
         self.assertEqual(0, len(mail.outbox))  # nothing sent via the default mailer
 
@@ -135,6 +163,10 @@ class EmailTest(TembaTest):
         self.assertEqual(
             ("gmail.com", 25, "foo", "sesame", None, False),
             parse_smtp_url("smtp://foo:sesame@gmail.com/?tls=false"),
+        )
+        self.assertEqual(
+            ("gmail.com", 25, "foo", None, None, False),
+            parse_smtp_url("smtp://foo@gmail.com/"),  # username but no password
         )
         self.assertEqual(
             ("gmail.com", 25, "foo", "sesame", None, True),

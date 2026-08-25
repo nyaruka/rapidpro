@@ -164,6 +164,7 @@ MAILERS = {
     },
     "dynamic": {
         "BACKEND": "temba.utils.email.backend.DynamicEmailBackend",
+        "OPTIONS": {"timeout": 10},
     },
 }
 
