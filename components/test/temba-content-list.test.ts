@@ -970,6 +970,28 @@ describe('temba-content-list', () => {
     await assertScreenshot('content-list/messages', getClip(list));
   });
 
+  it('renders the messages list pager in cursor mode (screenshot)', async () => {
+    // The message list is cursor-paginated, so its pager reports how many
+    // messages the folder holds rather than a "N-M of Total" position - a
+    // cursor slice has no ordinal position to report. The fixture above is
+    // page-shaped (a count with no nav URLs), so it can't cover this.
+    await loadStore();
+    const list = (await getComponent(
+      'temba-msg-list',
+      { endpoint: '/test-assets/content-list/messages-cursor.json' },
+      '',
+      1100
+    )) as MsgList;
+    await new Promise<void>((resolve) => {
+      list.addEventListener(CustomEventType.FetchComplete, () => resolve(), {
+        once: true
+      });
+    });
+    await list.updateComplete;
+    expect((list as any).cursorMode).to.equal(true);
+    await assertScreenshot('content-list/messages-cursor', getClip(list));
+  });
+
   it('renders attachment thumbnails immediately after the message text', async () => {
     await loadStore();
     const list = (await getComponent(
