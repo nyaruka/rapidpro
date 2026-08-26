@@ -827,6 +827,72 @@ describe('flow/dependencies resolveDependencyNames', () => {
     expect(resolved.nodes[0].router.result.name).to.equal('Result label');
   });
 
+  it('rewrites the field a split reads from its ui config', () => {
+    const definition = withNodes([]);
+    definition._ui.nodes = {
+      'node-1': {
+        type: 'split_by_contact_field',
+        position: { left: 0, top: 0 },
+        config: { operand: { id: 'age', name: 'Old age label', type: 'field' } }
+      }
+    };
+
+    const resolved: any = resolveDependencyNames(definition, [
+      { type: 'field', key: 'age', name: 'Age' }
+    ]);
+
+    expect(resolved._ui.nodes['node-1'].config.operand.name).to.equal('Age');
+  });
+
+  it('fills in the name of a split operand saved without one', () => {
+    const definition = withNodes([]);
+    definition._ui.nodes = {
+      'node-1': {
+        type: 'split_by_contact_field',
+        position: { left: 0, top: 0 },
+        // flows saved by older editors embed no name at all
+        config: { operand: { id: 'age', type: 'field' } }
+      }
+    };
+
+    const resolved: any = resolveDependencyNames(definition, [
+      { type: 'field', key: 'age', name: 'Age' }
+    ]);
+
+    expect(resolved._ui.nodes['node-1'].config.operand.name).to.equal('Age');
+  });
+
+  it('leaves operands which are not fields alone', () => {
+    const definition = withNodes([]);
+    definition._ui.nodes = {
+      // a system property whose id collides with a field key
+      'node-1': {
+        type: 'split_by_contact_field',
+        position: { left: 0, top: 0 },
+        config: {
+          operand: { id: 'age', name: 'Age property', type: 'property' }
+        }
+      },
+      // a run result, which isn't a workspace asset
+      'node-2': {
+        type: 'split_by_run_result',
+        position: { left: 0, top: 0 },
+        config: { operand: { id: 'age', name: 'Age result', type: 'result' } }
+      }
+    };
+
+    const resolved: any = resolveDependencyNames(definition, [
+      { type: 'field', key: 'age', name: 'Age' }
+    ]);
+
+    expect(resolved._ui.nodes['node-1'].config.operand.name).to.equal(
+      'Age property'
+    );
+    expect(resolved._ui.nodes['node-2'].config.operand.name).to.equal(
+      'Age result'
+    );
+  });
+
   it('returns the definition untouched when nothing is registered', () => {
     const definition = withNodes([]);
     expect(resolveDependencyNames(definition, [])).to.equal(definition);

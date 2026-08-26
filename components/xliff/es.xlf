@@ -479,7 +479,7 @@
   <target>Se requiere un campo</target>
 </trans-unit>
 <trans-unit id="sa6b487784a771fb2">
-  <source>Split by <x id="0" equiv-text="${nodeUI.config.operand.name}"/></source>
+  <source>Split by <x id="0" equiv-text="${name}"/></source>
   <target>Dividir por <x id="0" equiv-text="${nodeUI.config.operand.name}"/></target>
 </trans-unit>
 <trans-unit id="sa6c2a3309400062e">

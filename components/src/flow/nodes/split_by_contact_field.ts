@@ -29,6 +29,17 @@ export const CONTACT_PROPERTIES = {
   channel: { id: 'channel', name: 'Channel', type: 'property' }
 };
 
+// Helper to get the display name for a saved operand. Field names are refreshed
+// from the workspace when the flow is opened, but a field that has since been
+// deleted - or a flow saved before names were embedded - leaves us without one,
+// so fall back to the key we split on rather than rendering nothing.
+const getOperandName = (operand: any): string =>
+  operand?.name ||
+  operand?.key ||
+  operand?.id ||
+  operand?.value ||
+  CONTACT_PROPERTIES.name.name;
+
 // Helper to get operand for the selected field
 const getOperandForField = (field: any): string => {
   // For URN schemes, split on the URN path (the actual ID value like Facebook ID)
@@ -107,6 +118,7 @@ export const split_by_contact_field: NodeConfig = {
     } else {
       if (!field.value) field.value = field.id;
     }
+    if (!field.name) field.name = getOperandName(field);
 
     // Extract rules from router cases using shared function
     const rules = casesToFormRules(node);
@@ -204,7 +216,8 @@ export const split_by_contact_field: NodeConfig = {
     return config;
   },
   renderTitle: (node: Node, nodeUI?: any) => {
-    return html`<div>${msg(str`Split by ${nodeUI.config.operand.name}`)}</div>`;
+    const name = getOperandName(nodeUI?.config?.operand);
+    return html`<div>${msg(str`Split by ${name}`)}</div>`;
   },
 
   // Localization support for categories
