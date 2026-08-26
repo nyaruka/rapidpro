@@ -4,9 +4,10 @@ browsers directly.
 
 These handle connection authentication and lifecycle: ``connect`` resolves a new connection's identity from the
 forwarded session cookie - accepting connections that don't resolve to a user as anonymous - and ``refresh``
-periodically re-validates authenticated connections. The connect result also attaches an authenticated user's identity
-to the connection's server-side ``meta``, so the proxies that authorize individual socket subscriptions (handled by
-another internal service) can act on that identity without re-reading the Django session.
+periodically re-validates authenticated connections. The ``subscribe`` and ``sub_refresh`` proxies then authorize
+individual socket subscriptions: most sockets against the live Django session, but webchat ``chat`` sockets by
+capability - the socket name embeds a secret chat-id, so possession of the name is the credential and anonymous
+visitors can subscribe to (only) their own chat.
 
 Unlike the rest of the internal API (``/api/internal/``), which is called by the editor running in the user's
 browser and so *must* be reachable from the public internet, every endpoint here is only ever called by the
@@ -30,6 +31,8 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 
+from temba.channels.models import Channel
+from temba.contacts.models import URN
 from temba.tickets.models import Ticket
 
 from ..support import APISessionAuthentication
@@ -102,10 +105,9 @@ class ConnectEndpoint(BaseEndpoint):
 
     Any other connection - no session at all, or a session without a current workspace - is accepted as *anonymous*:
     an empty-string user, no subscriptions, no identity meta, and no ``expire_at``, so the refresh proxy never fires
-    for it - there's no session state to re-validate at the connection level. Anonymous connections exist for sockets
-    that aren't authorized here - e.g. webchat visitors, whose chat subscriptions are authorized by the messaging
-    service that owns them via separate named proxies - and can't subscribe to anything through this API's own
-    default-deny subscription proxies.
+    for it - there's no session state to re-validate at the connection level. Anonymous connections exist for webchat
+    visitors: the subscribe proxy authorizes their ``chat`` sockets by capability - the socket name embeds a secret
+    chat-id - and denies them every session-based socket.
     """
 
     def post(self, request, *args, **kwargs):
@@ -144,9 +146,12 @@ class RefreshEndpoint(BaseEndpoint):
 class SubscriptionEndpoint(BaseEndpoint):
     """
     Base for the socket-subscription proxies (``subscribe`` and ``sub_refresh``). Both authorize a single
-    client-requested socket against the live Django session - ``request.user`` and ``request.org`` - and, when
-    allowed, record the subscription in a valkey index. The authorization deliberately reads the *current* workspace
-    rather than anything carried on the connection, so access that has been revoked since connect stops working here.
+    client-requested socket and, when allowed, record the subscription in a valkey index. Most sockets are authorized
+    against the live Django session - ``request.user`` and ``request.org`` - deliberately reading the *current*
+    workspace rather than anything carried on the connection, so access that has been revoked since connect stops
+    working here. The exception is the webchat ``chat`` socket, whose subscribers are anonymous visitors with no
+    session at all: its name embeds a secret chat-id, so it's authorized purely by capability - possession of the
+    name - against the database.
 
     We call these subscribable names "sockets" (matching the services that publish to them) rather than the realtime
     server's own term "channel", which is already taken by messaging channels - the ``channel`` fields in the proxy
@@ -162,34 +167,48 @@ class SubscriptionEndpoint(BaseEndpoint):
     # namespace, wrong number of segments, or a segment that isn't a canonical lowercase-dashed uuid - is denied before
     # any handler runs, so handlers never see a malformed value (the uuid columns they query would raise on one). Only
     # canonical uuids are accepted because a socket name is an exact string key: events are published to the canonical
-    # form, so a subscription to any other encoding could never receive anything anyway.
+    # form, so a subscription to any other encoding could never receive anything anyway. The third element says whether
+    # the route is session-based: those handlers only run for an authenticated user with a current workspace and may
+    # rely on request.user / request.org - the chat route is capability-based and never touches the session.
     UUID_PATTERN = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    CHAT_ID_PATTERN = r"[a-zA-Z0-9]{24}"  # the secure-random chat-ids courier generates for webchat URN paths
     SOCKET_ROUTES = (
         (
             re.compile(rf"notifications:(?P<org_uuid>{UUID_PATTERN}):(?P<user_uuid>{UUID_PATTERN})"),
             "_notifications_allowed",
+            True,
         ),
-        (re.compile(rf"org:(?P<org_uuid>{UUID_PATTERN})"), "_org_allowed"),
-        (re.compile(rf"history:(?P<contact_uuid>{UUID_PATTERN})"), "_contact_history_allowed"),
+        (re.compile(rf"org:(?P<org_uuid>{UUID_PATTERN})"), "_org_allowed", True),
+        (re.compile(rf"history:(?P<contact_uuid>{UUID_PATTERN})"), "_contact_history_allowed", True),
         (
             re.compile(rf"history:(?P<contact_uuid>{UUID_PATTERN}):(?P<ticket_uuid>{UUID_PATTERN})"),
             "_ticket_history_allowed",
+            True,
         ),
-        (re.compile(rf"flow:(?P<flow_uuid>{UUID_PATTERN})"), "_flow_allowed"),
+        (re.compile(rf"flow:(?P<flow_uuid>{UUID_PATTERN})"), "_flow_allowed", True),
+        (
+            re.compile(rf"chat:(?P<channel_uuid>{UUID_PATTERN}):(?P<chat_id>{CHAT_ID_PATTERN})"),
+            "_chat_allowed",
+            False,
+        ),
     )
 
     def is_allowed(self, request, socket: str) -> bool:
         """
-        Default-deny authorization of a client-requested socket for the current user's current workspace, routed by
-        matching the socket name against ``SOCKET_ROUTES`` - so adding a new socket type later is one route and one
-        handler. Callers must have already established an authenticated user with a current workspace.
+        Default-deny authorization of a client-requested socket, routed by matching the socket name against
+        ``SOCKET_ROUTES`` - so adding a new socket type later is one route and one handler. Session-based routes are
+        denied outright unless the request has an authenticated user with a current workspace, so their handlers are
+        never reached by an anonymous request.
         """
         if not isinstance(socket, str):  # malformed payload (e.g. a non-string socket) is just a denial, not a 500
             return False
 
-        for pattern, handler in self.SOCKET_ROUTES:
+        for pattern, handler, session_based in self.SOCKET_ROUTES:
             match = pattern.fullmatch(socket)  # unlike $ anchoring, fullmatch won't tolerate a trailing newline
             if match:
+                if session_based and (not request.user.is_authenticated or not request.org):
+                    return False
+
                 return getattr(self, handler)(request, **match.groupdict())
 
         return False
@@ -244,6 +263,21 @@ class SubscriptionEndpoint(BaseEndpoint):
 
         return request.org.flows.filter(uuid=flow_uuid, is_active=True).exists()
 
+    def _chat_allowed(self, request, channel_uuid: str, chat_id: str) -> bool:
+        """
+        ``chat:<channel-uuid>:<chat-id>`` - a webchat visitor's own chat on a webchat channel. Visitors are anonymous -
+        no session, no user - so authorization is capability-based: the chat-id is a secure-random token courier
+        generates when the chat starts and stores as the path of the contact's ``webchat:`` URN, so possession of it
+        *is* the credential. We allow the socket iff an active webchat channel with that uuid exists and a webchat URN
+        with that chat-id exists on that channel - and a URN always shares its channel's org, so this also scopes the
+        chat to the channel's own workspace.
+        """
+        channel = Channel.objects.filter(uuid=channel_uuid, channel_type="WCH", is_active=True).first()
+        if not channel:
+            return False
+
+        return channel.urns.filter(scheme=URN.WEBCHAT_SCHEME, path=chat_id).exists()
+
     def record_subscription(self, socket: str):
         """
         Mark a socket as having at least one active subscriber by (re)setting a per-socket presence key in valkey
@@ -263,19 +297,19 @@ class SubscriptionEndpoint(BaseEndpoint):
 class SubscribeEndpoint(SubscriptionEndpoint):
     """
     Subscribe proxy called by the realtime messaging server when a browser asks to subscribe to a socket. The request
-    body carries the requested socket name (in its ``channel`` field), which we authorize against the live session.
+    body carries the requested socket name (in its ``channel`` field), which we authorize per its route: most sockets
+    against the live session, chat sockets by capability.
 
-    If the user is authenticated, has a current workspace and may access the socket, we record the subscription and
-    return an ``expire_at`` so the realtime server schedules a sub_refresh. Anything else is refused with a forbidden
-    error, which Centrifugo surfaces to the browser as a failed subscribe without tearing down the whole connection -
-    including requests from anonymous connections, which can't subscribe to anything through this proxy (their chat
-    subscriptions are authorized elsewhere via separate named proxies).
+    If the request may access the socket, we record the subscription and return an ``expire_at`` so the realtime
+    server schedules a sub_refresh. Anything else is refused with a forbidden error, which Centrifugo surfaces to the
+    browser as a failed subscribe without tearing down the whole connection - including any session-based socket
+    requested by an anonymous connection, which may only subscribe to a chat socket whose secret chat-id it holds.
     """
 
     def post(self, request, *args, **kwargs):
         socket = request.data.get("channel", "")
 
-        if request.user.is_authenticated and request.org and self.is_allowed(request, socket):
+        if self.is_allowed(request, socket):
             self.record_subscription(socket)
             return Response({"result": {"expire_at": self.subscription_expire_at()}})
 
@@ -293,7 +327,7 @@ class SubRefreshEndpoint(SubscriptionEndpoint):
     def post(self, request, *args, **kwargs):
         socket = request.data.get("channel", "")
 
-        if request.user.is_authenticated and request.org and self.is_allowed(request, socket):
+        if self.is_allowed(request, socket):
             self.record_subscription(socket)
             return Response({"result": {"expire_at": self.subscription_expire_at()}})
 
