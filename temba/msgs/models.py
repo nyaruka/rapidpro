@@ -805,7 +805,8 @@ class Msg(models.Model):
         for msg in msgs:
             assert msg.direction == Msg.DIRECTION_IN, "only incoming messages can be archived"
 
-        mailroom.get_client().msg_archive(org, msgs)
+        if msgs:
+            mailroom.get_client().msg_archive(org, msgs)
 
     @classmethod
     def bulk_restore(cls, org, msgs: list):
@@ -816,7 +817,8 @@ class Msg(models.Model):
         for msg in msgs:
             assert msg.direction == Msg.DIRECTION_IN, "only incoming messages can be restored"
 
-        mailroom.get_client().msg_restore(org, msgs)
+        if msgs:
+            mailroom.get_client().msg_restore(org, msgs)
 
     @classmethod
     def bulk_soft_delete(cls, org, user, msgs: list):

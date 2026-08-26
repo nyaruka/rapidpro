@@ -214,6 +214,13 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(0, label.get_messages().count())  # do remove labels
         self.assertIsNotNone(label)
 
+        # an empty selection doesn't reach mailroom at all
+        Msg.bulk_archive(self.org, [])
+        Msg.bulk_restore(self.org, [])
+
+        self.assertEqual(1, len(mr_mocks.calls["msg_archive"]))
+        self.assertEqual(1, len(mr_mocks.calls["msg_restore"]))
+
         # can't archive outgoing messages
         msg2 = self.create_outgoing_msg(self.joe, "Outgoing")
 
