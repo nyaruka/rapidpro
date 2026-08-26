@@ -576,6 +576,50 @@ describe('store/AppState actions', () => {
       expect(state().flowInfo.dependencies[0].name).to.equal('Alice');
     });
 
+    it('fills in a missing name when no name has changed', async () => {
+      // the field is not renamed, so nothing in the dependency list changes -
+      // the split's operand still has no name and needs one filling in
+      setDependencyResolver(async () => [
+        { type: 'field', key: 'age', name: 'Age' }
+      ]);
+      mockRevision({
+        definition: definition({
+          nodes: [
+            {
+              uuid: 'node-1',
+              exits: [],
+              actions: [
+                {
+                  type: 'set_contact_field',
+                  uuid: 'action-1',
+                  field: { key: 'age', name: 'Age' },
+                  value: '10'
+                }
+              ]
+            }
+          ],
+          _ui: {
+            nodes: {
+              'node-1': {
+                position: { left: 0, top: 0 },
+                type: 'split_by_contact_field',
+                config: { operand: { id: 'age', type: 'field' } }
+              }
+            }
+          }
+        }),
+        info: info({
+          dependencies: [{ type: 'field', key: 'age', name: 'Age' }]
+        })
+      });
+
+      await state().fetchRevision(REVISION_URL);
+
+      expect(
+        (state().flowDefinition as any)._ui.nodes['node-1'].config.operand.name
+      ).to.equal('Age');
+    });
+
     it('resolves every referenced flow before exposing a revision', async () => {
       const flow1Uuid = '11111111-1111-4111-8111-111111111111';
       const flow2Uuid = '22222222-2222-4222-8222-222222222222';
