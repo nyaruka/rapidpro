@@ -652,6 +652,8 @@ class TestClient(MailroomClient):
 
     @_client_method
     def msg_delete(self, org, user, msgs):
+        delete_msgs(msgs)
+
         return {}
 
     @_client_method
@@ -918,6 +920,28 @@ def create_contact_locally(
     update_fields_locally(user, contact, fields)
     update_groups_locally(contact, group_uuids, add=True)
     return contact
+
+
+def delete_msgs(msgs):
+    """
+    Simulates mailroom soft deleting the given incoming messages - clearing their content and labels as well as
+    updating their visibility. Messages which aren't visible or archived are ignored. Note that unlike the visibility
+    changes below, mailroom doesn't bump modified_on here.
+    """
+
+    for msg in msgs:
+        if msg.direction != Msg.DIRECTION_IN or msg.visibility not in (
+            Msg.VISIBILITY_VISIBLE,
+            Msg.VISIBILITY_ARCHIVED,
+        ):
+            continue
+
+        msg.visibility = Msg.VISIBILITY_DELETED_BY_USER
+        msg.folder = msg.derive_folder()
+        msg.text = ""
+        msg.attachments = []
+        msg.save(update_fields=("visibility", "folder", "text", "attachments"))
+        msg.labels.clear()
 
 
 def update_msgs_visibility(msgs, from_visibility: str, to_visibility: str):

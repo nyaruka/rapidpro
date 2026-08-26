@@ -143,6 +143,11 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         msg2 = self.create_incoming_msg(self.frank, "ignore joe, he's a liar")
         out1 = self.create_outgoing_msg(self.frank, "hi")
 
+        label = self.create_label("Spam")
+        label.toggle_label([msg1, msg2], add=True)
+
+        self.assertEqual(2, label.get_visible_count())
+
         # can't soft delete outgoing messages
         with self.assertRaises(AssertionError):
             Msg.bulk_soft_delete(self.org, self.admin, [out1])
@@ -153,6 +158,16 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
 
         self.assertEqual([call(self.org, self.admin, [msg1, msg2])], mr_mocks.calls["msg_delete"])
+
+        # mailroom clears content and labels as well as updating visibility
+        msg1.refresh_from_db()
+        self.assertEqual(Msg.VISIBILITY_DELETED_BY_USER, msg1.visibility)
+        self.assertEqual(Msg.FOLDER_DELETED, msg1.folder)
+        self.assertEqual("", msg1.text)
+        self.assertEqual([], msg1.attachments)
+        self.assertEqual(set(), set(msg1.labels.all()))
+
+        self.assertEqual(0, label.get_visible_count())
 
     @patch("django.core.files.storage.default_storage.delete")
     def test_bulk_delete(self, mock_storage_delete):
