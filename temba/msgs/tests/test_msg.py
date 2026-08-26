@@ -155,6 +155,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         mock_storage_delete.assert_any_call("/attachments/1/a/b.jpg")
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
+        self.assertEqual(2, mock_storage_delete.call_count)  # invalid attachment not deleted from storage
 
         self.assertEqual([call(self.org, self.admin, [msg1, msg2])], mr_mocks.calls["msg_delete"])
 
@@ -189,6 +190,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         mock_storage_delete.assert_any_call("/attachments/1/a/b.jpg")
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
+        self.assertEqual(2, mock_storage_delete.call_count)  # invalid attachment not deleted from storage
 
     @mock_mailroom
     def test_archive_and_release(self, mr_mocks):
