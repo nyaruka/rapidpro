@@ -2,9 +2,10 @@
 Endpoints called by the realtime messaging server that fronts browser WebSockets - server-to-server, never by
 browsers directly.
 
-These handle connection authentication and lifecycle: ``connect`` authenticates a new connection from the forwarded
-session cookie, and ``refresh`` periodically re-validates it. The connect result also attaches the user's identity to
-the connection's server-side ``meta``, so the proxies that authorize individual socket subscriptions (handled by
+These handle connection authentication and lifecycle: ``connect`` resolves a new connection's identity from the
+forwarded session cookie - accepting connections that don't resolve to a user as anonymous - and ``refresh``
+periodically re-validates authenticated connections. The connect result also attaches an authenticated user's identity
+to the connection's server-side ``meta``, so the proxies that authorize individual socket subscriptions (handled by
 another internal service) can act on that identity without re-reading the Django session.
 
 Unlike the rest of the internal API (``/api/internal/``), which is called by the editor running in the user's
@@ -47,13 +48,6 @@ SUBSCRIPTION_WINDOW = 60
 # minutes once the last subscriber stops refreshing (there's no unsubscribe callback, so this TTL is the only GC).
 SUBSCRIPTION_TTL = 150
 
-# instruction returned when a request has no valid session, telling the realtime server to close the connection. The
-# realtime protocol takes reconnect semantics from the *band* a custom disconnect code falls in, not from the number
-# itself: 3500-3999 and 4500-4999 tell the client not to reconnect, and every other custom code tells it to retry. Both
-# cases we send this for are terminal - the page needs a fresh session, which only a reload can produce - so the code
-# has to sit in a no-reconnect band or a logged-out tab retries the handshake for as long as it stays open.
-UNAUTHORIZED_DISCONNECT = {"disconnect": {"code": 4501, "reason": "unauthorized"}}
-
 
 class WebSocketsSessionAuthentication(APISessionAuthentication):
     """
@@ -94,13 +88,9 @@ class BaseEndpoint(APIView):
 class ConnectEndpoint(BaseEndpoint):
     """
     Connection proxy called by the realtime messaging server when a browser opens a WebSocket. The browser connects
-    with no auth token; the realtime server forwards the browser's session cookie and we resolve the user.
+    with no auth token; the realtime server forwards the browser's session cookie (if any) and we resolve the user.
 
-    We currently require an authenticated user with a current workspace; if either is missing we return
-    ``UNAUTHORIZED_DISCONNECT`` so the realtime server closes the connection, and closes it terminally - the browser
-    can't fix a missing session by connecting again, so it shouldn't retry until the page is reloaded.
-
-    On success the result carries:
+    For a connection that resolves to an authenticated user with a current workspace, the result carries:
       * ``user`` - the user identifier (uuid);
       * ``channels`` - empty: there are no server-side subscriptions. The browser subscribes to every socket it wants
         - its own ``notifications:<org-uuid>:<user-uuid>`` socket, any contact/ticket ``history`` sockets, and any
@@ -109,15 +99,21 @@ class ConnectEndpoint(BaseEndpoint):
       * ``meta`` - the user's identity (uuids and ids) attached to the connection so the subscription-authorization
         proxies can act on it without re-reading the session; ``meta`` is server-side only and never sent to the browser;
       * ``expire_at`` - when the realtime server should next call the refresh proxy to re-validate the connection.
+
+    Any other connection - no session at all, or a session without a current workspace - is accepted as *anonymous*:
+    an empty-string user, no subscriptions, no identity meta, and no ``expire_at``, so the refresh proxy never fires
+    for it - there's no session state to re-validate at the connection level. Anonymous connections exist for sockets
+    that aren't authorized here - e.g. webchat visitors, whose chat subscriptions are authorized by the messaging
+    service that owns them via separate named proxies - and can't subscribe to anything through this API's own
+    default-deny subscription proxies.
     """
 
     def post(self, request, *args, **kwargs):
         user = request.user
 
-        # for now a connection requires an authenticated user with a current workspace. This could be reworked in
-        # future to also support anonymous connections - e.g. webchat - which have no Django user or workspace.
+        # a connection that doesn't resolve to an authenticated user with a current workspace is anonymous
         if not user.is_authenticated or not request.org:
-            return Response(UNAUTHORIZED_DISCONNECT)
+            return Response({"result": {"user": "", "channels": [], "meta": {}}})
 
         org = request.org
         meta = {"user_id": user.id, "user_uuid": str(user.uuid), "org_id": org.id, "org_uuid": str(org.uuid)}
@@ -129,10 +125,12 @@ class ConnectEndpoint(BaseEndpoint):
 
 class RefreshEndpoint(BaseEndpoint):
     """
-    Refresh proxy called periodically by the realtime messaging server before a connection's ``expire_at``. We re-check
-    that the connection is still valid - the user is still logged in and still has a current workspace, matching what
-    ``connect`` requires - and either extend it with a new ``expire_at`` or let it expire. This is how a logout, session
-    expiry, or losing access to the workspace eventually tears down the WebSocket.
+    Refresh proxy called periodically by the realtime messaging server before a connection's ``expire_at``. Only
+    authenticated connections get an ``expire_at`` from connect, so this is never called for anonymous connections. We
+    re-check that the connection is still valid - the user is still logged in and still has a current workspace,
+    matching what ``connect`` requires of an authenticated connection - and either extend it with a new ``expire_at``
+    or let it expire. This is how a logout, session expiry, or losing access to the workspace eventually tears down
+    the WebSocket.
     """
 
     def post(self, request, *args, **kwargs):
@@ -267,20 +265,17 @@ class SubscribeEndpoint(SubscriptionEndpoint):
     Subscribe proxy called by the realtime messaging server when a browser asks to subscribe to a socket. The request
     body carries the requested socket name (in its ``channel`` field), which we authorize against the live session.
 
-    An unauthenticated request is told to disconnect terminally (its connection should never have got this far, and
-    like connect there's nothing a retry could fix). Otherwise, if the
-    user has a current workspace and may access the socket, we record the subscription and return an ``expire_at`` so
-    the realtime server schedules a sub_refresh; anything else is refused with a forbidden error, which Centrifugo
-    surfaces to the browser as a failed subscribe without tearing down the whole connection.
+    If the user is authenticated, has a current workspace and may access the socket, we record the subscription and
+    return an ``expire_at`` so the realtime server schedules a sub_refresh. Anything else is refused with a forbidden
+    error, which Centrifugo surfaces to the browser as a failed subscribe without tearing down the whole connection -
+    including requests from anonymous connections, which can't subscribe to anything through this proxy (their chat
+    subscriptions are authorized elsewhere via separate named proxies).
     """
 
     def post(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return Response(UNAUTHORIZED_DISCONNECT)
-
         socket = request.data.get("channel", "")
 
-        if request.org and self.is_allowed(request, socket):
+        if request.user.is_authenticated and request.org and self.is_allowed(request, socket):
             self.record_subscription(socket)
             return Response({"result": {"expire_at": self.subscription_expire_at()}})
 

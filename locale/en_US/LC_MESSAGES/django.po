@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-25 19:35+0000\n"
+"POT-Creation-Date: 2026-08-26 19:38+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -1845,6 +1845,9 @@ msgid "The username for your Movile/Wavy account"
 msgstr ""
 
 msgid "The Authentication Token for your Movile/Wavy account"
+msgstr ""
+
+msgid "Chat with visitors on your website via an embedded chat widget."
 msgstr ""
 
 #, python-format
@@ -4999,6 +5002,21 @@ msgstr ""
 
 #, python-format
 msgid "To connect your Vonage Account you will need to provide us your API key and secret. Both values can be found on your <a target=\"vonage\" href=\"%(settings_url)s\">Vonage settings</a> page in the API Settings section."
+msgstr ""
+
+msgid "Visitors chat with this channel through a widget embedded on your website."
+msgstr ""
+
+msgid "Channel UUID"
+msgstr ""
+
+msgid "The embedded widget uses this UUID to identify this channel when connecting."
+msgstr ""
+
+msgid "Embed"
+msgstr ""
+
+msgid "Add a snippet like the following to your website to embed the chat widget (coming soon)."
 msgstr ""
 
 msgid "You can connect your WhatsApp number by clicking on it below."

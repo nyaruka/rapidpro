@@ -32,6 +32,12 @@ class EndpointsTest(APITestMixin, TembaTest):
         # connect attaches no server-side subscriptions - the browser subscribes to the sockets it wants itself
         self.assertEqual({"user": str(user.uuid), "channels": [], "meta": meta}, result)
 
+    def assertAnonymousConnect(self, response):
+        self.assertEqual(200, response.status_code)
+        # an anonymous connection has an empty user, no identity meta, and no expire_at - it never needs re-validating
+        # at the connection level, so the refresh proxy is never called for it
+        self.assertEqual({"result": {"user": "", "channels": [], "meta": {}}}, response.json())
+
     def test_connect(self):
         endpoint_url = reverse("api.websockets.connect")
 
@@ -66,20 +72,16 @@ class EndpointsTest(APITestMixin, TembaTest):
             },
         )
 
-        # a user with no current workspace can't connect for now - they're told to disconnect
+        # a user with no current workspace connects as anonymous
         self.login(self.admin)
         session = self.client.session
         del session["org_id"]
         session.save()
-        response = self.post("api.websockets.connect")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"disconnect": {"code": 4501, "reason": "unauthorized"}}, response.json())
+        self.assertAnonymousConnect(self.post("api.websockets.connect"))
 
-        # an unauthenticated request is told to disconnect
+        # as does a request with no session at all - e.g. a webchat visitor
         self.client.logout()
-        response = self.post("api.websockets.connect")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"disconnect": {"code": 4501, "reason": "unauthorized"}}, response.json())
+        self.assertAnonymousConnect(self.post("api.websockets.connect"))
 
         # because it's a server-to-server POST with no CSRF token, it still works when CSRF checks are enforced
         csrf_client = self.client_class(enforce_csrf_checks=True)
@@ -179,11 +181,10 @@ class EndpointsTest(APITestMixin, TembaTest):
         session.save()
         assertForbidden(f"history:{contact.uuid}")
 
-        # an unauthenticated request is told to disconnect
+        # an unauthenticated request - e.g. from an anonymous connection - is forbidden: anonymous connections can't
+        # subscribe to anything through this proxy
         self.client.logout()
-        response = subscribe(f"history:{contact.uuid}")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"disconnect": {"code": 4501, "reason": "unauthorized"}}, response.json())
+        assertForbidden(f"history:{contact.uuid}")
 
     def test_subscribe_notifications(self):
         def subscribe(socket, client="conn-1"):
@@ -430,11 +431,9 @@ class EndpointsTest(APITestMixin, TembaTest):
         # a missing secret is rejected
         self.assertEqual(403, self.post("api.websockets.connect", secret=None).status_code)
 
-        # a correct secret doesn't bypass session auth - a browser with no session is still told to disconnect
+        # a correct secret doesn't grant an identity - a browser with no session still only connects as anonymous
         self.client.logout()
-        response = self.post("api.websockets.connect")
-        self.assertEqual(200, response.status_code)
-        self.assertEqual({"disconnect": {"code": 4501, "reason": "unauthorized"}}, response.json())
+        self.assertAnonymousConnect(self.post("api.websockets.connect"))
 
     @override_settings(WEBSOCKETS_AUTH_SECRET=None)
     def test_secret_required(self):
