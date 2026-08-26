@@ -26,6 +26,7 @@ from temba.utils import json
 from temba.utils.fields import NameValidator
 
 from ..models import BulkActionFailure, Resthook, ResthookSubscriber, WebHookEvent
+from ..support import record_deprecated
 from ..validators import UniqueForOrgValidator
 from . import fields
 
@@ -995,6 +996,9 @@ class ContactBulkActionSerializer(WriteSerializer):
         elif action == self.INTERRUPT:
             Contact.bulk_interrupt(user, contacts)
         elif action == self.ARCHIVE_MESSAGES or action == self.ARCHIVE:
+            # tracked separately for each action name so we can see if the older alias can be dropped on its own
+            record_deprecated(self.context["org"], f"contact_actions#{action}")
+
             Msg.archive_all_for_contacts(contacts)
         elif action == self.BLOCK:
             Contact.bulk_change_status(user, contacts, modifiers.Status.BLOCKED, via_api=True)
