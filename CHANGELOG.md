@@ -1,3 +1,12 @@
+v26.3.60 (2026-08-26)
+-------------------------
+ * Require an active contact for webchat chat socket authorization and authorize visitor chat subscriptions in the realtime subscribe proxy
+ * Resolve the contact field a split reads from workspace assets, and fill in missing dependency names even when nothing has been renamed
+ * Migrate message archiving and restoring to mailroom, skipping the call for an empty selection
+ * Allow anonymous connections in the realtime connect proxy
+ * Add staff-only WebChat channel type
+ * Track usage of deprecated API features
+
 v26.3.59 (2026-08-25)
 -------------------------
  * Frame list pager counts on how the endpoint paginates
