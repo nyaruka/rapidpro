@@ -368,6 +368,19 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual(200, response.status_code)
         self.assertEqual({"result": {"expired": True}}, response.json())
 
+        # releasing the visitor's contact closes their chat immediately, even though their URNs aren't purged until
+        # the full release later
+        contact.is_active = False
+        contact.save(update_fields=("is_active",))
+        assertForbidden(socket)
+        contact.is_active = True
+        contact.save(update_fields=("is_active",))
+
+        # as does orphaning the URN (no contact at all)
+        contact.urns.update(contact=None)
+        assertForbidden(socket)
+        channel.urns.update(contact=contact)
+
         # deactivating the channel tears the chat down on the next refresh
         channel.is_active = False
         channel.save(update_fields=("is_active",))

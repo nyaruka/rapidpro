@@ -269,14 +269,15 @@ class SubscriptionEndpoint(BaseEndpoint):
         no session, no user - so authorization is capability-based: the chat-id is a secure-random token courier
         generates when the chat starts and stores as the path of the contact's ``webchat:`` URN, so possession of it
         *is* the credential. We allow the socket iff an active webchat channel with that uuid exists and a webchat URN
-        with that chat-id exists on that channel - and a URN always shares its channel's org, so this also scopes the
-        chat to the channel's own workspace.
+        with that chat-id exists on that channel for an active contact - and a URN always shares its channel's org, so
+        this also scopes the chat to the channel's own workspace. Requiring an active contact means releasing a
+        contact closes their chat immediately, rather than only once their URNs are actually purged.
         """
         channel = Channel.objects.filter(uuid=channel_uuid, channel_type="WCH", is_active=True).first()
         if not channel:
             return False
 
-        return channel.urns.filter(scheme=URN.WEBCHAT_SCHEME, path=chat_id).exists()
+        return channel.urns.filter(scheme=URN.WEBCHAT_SCHEME, path=chat_id, contact__is_active=True).exists()
 
     def record_subscription(self, socket: str):
         """
