@@ -22,6 +22,13 @@ const dependencyIdentity = (dependency: FlowDependency): string | null => {
  * UUIDs don't appear in its dependency list. Field references use keys and
  * only occur under a `field` property; scoping keyed matching there avoids
  * confusing a field key with a result name or another keyed structure.
+ *
+ * Editor UI configs name the contact field a split reads under an `operand`
+ * property, identified by `id` rather than `key`, so those are matched
+ * separately and only when the operand is a field - the same shape carries
+ * system properties, URN schemes and run results, none of which are workspace
+ * assets. Unlike the other matches this one fills in a name that isn't there,
+ * since operands saved before names were embedded don't carry one.
  */
 export const resolveDependencyNames = (
   definition: FlowDefinition,
@@ -71,6 +78,15 @@ export const resolveDependencyNames = (
         'name' in value
       ) {
         const canonical = fieldNamesByKey.get(value.key);
+        if (canonical != null) {
+          value.name = canonical;
+        }
+      } else if (
+        propertyName === 'operand' &&
+        value.type === 'field' &&
+        typeof value.id === 'string'
+      ) {
+        const canonical = fieldNamesByKey.get(value.id);
         if (canonical != null) {
           value.name = canonical;
         }

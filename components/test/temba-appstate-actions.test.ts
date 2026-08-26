@@ -576,6 +576,50 @@ describe('store/AppState actions', () => {
       expect(state().flowInfo.dependencies[0].name).to.equal('Alice');
     });
 
+    it('fills in a missing name when no name has changed', async () => {
+      // the field is not renamed, so nothing in the dependency list changes -
+      // the split's operand still has no name and needs one filling in
+      setDependencyResolver(async () => [
+        { type: 'field', key: 'age', name: 'Age' }
+      ]);
+      mockRevision({
+        definition: definition({
+          nodes: [
+            {
+              uuid: 'node-1',
+              exits: [],
+              actions: [
+                {
+                  type: 'set_contact_field',
+                  uuid: 'action-1',
+                  field: { key: 'age', name: 'Age' },
+                  value: '10'
+                }
+              ]
+            }
+          ],
+          _ui: {
+            nodes: {
+              'node-1': {
+                position: { left: 0, top: 0 },
+                type: 'split_by_contact_field',
+                config: { operand: { id: 'age', type: 'field' } }
+              }
+            }
+          }
+        }),
+        info: info({
+          dependencies: [{ type: 'field', key: 'age', name: 'Age' }]
+        })
+      });
+
+      await state().fetchRevision(REVISION_URL);
+
+      expect(
+        (state().flowDefinition as any)._ui.nodes['node-1'].config.operand.name
+      ).to.equal('Age');
+    });
+
     it('resolves every referenced flow before exposing a revision', async () => {
       const flow1Uuid = '11111111-1111-4111-8111-111111111111';
       const flow2Uuid = '22222222-2222-4222-8222-222222222222';
@@ -825,6 +869,72 @@ describe('flow/dependencies resolveDependencyNames', () => {
     ]);
 
     expect(resolved.nodes[0].router.result.name).to.equal('Result label');
+  });
+
+  it('rewrites the field a split reads from its ui config', () => {
+    const definition = withNodes([]);
+    definition._ui.nodes = {
+      'node-1': {
+        type: 'split_by_contact_field',
+        position: { left: 0, top: 0 },
+        config: { operand: { id: 'age', name: 'Old age label', type: 'field' } }
+      }
+    };
+
+    const resolved: any = resolveDependencyNames(definition, [
+      { type: 'field', key: 'age', name: 'Age' }
+    ]);
+
+    expect(resolved._ui.nodes['node-1'].config.operand.name).to.equal('Age');
+  });
+
+  it('fills in the name of a split operand saved without one', () => {
+    const definition = withNodes([]);
+    definition._ui.nodes = {
+      'node-1': {
+        type: 'split_by_contact_field',
+        position: { left: 0, top: 0 },
+        // flows saved by older editors embed no name at all
+        config: { operand: { id: 'age', type: 'field' } }
+      }
+    };
+
+    const resolved: any = resolveDependencyNames(definition, [
+      { type: 'field', key: 'age', name: 'Age' }
+    ]);
+
+    expect(resolved._ui.nodes['node-1'].config.operand.name).to.equal('Age');
+  });
+
+  it('leaves operands which are not fields alone', () => {
+    const definition = withNodes([]);
+    definition._ui.nodes = {
+      // a system property whose id collides with a field key
+      'node-1': {
+        type: 'split_by_contact_field',
+        position: { left: 0, top: 0 },
+        config: {
+          operand: { id: 'age', name: 'Age property', type: 'property' }
+        }
+      },
+      // a run result, which isn't a workspace asset
+      'node-2': {
+        type: 'split_by_run_result',
+        position: { left: 0, top: 0 },
+        config: { operand: { id: 'age', name: 'Age result', type: 'result' } }
+      }
+    };
+
+    const resolved: any = resolveDependencyNames(definition, [
+      { type: 'field', key: 'age', name: 'Age' }
+    ]);
+
+    expect(resolved._ui.nodes['node-1'].config.operand.name).to.equal(
+      'Age property'
+    );
+    expect(resolved._ui.nodes['node-2'].config.operand.name).to.equal(
+      'Age result'
+    );
   });
 
   it('returns the definition untouched when nothing is registered', () => {

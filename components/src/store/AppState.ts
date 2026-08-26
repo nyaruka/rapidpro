@@ -356,11 +356,17 @@ export const zustand = createStore<AppState>()(
               dependencyResolver(data.info.dependencies),
               DEPENDENCY_RESOLVE_TIMEOUT
             );
-            const dependencies = canonical
-              ? replaceDependencies(data.info.dependencies, canonical)
-              : null;
-            if (dependencies) {
-              data.info = { ...data.info, dependencies };
+            if (canonical) {
+              // the info list only changes when a name actually changed, but
+              // resolving always runs: a reference can be missing a name
+              // without any name having changed
+              const dependencies = replaceDependencies(
+                data.info.dependencies,
+                canonical
+              );
+              if (dependencies) {
+                data.info = { ...data.info, dependencies };
+              }
               data.definition = resolveDependencyNames(
                 data.definition,
                 canonical
@@ -514,10 +520,9 @@ export const zustand = createStore<AppState>()(
             state.flowInfo.dependencies,
             changed
           );
-          if (!dependencies) {
-            return;
+          if (dependencies) {
+            state.flowInfo.dependencies = dependencies;
           }
-          state.flowInfo.dependencies = dependencies;
           state.flowDefinition = resolveDependencyNames(
             state.flowDefinition,
             changed

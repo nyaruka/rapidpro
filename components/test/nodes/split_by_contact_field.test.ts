@@ -1,6 +1,13 @@
 import { expect } from '@open-wc/testing';
+import { render } from 'lit';
 import { split_by_contact_field } from '../../src/flow/nodes/split_by_contact_field';
 import { Node } from '../../src/store/flow-definition';
+
+const renderTitleText = (node: Node, nodeUI: any): string => {
+  const host = document.createElement('div');
+  render(split_by_contact_field.renderTitle!(node, nodeUI), host);
+  return host.textContent!.trim();
+};
 
 describe('split_by_contact_field', () => {
   it('should have correct configuration', () => {
@@ -506,5 +513,62 @@ describe('split_by_contact_field', () => {
 
     // The operand must NOT be @fields.undefined
     expect(updatedNode.router!.operand).to.equal('@fields.favorite_color');
+  });
+
+  it('should render the title from the operand name', () => {
+    const node = { uuid: 'test-node-uuid', actions: [], exits: [] } as any;
+    const nodeUI = {
+      type: 'split_by_contact_field',
+      position: { left: 0, top: 0 },
+      config: { operand: { id: 'age', name: 'Age', type: 'field' } }
+    };
+
+    expect(renderTitleText(node, nodeUI)).to.equal('Split by Age');
+  });
+
+  it('should fall back to the key when the operand has no name', () => {
+    const node = { uuid: 'test-node-uuid', actions: [], exits: [] } as any;
+    // a deleted field can't be resolved, and older flows embed no name at all
+    const nodeUI = {
+      type: 'split_by_contact_field',
+      position: { left: 0, top: 0 },
+      config: { operand: { id: 'age', type: 'field' } }
+    };
+
+    expect(renderTitleText(node, nodeUI)).to.equal('Split by age');
+  });
+
+  it('should render a title when there is no ui config at all', () => {
+    const node = { uuid: 'test-node-uuid', actions: [], exits: [] } as any;
+
+    expect(renderTitleText(node, undefined)).to.equal('Split by Name');
+    expect(renderTitleText(node, {} as any)).to.equal('Split by Name');
+  });
+
+  it('should give the form a field name when the operand has none', () => {
+    const node: Node = {
+      uuid: 'test-node-uuid',
+      actions: [],
+      router: {
+        type: 'switch',
+        cases: [],
+        categories: [{ uuid: 'cat-other', name: 'Other', exit_uuid: 'exit-1' }],
+        default_category_uuid: 'cat-other',
+        operand: '@fields.age',
+        result_name: ''
+      },
+      exits: [{ uuid: 'exit-1', destination_uuid: null }]
+    } as any;
+
+    const nodeUI = {
+      type: 'split_by_contact_field',
+      position: { left: 0, top: 0 },
+      config: { operand: { id: 'age', type: 'field' } }
+    };
+
+    const formData = split_by_contact_field.toFormData!(node, nodeUI);
+
+    expect(formData.field[0].key).to.equal('age');
+    expect(formData.field[0].name).to.equal('age');
   });
 });
