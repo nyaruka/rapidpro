@@ -1,11 +1,9 @@
-from datetime import timedelta
 from unittest.mock import call, patch
 
 from django.utils import timezone
 
 from temba.flows.models import Flow
 from temba.msgs.models import Msg, MsgFolder
-from temba.msgs.tasks import fail_old_android_messages
 from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
 from temba.utils.uuid import uuid7
 
@@ -258,29 +256,6 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         assertReleaseCount("I", Msg.STATUS_HANDLED, Msg.VISIBILITY_VISIBLE, None, MsgFolder.INBOX)
         assertReleaseCount("I", Msg.STATUS_HANDLED, Msg.VISIBILITY_ARCHIVED, None, MsgFolder.ARCHIVED)
         assertReleaseCount("I", Msg.STATUS_HANDLED, Msg.VISIBILITY_VISIBLE, flow, MsgFolder.HANDLED)
-
-    def test_fail_old_android_messages(self):
-        msg1 = self.create_outgoing_msg(self.joe, "Hello", status=Msg.STATUS_QUEUED)
-        msg2 = self.create_outgoing_msg(
-            self.joe, "Hello", status=Msg.STATUS_QUEUED, created_on=timezone.now() - timedelta(days=8)
-        )
-        msg3 = self.create_outgoing_msg(
-            self.joe, "Hello", status=Msg.STATUS_ERRORED, created_on=timezone.now() - timedelta(days=8)
-        )
-        msg4 = self.create_outgoing_msg(
-            self.joe, "Hello", status=Msg.STATUS_SENT, created_on=timezone.now() - timedelta(days=8)
-        )
-
-        fail_old_android_messages()
-
-        def assert_status(msg, status):
-            msg.refresh_from_db()
-            self.assertEqual(status, msg.status)
-
-        assert_status(msg1, Msg.STATUS_QUEUED)
-        assert_status(msg2, Msg.STATUS_FAILED)
-        assert_status(msg3, Msg.STATUS_FAILED)
-        assert_status(msg4, Msg.STATUS_SENT)
 
     def test_big_ids(self):
         # create an incoming message with big id
