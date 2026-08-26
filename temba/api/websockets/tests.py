@@ -181,8 +181,8 @@ class EndpointsTest(APITestMixin, TembaTest):
         session.save()
         assertForbidden(f"history:{contact.uuid}")
 
-        # an unauthenticated request - e.g. from an anonymous connection - is forbidden: anonymous connections can't
-        # subscribe to anything through this proxy
+        # an unauthenticated request - e.g. from an anonymous connection - is forbidden: anonymous connections can
+        # only subscribe to chat sockets, never to session-based sockets like history
         self.client.logout()
         assertForbidden(f"history:{contact.uuid}")
 
@@ -288,6 +288,112 @@ class EndpointsTest(APITestMixin, TembaTest):
             response = subscribe(socket)
             self.assertEqual(200, response.status_code)
             self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
+    def test_subscribe_chat(self):
+        # a webchat channel with a visitor contact whose webchat URN carries the secret chat-id as its path (as
+        # courier creates them, with the URN's channel affinity set to the webchat channel)
+        chat_id = "65vbbDAQCdPdEWlEhDGy4utO"
+        channel = self.create_channel("WCH", "WebChat", "wch1")
+        contact = self.create_contact("Vic", urns=[f"webchat:{chat_id}"])
+        contact.urns.update(channel=channel)
+
+        # a webchat channel in another workspace with its own visitor
+        other_chat_id = "aB3dEf6hIj9kLm2nOp5qRs8t"
+        other_channel = self.create_channel("WCH", "WebChat", "wch2", org=self.org2)
+        other_contact = self.create_contact("Zed", urns=[f"webchat:{other_chat_id}"], org=self.org2)
+        other_contact.urns.update(channel=other_channel)
+
+        # a non-webchat channel, to prove the channel type is checked even if a webchat URN points at it
+        ex_channel = self.create_channel("EX", "External", "ex1", schemes=["webchat"])
+        ex_contact = self.create_contact("Xan", urns=["webchat:Cd4eFg7hIj0kLm3nOp6qRs9t"])
+        ex_contact.urns.update(channel=ex_channel)
+
+        def subscribe(socket, client="conn-1"):
+            return self.post("api.websockets.subscribe", {"channel": socket, "client": client})
+
+        def assertAllowed(socket):
+            response = subscribe(socket)
+            self.assertEqual(200, response.status_code)
+            self.assertExpiry(response.json()["result"]["expire_at"])
+
+        def assertForbidden(socket):
+            response = subscribe(socket)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
+        # webchat visitors are anonymous - no login, no session - and possession of the chat-id is the credential
+        socket = f"chat:{channel.uuid}:{chat_id}"
+        key = f"socket-subs:{socket}"
+        r = get_valkey_connection()
+        r.delete(key)
+
+        assertAllowed(socket)
+
+        # an allowed chat subscribe records presence exactly like any other socket, so courier sees the subscriber
+        self.assertEqual(b"1", r.get(key))
+        self.assertGreater(r.ttl(key), 0)
+        self.assertLessEqual(r.ttl(key), SUBSCRIPTION_TTL)
+
+        assertForbidden(f"chat:{channel.uuid}:Ab1cDe2fGh3iJk4lMn5oPq6r")  # no URN with that chat-id
+        assertForbidden(f"chat:{channel.uuid}:{other_chat_id}")  # chat-id belongs to a different channel
+        assertForbidden(f"chat:{other_channel.uuid}:{chat_id}")  # and vice versa
+        assertForbidden(f"chat:{uuid4()}:{chat_id}")  # channel not found
+        assertForbidden(f"chat:{ex_channel.uuid}:Cd4eFg7hIj0kLm3nOp6qRs9t")  # channel isn't a webchat channel
+
+        # malformed socket names are denied by the route pattern before any lookup
+        assertForbidden(f"chat:{chat_id}")  # too few segments
+        assertForbidden(f"chat:{channel.uuid}:{chat_id}:extra")  # too many segments
+        assertForbidden(f"chat:{channel.uuid}:{chat_id[:23]}")  # chat-id too short
+        assertForbidden(f"chat:{channel.uuid}:{chat_id}x")  # chat-id too long
+        assertForbidden(f"chat:{channel.uuid}:{chat_id[:23]}-")  # chat-id with a non-alphanumeric char
+        assertForbidden(f"chat:{str(channel.uuid).upper()}:{chat_id}")  # non-canonical uuid encoding
+        assertForbidden(f"chat:not-a-uuid:{chat_id}")  # malformed channel uuid
+        assertForbidden(f"chat:{channel.uuid}:{chat_id}\n")  # trailing newline isn't part of the canonical name
+
+        # anonymous connections can't subscribe to any session-based socket
+        assertForbidden(f"notifications:{self.org.uuid}:{self.admin.uuid}")
+        assertForbidden(f"org:{self.org.uuid}")
+        assertForbidden(f"history:{contact.uuid}")
+        assertForbidden(f"flow:{self.create_flow('Test').uuid}")
+
+        # sub_refresh applies the same capability-based authorization for anonymous connections
+        response = self.post("api.websockets.sub_refresh", {"channel": socket, "client": "conn-1"})
+        self.assertEqual(200, response.status_code)
+        self.assertExpiry(response.json()["result"]["expire_at"])
+
+        response = self.post(
+            "api.websockets.sub_refresh",
+            {"channel": f"chat:{channel.uuid}:Ab1cDe2fGh3iJk4lMn5oPq6r", "client": "conn-1"},
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {"expired": True}}, response.json())
+
+        # releasing the visitor's contact closes their chat immediately, even though their URNs aren't purged until
+        # the full release later
+        contact.is_active = False
+        contact.save(update_fields=("is_active",))
+        assertForbidden(socket)
+        contact.is_active = True
+        contact.save(update_fields=("is_active",))
+
+        # as does orphaning the URN (no contact at all)
+        contact.urns.update(contact=None)
+        assertForbidden(socket)
+        channel.urns.update(contact=contact)
+
+        # deactivating the channel tears the chat down on the next refresh
+        channel.is_active = False
+        channel.save(update_fields=("is_active",))
+        assertForbidden(socket)
+        response = self.post("api.websockets.sub_refresh", {"channel": socket, "client": "conn-1"})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {"expired": True}}, response.json())
+        channel.is_active = True
+        channel.save(update_fields=("is_active",))
+
+        # being logged in doesn't get in the way of chat authorization - it never touches the session
+        self.login(self.admin)
+        assertAllowed(socket)
 
     def test_subscribe_ticket_topic_access(self):
         # an agent restricted to a team's topics can only watch the history of tickets they're allowed to view - the
