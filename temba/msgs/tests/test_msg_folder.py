@@ -4,7 +4,7 @@ from temba.flows.models import Flow, FlowRun, FlowSession
 from temba.msgs.models import Msg, MsgFolder
 from temba.orgs.tasks import squash_item_counts
 from temba.schedules.models import Schedule
-from temba.tests import TembaTest
+from temba.tests import TembaTest, mock_mailroom
 from temba.utils import s3
 
 
@@ -65,7 +65,8 @@ class MsgFolderTest(TembaTest):
             select = s3.compile_select(where=folder.get_archive_query())
             self.assertEqual(expected_select, select, f"select s3 mismatch for {folder}")
 
-    def test_get_counts(self):
+    @mock_mailroom
+    def test_get_counts(self, mr_mocks):
         def assert_counts(org, expected: dict):
             self.assertEqual(MsgFolder.get_counts(org), expected)
 
@@ -114,7 +115,7 @@ class MsgFolderTest(TembaTest):
             },
         )
 
-        msg3.archive()
+        Msg.bulk_archive(self.org, [msg3])
 
         bcast1 = self.create_broadcast(
             self.editor,
@@ -145,7 +146,7 @@ class MsgFolderTest(TembaTest):
             },
         )
 
-        msg1.archive()
+        Msg.bulk_archive(self.org, [msg1])
         msg3.delete()  # deleting an archived msg
         msg4.delete()  # deleting a visible msg
         msg5.status = "F"
@@ -170,7 +171,7 @@ class MsgFolderTest(TembaTest):
             },
         )
 
-        msg1.restore()
+        Msg.bulk_restore(self.org, [msg1])
         msg5.status = "F"  # already failed
         msg5.save(update_fields=("status",))
         msg6.status = "D"

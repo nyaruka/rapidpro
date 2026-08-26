@@ -38,7 +38,8 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
             ],
         )
 
-    def test_inbox(self):
+    @mock_mailroom
+    def test_inbox(self, mr_mocks):
         contact1 = self.create_contact("Joe Blow", phone="+250788000001")
         contact2 = self.create_contact("Frank", phone="+250788000002")
         msg1 = self.create_incoming_msg(contact1, "message number 1")

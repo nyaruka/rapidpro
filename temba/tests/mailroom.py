@@ -645,7 +645,19 @@ class TestClient(MailroomClient):
         return mock(org)
 
     @_client_method
+    def msg_archive(self, org, msgs):
+        update_msgs_visibility(msgs, Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED)
+
+        return {}
+
+    @_client_method
     def msg_delete(self, org, user, msgs):
+        return {}
+
+    @_client_method
+    def msg_restore(self, org, msgs):
+        update_msgs_visibility(msgs, Msg.VISIBILITY_ARCHIVED, Msg.VISIBILITY_VISIBLE)
+
         return {}
 
     @_client_method
@@ -906,6 +918,22 @@ def create_contact_locally(
     update_fields_locally(user, contact, fields)
     update_groups_locally(contact, group_uuids, add=True)
     return contact
+
+
+def update_msgs_visibility(msgs, from_visibility: str, to_visibility: str):
+    """
+    Simulates mailroom changing the visibility of the given messages, and the folder that follows from it. Messages
+    which aren't in the visibility we're transitioning from are ignored.
+    """
+
+    for msg in msgs:
+        if msg.visibility != from_visibility:
+            continue
+
+        msg.visibility = to_visibility
+        msg.folder = msg.derive_folder()
+        msg.modified_on = timezone.now()
+        msg.save(update_fields=("visibility", "folder", "modified_on"))
 
 
 def update_fields_locally(user, contact, fields):

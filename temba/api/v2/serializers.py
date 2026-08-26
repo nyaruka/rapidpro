@@ -1563,12 +1563,10 @@ class MsgBulkActionSerializer(WriteSerializer):
                 label.toggle_label(messages, add=False)
         elif action == self.DELETE:
             Msg.bulk_soft_delete(self.context["org"], self.context["user"], messages)
-        else:
-            for msg in messages:
-                if action == self.ARCHIVE and msg.visibility == Msg.VISIBILITY_VISIBLE:
-                    msg.archive()
-                elif action == self.RESTORE and msg.visibility == Msg.VISIBILITY_ARCHIVED:
-                    msg.restore()
+        elif action == self.ARCHIVE:
+            Msg.bulk_archive(self.context["org"], messages)
+        elif action == self.RESTORE:
+            Msg.bulk_restore(self.context["org"], messages)
 
         return BulkActionFailure(missing_message_ids) if missing_message_ids else None
 

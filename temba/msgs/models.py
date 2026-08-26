@@ -755,16 +755,6 @@ class Msg(models.Model):
 
         return folder.code
 
-    def archive(self):
-        """
-        Archives this message
-        """
-        assert self.direction == self.DIRECTION_IN
-
-        if self.visibility == self.VISIBILITY_VISIBLE:
-            self.visibility = self.VISIBILITY_ARCHIVED
-            self.save(update_fields=("visibility", "modified_on"))
-
     @classmethod
     def archive_all_for_contacts(cls, contacts):
         """
@@ -778,16 +768,6 @@ class Msg(models.Model):
         for batch in itertools.batched(msg_ids, 100):
             Msg.objects.filter(pk__in=batch).update(visibility=cls.VISIBILITY_ARCHIVED, modified_on=timezone.now())
 
-    def restore(self):
-        """
-        Restores (i.e. un-archives) this message
-        """
-        assert self.direction == self.DIRECTION_IN
-
-        if self.visibility == self.VISIBILITY_ARCHIVED:
-            self.visibility = self.VISIBILITY_VISIBLE
-            self.save(update_fields=("visibility", "modified_on"))
-
     @classmethod
     def apply_action_label(cls, user, msgs, label):
         label.toggle_label(msgs, add=True)
@@ -798,13 +778,13 @@ class Msg(models.Model):
 
     @classmethod
     def apply_action_archive(cls, user, msgs):
-        for msg in msgs:
-            msg.archive()
+        if msgs := list(msgs):
+            cls.bulk_archive(msgs[0].org, msgs)
 
     @classmethod
     def apply_action_restore(cls, user, msgs):
-        for msg in msgs:
-            msg.restore()
+        if msgs := list(msgs):
+            cls.bulk_restore(msgs[0].org, msgs)
 
     @classmethod
     def apply_action_delete(cls, user, msgs):
@@ -815,6 +795,28 @@ class Msg(models.Model):
     def apply_action_resend(cls, user, msgs):
         if msgs := list(msgs):
             mailroom.get_client().msg_resend(msgs[0].org, user, msgs)
+
+    @classmethod
+    def bulk_archive(cls, org, msgs: list):
+        """
+        Bulk archives the given incoming messages. Messages which aren't currently visible are ignored.
+        """
+
+        for msg in msgs:
+            assert msg.direction == Msg.DIRECTION_IN, "only incoming messages can be archived"
+
+        mailroom.get_client().msg_archive(org, msgs)
+
+    @classmethod
+    def bulk_restore(cls, org, msgs: list):
+        """
+        Bulk restores (i.e. un-archives) the given incoming messages. Messages which aren't archived are ignored.
+        """
+
+        for msg in msgs:
+            assert msg.direction == Msg.DIRECTION_IN, "only incoming messages can be restored"
+
+        mailroom.get_client().msg_restore(org, msgs)
 
     @classmethod
     def bulk_soft_delete(cls, org, user, msgs: list):

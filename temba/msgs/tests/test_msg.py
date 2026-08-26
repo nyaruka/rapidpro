@@ -175,18 +175,19 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         mock_storage_delete.assert_any_call("/attachments/1/a/b.jpg")
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
 
-    def test_archive_and_release(self):
+    @mock_mailroom
+    def test_archive_and_release(self, mr_mocks):
         msg1 = self.create_incoming_msg(self.joe, "Incoming")
         label = self.create_label("Spam")
         label.toggle_label([msg1], add=True)
 
-        msg1.archive()
+        Msg.bulk_archive(self.org, [msg1])
 
         msg1 = Msg.objects.get(pk=msg1.pk)
         self.assertEqual(msg1.visibility, Msg.VISIBILITY_ARCHIVED)
         self.assertEqual(set(msg1.labels.all()), {label})  # don't remove labels
 
-        msg1.restore()
+        Msg.bulk_restore(self.org, [msg1])
 
         msg1 = Msg.objects.get(pk=msg1.id)
         self.assertEqual(msg1.visibility, Msg.VISIBILITY_VISIBLE)
@@ -200,7 +201,12 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         # can't archive outgoing messages
         msg2 = self.create_outgoing_msg(self.joe, "Outgoing")
-        self.assertRaises(AssertionError, msg2.archive)
+
+        with self.assertRaises(AssertionError):
+            Msg.bulk_archive(self.org, [msg2])
+
+        with self.assertRaises(AssertionError):
+            Msg.bulk_restore(self.org, [msg2])
 
     def test_release_counts(self):
         flow = self.create_flow("Test")
