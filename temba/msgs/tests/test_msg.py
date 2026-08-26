@@ -136,6 +136,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             attachments=[
                 r"audo/mp4:http://s3.com/attachments/1/a/b.jpg",
                 r"image/jpeg:http://s3.com/attachments/1/c/d%20e.jpg",
+                r"http://example.com/test.mp4",  # invalid attachments are ignored
             ],
         )
         msg2 = self.create_incoming_msg(self.frank, "ignore joe, he's a liar")
@@ -176,6 +177,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             attachments=[
                 r"audo/mp4:http://s3.com/attachments/1/a/b.jpg",
                 r"image/jpeg:http://s3.com/attachments/1/c/d%20e.jpg",
+                r"http://example.com/test.mp4",  # invalid attachments are ignored
             ],
         )
         self.create_incoming_msg(self.frank, "ignore joe, he's a liar")
