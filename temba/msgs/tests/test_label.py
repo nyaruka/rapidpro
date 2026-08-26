@@ -2,7 +2,7 @@ from datetime import date
 
 from temba.msgs.models import Label, LabelCount, MessageExport, Msg
 from temba.msgs.tasks import squash_msg_counts
-from temba.tests import TembaTest
+from temba.tests import TembaTest, mock_mailroom
 
 
 class LabelTest(TembaTest):
@@ -22,7 +22,8 @@ class LabelTest(TembaTest):
         # don't allow duplicate name
         self.assertRaises(AssertionError, Label.create, self.org, self.editor, "Spam")
 
-    def test_toggle_label(self):
+    @mock_mailroom
+    def test_toggle_label(self, mr_mocks):
         label = self.create_label("Spam")
         msg1 = self.create_incoming_msg(self.joe, "Message 1")
         msg2 = self.create_incoming_msg(self.joe, "Message 2")
@@ -46,13 +47,13 @@ class LabelTest(TembaTest):
         squash_msg_counts()
         self.assertEqual(label.get_visible_count(), 2)
 
-        msg2.archive()  # won't remove label from msg, but msg no longer counts toward visible count
+        Msg.bulk_archive(self.org, [msg2])  # won't remove label from msg, but msg no longer counts toward visible count
 
         label.refresh_from_db()
         self.assertEqual(label.get_visible_count(), 1)
         self.assertEqual(set(label.get_messages()), {msg1, msg2})
 
-        msg2.restore()  # msg back in visible count
+        Msg.bulk_restore(self.org, [msg2])  # msg back in visible count
 
         label.refresh_from_db()
         self.assertEqual(label.get_visible_count(), 2)
@@ -64,14 +65,14 @@ class LabelTest(TembaTest):
         self.assertEqual(label.get_visible_count(), 1)
         self.assertEqual(set(label.get_messages()), {msg1})
 
-        msg3.archive()
+        Msg.bulk_archive(self.org, [msg3])
         label.toggle_label([msg3], add=True)  # labelling an already archived message doesn't increment the count
 
         label.refresh_from_db()
         self.assertEqual(label.get_visible_count(), 1)
         self.assertEqual(set(label.get_messages()), {msg1, msg3})
 
-        msg3.restore()  # but then restoring that message will
+        Msg.bulk_restore(self.org, [msg3])  # but then restoring that message will
 
         label.refresh_from_db()
         self.assertEqual(label.get_visible_count(), 2)

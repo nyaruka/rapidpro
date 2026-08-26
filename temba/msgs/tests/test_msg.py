@@ -143,6 +143,11 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         msg2 = self.create_incoming_msg(self.frank, "ignore joe, he's a liar")
         out1 = self.create_outgoing_msg(self.frank, "hi")
 
+        label = self.create_label("Spam")
+        label.toggle_label([msg1, msg2], add=True)
+
+        self.assertEqual(2, label.get_visible_count())
+
         # can't soft delete outgoing messages
         with self.assertRaises(AssertionError):
             Msg.bulk_soft_delete(self.org, self.admin, [out1])
@@ -153,6 +158,16 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
 
         self.assertEqual([call(self.org, self.admin, [msg1, msg2])], mr_mocks.calls["msg_delete"])
+
+        # mailroom clears content and labels as well as updating visibility
+        msg1.refresh_from_db()
+        self.assertEqual(Msg.VISIBILITY_DELETED_BY_USER, msg1.visibility)
+        self.assertEqual(Msg.FOLDER_DELETED, msg1.folder)
+        self.assertEqual("", msg1.text)
+        self.assertEqual([], msg1.attachments)
+        self.assertEqual(set(), set(msg1.labels.all()))
+
+        self.assertEqual(0, label.get_visible_count())
 
     @patch("django.core.files.storage.default_storage.delete")
     def test_bulk_delete(self, mock_storage_delete):
@@ -175,18 +190,19 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         mock_storage_delete.assert_any_call("/attachments/1/a/b.jpg")
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
 
-    def test_archive_and_release(self):
+    @mock_mailroom
+    def test_archive_and_release(self, mr_mocks):
         msg1 = self.create_incoming_msg(self.joe, "Incoming")
         label = self.create_label("Spam")
         label.toggle_label([msg1], add=True)
 
-        msg1.archive()
+        Msg.bulk_archive(self.org, [msg1])
 
         msg1 = Msg.objects.get(pk=msg1.pk)
         self.assertEqual(msg1.visibility, Msg.VISIBILITY_ARCHIVED)
         self.assertEqual(set(msg1.labels.all()), {label})  # don't remove labels
 
-        msg1.restore()
+        Msg.bulk_restore(self.org, [msg1])
 
         msg1 = Msg.objects.get(pk=msg1.id)
         self.assertEqual(msg1.visibility, Msg.VISIBILITY_VISIBLE)
@@ -198,9 +214,21 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(0, label.get_messages().count())  # do remove labels
         self.assertIsNotNone(label)
 
+        # an empty selection doesn't reach mailroom at all
+        Msg.bulk_archive(self.org, [])
+        Msg.bulk_restore(self.org, [])
+
+        self.assertEqual(1, len(mr_mocks.calls["msg_archive"]))
+        self.assertEqual(1, len(mr_mocks.calls["msg_restore"]))
+
         # can't archive outgoing messages
         msg2 = self.create_outgoing_msg(self.joe, "Outgoing")
-        self.assertRaises(AssertionError, msg2.archive)
+
+        with self.assertRaises(AssertionError):
+            Msg.bulk_archive(self.org, [msg2])
+
+        with self.assertRaises(AssertionError):
+            Msg.bulk_restore(self.org, [msg2])
 
     def test_release_counts(self):
         flow = self.create_flow("Test")

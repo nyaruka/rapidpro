@@ -9,6 +9,7 @@ from temba.ai.types.openai.type import OpenAIType
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField, ContactImport
 from temba.flows.models import Flow, FlowStart
+from temba.msgs.models import Msg
 from temba.schedules.models import Schedule
 from temba.tests import MockJsonResponse, MockResponse, TembaTest
 from temba.tickets.models import Topic
@@ -747,6 +748,38 @@ class MailroomClientTest(TembaTest):
                     "not_seen_since_days": 30,
                 },
             },
+        )
+
+    @patch("requests.post")
+    def test_msg_archive(self, mock_post):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+        msg1 = self.create_incoming_msg(ann, "Hi")
+        msg2 = self.create_incoming_msg(ann, "Hi again")
+        mock_post.return_value = MockJsonResponse(200, {})
+        response = self.client.msg_archive(self.org, [msg1, msg2])
+
+        self.assertEqual({}, response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mi/msg/archive",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
+        )
+
+    @patch("requests.post")
+    def test_msg_restore(self, mock_post):
+        ann = self.create_contact("Ann", urns=["tel:+12340000001"])
+        msg1 = self.create_incoming_msg(ann, "Hi", visibility=Msg.VISIBILITY_ARCHIVED)
+        msg2 = self.create_incoming_msg(ann, "Hi again", visibility=Msg.VISIBILITY_ARCHIVED)
+        mock_post.return_value = MockJsonResponse(200, {})
+        response = self.client.msg_restore(self.org, [msg1, msg2])
+
+        self.assertEqual({}, response)
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mi/msg/restore",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"org_id": self.org.id, "msg_uuids": [str(msg1.uuid), str(msg2.uuid)]},
         )
 
     @patch("requests.post")

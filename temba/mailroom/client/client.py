@@ -320,6 +320,9 @@ class MailroomClient:
 
         return RecipientsPreview(query=resp["query"], total=resp["total"])
 
+    def msg_archive(self, org, msgs):
+        return self._request("msg/archive", {"org_id": org.id, "msg_uuids": [str(m.uuid) for m in msgs]})
+
     def msg_delete(self, org, user, msgs):
         return self._request(
             "msg/delete", {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]}
@@ -333,6 +336,9 @@ class MailroomClient:
             "msg/resend",
             {"org_id": org.id, "user_id": user.id, "msg_uuids": [str(m.uuid) for m in msgs]},
         )
+
+    def msg_restore(self, org, msgs):
+        return self._request("msg/restore", {"org_id": org.id, "msg_uuids": [str(m.uuid) for m in msgs]})
 
     def msg_search(self, org, text: str, contact=None, in_ticket=False) -> list[tuple[Contact, dict]]:
         resp = self._request(
