@@ -1,16 +1,21 @@
 from unittest.mock import call
 
+from django_valkey import get_valkey_connection
+
 from django.urls import reverse
+from django.utils import timezone
 
 from temba.contacts.models import Contact
 from temba.msgs.models import Msg
 from temba.tests import mock_mailroom
+from temba.tests.base import cleanup
 from temba.tests.engine import MockSessionWriter
 
 from . import APITest
 
 
 class ContactActionsEndpointTest(APITest):
+    @cleanup(valkey=True)
     @mock_mailroom
     def test_endpoint(self, mr_mocks):
         endpoint_url = reverse("api.v2.contact_actions") + ".json"
@@ -193,6 +198,23 @@ class ContactActionsEndpointTest(APITest):
         )
         self.assertFalse(Msg.objects.filter(contact__in=[contact1, contact2], direction="I", visibility="V").exists())
         self.assertTrue(Msg.objects.filter(contact=contact3, direction="I", visibility="V").exists())
+
+        # as a deprecated action, that's recorded so we can see if anything still uses it
+        self.assertPost(
+            endpoint_url,
+            self.admin,
+            {"contacts": [contact3.uuid], "action": "archive"},  # the older alias
+            status=204,
+        )
+
+        r = get_valkey_connection()
+        self.assertEqual(
+            {
+                f"api:deprecated:{self.org.id}/contact_actions#archive_messages": b"1",
+                f"api:deprecated:{self.org.id}/contact_actions#archive": b"1",
+            },
+            {f.decode(): c for f, c in r.hgetall(f"warnings:{timezone.now():%Y-%m}").items()},
+        )
 
         # delete contacts 1 and 2
         self.assertPost(

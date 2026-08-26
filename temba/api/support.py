@@ -1,5 +1,6 @@
 import logging
 
+from django_valkey import get_valkey_connection
 from rest_framework import exceptions, status
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.exceptions import APIException
@@ -9,12 +10,37 @@ from rest_framework.throttling import ScopedRateThrottle
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseServerError
+from django.utils import timezone
 
 from temba.utils import str_to_bool
 
 from .models import APIToken
 
 logger = logging.getLogger(__name__)
+
+# deprecated feature usage is counted into monthly buckets shared with the other warnings we track against workspaces,
+# keyed as api:deprecated:<org id>/<endpoint>#<feature>
+DEPRECATED_KEY_PREFIX = "warnings"
+DEPRECATED_KEY_EXPIRY = 90 * 24 * 60 * 60
+
+
+def record_deprecated(org, feature: str):
+    """
+    Records that a workspace used a deprecated API feature, so we can see whether anything still depends on it before
+    removing it. Recording is best-effort - a failure here shouldn't fail the request.
+
+    Unlike `via_api` tracking elsewhere, this counts calls made with session auth as well as with a token, because the
+    question being answered is whether *anything* still uses the feature, not who should be credited with the change.
+    """
+
+    key = f"{DEPRECATED_KEY_PREFIX}:{timezone.now():%Y-%m}"
+
+    try:
+        r = get_valkey_connection()
+        r.hincrby(key, f"api:deprecated:{org.id}/{feature}", 1)
+        r.expire(key, DEPRECATED_KEY_EXPIRY)
+    except Exception:
+        logger.exception("error recording use of deprecated API feature")
 
 
 class RequestAttributesMixin:
