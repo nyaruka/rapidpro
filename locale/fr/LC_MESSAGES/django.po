@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-25 19:35+0000\n"
+"POT-Creation-Date: 2026-08-26 19:38+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -1860,6 +1860,9 @@ msgstr "Le nom d'utilisateur de votre compte Mobile/Wavy"
 
 msgid "The Authentication Token for your Movile/Wavy account"
 msgstr "Le jeton d'authentification pour votre compte Mobile/Wavy"
+
+msgid "Chat with visitors on your website via an embedded chat widget."
+msgstr "Discutez avec les visiteurs de votre site web via un widget de chat intégré."
 
 #, python-format
 msgid "Add a %(link)s bot to send and receive messages to WeChat users for free. Your users will need an Android, Windows or iOS device and a WeChat account to send and receive messages."
@@ -5034,6 +5037,21 @@ msgstr "<div class=\"code mt-4\">Manage > API Usage > Callback API > Server Sett
 #, python-format
 msgid "To connect your Vonage Account you will need to provide us your API key and secret. Both values can be found on your <a target=\"vonage\" href=\"%(settings_url)s\">Vonage settings</a> page in the API Settings section."
 msgstr "Pour connecter votre compte Vonage, vous devrez nous fournir votre clé et votre secret API. Ces deux valeurs se trouvent sur votre page <a target=\"vonage\" href=\"%(settings_url)s\">Paramètres Vonage</a> , dans la section Paramètres API."
+
+msgid "Visitors chat with this channel through a widget embedded on your website."
+msgstr "Les visiteurs discutent avec ce canal via un widget intégré à votre site web."
+
+msgid "Channel UUID"
+msgstr "UUID du canal"
+
+msgid "The embedded widget uses this UUID to identify this channel when connecting."
+msgstr "Le widget intégré utilise cet UUID pour identifier ce canal lors de la connexion."
+
+msgid "Embed"
+msgstr "Intégrer"
+
+msgid "Add a snippet like the following to your website to embed the chat widget (coming soon)."
+msgstr "Ajoutez un extrait comme celui-ci à votre site web pour intégrer le widget de chat (bientôt disponible)."
 
 msgid "You can connect your WhatsApp number by clicking on it below."
 msgstr "Vous pouvez connecter votre numéro WhatsApp en cliquant dessus ci-dessous."

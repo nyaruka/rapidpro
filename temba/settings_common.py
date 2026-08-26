@@ -826,6 +826,7 @@ CHANNEL_TYPES = [
     "temba.channels.types.vk.VKType",
     "temba.channels.types.vonage.VonageType",
     "temba.channels.types.wavy.WavyType",
+    "temba.channels.types.webchat.WebChatType",
     "temba.channels.types.wechat.WeChatType",
     "temba.channels.types.whatsapp.WhatsAppType",
     "temba.channels.types.yo.YoType",

@@ -1,0 +1,25 @@
+{% load i18n %}
+
+{% blocktrans trimmed %}
+  Visitors chat with this channel through a widget embedded on your website.
+{% endblocktrans %}
+<div class="card">
+  <div class="subtitle">{% trans "Channel UUID" %}</div>
+  <div class="code inline-block">{{ channel.uuid }}</div>
+  <div class="mt-2">
+    {% blocktrans trimmed %}
+      The embedded widget uses this UUID to identify this channel when connecting.
+    {% endblocktrans %}
+  </div>
+</div>
+<div class="mt-4 card">
+  <div class="subtitle">{% trans "Embed" %}</div>
+  <div class="mt-2">
+    {% blocktrans trimmed %}
+      Add a snippet like the following to your website to embed the chat widget (coming soon).
+    {% endblocktrans %}
+  </div>
+  <div class="bleed-x bleed-b text-white bg-black">
+    <div class="code p-0 break-all bg-black text-white">&lt;temba-webchat channel="{{ channel.uuid }}"&gt;&lt;/temba-webchat&gt;</div>
+  </div>
+</div>
