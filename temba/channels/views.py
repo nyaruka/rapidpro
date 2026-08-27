@@ -479,7 +479,8 @@ class ChannelCRUDL(SmartCRUDL):
             if obj.type.config_ui:
                 menu.add_link(_("Configuration"), reverse("channels.channel_configuration", args=[obj.uuid]))
 
-            menu.add_link(_("Logs"), reverse("channels.channel_logs_list", args=[obj.uuid]))
+            if obj.type.has_logs:
+                menu.add_link(_("Logs"), reverse("channels.channel_logs_list", args=[obj.uuid]))
 
             if obj.type.template_type:
                 menu.add_link(_("Template Logs"), reverse("request_logs.httplog_channel", args=[obj.uuid]))
@@ -833,6 +834,12 @@ class ChannelCRUDL(SmartCRUDL):
         def derive_url_pattern(cls, path, action):
             return r"^%s/logs/(?P<uuid>[0-9a-f-]{36})/$" % path
 
+        def get_object(self, *args, **kwargs):
+            channel = super().get_object(*args, **kwargs)
+            if not channel.type.has_logs:
+                raise Http404()
+            return channel
+
         def derive_menu_path(self):
             return f"/settings/channels/{self.kwargs['uuid']}"
 
@@ -862,6 +869,12 @@ class ChannelCRUDL(SmartCRUDL):
         @classmethod
         def derive_url_pattern(cls, path, action):
             return r"^%s/logs/(?P<uuid>[0-9a-f-]{36})/(?P<reftype>log|msg|call)/(?P<refid>[0-9a-f-]{36})/$" % path
+
+        def get_object(self, *args, **kwargs):
+            channel = super().get_object(*args, **kwargs)
+            if not channel.type.has_logs:
+                raise Http404()
+            return channel
 
         def derive_menu_path(self):
             return f"/settings/channels/{self.kwargs['uuid']}"

@@ -44,3 +44,10 @@ class ChannelsTest(TembaTest):
         self.assertEqual(
             {"logs_url": None}, channel_log_link(Context({"user_org": self.org, "user": self.admin}), old_msg)
         )
+
+        # or for messages on channels of types that don't have logs
+        webchat_channel = self.create_channel("WCH", "WebChat", "123")
+        webchat_msg = self.create_incoming_msg(joe, "Hi", channel=webchat_channel)
+        self.assertEqual(
+            {"logs_url": None}, channel_log_link(Context({"user_org": self.org, "user": self.admin}), webchat_msg)
+        )

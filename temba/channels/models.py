@@ -112,6 +112,9 @@ class ChannelType(metaclass=ABCMeta):
     # during activation. Channels should make sure their claim view is non-atomic if a callback will be involved
     async_activation = True
 
+    # whether channels of this type have logs of their traffic with an external provider
+    has_logs = True
+
     # used for anonymizing logs
     redact_request_keys = ()
     redact_response_keys = ()
