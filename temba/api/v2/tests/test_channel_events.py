@@ -24,13 +24,19 @@ class ChannelEventsEndpointTest(APITest):
             self.channel, "tel:+250788123123", ChannelEvent.TYPE_CALL_OUT, extra=dict(duration=15)
         )
 
-        # no filtering
+        # no filtering.. but as a deprecated endpoint, usage is recorded
         response = self.assertGet(
             endpoint_url,
             [self.editor, self.admin],
             results=[call4, call3, call2, call1],
             num_queries=self.BASE_SESSION_QUERIES + 3,
         )
+        self.assertDeprecatedRecorded("channel_events#list", 2)
+
+        # browsing the endpoint docs doesn't count as usage
+        docs_response = self.client.get(reverse("api.v2.channel_events"))
+        self.assertEqual(200, docs_response.status_code)
+        self.assertDeprecatedRecorded("channel_events#list", 2)
 
         resp_json = response.json()
         self.assertEqual(

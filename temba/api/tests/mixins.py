@@ -1,4 +1,7 @@
+from django_valkey import get_valkey_connection
+
 from django.db import connection
+from django.utils import timezone
 
 from temba.api.models import APIToken
 
@@ -14,6 +17,14 @@ class APITestMixin:
         super().tearDown()
 
         connection.settings_dict["ATOMIC_REQUESTS"] = True
+
+    def assertDeprecatedRecorded(self, feature: str, count: int):
+        value = get_valkey_connection().hget(
+            f"warnings:{timezone.now():%Y-%m}", f"api:deprecated:{self.org.id}/{feature}"
+        )
+        self.assertEqual(
+            count, int(value) if value is not None else 0, f"deprecated usage count mismatch for {feature}"
+        )
 
     def _getJSON(self, endpoint_url: str, user, *, by_token: bool = False, num_queries: int = None):
         self.client.logout()

@@ -35,12 +35,18 @@ class DefinitionsEndpointTest(APITest):
             self.org, self.editor, Trigger.TYPE_KEYWORD, flow1, keywords=["test"], match_type=Trigger.MATCH_FIRST_WORD
         )
 
-        # nothing specified, nothing exported
+        # nothing specified, nothing exported.. but as a deprecated endpoint, usage is recorded
         self.assertGet(
             endpoint_url,
             [self.editor],
             raw=lambda j: len(j["flows"]) == 0 and len(j["campaigns"]) == 0 and len(j["triggers"]) == 0,
         )
+        self.assertDeprecatedRecorded("definitions#get", 1)
+
+        # browsing the endpoint docs doesn't count as usage
+        response = self.client.get(reverse("api.v2.definitions"))
+        self.assertEqual(200, response.status_code)
+        self.assertDeprecatedRecorded("definitions#get", 1)
 
         # flow + all dependencies by default
         self.assertGet(

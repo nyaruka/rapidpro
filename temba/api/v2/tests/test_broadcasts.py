@@ -98,8 +98,9 @@ class BroadcastsEndpointTest(APITest):
             resp_json["results"][0],
         )
 
-        # filter by id
+        # filter by id (deprecated, so recorded)
         self.assertGet(endpoint_url + f"?id={bcast3.id}", [self.editor], results=[bcast3])
+        self.assertDeprecatedRecorded("broadcasts#filter:id", 1)
 
         # filter by uuid
         self.assertGet(endpoint_url + f"?uuid={bcast3.uuid}", [self.editor], results=[bcast3])
