@@ -39,12 +39,13 @@ from temba.utils.uuid import UUID, uuid4, uuid7
 
 from .dynamo import dynamo_truncate
 from .mailroom import (
+    Mocks,
     contact_urn_lookup,
     create_broadcast,
     create_contact_locally,
     create_flowstart,
-    install_mailroom_guard,
     resolve_destination,
+    set_mocks,
     update_field_locally,
 )
 
@@ -116,8 +117,11 @@ class TembaTest(SmartminTest):
     def setUp(self):
         super().setUp()
 
-        # fail loudly if a test reaches a live mailroom instead of mocking it
-        install_mailroom_guard(self)
+        # every test gets a mocked mailroom client (see temba.mailroom.get_client) using these mocks, which tests
+        # can access as mr_mocks by decorating themselves with @mock_mailroom
+        self.mr_mocks = Mocks()
+        set_mocks(self.mr_mocks)
+        self.addCleanup(set_mocks, None)
 
         # OrgRole.group and OrgRole.permissions are cached properties so get those cached before test starts to avoid
         # query count differences when a test is first to request it and when it's not.

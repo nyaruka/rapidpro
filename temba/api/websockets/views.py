@@ -114,9 +114,11 @@ class BaseEndpoint(APIView):
         Whether the request carries a forwarded browser ``Origin`` header whose host isn't one this deployment itself
         serves. A foreign-origin request must never be granted session identity (see module docs). Origins are judged
         against ``ALLOWED_HOSTS`` - the same configuration that already defines which hosts the deployment answers
-        for, wildcard entries included - so whitelabel domains pass without a separate list. An absent header (a
-        non-browser client, or a proxy config that doesn't forward it) is not foreign; an unparseable or opaque one
-        (e.g. ``null``) is.
+        for, wildcard entries included - so whitelabel domains pass without a separate list. That also means a
+        deployment running with ``ALLOWED_HOSTS = ["*"]`` disables this check entirely - every origin validates -
+        leaving the cookie's ``SameSite`` policy as its only cross-origin defense. An absent header (a non-browser
+        client, or a proxy config that doesn't forward it) is not foreign; an unparseable or opaque one (e.g.
+        ``null``) is.
         """
         origin = request.headers.get("Origin", "")
         if not origin:
