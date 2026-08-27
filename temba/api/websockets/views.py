@@ -7,7 +7,9 @@ forwarded session cookie - accepting connections that don't resolve to a user as
 periodically re-validates authenticated connections. The ``subscribe`` and ``sub_refresh`` proxies then authorize
 individual socket subscriptions: most sockets against the live Django session, but webchat ``chat`` sockets by
 capability - the socket name embeds a secret chat-id, so possession of the name is the credential and anonymous
-visitors can subscribe to (only) their own chat.
+visitors can subscribe to (only) their own chat. A webchat channel configured with ``allowed_domains`` additionally
+pins browser embedding to its operator's own sites: the forwarded ``Origin`` of a chat subscription must then match
+one of those domains.
 
 Because the realtime server forwards the browser's session cookie, these cookie-authenticated calls are a CSRF
 surface: a WebSocket opened by any page the browser user happens to visit would otherwise ride their session. Two
@@ -47,6 +49,7 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 
 from temba.channels.models import Channel
+from temba.channels.types.webchat.views import CONFIG_ALLOWED_DOMAINS
 from temba.contacts.models import URN
 from temba.tickets.models import Ticket
 
@@ -271,7 +274,8 @@ class SubscriptionEndpoint(BaseEndpoint):
         foreign origin - a request the connect proxy would refuse session identity must be refused session-based
         sockets here too, or a third-party page could bypass the connect-time downgrade by subscribing with the same
         forwarded cookie (see module docs) - so their handlers are never reached by an anonymous or foreign-origin
-        request. The capability-based chat route never touches the session and so has no origin restrictions.
+        request. The capability-based chat route never touches the session and so is exempt from the session-identity
+        origin check - though the chat handler applies its own per-channel origin restriction (``allowed_domains``).
         """
         if not isinstance(socket, str):  # malformed payload (e.g. a non-string socket) is just a denial, not a 500
             return False
@@ -347,10 +351,27 @@ class SubscriptionEndpoint(BaseEndpoint):
         with that chat-id exists on that channel for an active contact - and a URN always shares its channel's org, so
         this also scopes the chat to the channel's own workspace. Requiring an active contact means releasing a
         contact closes their chat immediately, rather than only once their URNs are actually purged.
+
+        On top of that credential, a channel configured with ``allowed_domains`` is pinned to its operator's own
+        websites: if the request carries a browser ``Origin`` header (forwarded from the WebSocket handshake by the
+        realtime server), its host[:port] must match one of the configured entries or the subscription is denied -
+        the same restriction courier applies on its webchat HTTP endpoints. An absent header (a non-browser client,
+        or a proxy config that doesn't forward it) or an empty config allows as before.
         """
         channel = Channel.objects.filter(uuid=channel_uuid, channel_type="WCH", is_active=True).first()
         if not channel:
             return False
+
+        allowed_domains = channel.config.get(CONFIG_ALLOWED_DOMAINS) or []
+        origin = request.headers.get("Origin", "")
+        if allowed_domains and origin:
+            try:
+                host = urlsplit(origin).netloc.lower()  # an origin's netloc is exactly its host[:port]
+            except ValueError:
+                return False
+
+            if host not in [d.lower() for d in allowed_domains]:
+                return False
 
         return channel.urns.filter(scheme=URN.WEBCHAT_SCHEME, path=chat_id, contact__is_active=True).exists()
 

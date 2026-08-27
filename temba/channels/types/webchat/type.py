@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from temba.contacts.models import URN
 
 from ...models import ChannelType, ConfigUI
-from .views import ClaimView
+from .views import ClaimView, UpdateForm
 
 
 class WebChatType(ChannelType):
@@ -19,6 +19,8 @@ class WebChatType(ChannelType):
 
     claim_blurb = _("Chat with visitors on your website via an embedded chat widget.")
     claim_view = ClaimView
+
+    update_form = UpdateForm
 
     config_ui = ConfigUI()  # has own template
 
