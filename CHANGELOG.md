@@ -1,3 +1,10 @@
+v26.3.64 (2026-08-27)
+-------------------------
+ * Remove node_modules from STATICFILES_DIRS
+ * Remove orphaned two factor auth templates
+ * Hide channel logs UI for channel types that don't have logs
+ * Remove @mock_mailroom from tests that don't use the injected mocks
+
 v26.3.63 (2026-08-27)
 -------------------------
  * Fix infinite loop in Schedule.calculate_next_fire on DST fall-back days
