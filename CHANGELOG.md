@@ -1,3 +1,7 @@
+v26.3.63 (2026-08-27)
+-------------------------
+ * Fix infinite loop in Schedule.calculate_next_fire on DST fall-back days
+
 v26.3.62 (2026-08-27)
 -------------------------
  * Add allowed domains support to WebChat channels
