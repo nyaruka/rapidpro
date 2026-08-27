@@ -7,6 +7,7 @@ from django.utils import timezone
 from temba.api.checks import websockets_auth_secret
 from temba.api.tests.mixins import APITestMixin
 from temba.api.websockets.views import SUBSCRIPTION_TTL
+from temba.channels.types.webchat.views import CONFIG_ALLOWED_DOMAINS
 from temba.orgs.models import OrgRole
 from temba.tests import TembaTest
 from temba.tickets.models import Team, Topic
@@ -450,6 +451,66 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.login(self.admin)
         assertAllowed(socket)
 
+    def test_subscribe_chat_allowed_domains(self):
+        # a webchat channel and visitor, as in test_subscribe_chat
+        chat_id = "65vbbDAQCdPdEWlEhDGy4utO"
+        channel = self.create_channel("WCH", "WebChat", "wch1")
+        contact = self.create_contact("Vic", urns=[f"webchat:{chat_id}"])
+        contact.urns.update(channel=channel)
+
+        socket = f"chat:{channel.uuid}:{chat_id}"
+
+        def assertAllowed(origin=None):
+            response = self.post("api.websockets.subscribe", {"channel": socket, "client": "conn-1"}, origin=origin)
+            self.assertEqual(200, response.status_code)
+            self.assertExpiry(response.json()["result"]["expire_at"])
+
+        def assertForbidden(origin=None):
+            response = self.post("api.websockets.subscribe", {"channel": socket, "client": "conn-1"}, origin=origin)
+            self.assertEqual(200, response.status_code)
+            self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
+        # a channel without allowed_domains is unrestricted - any forwarded origin, or none at all, is allowed
+        assertAllowed()
+        assertAllowed(origin="https://anywhere.example.com")
+
+        # pin the channel to its operator's websites
+        channel.config[CONFIG_ALLOWED_DOMAINS] = ["widgets.example.com", "example.com:8080"]
+        channel.save(update_fields=("config",))
+
+        # a forwarded origin's host[:port] must now match an entry, case-insensitively
+        assertAllowed(origin="https://widgets.example.com")
+        assertAllowed(origin="http://Widgets.Example.COM")
+        assertAllowed(origin="http://example.com:8080")
+
+        assertForbidden(origin="https://attacker.example.com")
+        assertForbidden(origin="https://example.com")  # an entry's port must be present in the origin
+        assertForbidden(origin="https://widgets.example.com:8080")  # and an origin's port in the entry
+        assertForbidden(origin="https://wwidgets.example.com")  # matching is exact, not by suffix
+        assertForbidden(origin="null")  # an opaque origin can't match
+        assertForbidden(origin="https://[")  # nor an unparseable one
+
+        # but a request without a forwarded Origin (a non-browser client, or a proxy config that doesn't forward it)
+        # is still allowed - possession of the chat-id remains the credential
+        assertAllowed()
+
+        # sub_refresh applies the same check, so adding domains tears down non-matching subscriptions
+        response = self.post(
+            "api.websockets.sub_refresh",
+            {"channel": socket, "client": "conn-1"},
+            origin="https://attacker.example.com",
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {"expired": True}}, response.json())
+
+        response = self.post(
+            "api.websockets.sub_refresh",
+            {"channel": socket, "client": "conn-1"},
+            origin="https://widgets.example.com",
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertExpiry(response.json()["result"]["expire_at"])
+
     @override_settings(ALLOWED_HOSTS=["testserver", ".rapidpro.io"])
     def test_subscribe_origin(self):
         contact = self.create_contact("Ann", phone="+1234", org=self.org)
@@ -486,7 +547,9 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertEqual(200, response.status_code)
         self.assertEqual({"result": {"expired": True}}, response.json())
 
-        # chat sockets are capability-based and origin-agnostic - webchat widgets subscribe from arbitrary sites
+        # chat sockets are capability-based and exempt from the session-identity origin check - webchat widgets
+        # subscribe from arbitrary sites unless the channel itself pins embedding to its operator's domains (see
+        # test_subscribe_chat_allowed_domains)
         response = subscribe(f"chat:{channel.uuid}:{chat_id}", "https://attacker.example.com")
         self.assertEqual(200, response.status_code)
         self.assertExpiry(response.json()["result"]["expire_at"])

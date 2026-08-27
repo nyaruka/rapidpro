@@ -23,3 +23,20 @@
     <div class="code p-0 break-all bg-black text-white">&lt;temba-webchat channel="{{ channel.uuid }}"&gt;&lt;/temba-webchat&gt;</div>
   </div>
 </div>
+<div class="mt-4 card">
+  <div class="subtitle">{% trans "Allowed Domains" %}</div>
+  <div class="mt-2">
+    {% if channel.config.allowed_domains %}
+      {% blocktrans trimmed %}
+        Only websites on the following domains can embed this channel's chat widget. This can be changed in the
+        channel settings.
+      {% endblocktrans %}
+      <div class="code inline-block mt-2">{{ channel.config.allowed_domains|join:", " }}</div>
+    {% else %}
+      {% blocktrans trimmed %}
+        Currently any website can embed this channel's chat widget. Setting allowed domains in the channel settings
+        stops other websites from embedding it.
+      {% endblocktrans %}
+    {% endif %}
+  </div>
+</div>

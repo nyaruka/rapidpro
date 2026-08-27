@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-26 19:38+0000\n"
+"POT-Creation-Date: 2026-08-27 14:47+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -1863,6 +1863,16 @@ msgstr "El token de autenticación para su cuenta Movile / Wavy"
 
 msgid "Chat with visitors on your website via an embedded chat widget."
 msgstr "Chatee con los visitantes de su sitio web a través de un widget de chat integrado."
+
+msgid "Allowed Domains"
+msgstr "Dominios permitidos"
+
+msgid "The domains of the websites that can embed this channel's chat widget, one per line or comma separated, e.g. example.com or example.com:8080. If empty, any website can embed it."
+msgstr "Los dominios de los sitios web que pueden integrar el widget de chat de este canal, uno por línea o separados por comas, p. ej. example.com o example.com:8080. Si está vacío, cualquier sitio web puede integrarlo."
+
+#, python-format
+msgid "%(domain)s is not a valid domain. Enter domains without schemes or paths, e.g. example.com."
+msgstr "%(domain)s no es un dominio válido. Ingrese dominios sin esquemas ni rutas, p. ej. example.com."
 
 #, python-format
 msgid "Add a %(link)s bot to send and receive messages to WeChat users for free. Your users will need an Android, Windows or iOS device and a WeChat account to send and receive messages."
@@ -5052,6 +5062,12 @@ msgstr "Integrar"
 
 msgid "Add a snippet like the following to your website to embed the chat widget (coming soon)."
 msgstr "Agregue un fragmento como el siguiente a su sitio web para integrar el widget de chat (próximamente)."
+
+msgid "Only websites on the following domains can embed this channel's chat widget. This can be changed in the channel settings."
+msgstr "Solo los sitios web en los siguientes dominios pueden integrar el widget de chat de este canal. Esto se puede cambiar en la configuración del canal."
+
+msgid "Currently any website can embed this channel's chat widget. Setting allowed domains in the channel settings stops other websites from embedding it."
+msgstr "Actualmente cualquier sitio web puede integrar el widget de chat de este canal. Configurar dominios permitidos en la configuración del canal impide que otros sitios web lo integren."
 
 msgid "You can connect your WhatsApp number by clicking on it below."
 msgstr "Puede conectar su número de WhatsApp haciendo clic en él a continuación."

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-26 19:38+0000\n"
+"POT-Creation-Date: 2026-08-27 14:47+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -1867,6 +1867,16 @@ msgstr "O token de autenticação da sua conta Movile/Wavy"
 
 msgid "Chat with visitors on your website via an embedded chat widget."
 msgstr "Converse com os visitantes do seu site através de um widget de chat incorporado."
+
+msgid "Allowed Domains"
+msgstr "Domínios permitidos"
+
+msgid "The domains of the websites that can embed this channel's chat widget, one per line or comma separated, e.g. example.com or example.com:8080. If empty, any website can embed it."
+msgstr "Os domínios dos sites que podem incorporar o widget de chat deste canal, um por linha ou separados por vírgulas, ex. example.com ou example.com:8080. Se vazio, qualquer site pode incorporá-lo."
+
+#, python-format
+msgid "%(domain)s is not a valid domain. Enter domains without schemes or paths, e.g. example.com."
+msgstr "%(domain)s não é um domínio válido. Insira domínios sem esquemas ou caminhos, ex. example.com."
 
 #, python-format
 msgid "Add a %(link)s bot to send and receive messages to WeChat users for free. Your users will need an Android, Windows or iOS device and a WeChat account to send and receive messages."
@@ -5056,6 +5066,12 @@ msgstr "Incorporar"
 
 msgid "Add a snippet like the following to your website to embed the chat widget (coming soon)."
 msgstr "Adicione um trecho como o seguinte ao seu site para incorporar o widget de chat (em breve)."
+
+msgid "Only websites on the following domains can embed this channel's chat widget. This can be changed in the channel settings."
+msgstr "Apenas os sites nos seguintes domínios podem incorporar o widget de chat deste canal. Isso pode ser alterado nas configurações do canal."
+
+msgid "Currently any website can embed this channel's chat widget. Setting allowed domains in the channel settings stops other websites from embedding it."
+msgstr "Atualmente qualquer site pode incorporar o widget de chat deste canal. Definir domínios permitidos nas configurações do canal impede que outros sites o incorporem."
 
 msgid "You can connect your WhatsApp number by clicking on it below."
 msgstr "Você pode conectar o seu número do WhatsApp clicando nele abaixo."

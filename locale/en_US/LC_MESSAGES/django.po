@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-26 19:38+0000\n"
+"POT-Creation-Date: 2026-08-27 14:47+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -1848,6 +1848,16 @@ msgid "The Authentication Token for your Movile/Wavy account"
 msgstr ""
 
 msgid "Chat with visitors on your website via an embedded chat widget."
+msgstr ""
+
+msgid "Allowed Domains"
+msgstr ""
+
+msgid "The domains of the websites that can embed this channel's chat widget, one per line or comma separated, e.g. example.com or example.com:8080. If empty, any website can embed it."
+msgstr ""
+
+#, python-format
+msgid "%(domain)s is not a valid domain. Enter domains without schemes or paths, e.g. example.com."
 msgstr ""
 
 #, python-format
@@ -5017,6 +5027,12 @@ msgid "Embed"
 msgstr ""
 
 msgid "Add a snippet like the following to your website to embed the chat widget (coming soon)."
+msgstr ""
+
+msgid "Only websites on the following domains can embed this channel's chat widget. This can be changed in the channel settings."
+msgstr ""
+
+msgid "Currently any website can embed this channel's chat widget. Setting allowed domains in the channel settings stops other websites from embedding it."
 msgstr ""
 
 msgid "You can connect your WhatsApp number by clicking on it below."
