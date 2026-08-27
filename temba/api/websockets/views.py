@@ -9,6 +9,18 @@ individual socket subscriptions: most sockets against the live Django session, b
 capability - the socket name embeds a secret chat-id, so possession of the name is the credential and anonymous
 visitors can subscribe to (only) their own chat.
 
+Because the realtime server forwards the browser's session cookie, these cookie-authenticated calls are a CSRF
+surface: a WebSocket opened by any page the browser user happens to visit would otherwise ride their session. Two
+independent layers prevent that. First, the session cookie is ``SameSite=Lax`` (the Django default), so modern
+browsers never attach it to a cross-site WebSocket handshake. Second, the realtime server forwards the browser's
+``Origin`` header, and a request that resolves to an authenticated session but originates from a host this
+deployment doesn't itself serve (judged against ``ALLOWED_HOSTS``, so whitelabel domains pass) is stripped of that
+identity: connect accepts the connection as anonymous, refresh expires it, and the subscription proxies deny its
+session-based sockets. Together these mean the realtime server's own allowed-origins whitelist can be relaxed - so
+webchat widgets can connect from arbitrary third-party sites - without those pages being able to borrow a
+visitor's session. A request with no ``Origin`` header at all (a non-browser client, or a proxy config that
+doesn't forward it) is treated as before.
+
 Unlike the rest of the internal API (``/api/internal/``), which is called by the editor running in the user's
 browser and so *must* be reachable from the public internet, every endpoint here is only ever called by the
 realtime messaging server from inside our own network. That means this API can be made truly internal: serve
@@ -19,7 +31,9 @@ isn't the realtime server even if the path is ever reachable - but the secret is
 API off the public internet.
 """
 
+import logging
 import re
+from urllib.parse import urlsplit
 
 from django_valkey import get_valkey_connection
 from rest_framework.permissions import BasePermission
@@ -28,6 +42,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from django.conf import settings
+from django.http.request import validate_host
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 
@@ -36,6 +51,8 @@ from temba.contacts.models import URN
 from temba.tickets.models import Ticket
 
 from ..support import APISessionAuthentication
+
+logger = logging.getLogger(__name__)
 
 # how long (seconds) a connection stays valid before the realtime server must re-validate it via the refresh proxy
 CONNECTION_TTL = 5 * 60
@@ -55,7 +72,9 @@ SUBSCRIPTION_TTL = 150
 class WebSocketsSessionAuthentication(APISessionAuthentication):
     """
     Session auth for the server-to-server proxy calls. The realtime server forwards the browser's session cookie but
-    can't present a CSRF token, so we no-op the CSRF check. Identity still comes from the real, signed session cookie.
+    can't present a CSRF token, so we no-op the CSRF check. Identity still comes from the real, signed session cookie,
+    and cross-origin protection comes from the cookie's ``SameSite`` policy plus the forwarded-Origin check the
+    endpoints apply (see module docs).
     """
 
     def enforce_csrf(self, request):
@@ -87,6 +106,32 @@ class BaseEndpoint(APIView):
         """Unix time at which the connection should next be re-validated by the refresh proxy."""
         return int(timezone.now().timestamp()) + CONNECTION_TTL
 
+    def is_foreign_origin(self, request) -> bool:
+        """
+        Whether the request carries a forwarded browser ``Origin`` header whose host isn't one this deployment itself
+        serves. A foreign-origin request must never be granted session identity (see module docs). Origins are judged
+        against ``ALLOWED_HOSTS`` - the same configuration that already defines which hosts the deployment answers
+        for, wildcard entries included - so whitelabel domains pass without a separate list. That also means a
+        deployment running with ``ALLOWED_HOSTS = ["*"]`` disables this check entirely - every origin validates -
+        leaving the cookie's ``SameSite`` policy as its only cross-origin defense. An absent header (a non-browser
+        client, or a proxy config that doesn't forward it) is not foreign; an unparseable or opaque one (e.g.
+        ``null``) is.
+        """
+        origin = request.headers.get("Origin", "")
+        if not origin:
+            return False
+
+        try:
+            host = urlsplit(origin).hostname
+        except ValueError:
+            host = None
+
+        allowed_hosts = settings.ALLOWED_HOSTS
+        if settings.DEBUG and not allowed_hosts:  # mirror the dev fallback Django's own host validation uses
+            allowed_hosts = [".localhost", "127.0.0.1", "[::1]"]
+
+        return not (host and validate_host(host, allowed_hosts))
+
 
 class ConnectEndpoint(BaseEndpoint):
     """
@@ -108,6 +153,11 @@ class ConnectEndpoint(BaseEndpoint):
     for it - there's no session state to re-validate at the connection level. Anonymous connections exist for webchat
     visitors: the subscribe proxy authorizes their ``chat`` sockets by capability - the socket name embeds a secret
     chat-id - and denies them every session-based socket.
+
+    A connection that *does* resolve to a session but arrives from a foreign origin - a forwarded browser ``Origin``
+    header for a host this deployment doesn't serve - is also accepted as anonymous rather than being granted the
+    session's identity: a third-party page must never be able to ride a visitor's session (see module docs).
+    Anonymous connections are origin-agnostic - webchat widgets connect from arbitrary sites by design.
     """
 
     def post(self, request, *args, **kwargs):
@@ -115,6 +165,15 @@ class ConnectEndpoint(BaseEndpoint):
 
         # a connection that doesn't resolve to an authenticated user with a current workspace is anonymous
         if not user.is_authenticated or not request.org:
+            return Response({"result": {"user": "", "channels": [], "meta": {}}})
+
+        # so is one that resolves to a session but comes from an origin we don't serve - it gets no session identity.
+        # That's either a third-party page trying to ride the session or a misconfigured origin, so warn.
+        if self.is_foreign_origin(request):
+            logger.warning(
+                "websockets connect downgraded to anonymous: session presented from foreign origin %s",
+                request.headers.get("Origin"),
+            )
             return Response({"result": {"user": "", "channels": [], "meta": {}}})
 
         org = request.org
@@ -129,15 +188,26 @@ class RefreshEndpoint(BaseEndpoint):
     """
     Refresh proxy called periodically by the realtime messaging server before a connection's ``expire_at``. Only
     authenticated connections get an ``expire_at`` from connect, so this is never called for anonymous connections. We
-    re-check that the connection is still valid - the user is still logged in and still has a current workspace,
-    matching what ``connect`` requires of an authenticated connection - and either extend it with a new ``expire_at``
-    or let it expire. This is how a logout, session expiry, or losing access to the workspace eventually tears down
-    the WebSocket.
+    re-check that the connection is still valid - the user is still logged in, still has a current workspace, and the
+    connection's forwarded ``Origin`` (if any) is still one we serve, matching what ``connect`` requires of an
+    authenticated connection - and either extend it with a new ``expire_at`` or let it expire. This is how a logout,
+    session expiry, or losing access to the workspace eventually tears down the WebSocket - and a foreign-origin
+    refresh expires the connection too, so an authenticated connection can't outlive a tightening of the origin rules
+    that would refuse it identity today.
     """
 
     def post(self, request, *args, **kwargs):
         # mirror connect: a connection is only kept alive while it has an authenticated user with a current workspace
         if not request.user.is_authenticated or not request.org:
+            return Response({"result": {"expired": True}})
+
+        # and, as at connect, a foreign origin gets no session identity - without it the connection can't stay
+        # authenticated, so it expires
+        if self.is_foreign_origin(request):
+            logger.warning(
+                "websockets connection expired: session presented from foreign origin %s",
+                request.headers.get("Origin"),
+            )
             return Response({"result": {"expired": True}})
 
         return Response({"result": {"expire_at": self.expire_at()}})
@@ -197,8 +267,11 @@ class SubscriptionEndpoint(BaseEndpoint):
         """
         Default-deny authorization of a client-requested socket, routed by matching the socket name against
         ``SOCKET_ROUTES`` - so adding a new socket type later is one route and one handler. Session-based routes are
-        denied outright unless the request has an authenticated user with a current workspace, so their handlers are
-        never reached by an anonymous request.
+        denied outright unless the request has an authenticated user with a current workspace *and* isn't from a
+        foreign origin - a request the connect proxy would refuse session identity must be refused session-based
+        sockets here too, or a third-party page could bypass the connect-time downgrade by subscribing with the same
+        forwarded cookie (see module docs) - so their handlers are never reached by an anonymous or foreign-origin
+        request. The capability-based chat route never touches the session and so has no origin restrictions.
         """
         if not isinstance(socket, str):  # malformed payload (e.g. a non-string socket) is just a denial, not a 500
             return False
@@ -206,7 +279,9 @@ class SubscriptionEndpoint(BaseEndpoint):
         for pattern, handler, session_based in self.SOCKET_ROUTES:
             match = pattern.fullmatch(socket)  # unlike $ anchoring, fullmatch won't tolerate a trailing newline
             if match:
-                if session_based and (not request.user.is_authenticated or not request.org):
+                if session_based and (
+                    not request.user.is_authenticated or not request.org or self.is_foreign_origin(request)
+                ):
                     return False
 
                 return getattr(self, handler)(request, **match.groupdict())
