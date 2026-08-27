@@ -1,6 +1,6 @@
 import calendar
 import logging
-from datetime import time, timedelta, timezone as tzone
+from datetime import datetime, time, timedelta, timezone as tzone
 
 from dateutil.relativedelta import relativedelta
 
@@ -180,21 +180,13 @@ class Schedule(models.Model):
             assert self.repeat_days_of_week != "" and self.repeat_days_of_week is not None
 
             while next_fire <= now or self._day_of_week(next_fire) not in self.repeat_days_of_week:
-                next_fire = (
-                    (next_fire.astimezone(tzone.utc) + timedelta(days=1))
-                    .astimezone(tz)
-                    .replace(hour=hour, minute=minute)
-                )
+                next_fire = self._next_day(next_fire, tz, hour, minute)
 
             return next_fire
 
         elif self.repeat_period == Schedule.REPEAT_DAILY:
             while next_fire <= now:
-                next_fire = (
-                    (next_fire.astimezone(tzone.utc) + timedelta(days=1))
-                    .astimezone(tz)
-                    .replace(hour=hour, minute=minute)
-                )
+                next_fire = self._next_day(next_fire, tz, hour, minute)
 
             return next_fire
         elif self.repeat_period == Schedule.REPEAT_YEARLY:
@@ -226,6 +218,15 @@ class Schedule(models.Model):
                 "each year on %(month)s %(day)s"
                 % {"month": self.next_fire.strftime("%B"), "day": ordinal(self.next_fire.strftime("%d"))}
             )
+
+    @staticmethod
+    def _next_day(d, tz, hour: int, minute: int):
+        """
+        The same time of day on the next calendar day in the given timezone. Advancing by adding 24 hours in UTC
+        isn't safe: on a DST fall-back day (25 local hours) that lands on the same local day, which would make the
+        loops above never advance.
+        """
+        return datetime.combine(d.date() + timedelta(days=1), time(hour, minute), tzinfo=tz)
 
     @staticmethod
     def _day_of_week(d):

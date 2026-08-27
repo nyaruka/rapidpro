@@ -114,6 +114,27 @@ class ScheduleTest(TembaTest):
                 display="each day at 10:00",
             ),
             dict(
+                label="daily at midnight across end of DST",  # a 25-hour day, which used to loop forever
+                trigger_date=datetime(2026, 10, 24, hour=0),
+                now=datetime(2026, 10, 23, hour=9),
+                repeat_period=Schedule.REPEAT_DAILY,
+                tz=ZoneInfo("Europe/London"),
+                first=datetime(2026, 10, 24, hour=0),
+                next=[datetime(2026, 10, 25, hour=0), datetime(2026, 10, 26, hour=0), datetime(2026, 10, 27, hour=0)],
+                display="each day at 00:00",
+            ),
+            dict(
+                label="weekly at midnight across end of DST",
+                trigger_date=datetime(2026, 10, 18, hour=0),
+                now=datetime(2026, 10, 17, hour=9),
+                repeat_period=Schedule.REPEAT_WEEKLY,
+                repeat_days_of_week="U",
+                tz=ZoneInfo("Europe/London"),
+                first=datetime(2026, 10, 18, hour=0),
+                next=[datetime(2026, 10, 25, hour=0), datetime(2026, 11, 1, hour=0)],
+                display="each week on Sunday",
+            ),
+            dict(
                 label="weekly repeating starting on non weekly day of the week",
                 trigger_date=datetime(2013, 1, 2, hour=10),
                 now=datetime(2013, 1, 2, hour=9),
