@@ -1,3 +1,10 @@
+v26.3.62 (2026-08-27)
+-------------------------
+ * Add allowed domains support to WebChat channels
+ * Record usage of deprecated API endpoints and list filter params
+ * Don't grant session identity to cross-origin websockets connections
+ * Use a test mailroom client that can't make real HTTP requests
+
 v26.3.61 (2026-08-27)
 -------------------------
  * Ignore invalid attachments when deleting messages
