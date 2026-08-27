@@ -1,3 +1,8 @@
+v26.3.61 (2026-08-27)
+-------------------------
+ * Ignore invalid attachments when deleting messages
+ * Remove fail_old_android_messages task now that mailroom handles it
+
 v26.3.60 (2026-08-26)
 -------------------------
  * Require an active contact for webchat chat socket authorization and authorize visitor chat subscriptions in the realtime subscribe proxy
