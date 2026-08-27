@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 14:47+0000\n"
+"POT-Creation-Date: 2026-08-27 19:26+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -6132,10 +6132,6 @@ msgstr "Escolha uma nova senha e digite-a abaixo."
 
 msgid "To disable two-factor authentication for your login, enter your current password."
 msgstr "Para desabilitar a autenticação de 2-fatores para o seu login, entre a senha atual."
-
-#, python-format
-msgid "To enable two-factor authentication on your login, use a one-time password (OTP) application such as <a target=\"_blank\" href=\"%(ga_url)s\">Google Authenticator</a> or <a target=\"_blank\" href=\"%(authy_url)s\">Authy</a> to scan the QR code below."
-msgstr "Para habilitar a autenticação de dois fatores no seu login, use um aplicativo de senha de uso único (OTP) como o <a target=\"_blank\" href=\"%(ga_url)s\">Google Authenticator</a> ou o <a target=\"_blank\" href=\"%(authy_url)s\">Authy</a> para escanear o código QR abaixo."
 
 msgid "Below are your backup tokens which you can use if you lose access to the device with which you setup two-factor authentication. Each token can only be used once and tokens which have already been used are showed with a line through them. You should record these tokens in a secure place."
 msgstr "Abaixo estão os seus tokens de backup, que você pode usar se perder o acesso ao dispositivo com o qual configurou a autenticação de dois fatores. Cada token só pode ser usado uma vez e os tokens que já foram usados são mostrados riscados. Você deve guardar estes tokens em um lugar seguro."

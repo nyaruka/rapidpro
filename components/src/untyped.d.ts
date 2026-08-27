@@ -18,7 +18,6 @@ declare function mouseUp();
 declare function mouseClick(x: number, y: number);
 declare function setViewport({}: any);
 declare function waitForNetworkIdle();
-declare module 'croppie';
 
 declare module '*.svg' {
   const content: any;
