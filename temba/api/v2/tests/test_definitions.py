@@ -43,6 +43,11 @@ class DefinitionsEndpointTest(APITest):
         )
         self.assertDeprecatedRecorded("definitions#get", 1)
 
+        # browsing the endpoint docs doesn't count as usage
+        response = self.client.get(reverse("api.v2.definitions"))
+        self.assertEqual(200, response.status_code)
+        self.assertDeprecatedRecorded("definitions#get", 1)
+
         # flow + all dependencies by default
         self.assertGet(
             endpoint_url + f"?flow={flow1.uuid}",

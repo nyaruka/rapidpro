@@ -159,8 +159,9 @@ class MessagesEndpointTest(APITest):
         )
         self.assertDeprecatedRecorded("messages#filter:broadcast", 1)
 
-        # can't filter with invalid id
+        # can't filter with invalid id.. and a param that fails validation isn't recorded as usage
         self.assertGet(endpoint_url + "?id=xyz", [self.editor], errors={None: "Value for id must be an integer"})
+        self.assertDeprecatedRecorded("messages#filter:id", 1)
 
         # can't filter by more than one of contact, folder, label or broadcast together
         for query in (
