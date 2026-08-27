@@ -132,6 +132,8 @@ class EndpointsTest(APITestMixin, TembaTest):
         # an opaque or unparseable origin is foreign too
         with self.assertLogs("temba.api.websockets.views", level="WARNING"):
             self.assertAnonymousConnect(self.post("api.websockets.connect", origin="null"))
+        with self.assertLogs("temba.api.websockets.views", level="WARNING"):
+            self.assertAnonymousConnect(self.post("api.websockets.connect", origin="https://[invalid"))
 
         # anonymous connections are origin-agnostic - webchat widgets connect from arbitrary sites by design - and
         # nothing is downgraded, so nothing is warned about
