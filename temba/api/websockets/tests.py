@@ -17,8 +17,10 @@ SECRET = "topsecret"
 
 @override_settings(WEBSOCKETS_AUTH_SECRET=SECRET)
 class EndpointsTest(APITestMixin, TembaTest):
-    def post(self, name, data=None, *, client=None, secret=SECRET):
+    def post(self, name, data=None, *, client=None, secret=SECRET, origin=None):
         headers = {"HTTP_X_WEBSOCKETS_SECRET": secret} if secret is not None else {}
+        if origin is not None:  # the realtime server forwarding the browser's Origin header
+            headers["HTTP_ORIGIN"] = origin
         return (client or self.client).post(reverse(name), data or {}, content_type="application/json", **headers)
 
     def assertExpiry(self, expire_at):
@@ -100,6 +102,42 @@ class EndpointsTest(APITestMixin, TembaTest):
             },
         )
 
+    @override_settings(ALLOWED_HOSTS=["testserver", ".rapidpro.io"])
+    def test_connect_origin(self):
+        admin_meta = {
+            "user_id": self.admin.id,
+            "user_uuid": str(self.admin.uuid),
+            "org_id": self.org.id,
+            "org_uuid": str(self.org.uuid),
+        }
+
+        self.login(self.admin)
+
+        # a session connecting from an origin the deployment itself serves (wildcard entries included, so whitelabel
+        # domains pass) gets its full identity
+        self.assertConnect(
+            self.post("api.websockets.connect", origin="https://app.rapidpro.io"), user=self.admin, meta=admin_meta
+        )
+
+        # as does one with no Origin header at all - a non-browser client, or a proxy config that doesn't forward it
+        self.assertConnect(self.post("api.websockets.connect"), user=self.admin, meta=admin_meta)
+
+        # but a session presented from a foreign origin is refused its identity - the connection is accepted as
+        # anonymous instead, and the downgrade is warned about since it's either an attack or a misconfiguration
+        with self.assertLogs("temba.api.websockets.views", level="WARNING") as logs:
+            self.assertAnonymousConnect(self.post("api.websockets.connect", origin="https://attacker.example.com"))
+        self.assertIn("foreign origin https://attacker.example.com", logs.output[0])
+
+        # an opaque or unparseable origin is foreign too
+        with self.assertLogs("temba.api.websockets.views", level="WARNING"):
+            self.assertAnonymousConnect(self.post("api.websockets.connect", origin="null"))
+
+        # anonymous connections are origin-agnostic - webchat widgets connect from arbitrary sites by design - and
+        # nothing is downgraded, so nothing is warned about
+        self.client.logout()
+        with self.assertNoLogs("temba.api.websockets.views", level="WARNING"):
+            self.assertAnonymousConnect(self.post("api.websockets.connect", origin="https://attacker.example.com"))
+
     def test_refresh(self):
         # a still-authenticated connection with a current workspace is extended with a new expiry
         self.login(self.admin)
@@ -118,6 +156,23 @@ class EndpointsTest(APITestMixin, TembaTest):
         # a connection whose session is gone is told it has expired, which tears the connection down
         self.client.logout()
         response = self.post("api.websockets.refresh")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {"expired": True}}, response.json())
+
+    @override_settings(ALLOWED_HOSTS=["testserver", ".rapidpro.io"])
+    def test_refresh_origin(self):
+        self.login(self.admin)
+
+        # a refresh from an origin the deployment serves, or with no Origin header, extends the connection as before
+        for origin in ("https://app.rapidpro.io", None):
+            response = self.post("api.websockets.refresh", origin=origin)
+            self.assertEqual(200, response.status_code)
+            self.assertExpiry(response.json()["result"]["expire_at"])
+
+        # but a foreign origin gets no session identity, so the connection expires rather than persisting - even one
+        # that authenticated at connect (e.g. under a config that didn't yet forward the Origin header)
+        with self.assertLogs("temba.api.websockets.views", level="WARNING"):
+            response = self.post("api.websockets.refresh", origin="https://attacker.example.com")
         self.assertEqual(200, response.status_code)
         self.assertEqual({"result": {"expired": True}}, response.json())
 
@@ -394,6 +449,47 @@ class EndpointsTest(APITestMixin, TembaTest):
         # being logged in doesn't get in the way of chat authorization - it never touches the session
         self.login(self.admin)
         assertAllowed(socket)
+
+    @override_settings(ALLOWED_HOSTS=["testserver", ".rapidpro.io"])
+    def test_subscribe_origin(self):
+        contact = self.create_contact("Ann", phone="+1234", org=self.org)
+
+        # a webchat channel and visitor, as in test_subscribe_chat
+        chat_id = "65vbbDAQCdPdEWlEhDGy4utO"
+        channel = self.create_channel("WCH", "WebChat", "wch1")
+        chat_contact = self.create_contact("Vic", urns=[f"webchat:{chat_id}"])
+        chat_contact.urns.update(channel=channel)
+
+        def subscribe(socket, origin):
+            return self.post("api.websockets.subscribe", {"channel": socket, "client": "conn-1"}, origin=origin)
+
+        self.login(self.admin)
+
+        # a session subscribing from an origin the deployment serves, or with no Origin header, is authorized as usual
+        for origin in ("https://app.rapidpro.io", None):
+            response = subscribe(f"history:{contact.uuid}", origin)
+            self.assertEqual(200, response.status_code)
+            self.assertExpiry(response.json()["result"]["expire_at"])
+
+        # but a foreign-origin request gets no session identity here either - a page the connect proxy would only
+        # accept as anonymous can't reach session-based sockets by subscribing with the same forwarded cookie
+        response = subscribe(f"history:{contact.uuid}", "https://attacker.example.com")
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"error": {"code": 403, "message": "forbidden"}}, response.json())
+
+        # and sub_refresh applies the same rule, so such a subscription expires rather than being re-armed
+        response = self.post(
+            "api.websockets.sub_refresh",
+            {"channel": f"history:{contact.uuid}", "client": "conn-1"},
+            origin="https://attacker.example.com",
+        )
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({"result": {"expired": True}}, response.json())
+
+        # chat sockets are capability-based and origin-agnostic - webchat widgets subscribe from arbitrary sites
+        response = subscribe(f"chat:{channel.uuid}:{chat_id}", "https://attacker.example.com")
+        self.assertEqual(200, response.status_code)
+        self.assertExpiry(response.json()["result"]["expire_at"])
 
     def test_subscribe_ticket_topic_access(self):
         # an agent restricted to a team's topics can only watch the history of tickets they're allowed to view - the
