@@ -5,7 +5,6 @@ from uuid import UUID
 
 from django.db.models import Value as DbValue
 from django.db.models.functions import Concat, Substr
-from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -19,7 +18,7 @@ from temba.mailroom import modifiers
 from temba.msgs.models import Msg, MsgFolder
 from temba.orgs.models import Org
 from temba.schedules.models import Schedule
-from temba.tests import MockJsonResponse, TembaTest, cleanup, mock_mailroom
+from temba.tests import TembaTest, cleanup, mock_mailroom
 from temba.tests.engine import MockSessionWriter
 from temba.tickets.models import Ticket
 from temba.utils import dynamo
@@ -86,30 +85,29 @@ class ContactTest(TembaTest):
             mr_mocks.calls["contact_modify"],
         )
 
-    @override_settings(MAILROOM_URL="http://mailroom:8090")
-    @patch("requests.post")
-    def test_open_ticket(self, mock_post):
-        mock_post.return_value = MockJsonResponse(200, {"events": {str(self.joe.uuid): []}, "skipped": []})
+    @mock_mailroom
+    def test_open_ticket(self, mr_mocks):
+        ticket = self.joe.open_ticket(self.admin, topic=self.org.default_topic, assignee=self.agent, note="Looks sus")
 
-        self.joe.open_ticket(self.admin, topic=self.org.default_topic, assignee=self.agent, note="Looks sus")
-
-        mock_post.assert_called_once_with(
-            "http://mailroom:8090/mi/contact/modify",
-            headers={"User-Agent": "Temba"},
-            json={
-                "org_id": self.org.id,
-                "user_id": self.admin.id,
-                "contact_ids": [self.joe.id],
-                "modifiers": [
-                    {
-                        "type": "ticket",
-                        "topic": {"uuid": str(self.org.default_topic.uuid), "name": "General"},
-                        "assignee": {"uuid": str(self.agent.uuid), "name": "Agnes"},
-                        "note": "Looks sus",
-                    }
-                ],
-                "via": "ui",
-            },
+        self.assertEqual(self.org.default_topic, ticket.topic)
+        self.assertEqual(self.agent, ticket.assignee)
+        self.assertEqual(
+            [
+                call(
+                    self.org,
+                    self.admin,
+                    [self.joe],
+                    [
+                        modifiers.Ticket(
+                            topic=modifiers.TopicRef(uuid=str(self.org.default_topic.uuid), name="General"),
+                            assignee=modifiers.UserRef(uuid=str(self.agent.uuid), name="Agnes"),
+                            note="Looks sus",
+                        )
+                    ],
+                    "ui",
+                )
+            ],
+            mr_mocks.calls["contact_modify"],
         )
 
     @mock_mailroom

@@ -2,8 +2,6 @@ from datetime import datetime, timezone as tzone
 from decimal import Decimal
 from unittest.mock import patch
 
-from django.test import override_settings
-
 from temba.ai.models import LLM
 from temba.ai.types.openai.type import OpenAIType
 from temba.campaigns.models import Campaign, CampaignEvent
@@ -339,6 +337,11 @@ class MailroomClientTest(TembaTest):
                     modification="add",
                 ),
                 modifiers.URNs(urns=["+tel+1234567890"], modification="append"),
+                modifiers.Ticket(
+                    topic=modifiers.TopicRef(uuid="7c2e0c6e-1ba1-4ba0-9a7f-5b1c1e0b0b0a", name="General"),
+                    assignee=modifiers.UserRef(uuid="a2c1d0b2-3f6e-4b1a-9c2d-8f5e4d3c2b1a", name="Agnes"),
+                    note="Looks sus",
+                ),
             ],
             "ui",
         )
@@ -361,6 +364,12 @@ class MailroomClientTest(TembaTest):
                         "modification": "add",
                     },
                     {"type": "urns", "urns": ["+tel+1234567890"], "modification": "append"},
+                    {
+                        "type": "ticket",
+                        "topic": {"uuid": "7c2e0c6e-1ba1-4ba0-9a7f-5b1c1e0b0b0a", "name": "General"},
+                        "assignee": {"uuid": "a2c1d0b2-3f6e-4b1a-9c2d-8f5e4d3c2b1a", "name": "Agnes"},
+                        "note": "Looks sus",
+                    },
                 ],
                 "via": "ui",
             },
@@ -485,7 +494,21 @@ class MailroomClientTest(TembaTest):
         )
         self.assertEqual({"flow": flow_def, "language": "spa"}, json.loads(call[1]["data"]))
 
-    @override_settings(TESTING=False)
+    def test_flow_clone(self):
+        flow_def = {"nodes": [{"uuid": "3f7e5e4f-4b0e-4b0e-4b0e-4b0e4b0e4b0e"}]}
+        mapping = {"3f7e5e4f-4b0e-4b0e-4b0e-4b0e4b0e4b0e": "b6d8b8e0-0e6e-4b0e-4b0e-4b0e4b0e4b0e"}
+
+        with patch("requests.post") as mock_post:
+            mock_post.return_value = MockJsonResponse(200, {"nodes": []})
+
+            self.assertEqual({"nodes": []}, self.client.flow_clone(flow_def, mapping))
+
+        mock_post.assert_called_once_with(
+            "http://localhost:8090/mi/flow/clone",
+            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
+            json={"flow": flow_def, "dependency_mapping": mapping},
+        )
+
     def test_flow_inspect(self):
         flow_def = {"nodes": [{"val": Decimal("1.23")}]}
 
@@ -1003,6 +1026,40 @@ class MailroomClientTest(TembaTest):
             headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
             json={"org_id": self.org.id},
         )
+
+    def test_sim_start(self):
+        payload = {"org_id": self.org.id, "contact": {"uuid": "8ada55d2-2f5e-4d56-8f10-26971332cd1c"}}
+
+        with patch("requests.post") as mock_post:
+            mock_post.return_value = MockJsonResponse(200, {"session": {}, "events": []})
+
+            self.assertEqual({"session": {}, "events": []}, self.client.sim_start(payload))
+
+        call = mock_post.call_args
+
+        self.assertEqual(("http://localhost:8090/mi/sim/start",), call[0])
+        self.assertEqual(
+            {"User-Agent": "Temba", "Authorization": "Token sesame", "Content-Type": "application/json"},
+            call[1]["headers"],
+        )
+        self.assertEqual(payload, json.loads(call[1]["data"]))
+
+    def test_sim_resume(self):
+        payload = {"org_id": self.org.id, "session": {"uuid": "01979ebb-044a-7768-a0d0-0455ef356441"}, "resume": {}}
+
+        with patch("requests.post") as mock_post:
+            mock_post.return_value = MockJsonResponse(200, {"session": {}, "events": []})
+
+            self.assertEqual({"session": {}, "events": []}, self.client.sim_resume(payload))
+
+        call = mock_post.call_args
+
+        self.assertEqual(("http://localhost:8090/mi/sim/resume",), call[0])
+        self.assertEqual(
+            {"User-Agent": "Temba", "Authorization": "Token sesame", "Content-Type": "application/json"},
+            call[1]["headers"],
+        )
+        self.assertEqual(payload, json.loads(call[1]["data"]))
 
     @patch("requests.post")
     def test_ticket_add_note(self, mock_post):

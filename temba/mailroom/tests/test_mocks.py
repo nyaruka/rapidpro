@@ -2,7 +2,16 @@ import copy
 
 from django.test import SimpleTestCase
 
-from temba.tests.mailroom import clone_flow_definition, inspect_flow
+from temba import mailroom
+from temba.tests import TembaTest
+from temba.tests.mailroom import LiveMailroomError, clone_flow_definition, inspect_flow
+
+
+class TestClientTest(TembaTest):
+    def test_unfaked_endpoint(self):
+        # any endpoint the test client doesn't fake would be an HTTP call to a live mailroom, so fail loudly
+        with self.assertRaises(LiveMailroomError):
+            mailroom.get_client().msg_handle(self.org, [])
 
 
 class InspectFlowTest(SimpleTestCase):
