@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 14:47+0000\n"
+"POT-Creation-Date: 2026-08-27 19:50+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -6075,22 +6075,6 @@ msgstr "Finalizado correctamente"
 msgid "View flows"
 msgstr "Ver flujos"
 
-msgid "Two factor authentication is currently <b>enabled</b>."
-msgstr "La autenticación de dos factores está actualmente <b>habilitada</b>."
-
-msgid "Backup Tokens"
-msgstr "Tokens de respaldo"
-
-msgid "Two factor authentication is currently <b>not enabled</b>."
-msgstr "La autenticación de dos factores actualmente <b>no está habilitada</b>."
-
-#, python-format
-msgid "You have <b>%(count)s</b> active API token."
-msgid_plural "You have <b>%(count)s</b> active API tokens."
-msgstr[0] "Tiene <b>%(count)s</b> token de API activo."
-msgstr[1] "Tiene <b>%(count)s</b> tokens de API activos."
-msgstr[2] "Tiene <b>%(count)s</b> tokens de API activos."
-
 #, python-format
 msgid "You are about to remove the user <b>%(object)s</b> from your workspace. Are you sure?"
 msgstr "Está a punto de eliminar al usuario <b>%(object)s</b> de su workspace. ¿Está seguro?"
@@ -6126,21 +6110,9 @@ msgstr "Sin usuarios"
 msgid "Choose a new password and enter it below."
 msgstr "Elija una nueva contraseña e introdúzcala a continuación."
 
-msgid "To disable two-factor authentication for your login, enter your current password."
-msgstr "Para deshabilitar la autenticación de dos factores para su inicio de sesión, ingrese su contraseña actual."
-
 #, python-format
 msgid "To enable two-factor authentication on your login, use a one-time password (OTP) application such as <a target=\"_blank\" href=\"%(ga_url)s\">Google Authenticator</a> or <a target=\"_blank\" href=\"%(authy_url)s\">Authy</a> to scan the QR code below."
 msgstr "Para habilitar la autenticación de dos factores en su inicio de sesión, utilice una aplicación de contraseña de un solo uso (OTP) como <a target=\"_blank\" href=\"%(ga_url)s\">Google Authenticator</a> o <a target=\"_blank\" href=\"%(authy_url)s\">Authy</a> para escanear el código QR de abajo."
-
-msgid "Below are your backup tokens which you can use if you lose access to the device with which you setup two-factor authentication. Each token can only be used once and tokens which have already been used are showed with a line through them. You should record these tokens in a secure place."
-msgstr "A continuación se muestran sus tokens de respaldo, que puede utilizar si pierde el acceso al dispositivo con el que configuró la autenticación de dos factores. Cada token solo se puede utilizar una vez y los tokens que ya se han utilizado se muestran tachados. Debe guardar estos tokens en un lugar seguro."
-
-msgid "You can generate new backup tokens but remember that the current tokens will be no longer be usable if you do this."
-msgstr "Puede generar nuevos tokens de respaldo, pero recuerde que los tokens actuales ya no se podrán utilizar si hace esto."
-
-msgid "Regenerate Tokens"
-msgstr "Regenerar Tokens"
 
 msgid "This email verification link is invalid."
 msgstr "Este enlace de verificación de correo electrónico no es válido."
