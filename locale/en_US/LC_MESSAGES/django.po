@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 19:50+0000\n"
+"POT-Creation-Date: 2026-08-27 20:36+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -6021,10 +6021,6 @@ msgid "No users"
 msgstr ""
 
 msgid "Choose a new password and enter it below."
-msgstr ""
-
-#, python-format
-msgid "To enable two-factor authentication on your login, use a one-time password (OTP) application such as <a target=\"_blank\" href=\"%(ga_url)s\">Google Authenticator</a> or <a target=\"_blank\" href=\"%(authy_url)s\">Authy</a> to scan the QR code below."
 msgstr ""
 
 msgid "This email verification link is invalid."

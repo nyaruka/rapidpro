@@ -25,9 +25,7 @@
     <script src="{% url 'django.views.i18n.javascript_catalog' %}"></script>
     {% compress js %}
       <script src="{{ STATIC_URL }}rest_framework/js/prettify-min.js"></script>
-      <script src="{{ STATIC_URL }}qrious/dist/qrious.min.js"></script>
-      <script src="{{ STATIC_URL }}rest_framework/js/prettify-min.js"></script>
-      <script src="{{ STATIC_URL }}croppie/croppie.js"></script>
+      <script src="{{ STATIC_URL }}lib/croppie/croppie.js"></script>
     {% endcompress %}
     {% compress js %}
       <script src="{{ STATIC_URL }}js/utils.js"></script>

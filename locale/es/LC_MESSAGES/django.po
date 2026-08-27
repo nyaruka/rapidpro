@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 19:50+0000\n"
+"POT-Creation-Date: 2026-08-27 20:36+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -6109,10 +6109,6 @@ msgstr "Sin usuarios"
 
 msgid "Choose a new password and enter it below."
 msgstr "Elija una nueva contraseña e introdúzcala a continuación."
-
-#, python-format
-msgid "To enable two-factor authentication on your login, use a one-time password (OTP) application such as <a target=\"_blank\" href=\"%(ga_url)s\">Google Authenticator</a> or <a target=\"_blank\" href=\"%(authy_url)s\">Authy</a> to scan the QR code below."
-msgstr "Para habilitar la autenticación de dos factores en su inicio de sesión, utilice una aplicación de contraseña de un solo uso (OTP) como <a target=\"_blank\" href=\"%(ga_url)s\">Google Authenticator</a> o <a target=\"_blank\" href=\"%(authy_url)s\">Authy</a> para escanear el código QR de abajo."
 
 msgid "This email verification link is invalid."
 msgstr "Este enlace de verificación de correo electrónico no es válido."
