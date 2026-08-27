@@ -213,8 +213,9 @@ class RunsEndpointTest(APITest):
             results=[joe_run1, frank_run1, frank_run2, joe_run2, joe_run3],
         )
 
-        # filter by id
+        # filter by id (deprecated, so recorded)
         self.assertGet(endpoint_url + f"?id={frank_run2.id}", [self.admin], results=[frank_run2])
+        self.assertDeprecatedRecorded("runs#filter:id", 1)
 
         # anon orgs should not have a URN field
         with self.anonymous(self.org):
@@ -286,8 +287,9 @@ class RunsEndpointTest(APITest):
             endpoint_url + f"?flow={flow1.uuid}&responded=TrUe", [self.admin], results=[frank_run1, joe_run1]
         )
 
-        # filter by contact
+        # filter by contact (deprecated, so recorded)
         self.assertGet(endpoint_url + f"?contact={joe.uuid}", [self.admin], results=[joe_run3, joe_run2, joe_run1])
+        self.assertDeprecatedRecorded("runs#filter:contact", 1)
 
         # filter by invalid contact
         self.assertGet(endpoint_url + "?contact=invalid", [self.admin], results=[])

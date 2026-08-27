@@ -1,9 +1,6 @@
 from unittest.mock import call
 
-from django_valkey import get_valkey_connection
-
 from django.urls import reverse
-from django.utils import timezone
 
 from temba.contacts.models import Contact
 from temba.msgs.models import Msg
@@ -207,14 +204,8 @@ class ContactActionsEndpointTest(APITest):
             status=204,
         )
 
-        r = get_valkey_connection()
-        self.assertEqual(
-            {
-                f"api:deprecated:{self.org.id}/contact_actions#archive_messages": b"1",
-                f"api:deprecated:{self.org.id}/contact_actions#archive": b"1",
-            },
-            {f.decode(): c for f, c in r.hgetall(f"warnings:{timezone.now():%Y-%m}").items()},
-        )
+        self.assertDeprecatedRecorded("contact_actions#archive_messages", 1)
+        self.assertDeprecatedRecorded("contact_actions#archive", 1)
 
         # delete contacts 1 and 2
         self.assertPost(

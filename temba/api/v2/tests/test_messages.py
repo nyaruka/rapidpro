@@ -115,8 +115,9 @@ class MessagesEndpointTest(APITest):
         # filter by UUID
         self.assertGet(endpoint_url + f"?uuid={joe_msg3.uuid}", [self.admin], results=[joe_msg3])
 
-        # filter by id
+        # filter by id (deprecated, so recorded)
         self.assertGet(endpoint_url + f"?id={joe_msg3.id}", [self.admin], results=[joe_msg3])
+        self.assertDeprecatedRecorded("messages#filter:id", 1)
 
         # filter by contact
         self.assertGet(
@@ -147,7 +148,7 @@ class MessagesEndpointTest(APITest):
             results=[joe_msg4, joe_msg3, joe_msg2],
         )
 
-        # filter by broadcast
+        # filter by broadcast (deprecated, so recorded)
         broadcast = self.create_broadcast(
             self.editor, {"eng": {"text": "A beautiful broadcast"}}, contacts=[joe, frank]
         )
@@ -156,6 +157,7 @@ class MessagesEndpointTest(APITest):
             [self.editor],
             results=broadcast.msgs.order_by("-id"),
         )
+        self.assertDeprecatedRecorded("messages#filter:broadcast", 1)
 
         # can't filter with invalid id
         self.assertGet(endpoint_url + "?id=xyz", [self.editor], errors={None: "Value for id must be an integer"})
