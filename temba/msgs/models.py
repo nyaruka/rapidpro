@@ -695,7 +695,7 @@ class Msg(models.Model):
             return None
         if not (user.has_org_perm(org, "channels.channel_logs") or user.is_staff):
             return None
-        if not (self.channel and self.channel.is_active and self.created_on):
+        if not (self.channel and self.channel.is_active and self.channel.type.has_logs and self.created_on):
             return None
         if timezone.now() - self.created_on >= settings.RETENTION_PERIODS["channellog"]:
             return None

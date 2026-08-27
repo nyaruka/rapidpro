@@ -24,6 +24,8 @@ class WebChatType(ChannelType):
 
     config_ui = ConfigUI()  # has own template
 
+    has_logs = False  # message transport is internal to the platform
+
     def is_available_to(self, org, user):
         available = user.is_staff
 

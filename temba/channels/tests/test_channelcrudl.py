@@ -217,6 +217,22 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             choose_org=self.org,
         )
 
+    def test_read_menu(self):
+        # normal channel types get a logs menu item on their read page
+        self.assertContentMenu(
+            reverse("channels.channel_read", args=[self.ex_channel.uuid]),
+            self.admin,
+            ["Configuration", "Logs", "Edit", "Delete"],
+        )
+
+        # but not types whose channels don't have logs
+        webchat_channel = self.create_channel("WCH", "WebChat", "123")
+        self.assertContentMenu(
+            reverse("channels.channel_read", args=[webchat_channel.uuid]),
+            self.admin,
+            ["Configuration", "Edit", "Delete"],
+        )
+
     def test_logs_list(self):
         channel = self.create_channel("T", "My Channel", "+250785551212")
 
@@ -251,6 +267,12 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(logs[4].uuid, response.context["logs"][0].uuid)
         self.assertEqual(logs[0].uuid, response.context["logs"][-1].uuid)
 
+        # channels of types that don't have logs return a 404
+        webchat_channel = self.create_channel("WCH", "WebChat", "123")
+        self.login(self.admin)
+        response = self.client.get(reverse("channels.channel_logs_list", args=[webchat_channel.uuid]))
+        self.assertEqual(404, response.status_code)
+
     def test_logs_read(self):
         log1 = self.create_channel_log(
             self.channel,
@@ -273,6 +295,12 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertIsNone(response.context["call"])
         self.assertEqual(1, len(response.context["logs"]))
         self.assertContains(response, "GET https://foo.bar/send1")
+
+        # channels of types that don't have logs return a 404
+        webchat_channel = self.create_channel("WCH", "WebChat", "123")
+        self.login(self.admin)
+        response = self.client.get(reverse("channels.channel_logs_read", args=[webchat_channel.uuid, "log", log1.uuid]))
+        self.assertEqual(404, response.status_code)
 
     def test_logs_msg(self):
         contact = self.create_contact("Fred", phone="+12067799191")
