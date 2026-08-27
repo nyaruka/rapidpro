@@ -136,6 +136,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             attachments=[
                 r"audo/mp4:http://s3.com/attachments/1/a/b.jpg",
                 r"image/jpeg:http://s3.com/attachments/1/c/d%20e.jpg",
+                r"http://example.com/test.mp4",  # invalid attachments are ignored
             ],
         )
         msg2 = self.create_incoming_msg(self.frank, "ignore joe, he's a liar")
@@ -154,6 +155,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         mock_storage_delete.assert_any_call("/attachments/1/a/b.jpg")
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
+        self.assertEqual(2, mock_storage_delete.call_count)  # invalid attachment not deleted from storage
 
         self.assertEqual([call(self.org, self.admin, [msg1, msg2])], mr_mocks.calls["msg_delete"])
 
@@ -176,6 +178,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             attachments=[
                 r"audo/mp4:http://s3.com/attachments/1/a/b.jpg",
                 r"image/jpeg:http://s3.com/attachments/1/c/d%20e.jpg",
+                r"http://example.com/test.mp4",  # invalid attachments are ignored
             ],
         )
         self.create_incoming_msg(self.frank, "ignore joe, he's a liar")
@@ -187,6 +190,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         mock_storage_delete.assert_any_call("/attachments/1/a/b.jpg")
         mock_storage_delete.assert_any_call("/attachments/1/c/d e.jpg")
+        self.assertEqual(2, mock_storage_delete.call_count)  # invalid attachment not deleted from storage
 
     @mock_mailroom
     def test_archive_and_release(self, mr_mocks):

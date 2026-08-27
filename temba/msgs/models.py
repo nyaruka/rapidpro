@@ -477,8 +477,15 @@ class Attachment:
         raise ValueError(f"{s} is not a valid attachment")
 
     @classmethod
-    def parse_all(cls, attachments) -> list:
-        return [cls.parse(s) for s in (attachments or [])]
+    def parse_all(cls, attachments, ignore_invalid: bool = False) -> list:
+        parsed = []
+        for s in attachments or []:
+            try:
+                parsed.append(cls.parse(s))
+            except ValueError:
+                if not ignore_invalid:
+                    raise
+        return parsed
 
     @classmethod
     def bulk_delete(cls, attachments):
@@ -831,7 +838,7 @@ class Msg(models.Model):
         for msg in msgs:
             assert msg.direction == Msg.DIRECTION_IN, "only incoming messages can be soft deleted"
 
-            attachments_to_delete.extend(msg.get_attachments())
+            attachments_to_delete.extend(Attachment.parse_all(msg.attachments, ignore_invalid=True))
 
         Attachment.bulk_delete(attachments_to_delete)  # TODO move to mailroom as well
 
@@ -847,7 +854,7 @@ class Msg(models.Model):
 
         for msg in msgs:
             if msg.direction == Msg.DIRECTION_IN:
-                attachments_to_delete.extend(msg.get_attachments())
+                attachments_to_delete.extend(Attachment.parse_all(msg.attachments, ignore_invalid=True))
 
         Attachment.bulk_delete(attachments_to_delete)
 

@@ -21,3 +21,13 @@ class AttachmentTest(TembaTest):
         )
         with self.assertRaises(ValueError):
             Attachment.parse("http://example.com/test.jpg")
+
+        # parse_all is strict by default but can be told to ignore invalid attachments
+        with self.assertRaises(ValueError):
+            Attachment.parse_all(["image:http://example.com/test.jpg", "http://example.com/test.jpg"])
+        self.assertEqual(
+            [Attachment("image", "http://example.com/test.jpg")],
+            Attachment.parse_all(
+                ["image:http://example.com/test.jpg", "http://example.com/test.jpg"], ignore_invalid=True
+            ),
+        )
