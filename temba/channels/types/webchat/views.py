@@ -12,8 +12,8 @@ from temba.channels.views import ClaimViewMixin, UpdateChannelForm
 CONFIG_ALLOWED_DOMAINS = "allowed_domains"
 
 # a domain entry is a host - dot-separated alphanumeric labels which may contain hyphens - optionally followed by a
-# port, e.g. "example.com" or "localhost:3000" - never a scheme or path
-DOMAIN_REGEX = re.compile(r"[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)*(:\d{1,5})?")
+# port (whose 1-65535 range is checked separately), e.g. "example.com" or "localhost:3000" - never a scheme or path
+DOMAIN_REGEX = re.compile(r"[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)*(:(?P<port>\d{1,5}))?")
 
 
 class ClaimView(ClaimViewMixin, SmartFormView):
@@ -53,7 +53,8 @@ class UpdateForm(UpdateChannelForm):
             entry = entry.strip().lower()
             if not entry:
                 continue
-            if not DOMAIN_REGEX.fullmatch(entry):
+            match = DOMAIN_REGEX.fullmatch(entry)
+            if not match or (match["port"] and not 1 <= int(match["port"]) <= 65535):
                 raise ValidationError(
                     _("%(domain)s is not a valid domain. Enter domains without schemes or paths, e.g. example.com."),
                     params={"domain": entry},

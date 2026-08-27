@@ -82,8 +82,16 @@ class WebChatTypeTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(config_url)
         self.assertContains(response, "example.com, www.example.com:8080")
 
-        # entries with schemes, paths or other invalid characters are rejected
-        for invalid in ("https://example.com", "example.com/chat", "example com", "example.com:port", "-example.com"):
+        # entries with schemes, paths, other invalid characters or out-of-range ports are rejected
+        for invalid in (
+            "https://example.com",
+            "example.com/chat",
+            "example com",
+            "example.com:port",
+            "-example.com",
+            "example.com:0",
+            "example.com:99999",
+        ):
             self.assertUpdateSubmit(
                 update_url,
                 self.admin,
