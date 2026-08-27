@@ -5,9 +5,7 @@ from collections import defaultdict
 from dataclasses import asdict
 from decimal import Decimal
 from functools import wraps
-from unittest.mock import NonCallableMock, call, patch
-
-import requests
+from unittest.mock import call
 
 from django.conf import settings
 from django.db import connection
@@ -34,8 +32,6 @@ event_units = {
     CampaignEvent.UNIT_DAYS: "days",
     CampaignEvent.UNIT_WEEKS: "weeks",
 }
-
-_real_mailroom_request = MailroomClient._request
 
 
 def clone_flow_definition(definition: dict, dependency_mapping: dict) -> dict:
@@ -100,9 +96,8 @@ def _snakify(text: str) -> str:
 
 def inspect_flow(definition: dict) -> dict:
     """
-    Pragmatic Python stand-in for goflow's flow inspection (flows/inspect), used to fake flow/inspect for the
-    production client during tests instead of reaching a live mailroom. It reproduces the two parts of the
-    analysis that rapidpro consumes or asserts on:
+    Pragmatic Python stand-in for goflow's flow inspection (flows/inspect), used by TestClient to fake
+    flow/inspect during tests. It reproduces the two parts of the analysis that rapidpro consumes or asserts on:
 
       - dependencies: the typed asset references that goflow's actions/routers enumerate, plus the field/global
         references in expressions (used by Flow.save_revision / Flow.import_definition to wire up dependencies)
@@ -110,10 +105,9 @@ def inspect_flow(definition: dict) -> dict:
         via the API/editor)
 
     It is deliberately not a full port: goflow's issue analysis, structural validation, counts and locals aren't
-    reproduced. A test that needs those uses @mock_mailroom and stubs mr_mocks.flow_inspect (or, for validation
-    errors, mr_mocks.exception). During tests mailroom inspects without session assets (flow_inspect omits org_id
-    when settings.TESTING), so every dependency is missing=False and no asset-availability issues fire - matching
-    the empty issues we return here.
+    reproduced. A test that needs those stubs mr_mocks.flow_inspect (or, for validation errors, mr_mocks.exception)
+    instead. Every dependency comes back missing=False and no issues are reported, since we don't resolve the
+    references we find against the org's actual assets.
     """
 
     deps = []
@@ -196,40 +190,18 @@ class LiveMailroomError(BaseException):
     """
 
 
-def _guarded_mailroom_request(self, endpoint, payload=None, post=True, encode_json=False):
-    # a patched transport (e.g. patch("requests.post")) means no real network call happens - that's how the
-    # MailroomClient's own request-construction tests work, so let those through to the real _request. this only
-    # detects Mock-based patches; patch("requests.post", new=<plain callable>) would slip past, but that form
-    # isn't used against requests here.
-    transport = requests.post if post else requests.get
-    if isinstance(transport, NonCallableMock):
-        return _real_mailroom_request(self, endpoint, payload=payload, post=post, encode_json=encode_json)
-
-    # flow/clone and flow/inspect are reached by undecorated import/save tests via the production client; both are
-    # faked from the request payload (see clone_flow_definition / inspect_flow) rather than reaching a live
-    # mailroom. @mock_mailroom tests don't get here - TestClient overrides the high-level client methods.
-    if endpoint == "flow/clone":
-        return clone_flow_definition(payload["flow"], payload["dependency_mapping"])
-    if endpoint == "flow/inspect":
-        return inspect_flow(payload["flow"])
-
-    # any other endpoint reaching here is an un-mocked live mailroom call - fail loudly
-    raise LiveMailroomError(
-        f"test reached live mailroom endpoint /mi/{endpoint}; decorate the test with @mock_mailroom "
-        f"(adding a TestClient fake if needed) or mock the call"
-    )
+_current_mocks = None
 
 
-def install_mailroom_guard(test):
+def set_mocks(mocks):
     """
-    Makes any un-mocked call to a live mailroom fail loudly. Patches MailroomClient._request, which covers both
-    the production client and the TestClient used by @mock_mailroom (TestClient fakes most endpoints above this
-    layer, so only un-faked ones reach here).
+    Sets the mocks that the test client returned by mailroom.get_client() will use. Called by TembaTest.setUp so
+    that every test gets its own.
     """
 
-    patcher = patch.object(MailroomClient, "_request", _guarded_mailroom_request)
-    patcher.start()
-    test.addCleanup(patcher.stop)
+    global _current_mocks
+
+    _current_mocks = mocks
 
 
 def mock_inspect_query(org, query: str, fields=None) -> mailroom.QueryMetadata:
@@ -365,10 +337,22 @@ def _client_method(func):
 
 
 class TestClient(MailroomClient):
-    def __init__(self, mocks: Mocks):
-        self.mocks = mocks
+    """
+    The client that mailroom.get_client() returns during tests. It fakes mailroom endpoints against the test
+    database, and any endpoint it doesn't fake fails loudly rather than reaching a live mailroom.
+    """
+
+    def __init__(self):
+        # tests get their mocks from TembaTest.setUp - anything else (e.g. a SimpleTestCase) gets an empty set
+        self.mocks = _current_mocks or Mocks()
 
         super().__init__(settings.MAILROOM_URL, settings.MAILROOM_AUTH_TOKEN)
+
+    def _request(self, endpoint, payload=None, post=True, encode_json=False):
+        # reaching here means a client method we haven't faked above, which in production would be an HTTP call
+        raise LiveMailroomError(
+            f"test reached un-faked mailroom endpoint /mi/{endpoint}; add a fake for it to TestClient"
+        )
 
     @_client_method
     def android_event(self, org, channel, phone: str, event_type: str, extra: dict, occurred_on):
@@ -562,14 +546,7 @@ class TestClient(MailroomClient):
         if self.mocks._flow_inspect:
             return self.mocks._flow_inspect.pop(0)
 
-        return {
-            "dependencies": [],
-            "issues": [],
-            "results": [],
-            "parent_refs": [],
-            "counts": {},
-            "locals": [],
-        }
+        return inspect_flow(definition)
 
     @_client_method
     def flow_interrupt(self, org, flow):
@@ -717,6 +694,14 @@ class TestClient(MailroomClient):
         return {}
 
     @_client_method
+    def sim_start(self, payload: dict):
+        return {"session": {}, "events": []}
+
+    @_client_method
+    def sim_resume(self, payload: dict):
+        return {"session": {}, "events": []}
+
+    @_client_method
     def ticket_add_note(self, org, user, tickets, note: str, via: str):
         now = timezone.now()
         tickets = list(Ticket.objects.filter(org=org, id__in=[t.id for t in tickets]))
@@ -779,32 +764,18 @@ class TestClient(MailroomClient):
 
 def mock_mailroom(method=None):
     """
-    Convenience decorator to make a test method use a mocked version of the mailroom client
+    Convenience decorator which passes the test's mailroom mocks to the test method. The mocked client itself is
+    installed for every test (see TembaTest.setUp) - this is just how a test gets at its mocks.
     """
 
     def actual_decorator(f):
         @wraps(f)
         def wrapper(instance, *args, **kwargs):
-            _wrap_test_method(f, instance, *args, **kwargs)
+            return f(instance, instance.mr_mocks, *args, **kwargs)
 
         return wrapper
 
     return actual_decorator(method) if method else actual_decorator
-
-
-def _wrap_test_method(f, instance, *args, **kwargs):
-    mocks = Mocks()
-
-    patch_get_client = None
-
-    try:
-        patch_get_client = patch("temba.mailroom.get_client")
-        mock_get_client = patch_get_client.start()
-        mock_get_client.return_value = TestClient(mocks)
-
-        return f(instance, mocks, *args, **kwargs)
-    finally:
-        patch_get_client.stop()
 
 
 def apply_modifiers(org, user, contacts, modifiers: list):
@@ -842,7 +813,7 @@ def apply_modifiers(org, user, contacts, modifiers: list):
 
         elif mod.type == "ticket":
             topic = org.topics.get(uuid=mod.topic.uuid, is_active=True)
-            assignee = org.users.get(email=mod.assignee.email, is_active=True) if mod.assignee else None
+            assignee = org.users.get(uuid=mod.assignee.uuid, is_active=True) if mod.assignee else None
             for contact in contacts:
                 contact.tickets.create(
                     uuid=uuid7(),
