@@ -246,8 +246,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         self.assertFalse(Channel.objects.filter(id=channel1.id).exists())
 
-    @mock_mailroom
-    def test_release_facebook(self, mr_mocks):
+    def test_release_facebook(self):
         channel = Channel.create(
             self.org,
             self.admin,
@@ -274,8 +273,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             self.assertEqual(1, channel.triggers.filter(is_active=False).count())
             self.assertFalse(channel.is_active)
 
-    @mock_mailroom
-    def test_release_android(self, mr_mocks):
+    def test_release_android(self):
         android = self.claim_new_android()
         self.assertEqual("FCM111", android.config.get(Channel.CONFIG_FCM_ID))
 
@@ -526,8 +524,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         # should be an error response
         self.assertEqual({"error": "Can't sync unclaimed channel", "error_id": 4, "cmds": []}, response.json())
 
-    @mock_mailroom
-    def test_sync_client_reset(self, mr_mocks):
+    def test_sync_client_reset(self):
         android = self.claim_new_android()
 
         response = self.sync(android, cmds=[{"cmd": "reset"}])
@@ -588,8 +585,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(len(cmds[0]["to"]), 1)
         self.assertEqual(cmds[0]["to"][0]["phone"], "+250788383383")
 
-    @mock_mailroom
-    def test_sync(self, mr_mocks):
+    def test_sync(self):
         date = timezone.now()
         date = int(time.mktime(date.timetuple())) * 1000
 
@@ -815,8 +811,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         # bad signature, should result in 401 Unauthorized
         self.assertEqual(401, self.sync(self.tel_channel, signature="badsig", cmds=[]).status_code)
 
-    @mock_mailroom
-    def test_ignore_android_incoming_msg_invalid_phone(self, mr_mocks):
+    def test_ignore_android_incoming_msg_invalid_phone(self):
         date = timezone.now()
         date = int(time.mktime(date.timetuple())) * 1000
 

@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from temba.channels.models import Channel
 from temba.contacts.models import URN
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 from temba.tests.twilio import MockRequestValidator, MockTwilioClient
 
 from .type import TwilioType
@@ -16,8 +16,7 @@ class TwilioTypeTest(TembaTest):
     @patch("temba.channels.types.twilio.views.TwilioClient", MockTwilioClient)
     @patch("temba.channels.types.twilio.type.TwilioClient", MockTwilioClient)
     @patch("twilio.request_validator.RequestValidator", MockRequestValidator)
-    @mock_mailroom
-    def test_claim(self, mr_mocks):
+    def test_claim(self):
         self.login(self.admin)
 
         claim_twilio = reverse("channels.types.twilio.claim")

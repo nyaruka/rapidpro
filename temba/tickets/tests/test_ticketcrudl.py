@@ -272,8 +272,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             menu_url, self.agent3, ["My Tickets (0)", "Unassigned (0)", "All (0)", ("Topics", ["Support (0)"])]
         )
 
-    @mock_mailroom
-    def test_folder(self, mr_mocks):
+    def test_folder(self):
         self.login(self.admin)
 
         contact1 = self.create_contact("Joe", phone="123", last_seen_on=timezone.now())
@@ -580,8 +579,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertEqual([], response.json()["results"])
             self.assertNotIn("next", response.json())
 
-    @mock_mailroom
-    def test_folder_refresh_bounding(self, mr_mocks):
+    def test_folder_refresh_bounding(self):
         contact = self.create_contact("Joe", phone="123")
         base = timezone.now().replace(microsecond=0)
 
@@ -611,8 +609,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.requestView(f"/ticket/folder/all/?after={after}", self.admin)
             self.assertEqual([str(t.uuid) for t in tied], [t["ticket"]["uuid"] for t in response.json()["results"]])
 
-    @mock_mailroom
-    def test_folder_merged_page_ties(self, mr_mocks):
+    def test_folder_merged_page_ties(self):
         contact = self.create_contact("Joe", phone="123")
         open1 = self.create_ticket(contact)
         closed1 = self.create_ticket(contact, closed_on=timezone.now())
@@ -641,8 +638,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             self.assertEqual([], response.json()["results"])
             self.assertNotIn("next", response.json())
 
-    @mock_mailroom
-    def test_folder_cursor_without_status(self, mr_mocks):
+    def test_folder_cursor_without_status(self):
         contact = self.create_contact("Joe", phone="123")
         open1 = self.create_ticket(contact)
         open2 = self.create_ticket(contact)
@@ -664,8 +660,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                 [str(open1.uuid), str(closed1.uuid)], [t["ticket"]["uuid"] for t in response.json()["results"]]
             )
 
-    @mock_mailroom
-    def test_folder_invalid_params(self, mr_mocks):
+    def test_folder_invalid_params(self):
         contact = self.create_contact("Joe", phone="123")
         ticket1 = self.create_ticket(contact)
         ticket2 = self.create_ticket(contact, assignee=self.admin)
@@ -804,8 +799,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(200, response.status_code)
         self.assertEqual({"results": []}, response.json())
 
-    @mock_mailroom
-    def test_note(self, mr_mocks):
+    def test_note(self):
         ticket = self.create_ticket(self.contact)
 
         update_url = reverse("tickets.ticket_note", args=[ticket.uuid])
@@ -1010,8 +1004,7 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             response["Content-Disposition"],
         )
 
-    @mock_mailroom
-    def test_export(self, mr_mocks):
+    def test_export(self):
         export_url = reverse("tickets.ticket_export")
 
         self.assertRequestDisallowed(export_url, [None, self.agent])

@@ -179,8 +179,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         joe.refresh_from_db()
         self.assertEqual(Contact.STATUS_ARCHIVED, joe.status)
 
-    @mock_mailroom
-    def test_list_component(self, mr_mocks):
+    def test_list_component(self):
         joe = self.create_contact("Joe", phone="123")
         frank = self.create_contact("Frank", phone="124")
         group = self.create_group("Crew", contacts=[joe, frank])
@@ -263,8 +262,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(200, response.status_code)
         self.assertToast(response, "info", "Must specify a label")
 
-    @mock_mailroom
-    def test_blocked(self, mr_mocks):
+    def test_blocked(self):
         joe = self.create_contact("Joe", urns=["twitter:joe"])
         frank = self.create_contact("Frank", urns=["twitter:frank"])
         billy = self.create_contact("Billy", urns=["twitter:billy"])
@@ -293,8 +291,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         frank.refresh_from_db()
         self.assertEqual(Contact.STATUS_ARCHIVED, frank.status)
 
-    @mock_mailroom
-    def test_stopped(self, mr_mocks):
+    def test_stopped(self):
         joe = self.create_contact("Joe", urns=["twitter:joe"])
         frank = self.create_contact("Frank", urns=["twitter:frank"])
         billy = self.create_contact("Billy", urns=["twitter:billy"])
@@ -324,8 +321,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(Contact.STATUS_ARCHIVED, frank.status)
 
     @patch("temba.contacts.models.Contact.BULK_RELEASE_IMMEDIATELY_LIMIT", 5)
-    @mock_mailroom
-    def test_archived(self, mr_mocks):
+    def test_archived(self):
         joe = self.create_contact("Joe", urns=["twitter:joe"])
         frank = self.create_contact("Frank", urns=["twitter:frank"])
         billy = self.create_contact("Billy", urns=["twitter:billy"])
@@ -433,8 +429,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.requestView(group3_url, self.admin, choose_org=self.org)
         self.assertRedirect(response, "/org/switch/")
 
-    @mock_mailroom
-    def test_read(self, mr_mocks):
+    def test_read(self):
         joe = self.create_contact("Joe", phone="123")
 
         read_url = reverse("contacts.contact_read", args=[joe.uuid])
@@ -487,8 +482,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.get(reverse("contacts.contact_read", args=["invalid-uuid"]))
         self.assertEqual(response.status_code, 404)
 
-    @mock_mailroom
-    def test_read_component(self, mr_mocks):
+    def test_read_component(self):
         joe = self.create_contact("Joe", phone="123")
 
         read_url = reverse("contacts.contact_read", args=[joe.uuid])
@@ -611,8 +605,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.client.post(chat_url, {"text": "Hello"}, content_type="application/json")
         self.assertEqual(404, response.status_code)
 
-    @mock_mailroom
-    def test_chat_reply_non_own_permission(self, mr_mocks):
+    def test_chat_reply_non_own_permission(self):
         contact = self.create_contact("Joe Blow", urns=["tel:+250781111111"])
         ticket = self.create_ticket(contact)
         chat_url = reverse("contacts.contact_chat", args=[contact.uuid])
@@ -1741,8 +1734,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         self.assertEqual(1, response.json()["future_count"])
         self.assertEqual(["Soon"], [e["message"] for e in response.json()["future"]])
 
-    @mock_mailroom
-    def test_open_ticket(self, mr_mocks):
+    def test_open_ticket(self):
         contact = self.create_contact("Joe", phone="+593979000111")
         general = self.org.default_topic
         open_url = reverse("contacts.contact_open_ticket", args=[contact.uuid])
@@ -1761,8 +1753,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # and we're redirected to that ticket
         self.assertRedirect(response, f"/ticket/all/{ticket.uuid}/")
 
-    @mock_mailroom
-    def test_interrupt(self, mr_mocks):
+    def test_interrupt(self):
         contact = self.create_contact("Joe", phone="+593979000111")
         other_org_contact = self.create_contact("Hans", phone="+593979123456", org=self.org2)
 

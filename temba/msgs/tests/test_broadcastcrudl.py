@@ -542,8 +542,7 @@ class BroadcastCRUDLTest(TembaTest, CRUDLTestMixin):
             "Using a message template may incur additional fees from your channel provider.",
         )
 
-    @mock_mailroom
-    def test_to_node(self, mr_mocks):
+    def test_to_node(self):
         to_node_url = reverse("msgs.broadcast_to_node")
 
         # give Joe a flow run that has stopped on a node

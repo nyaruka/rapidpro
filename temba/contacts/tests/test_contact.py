@@ -110,8 +110,7 @@ class ContactTest(TembaTest):
             mr_mocks.calls["contact_modify"],
         )
 
-    @mock_mailroom
-    def test_interrupt(self, mr_mocks):
+    def test_interrupt(self):
         # noop when contact not in a flow
         self.joe.interrupt(self.admin)
 
@@ -120,8 +119,7 @@ class ContactTest(TembaTest):
         self.joe.interrupt(self.admin)
 
     @cleanup(dynamodb=True)
-    @mock_mailroom
-    def test_release(self, mr_mocks):
+    def test_release(self):
         # create a contact with a message
         old_contact = self.create_contact("Jose", phone="+12065552000")
         self.create_incoming_msg(old_contact, "hola mundo")
@@ -337,8 +335,7 @@ class ContactTest(TembaTest):
 
         self.assertEqual({"status:W": 0}, flow.counts.prefix("status:").scope_totals())
 
-    @mock_mailroom
-    def test_status_changes_and_release(self, mr_mocks):
+    def test_status_changes_and_release(self):
         flow = self.create_flow("Test")
         msg1 = self.create_incoming_msg(self.joe, "Test 1")
         msg2 = self.create_incoming_msg(self.joe, "Test 2", flow=flow)
@@ -560,8 +557,7 @@ class ContactTest(TembaTest):
             self.assertEqual(["tel:+250782222222"], [u.urn for u in self.frank.get_urns()])
             self.assertEqual([], [u.urn for u in self.billy.get_urns()])
 
-    @mock_mailroom
-    def test_bulk_inspect(self, mr_mocks):
+    def test_bulk_inspect(self):
         self.assertEqual({}, Contact.bulk_inspect([]))
         self.assertEqual(
             {
@@ -817,8 +813,7 @@ class ContactTest(TembaTest):
         results = response.json()
         self.assertEqual("Age", results["fields"][str(age.uuid)]["label"])
 
-    @mock_mailroom
-    def test_update_status(self, mr_mocks):
+    def test_update_status(self):
         self.login(self.admin)
 
         self.assertEqual(Contact.STATUS_ACTIVE, self.joe.status)
@@ -848,8 +843,7 @@ class ContactTest(TembaTest):
             self.joe.update(name="Joseph Blower", language="spa"),
         )
 
-    @mock_mailroom
-    def test_update_static_groups(self, mr_mocks):
+    def test_update_static_groups(self):
         # create some static groups
         spammers = self.create_group("Spammers", [])
         testers = self.create_group("Testers", [])
@@ -898,8 +892,7 @@ class ContactTest(TembaTest):
         # just a NOOP
         self.assertEqual([], mr_mocks.calls["contact_modify"])
 
-    @mock_mailroom
-    def test_contact_model(self, mr_mocks):
+    def test_contact_model(self):
         contact = self.create_contact(name="Boy", phone="12345")
         self.assertEqual(contact.get_display(), "Boy")
 

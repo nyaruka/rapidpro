@@ -552,8 +552,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow.refresh_from_db()
         self.assertEqual("New Name", flow.name)
 
-    @mock_mailroom
-    def test_list_views(self, mr_mocks):
+    def test_list_views(self):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
 
@@ -663,8 +662,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("flows.flow_filter", args=[label2.uuid]))
         self.assertEqual(f"/flow/labels/{label2.uuid}", response.headers.get(TEMBA_MENU_SELECTION))
 
-    @mock_mailroom
-    def test_list_component(self, mr_mocks):
+    def test_list_component(self):
         flow1 = self.create_flow("Flow 1")
         flow2 = self.create_flow("Flow 2")
         label = FlowLabel.create(self.org, self.admin, "Important")
@@ -741,8 +739,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(f"{export_url}?ids=foo")
         self.assertEqual([], list(response.context["form"].initial["flows"]))
 
-    @mock_mailroom
-    def test_get_definition(self, mr_mocks):
+    def test_get_definition(self):
         flow = self.get_flow("color")
 
         # if definition is outdated, metadata values are updated from db object
@@ -778,8 +775,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual("Amazing Flow 2", flow.get_definition()["metadata"]["name"])
 
-    @mock_mailroom
-    def test_revisions(self, mr_mocks):
+    def test_revisions(self):
         flow = self.create_flow("Color")
 
         revisions_url = reverse("flows.flow_revisions", args=[flow.uuid])
@@ -1619,8 +1615,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             ),
         )
 
-    @mock_mailroom
-    def test_copy_view(self, mr_mocks):
+    def test_copy_view(self):
         flow = self.get_flow("color")
 
         self.login(self.admin)
@@ -1720,8 +1715,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.assertReadFetch(chart_url_invalid, [self.editor, self.admin])
         self.assertEqual({"data": {"labels": [], "datasets": []}}, response.json())
 
-    @mock_mailroom
-    def test_results(self, mr_mocks):
+    def test_results(self):
         flow = self.create_flow("Test 1")
 
         results_url = reverse("flows.flow_results", args=[flow.uuid])
@@ -1939,8 +1933,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
-    @mock_mailroom
-    def test_activity_inactive_flow(self, mr_mocks):
+    def test_activity_inactive_flow(self):
         flow = self.create_flow("Deleted")
         flow.release(self.admin)
 
@@ -2290,8 +2283,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         self.assertEqual({"type": "manual", "user": {"uuid": str(self.admin.uuid), "name": "Andy"}}, sent["trigger"])
 
-    @mock_mailroom
-    def test_delete(self, mr_mocks):
+    def test_delete(self):
         child = self.create_flow("Child")
         parent = self.create_flow("Parent")
         parent.field_dependencies.add(self.create_field("age", "Age"))
@@ -2318,8 +2310,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(0, parent.field_dependencies.all().count())
         self.assertEqual(0, parent.flow_dependencies.all().count())
 
-    @mock_mailroom
-    def test_delete_of_inactive_flow(self, mr_mocks):
+    def test_delete_of_inactive_flow(self):
         flow = self.create_flow("Test")
         flow.release(self.admin)
 

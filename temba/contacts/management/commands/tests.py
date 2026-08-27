@@ -114,8 +114,7 @@ class ConvertBsuidUrnsTest(TembaTest):
         # only the collided bsuid remains
         self.assertEqual({"RW.ghi789"}, set(ContactURN.objects.filter(scheme="bsuid").values_list("path", flat=True)))
 
-    @mock_mailroom
-    def test_dropped_bsuid_moves_references(self, mr_mocks):
+    def test_dropped_bsuid_moves_references(self):
         # a dual-written contact whose bsuid URN is redundant and referenced by a message
         contact = self.create_contact("Dan", urns=["whatsapp:250788000004", "whatsapp:RW.jkl012", "bsuid:RW.jkl012"])
         bsuid = contact.urns.get(scheme="bsuid")
@@ -186,9 +185,8 @@ class ConvertBsuidUrnsTest(TembaTest):
         contact.refresh_from_db()
         self.assertGreater(contact.modified_on, start)
 
-    @mock_mailroom
     @patch("temba.contacts.management.commands.convert_bsuid_urns.BATCH_SIZE", 2)
-    def test_batches_and_skips_collisions_across_the_cursor(self, mr_mocks):
+    def test_batches_and_skips_collisions_across_the_cursor(self):
         # an existing whatsapp URN that a later bsuid will collide with when it tries to convert
         self.create_contact("Taken", urns=["whatsapp:RW.taken0"])
 

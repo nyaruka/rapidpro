@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from temba.api.v2.serializers import format_datetime
 from temba.contacts.models import Contact, ContactField, ContactGroup
-from temba.tests import mock_mailroom
 
 from . import APITest
 
@@ -18,8 +17,7 @@ class ContactsEndpointTest(APITest):
         self.joe = self.create_contact("Joe Blow", phone="+250788123123")
         self.frank = self.create_contact("Frank", urns=["facebook:123456"])
 
-    @mock_mailroom
-    def test_endpoint(self, mr_mocks):
+    def test_endpoint(self):
         endpoint_url = reverse("api.v2.contacts") + ".json"
 
         self.assertGetNotPermitted(endpoint_url, [None])
@@ -600,8 +598,7 @@ class ContactsEndpointTest(APITest):
             response.json()["results"][0]["notes"][-1]["text"],
         )
 
-    @mock_mailroom
-    def test_expanded_urns_can_preserve_priority_order(self, mr_mocks):
+    def test_expanded_urns_can_preserve_priority_order(self):
         contact = self.create_contact(
             "Reordered",
             urns=["tel:+250788123456", "facebook:123456789"],
@@ -631,8 +628,7 @@ class ContactsEndpointTest(APITest):
             [f"{urn['scheme']}:{urn['path']}" for urn in response.json()["results"][0]["urns"]],
         )
 
-    @mock_mailroom
-    def test_as_agent(self, mr_mocks):
+    def test_as_agent(self):
         endpoint_url = reverse("api.v2.contacts") + ".json"
 
         self.create_field("gender", "Gender", ContactField.TYPE_TEXT, agent_access=ContactField.ACCESS_NONE)
@@ -709,8 +705,7 @@ class ContactsEndpointTest(APITest):
             errors={("fields", "string_field"): "Null characters are not allowed."},
         )
 
-    @mock_mailroom
-    def test_update_datetime_field(self, mr_mocks):
+    def test_update_datetime_field(self):
         endpoint_url = reverse("api.v2.contacts") + ".json"
 
         self.create_field("activated_at", "Tag activation", ContactField.TYPE_DATETIME)
@@ -751,8 +746,7 @@ class ContactsEndpointTest(APITest):
         )
         self.assertIsNone(response.json()["fields"]["activated_at"])
 
-    @mock_mailroom
-    def test_anonymous_org(self, mr_mocks):
+    def test_anonymous_org(self):
         endpoint_url = reverse("api.v2.contacts") + ".json"
 
         group = ContactGroup.get_or_create(self.org, self.admin, "Customers")
