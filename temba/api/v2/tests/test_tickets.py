@@ -3,14 +3,12 @@ from datetime import datetime, timezone as tzone
 from django.urls import reverse
 
 from temba.api.v2.serializers import format_datetime
-from temba.tests import mock_mailroom
 
 from . import APITest
 
 
 class TicketsEndpointTest(APITest):
-    @mock_mailroom
-    def test_endpoint(self, mr_mocks):
+    def test_endpoint(self):
         endpoint_url = reverse("api.v2.tickets") + ".json"
 
         self.assertGetNotPermitted(endpoint_url, [None])

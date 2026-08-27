@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 19:26+0000\n"
+"POT-Creation-Date: 2026-08-27 20:36+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -5988,21 +5988,6 @@ msgstr ""
 msgid "View flows"
 msgstr ""
 
-msgid "Two factor authentication is currently <b>enabled</b>."
-msgstr ""
-
-msgid "Backup Tokens"
-msgstr ""
-
-msgid "Two factor authentication is currently <b>not enabled</b>."
-msgstr ""
-
-#, python-format
-msgid "You have <b>%(count)s</b> active API token."
-msgid_plural "You have <b>%(count)s</b> active API tokens."
-msgstr[0] ""
-msgstr[1] ""
-
 #, python-format
 msgid "You are about to remove the user <b>%(object)s</b> from your workspace. Are you sure?"
 msgstr ""
@@ -6036,18 +6021,6 @@ msgid "No users"
 msgstr ""
 
 msgid "Choose a new password and enter it below."
-msgstr ""
-
-msgid "To disable two-factor authentication for your login, enter your current password."
-msgstr ""
-
-msgid "Below are your backup tokens which you can use if you lose access to the device with which you setup two-factor authentication. Each token can only be used once and tokens which have already been used are showed with a line through them. You should record these tokens in a secure place."
-msgstr ""
-
-msgid "You can generate new backup tokens but remember that the current tokens will be no longer be usable if you do this."
-msgstr ""
-
-msgid "Regenerate Tokens"
 msgstr ""
 
 msgid "This email verification link is invalid."

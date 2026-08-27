@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 19:26+0000\n"
+"POT-Creation-Date: 2026-08-27 20:36+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -6079,22 +6079,6 @@ msgstr "Terminé avec succès"
 msgid "View flows"
 msgstr "Voir les flux"
 
-msgid "Two factor authentication is currently <b>enabled</b>."
-msgstr "L'authentification à deux facteurs est actuellement <b>activée</b>."
-
-msgid "Backup Tokens"
-msgstr "Jetons de secours"
-
-msgid "Two factor authentication is currently <b>not enabled</b>."
-msgstr "L'authentification à deux facteurs n'est actuellement <b>pas activée</b>."
-
-#, python-format
-msgid "You have <b>%(count)s</b> active API token."
-msgid_plural "You have <b>%(count)s</b> active API tokens."
-msgstr[0] "Vous avez <b>%(count)s</b> jeton d'API actif."
-msgstr[1] "Vous avez <b>%(count)s</b> jetons d'API actifs."
-msgstr[2] "Vous avez <b>%(count)s</b> jetons d'API actifs."
-
 #, python-format
 msgid "You are about to remove the user <b>%(object)s</b> from your workspace. Are you sure?"
 msgstr "Vous êtes sur le point de retirer l'utilisateur <b>%(object)s</b> de votre espace de travail. Voulez-vous continuer ?"
@@ -6129,18 +6113,6 @@ msgstr "Aucun utilisateur"
 
 msgid "Choose a new password and enter it below."
 msgstr "Choisissez un nouveau mot de passe et saisissez-le ci-dessous."
-
-msgid "To disable two-factor authentication for your login, enter your current password."
-msgstr "Pour désactiver l'authentification à deux facteurs pour votre connexion, saisissez votre mot de passe actuel."
-
-msgid "Below are your backup tokens which you can use if you lose access to the device with which you setup two-factor authentication. Each token can only be used once and tokens which have already been used are showed with a line through them. You should record these tokens in a secure place."
-msgstr "Voici vos jetons de secours, que vous pouvez utiliser si vous perdez l'accès à l'appareil avec lequel vous avez configuré l'authentification à deux facteurs. Chaque jeton ne peut être utilisé qu'une seule fois et les jetons déjà utilisés sont barrés. Vous devriez conserver ces jetons en lieu sûr."
-
-msgid "You can generate new backup tokens but remember that the current tokens will be no longer be usable if you do this."
-msgstr "Vous pouvez générer de nouveaux jetons de sauvegarde mais n'oubliez pas que les jetons actuels ne seront plus utilisables si vous faites cela."
-
-msgid "Regenerate Tokens"
-msgstr "Régénérer les jetons"
 
 msgid "This email verification link is invalid."
 msgstr "Ce lien de vérification d'adresse e-mail n'est pas valide."

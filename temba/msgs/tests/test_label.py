@@ -2,7 +2,7 @@ from datetime import date
 
 from temba.msgs.models import Label, LabelCount, MessageExport, Msg
 from temba.msgs.tasks import squash_msg_counts
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 
 
 class LabelTest(TembaTest):
@@ -22,8 +22,7 @@ class LabelTest(TembaTest):
         # don't allow duplicate name
         self.assertRaises(AssertionError, Label.create, self.org, self.editor, "Spam")
 
-    @mock_mailroom
-    def test_toggle_label(self, mr_mocks):
+    def test_toggle_label(self):
         label = self.create_label("Spam")
         msg1 = self.create_incoming_msg(self.joe, "Message 1")
         msg2 = self.create_incoming_msg(self.joe, "Message 2")

@@ -10,7 +10,7 @@ from temba.archives.models import Archive
 from temba.contacts.models import Contact, ContactURN
 from temba.flows.models import Flow, FlowRun, ResultsExport
 from temba.orgs.models import Export
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 from temba.tests.engine import MockSessionWriter
 from temba.utils import json
 from temba.utils.s3 import s3
@@ -63,8 +63,7 @@ class ResultsExportTest(TembaTest):
 
         return load_workbook(filename=default_storage.open(f"orgs/{self.org.id}/results_exports/{export.uuid}.xlsx"))
 
-    @mock_mailroom
-    def test_export(self, mr_mocks):
+    def test_export(self):
         today = timezone.now().astimezone(self.org.timezone).date()
 
         flow = self.get_flow("color")
@@ -1099,8 +1098,7 @@ class ResultsExportTest(TembaTest):
             tz,
         )
 
-    @mock_mailroom
-    def test_no_responses(self, mr_mocks):
+    def test_no_responses(self):
         today = timezone.now().astimezone(self.org.timezone).date()
         flow = self.create_flow("Test")
 

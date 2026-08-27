@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 19:26+0000\n"
+"POT-Creation-Date: 2026-08-27 20:36+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -6079,22 +6079,6 @@ msgstr "Concluído com sucesso"
 msgid "View flows"
 msgstr "Ver fluxos"
 
-msgid "Two factor authentication is currently <b>enabled</b>."
-msgstr "A autenticação de dois fatores está atualmente <b>habilitada</b>."
-
-msgid "Backup Tokens"
-msgstr "Tokens de backup"
-
-msgid "Two factor authentication is currently <b>not enabled</b>."
-msgstr "A autenticação de dois fatores <b>não está habilitada</b> no momento."
-
-#, python-format
-msgid "You have <b>%(count)s</b> active API token."
-msgid_plural "You have <b>%(count)s</b> active API tokens."
-msgstr[0] "Você tem <b>%(count)s</b> token de API ativo."
-msgstr[1] "Você tem <b>%(count)s</b> tokens de API ativos."
-msgstr[2] "Você tem <b>%(count)s</b> tokens de API ativos."
-
 #, python-format
 msgid "You are about to remove the user <b>%(object)s</b> from your workspace. Are you sure?"
 msgstr "Você está prestes a remover o usuário <b>%(object)s</b> da sua área de trabalho. Você tem certeza?"
@@ -6129,18 +6113,6 @@ msgstr "Nenhum usuário"
 
 msgid "Choose a new password and enter it below."
 msgstr "Escolha uma nova senha e digite-a abaixo."
-
-msgid "To disable two-factor authentication for your login, enter your current password."
-msgstr "Para desabilitar a autenticação de 2-fatores para o seu login, entre a senha atual."
-
-msgid "Below are your backup tokens which you can use if you lose access to the device with which you setup two-factor authentication. Each token can only be used once and tokens which have already been used are showed with a line through them. You should record these tokens in a secure place."
-msgstr "Abaixo estão os seus tokens de backup, que você pode usar se perder o acesso ao dispositivo com o qual configurou a autenticação de dois fatores. Cada token só pode ser usado uma vez e os tokens que já foram usados são mostrados riscados. Você deve guardar estes tokens em um lugar seguro."
-
-msgid "You can generate new backup tokens but remember that the current tokens will be no longer be usable if you do this."
-msgstr "Você pode gerar novos Tokens de Backup mas lembre-se de o tokens atuais não serão mais utilizáveis se você proceder."
-
-msgid "Regenerate Tokens"
-msgstr "Regenerar Tokens"
 
 msgid "This email verification link is invalid."
 msgstr "Este link de verificação de e-mail é inválido."

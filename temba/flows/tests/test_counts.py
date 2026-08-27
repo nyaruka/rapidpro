@@ -6,7 +6,7 @@ from django.utils import timezone
 from temba.flows.models import FlowActivityCount, FlowRun, FlowSession
 from temba.flows.tasks import squash_flow_counts
 from temba.msgs.models import Msg
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 from temba.utils.uuid import uuid4
 
 
@@ -159,8 +159,7 @@ class FlowActivityCountTest(TembaTest):
         self.assertEqual({"status:A": 0, "status:I": 4}, flow1.counts.scope_totals())
         self.assertEqual({"status:X": 1, "status:I": 2}, flow2.counts.scope_totals())
 
-    @mock_mailroom
-    def test_msgsin_counts(self, mr_mocks):
+    def test_msgsin_counts(self):
         flow1 = self.create_flow("Test 1")
         flow2 = self.create_flow("Test 2")
 
