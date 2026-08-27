@@ -174,8 +174,7 @@ class CampaignTest(TembaTest):
         )
         self.assertEqual("eng", event.base_language)
 
-    @mock_mailroom
-    def test_import(self, mr_mocks):
+    def test_import(self):
         self.import_file("test_flows/the_clinic.json")
         self.assertEqual(1, Campaign.objects.count())
 
@@ -193,8 +192,7 @@ class CampaignTest(TembaTest):
         self.assertEqual({"und": {"text": "This is a second campaign message"}}, events[5].translations)
         self.assertEqual("und", events[5].base_language)
 
-    @mock_mailroom
-    def test_import_created_on_event(self, mr_mocks):
+    def test_import_created_on_event(self):
         campaign = Campaign.create(self.org, self.admin, "New contact reminders", self.farmers)
         created_on = self.org.fields.get(key="created_on")
 
@@ -212,8 +210,7 @@ class CampaignTest(TembaTest):
 
         self.org.import_app(exported, self.admin)
 
-    @mock_mailroom
-    def test_update_to_non_date(self, mr_mocks):
+    def test_update_to_non_date(self):
         # create our campaign and event
         campaign = Campaign.create(self.org, self.admin, "Planting Reminders", self.farmers)
         event = CampaignEvent.create_flow_event(
@@ -230,8 +227,7 @@ class CampaignTest(TembaTest):
         # should be able to change our field type now
         ContactField.get_or_create(self.org, self.admin, "planting_date", value_type=ContactField.TYPE_TEXT)
 
-    @mock_mailroom
-    def test_unarchiving_campaigns(self, mr_mocks):
+    def test_unarchiving_campaigns(self):
         # create a campaign
         campaign = Campaign.create(self.org, self.editor, "Planting Reminders", self.farmers)
 

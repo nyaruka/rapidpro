@@ -4,7 +4,7 @@ from temba.flows.models import Flow, FlowRun, FlowSession
 from temba.msgs.models import Msg, MsgFolder
 from temba.orgs.tasks import squash_item_counts
 from temba.schedules.models import Schedule
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 from temba.utils import s3
 
 
@@ -65,8 +65,7 @@ class MsgFolderTest(TembaTest):
             select = s3.compile_select(where=folder.get_archive_query())
             self.assertEqual(expected_select, select, f"select s3 mismatch for {folder}")
 
-    @mock_mailroom
-    def test_get_counts(self, mr_mocks):
+    def test_get_counts(self):
         def assert_counts(org, expected: dict):
             self.assertEqual(MsgFolder.get_counts(org), expected)
 

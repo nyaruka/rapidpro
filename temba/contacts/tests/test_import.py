@@ -270,8 +270,7 @@ class ContactImportTest(TembaTest):
             imp.get_info(),
         )
 
-    @mock_mailroom
-    def test_batches_with_fields(self, mr_mocks):
+    def test_batches_with_fields(self):
         self.create_field("goats", "Goats", ContactField.TYPE_NUMBER)
 
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
@@ -401,8 +400,7 @@ class ContactImportTest(TembaTest):
             batch.specs,
         )
 
-    @mock_mailroom
-    def test_batches_with_invalid_urn(self, mr_mocks):
+    def test_batches_with_invalid_urn(self):
         imp = self.create_contact_import("media/test_imports/invalid_urn.xlsx")
         imp.start()
         batch = imp.batches.get()
@@ -421,8 +419,7 @@ class ContactImportTest(TembaTest):
             batch.specs,
         )
 
-    @mock_mailroom
-    def test_batches_with_multiple_tels(self, mr_mocks):
+    def test_batches_with_multiple_tels(self):
         imp = self.create_contact_import("media/test_imports/multiple_tel_urns.xlsx")
         imp.start()
         batch = imp.batches.get()
@@ -445,8 +442,7 @@ class ContactImportTest(TembaTest):
             batch.specs,
         )
 
-    @mock_mailroom
-    def test_batches_from_xlsx(self, mr_mocks):
+    def test_batches_from_xlsx(self):
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         imp.start()
         batch = imp.batches.get()
@@ -475,8 +471,7 @@ class ContactImportTest(TembaTest):
             batch.specs,
         )
 
-    @mock_mailroom
-    def test_batches_from_xlsx_with_formulas(self, mr_mocks):
+    def test_batches_from_xlsx_with_formulas(self):
         imp = self.create_contact_import("media/test_imports/formula_data.xlsx")
         imp.start()
         batch = imp.batches.get()
@@ -501,8 +496,7 @@ class ContactImportTest(TembaTest):
             batch.specs,
         )
 
-    @mock_mailroom
-    def test_detect_spamminess(self, mr_mocks):
+    def test_detect_spamminess(self):
         imp = self.create_contact_import("media/test_imports/sequential_tels.xlsx")
         imp.start()
 
@@ -533,8 +527,7 @@ class ContactImportTest(TembaTest):
                 )
             )
 
-    @mock_mailroom
-    def test_detect_spamminess_verified_org(self, mr_mocks):
+    def test_detect_spamminess_verified_org(self):
         # if an org is verified, no flagging occurs
         self.org.verify()
 
@@ -544,8 +537,7 @@ class ContactImportTest(TembaTest):
         self.org.refresh_from_db()
         self.assertFalse(self.org.is_flagged)
 
-    @mock_mailroom
-    def test_data_types(self, mr_mocks):
+    def test_data_types(self):
         imp = self.create_contact_import("media/test_imports/data_formats.xlsx")
         imp.start()
         batch = imp.batches.get()
@@ -596,8 +588,7 @@ class ContactImportTest(TembaTest):
         for test in tests:
             self.assertEqual(test[1], ContactImport(org=self.org, original_filename=test[0]).get_default_group_name())
 
-    @mock_mailroom
-    def test_delete(self, mr_mocks):
+    def test_delete(self):
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         imp.start()
         imp.delete()

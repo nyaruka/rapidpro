@@ -3,7 +3,7 @@ from allauth.mfa.models import Authenticator
 from temba.api.models import APIToken
 from temba.orgs.models import OrgRole
 from temba.orgs.tasks import update_members_seen
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 from temba.users.models import User
 
 
@@ -128,8 +128,7 @@ class UserTest(TembaTest):
                     f"expected {user} to{'' if has_perm else ' not'} have perm {perm} in org {org.name}",
                 )
 
-    @mock_mailroom
-    def test_release(self, mr_mocks):
+    def test_release(self):
         token = APIToken.create(self.org, self.admin)
 
         # admin doesn't "own" any orgs

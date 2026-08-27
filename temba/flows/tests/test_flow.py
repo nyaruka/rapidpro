@@ -144,8 +144,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(flow.is_active)
         self.assertEqual(0, flow.global_dependencies.count())
 
-    @mock_mailroom
-    def test_get_definition(self, mr_mocks):
+    def test_get_definition(self):
         favorites = self.get_flow("favorites_v13")
 
         # fill the definition with junk metadata
@@ -175,8 +174,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         favorites.revisions.all().delete()
         self.assertRaises(AssertionError, favorites.get_definition)
 
-    @mock_mailroom
-    def test_ensure_current_version(self, mr_mocks):
+    def test_ensure_current_version(self):
         # importing migrates to latest spec version
         flow = self.get_flow("favorites_v13")
         self.assertEqual(Flow.CURRENT_SPEC_VERSION, flow.version_number)
@@ -207,8 +205,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(old_saved_on, flow.saved_on)
         self.assertGreater(flow.modified_on, old_modified_on)
 
-    @mock_mailroom
-    def test_flow_archive_with_campaign(self, mr_mocks):
+    def test_flow_archive_with_campaign(self):
         self.login(self.admin)
         self.get_flow("the_clinic")
 
@@ -248,8 +245,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         flow.refresh_from_db()
         self.assertTrue(flow.is_archived)
 
-    @mock_mailroom
-    def test_flow_archive_with_ongoing_runs(self, mr_mocks):
+    def test_flow_archive_with_ongoing_runs(self):
         self.login(self.admin)
         flow = self.create_flow("Test Flow")
 
@@ -599,8 +595,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
             )
             self.assertEqual(len(flow.info["parent_refs"]), 0)
 
-    @mock_mailroom
-    def test_group_send(self, mr_mocks):
+    def test_group_send(self):
         # create an inactive group with the same name, to test that this doesn't blow up our import
         group = ContactGroup.get_or_create(self.org, self.admin, "Survey Audience")
         group.release(self.admin)
@@ -611,8 +606,7 @@ class FlowTest(TembaTest, CRUDLTestMixin):
         # fetching a flow with a group send shouldn't throw
         self.get_flow("group_send_flow")
 
-    @mock_mailroom
-    def test_delete(self, mr_mocks):
+    def test_delete(self):
         flow = self.get_flow("favorites_v13")
         flow_nodes = flow.get_definition()["nodes"]
         color_prompt = flow_nodes[0]

@@ -103,8 +103,7 @@ class ContactGroupTest(TembaTest):
         group.refresh_from_db()
         self.assertEqual(group.name, "first")
 
-    @mock_mailroom
-    def test_get_groups(self, mr_mocks):
+    def test_get_groups(self):
         manual = ContactGroup.create_manual(self.org, self.admin, "Static")
         deleted = ContactGroup.create_manual(self.org, self.admin, "Deleted")
         deleted.is_active = False
@@ -161,8 +160,7 @@ class ContactGroupTest(TembaTest):
 
         self.assertEqual(1, len(mr_mocks.calls["org_publish"]))
 
-    @mock_mailroom
-    def test_member_count(self, mr_mocks):
+    def test_member_count(self):
         group = self.create_group("Cool kids")
         group.contacts.add(self.joe, self.frank)
 
@@ -190,8 +188,7 @@ class ContactGroupTest(TembaTest):
         self.assertEqual(group.get_member_count(), 0)
         self.assertEqual(set(group.contacts.all()), set())
 
-    @mock_mailroom
-    def test_status_group_counts(self, mr_mocks):
+    def test_status_group_counts(self):
         # start with no contacts
         for contact in Contact.objects.all():
             contact.release(self.admin)
@@ -268,8 +265,7 @@ class ContactGroupTest(TembaTest):
             },
         )
 
-    @mock_mailroom
-    def test_release(self, mr_mocks):
+    def test_release(self):
         contact1 = self.create_contact("Bob", phone="+1234567111")
         contact2 = self.create_contact("Jim", phone="+1234567222")
         contact3 = self.create_contact("Jim", phone="+1234567333")

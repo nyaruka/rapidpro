@@ -363,8 +363,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertGet(endpoint_url + "?sort=-field:gender&page_size=0", [self.admin], results=[joe, frank])
         self.assertEqual(50, mr_mocks.calls["contact_search"][-1].kwargs["limit"])
 
-    @mock_mailroom
-    def test_contacts_update(self, mr_mocks):
+    def test_contacts_update(self):
         endpoint_url = reverse("api.internal.contacts") + ".json"
 
         joe = self.create_contact("Joe", urns=["tel:+250788111111", "facebook:123456"])

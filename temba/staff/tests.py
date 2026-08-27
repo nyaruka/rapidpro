@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from temba.contacts.models import Contact
 from temba.orgs.models import Org, OrgMembership, OrgRole
-from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
+from temba.tests import CRUDLTestMixin, TembaTest
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
 
@@ -144,8 +144,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.org.refresh_from_db()
         self.assertTrue(self.org.is_verified)
 
-    @mock_mailroom
-    def test_service(self, mr_mocks):
+    def test_service(self):
         service_url = reverse("staff.org_service")
         inbox_url = reverse("msgs.msg_inbox")
 
@@ -334,8 +333,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.editor.refresh_from_db()
         self.assertFalse(self.editor.is_mfa_enabled)
 
-    @mock_mailroom
-    def test_delete(self, mr_mocks):
+    def test_delete(self):
         delete_url = reverse("staff.user_delete", args=[self.editor.id])
 
         # this is a customer support only view

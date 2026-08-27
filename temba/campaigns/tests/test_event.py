@@ -6,13 +6,12 @@ from django.utils import timezone
 
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField, ContactFire
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 from temba.utils.uuid import uuid4
 
 
 class CampaignEventTest(TembaTest):
-    @mock_mailroom
-    def test_model(self, mr_mocks):
+    def test_model(self):
         contact1 = self.create_contact("Joe", phone="+1234567890")
         contact2 = self.create_contact("Jose", phone="+593979123456", language="spa")
         farmers = self.create_group("Farmers", [])

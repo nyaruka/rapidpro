@@ -10,7 +10,7 @@ from temba.contacts.models import ContactField
 from temba.flows.models import Flow
 from temba.msgs.models import Msg
 from temba.templates.models import TemplateTranslation
-from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
+from temba.tests import CRUDLTestMixin, TembaTest
 from temba.utils import json
 from temba.utils.compose import compose_serialize
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
@@ -53,8 +53,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         )
         return campaign
 
-    @mock_mailroom
-    def test_update_success_url(self, mr_mocks):
+    def test_update_success_url(self):
         event = self.campaign1.events.order_by("id").first()
         registered = self.org.fields.get(key="registered")
         flow = self.org.flows.get(name="Welcomes Flow")
@@ -147,8 +146,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(read_url, self.editor)
         self.assertEqual(404, response.status_code)
 
-    @mock_mailroom
-    def test_create(self, mr_mocks):
+    def test_create(self):
         farmer1 = self.create_contact("Rob Jasper", phone="+250788111111")
         farmer2 = self.create_contact("Mike Gordon", phone="+250788222222", language="kin")
         self.create_contact("Trey Anastasio", phone="+250788333333")
@@ -455,8 +453,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("@fields.planting_date", compose_initial["kin"]["text"])
         self.assertEqual("Required", compose_initial["eng"]["text"])
 
-    @mock_mailroom
-    def test_update(self, mr_mocks):
+    def test_update(self):
         event1, event2, event3 = self.campaign1.events.order_by("id")
         registered = self.org.fields.get(key="registered")
         accepted = self.create_field("accepted", "Accepted", value_type="D")
@@ -550,8 +547,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             response.context["form"].fields["flow_to_start"].widget.attrs["info_text"],
         )
 
-    @mock_mailroom
-    def test_read_with_translations(self, mr_mocks):
+    def test_read_with_translations(self):
         """The read view renders message content and a translation summary."""
         self.org.set_flow_languages(self.admin, ["eng", "kin", "spa", "fra"])
 
@@ -598,8 +594,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "Translations provided in <b>Kinyarwanda</b> and <b>Spanish</b>")
         self.assertNotContains(response, "<b>French</b>")
 
-    @mock_mailroom
-    def test_create_with_template(self, mr_mocks):
+    def test_create_with_template(self):
         """Creating a message event with a WhatsApp template persists template + variables."""
         planting_date = self.create_field("planting_date", "Planting Date", ContactField.TYPE_DATETIME)
         campaign = Campaign.create(self.org, self.admin, "With Template", self.create_group("G", []))
@@ -692,8 +687,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(str(template.uuid), initial["eng"]["template"])
         self.assertEqual(["image/jpeg:http://domain/meow.jpg", "World"], initial["eng"]["variables"])
 
-    @mock_mailroom
-    def test_too_many_attachments(self, mr_mocks):
+    def test_too_many_attachments(self):
         planting_date = self.create_field("planting_date", "Planting Date", ContactField.TYPE_DATETIME)
         campaign = Campaign.create(self.org, self.admin, "Attachments", self.create_group("Ga", []))
         create_url = reverse("campaigns.campaignevent_create", args=[campaign.id])
@@ -719,8 +713,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
             form_errors={"compose": f"Maximum allowed attachments is {Msg.MAX_ATTACHMENTS} files."},
         )
 
-    @mock_mailroom
-    def test_update_form_language_edge_cases(self, mr_mocks):
+    def test_update_form_language_edge_cases(self):
         """Form init should handle events whose base language or translations don't match current org languages."""
         event = CampaignEvent.create_message_event(
             self.org,
@@ -768,8 +761,7 @@ class CampaignEventCRUDLTest(TembaTest, CRUDLTestMixin):
         iso_order = [lang["iso"] for lang in langs]
         self.assertEqual(iso_order[0], "eng")
 
-    @mock_mailroom
-    def test_form_flow_queryset_default(self, mr_mocks):
+    def test_form_flow_queryset_default(self):
         # the class-level queryset for flow_to_start must not leak flows across orgs - it should be empty by
         # default and only populated when the form is instantiated with an org
         self.assertEqual(0, CampaignEventForm.base_fields["flow_to_start"].queryset.count())

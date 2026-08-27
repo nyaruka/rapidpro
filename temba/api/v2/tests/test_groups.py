@@ -3,7 +3,6 @@ from django.urls import reverse
 
 from temba.campaigns.models import Campaign
 from temba.contacts.models import ContactGroup
-from temba.tests import mock_mailroom
 from temba.triggers.models import Trigger
 
 from . import APITest
@@ -11,8 +10,7 @@ from . import APITest
 
 class GroupsEndpointTest(APITest):
     @override_settings(ORG_LIMIT_DEFAULTS={"groups": 10})
-    @mock_mailroom
-    def test_endpoint(self, mr_mocks):
+    def test_endpoint(self):
         endpoint_url = reverse("api.v2.groups") + ".json"
 
         self.assertGetNotPermitted(endpoint_url, [None])

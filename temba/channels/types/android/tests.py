@@ -5,15 +5,13 @@ from django.urls import reverse
 from temba.contacts.models import URN
 from temba.orgs.models import Org
 from temba.tests import CRUDLTestMixin, TembaTest
-from temba.tests.mailroom import mock_mailroom
 from temba.users.models import User
 
 from ...models import Channel
 
 
 class AndroidTypeTest(TembaTest, CRUDLTestMixin):
-    @mock_mailroom
-    def test_claim(self, mr_mocks):
+    def test_claim(self):
         # remove our explicit country so it needs to be derived from channels
         self.org.root_location = None
         self.org.timezone = "UTC"

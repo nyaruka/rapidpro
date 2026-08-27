@@ -4,7 +4,7 @@ from uuid import UUID
 from django.utils import timezone
 
 from temba.flows.models import FlowRun, FlowSession
-from temba.tests import TembaTest, matchers, mock_mailroom
+from temba.tests import TembaTest, matchers
 from temba.tests.engine import MockSessionWriter
 from temba.utils.uuid import uuid4
 
@@ -47,8 +47,7 @@ class FlowRunTest(TembaTest):
             run.get_path(),
         )
 
-    @mock_mailroom
-    def test_as_archive_json(self, mr_mocks):
+    def test_as_archive_json(self):
         flow = self.get_flow("color")
         flow_nodes = flow.get_definition()["nodes"]
         color_prompt = flow_nodes[0]

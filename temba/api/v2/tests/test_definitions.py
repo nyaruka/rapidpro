@@ -3,15 +3,13 @@ from django.urls import reverse
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField
 from temba.flows.models import Flow
-from temba.tests import mock_mailroom
 from temba.triggers.models import Trigger
 
 from . import APITest
 
 
 class DefinitionsEndpointTest(APITest):
-    @mock_mailroom
-    def test_endpoint(self, mr_mocks):
+    def test_endpoint(self):
         endpoint_url = reverse("api.v2.definitions") + ".json"
 
         self.assertGetNotPermitted(endpoint_url, [None, self.agent])

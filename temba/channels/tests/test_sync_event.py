@@ -1,11 +1,10 @@
-from temba.tests import TembaTest, mock_mailroom
+from temba.tests import TembaTest
 
 from ..models import Channel, SyncEvent
 
 
 class SyncEventTest(TembaTest):
-    @mock_mailroom
-    def test_sync_event_model(self, mr_mocks):
+    def test_sync_event_model(self):
         self.sync_event = SyncEvent.create(
             self.channel,
             dict(p_src="AC", p_sts="DIS", p_lvl=80, net="WIFI", pending=[1, 2], retry=[3, 4], cc="RW"),

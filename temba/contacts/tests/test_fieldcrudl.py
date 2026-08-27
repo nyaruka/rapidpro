@@ -3,7 +3,7 @@ from django.urls import reverse
 
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.contacts.models import ContactField
-from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
+from temba.tests import CRUDLTestMixin, TembaTest
 
 
 class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
@@ -108,8 +108,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
             response = self.requestView(create_url, self.admin)
             self.assertContains(response, "You have reached the per-workspace limit")
 
-    @mock_mailroom
-    def test_update(self, mr_mocks):
+    def test_update(self):
         update_url = reverse("contacts.contactfield_update", args=[self.age.key])
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.admin2])
@@ -278,8 +277,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         with override_settings(ORG_LIMIT_DEFAULTS={"fields": 3}):
             self.assertContentMenu(list_url, self.admin, [])
 
-    @mock_mailroom
-    def test_detail(self, mr_mocks):
+    def test_detail(self):
         field = self.create_field("joined", "Joined", value_type="D")
 
         flow = self.create_flow("Flow")
@@ -401,8 +399,7 @@ class ContactFieldCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(priority_url, "notjson", content_type="application/json")
         self.assertEqual(400, response.status_code)
 
-    @mock_mailroom
-    def test_usages(self, mr_mocks):
+    def test_usages(self):
         field = self.create_field("joined", "Joined", value_type="D")
 
         flow = self.create_flow("Flow")

@@ -88,8 +88,7 @@ class TicketTest(TembaTest):
         # a non-staff user with no membership in the org sees nothing (fails closed)
         self.assertEqual(set(), set(Ticket.get_accessible(self.org, self.admin2)))
 
-    @mock_mailroom
-    def test_counts(self, mr_mocks):
+    def test_counts(self):
         general = self.org.default_topic
         cats = Topic.create(self.org, self.admin, "Cats")
 

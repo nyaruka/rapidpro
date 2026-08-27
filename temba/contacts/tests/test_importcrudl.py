@@ -4,12 +4,11 @@ from django.test.utils import override_settings
 from django.urls import reverse
 
 from temba.contacts.models import ContactField, ContactGroup, ContactImport
-from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
+from temba.tests import CRUDLTestMixin, TembaTest
 
 
 class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
-    @mock_mailroom
-    def test_create_and_preview(self, mr_mocks):
+    def test_create_and_preview(self):
         create_url = reverse("contacts.contactimport_create")
 
         self.assertRequestDisallowed(create_url, [None, self.agent])
@@ -57,8 +56,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(302, response.status_code)
         self.assertEqual(read_url, response.url)
 
-    @mock_mailroom
-    def test_creating_new_group(self, mr_mocks):
+    def test_creating_new_group(self):
         self.login(self.admin)
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
@@ -105,8 +103,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
             imp.refresh_from_db()
             self.assertEqual(doctors, imp.group)
 
-    @mock_mailroom
-    def test_using_existing_group(self, mr_mocks):
+    def test_using_existing_group(self):
         self.login(self.admin)
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         preview_url = reverse("contacts.contactimport_preview", args=[imp.id])
@@ -135,8 +132,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         imp.refresh_from_db()
         self.assertEqual(doctors, imp.group)
 
-    @mock_mailroom
-    def test_preview_with_mappings(self, mr_mocks):
+    def test_preview_with_mappings(self):
         self.create_field("age", "Age", ContactField.TYPE_NUMBER)
 
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
@@ -263,8 +259,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
     @patch("temba.contacts.models.ContactImport.BATCH_SIZE", 2)
-    @mock_mailroom
-    def test_read(self, mr_mocks):
+    def test_read(self):
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
         imp.start()
 
@@ -273,8 +268,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(read_url, [None, self.agent, self.admin2])
         self.assertReadFetch(read_url, [self.editor, self.admin], context_object=imp)
 
-    @mock_mailroom
-    def test_preview_with_field_limit_reached(self, mr_mocks):
+    def test_preview_with_field_limit_reached(self):
         """Test that new fields are automatically ignored when field limit is reached"""
         # Create import with a file that has new fields
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
@@ -294,8 +288,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
                 self.assertFalse(include_field.initial)  # Should be initially unchecked
                 self.assertTrue(include_field.widget.attrs.get("disabled", False))  # Should be disabled
 
-    @mock_mailroom
-    def test_preview_with_field_limit_not_reached(self, mr_mocks):
+    def test_preview_with_field_limit_not_reached(self):
         """Test that new fields are normally available when field limit is not reached"""
         # Create import with a file that has new fields
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
@@ -315,8 +308,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
                 self.assertTrue(include_field.initial)  # Should be initially checked
                 self.assertFalse(include_field.widget.attrs.get("disabled", False))  # Should not be disabled
 
-    @mock_mailroom
-    def test_preview_with_group_limit_reached(self, mr_mocks):
+    def test_preview_with_group_limit_reached(self):
         """Test that new group option is hidden when group limit is reached"""
 
         imp = self.create_contact_import("media/test_imports/simple.xlsx")
@@ -336,8 +328,7 @@ class ContactImportCRUDLTest(TembaTest, CRUDLTestMixin):
             # Initial value should be existing group mode
             self.assertEqual(form.fields["group_mode"].initial, form.GROUP_MODE_EXISTING)
 
-    @mock_mailroom
-    def test_field_limit_validation_prevents_circumvention(self, mr_mocks):
+    def test_field_limit_validation_prevents_circumvention(self):
         """Test that backend validation prevents field limit circumvention"""
         imp = self.create_contact_import("media/test_imports/extra_fields_and_group.xlsx")
 
