@@ -186,26 +186,14 @@ class ContactActionsEndpointTest(APITest):
 
         self.assertEqual([call(self.org, self.admin, [contact1, contact2])], mr_mocks.calls["contact_interrupt"])
 
-        # archive all messages for contacts 1 and 2
-        self.assertPost(
-            endpoint_url,
-            self.admin,
-            {"contacts": [contact1.uuid, contact2.uuid], "action": "archive_messages"},
-            status=204,
-        )
-        self.assertFalse(Msg.objects.filter(contact__in=[contact1, contact2], direction="I", visibility="V").exists())
-        self.assertTrue(Msg.objects.filter(contact=contact3, direction="I", visibility="V").exists())
-
-        # as a deprecated action, that's recorded so we can see if anything still uses it
-        self.assertPost(
-            endpoint_url,
-            self.admin,
-            {"contacts": [contact3.uuid], "action": "archive"},  # the older alias
-            status=204,
-        )
-
-        self.assertDeprecatedRecorded("contact_actions#archive_messages", 1)
-        self.assertDeprecatedRecorded("contact_actions#archive", 1)
+        # the removed message archiving actions are no longer accepted
+        for action in ("archive_messages", "archive"):
+            self.assertPost(
+                endpoint_url,
+                self.admin,
+                {"contacts": [contact1.uuid], "action": action},
+                errors={"action": f'"{action}" is not a valid choice.'},
+            )
 
         # delete contacts 1 and 2
         self.assertPost(

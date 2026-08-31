@@ -16,16 +16,16 @@ class RecordDeprecatedTest(TembaTest):
         key = f"warnings:{timezone.now():%Y-%m}"
         r.delete(key)  # other tests may have recorded into this month's bucket
 
-        record_deprecated(self.org, "contact_actions#archive_messages")
-        record_deprecated(self.org, "contact_actions#archive_messages")
-        record_deprecated(self.org, "contact_actions#archive")
-        record_deprecated(self.org2, "contact_actions#archive_messages")
+        record_deprecated(self.org, "messages#filter:id")
+        record_deprecated(self.org, "messages#filter:id")
+        record_deprecated(self.org, "definitions#get")
+        record_deprecated(self.org2, "messages#filter:id")
 
         self.assertEqual(
             {
-                f"api:deprecated:{self.org.id}/contact_actions#archive_messages": b"2",
-                f"api:deprecated:{self.org.id}/contact_actions#archive": b"1",
-                f"api:deprecated:{self.org2.id}/contact_actions#archive_messages": b"1",
+                f"api:deprecated:{self.org.id}/messages#filter:id": b"2",
+                f"api:deprecated:{self.org.id}/definitions#get": b"1",
+                f"api:deprecated:{self.org2.id}/messages#filter:id": b"1",
             },
             {f.decode(): c for f, c in r.hgetall(key).items()},
         )
@@ -37,4 +37,4 @@ class RecordDeprecatedTest(TembaTest):
         with patch("temba.api.support.get_valkey_connection") as mock_get_conn:
             mock_get_conn.side_effect = ValueError("boom")
 
-            record_deprecated(self.org, "contact_actions#archive_messages")  # no exception
+            record_deprecated(self.org, "messages#filter:id")  # no exception
