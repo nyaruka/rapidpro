@@ -15,12 +15,14 @@ from django.db.models import Max, Min
 # transaction, so an interrupted run can be resumed from the last id it reported.
 #
 # Batching by id range is what gets each statement served by the primary key, but the size is chosen by what one
-# statement should cost rather than by that: msgs_msg carries a FOR EACH ROW trigger, so a batch is that many plpgsql
+# statement should cost rather than by that. msgs_msg carries a FOR EACH ROW trigger, so a batch is that many plpgsql
 # calls, that many row locks held until it commits, and a WAL burst to match - all on the rows courier and mailroom
-# are concurrently writing. Hence a size that keeps a batch cheap on the dense recent end of the table, where ids and
-# rows are close to one to one.
+# are concurrently writing. It also carries a FOR EACH STATEMENT update trigger with OLD and NEW transition tables, so
+# every batch materializes two tuplestores of whole msgs_msg rows, message text included, and joins them five times
+# over - the part that grows worst with batch size, since past work_mem those tuplestores spill to disk. Hence a size
+# that keeps a batch cheap on the dense recent end of the table, where ids and rows are close to one to one.
 
-BATCH_SIZE = 100_000  # ids per batch, not rows - ids are sparse wherever messages have been deleted
+BATCH_SIZE = 10_000  # ids per batch, not rows - ids are sparse wherever messages have been deleted
 
 SQL_BACKFILL_FOLDER = """
 UPDATE msgs_msg SET folder = CASE
