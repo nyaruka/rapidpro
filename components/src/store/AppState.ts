@@ -347,6 +347,11 @@ export const zustand = createStore<AppState>()(
           throw new Error('Network response was not ok');
         }
         const data = (await response.json()) as FlowContents;
+        // reclassify while the definition is still the mutable response JSON -
+        // resolveDependencyNames below returns an immer-frozen definition that
+        // in-place reclassification would throw on
+        reclassifyTerminalNodes(data.definition);
+        reclassifyVoiceWaitNodes(data.definition);
         if (dependencyResolver && data.info?.dependencies?.length) {
           try {
             // resolving before the first paint avoids a visible flash of stale
@@ -378,8 +383,6 @@ export const zustand = createStore<AppState>()(
             console.error('failed to resolve flow dependency names', error);
           }
         }
-        reclassifyTerminalNodes(data.definition);
-        reclassifyVoiceWaitNodes(data.definition);
         const issueMaps = buildIssueMaps(data.info?.issues);
         const flowLang = data.definition.language;
         set({
@@ -475,11 +478,18 @@ export const zustand = createStore<AppState>()(
       setFlowContents: (flow: FlowContents) => {
         set((state: AppState) => {
           const flowLang = flow.definition.language;
-          // Clone to ensure mutable for sorting
-          state.flowDefinition = {
-            ...flow.definition,
-            nodes: [...(flow.definition.nodes || [])]
-          };
+          // the definition handed in may be frozen store state (e.g. restoring
+          // a pre-revision-view snapshot), so reclassify and sort on a draft
+          state.flowDefinition = produce(
+            flow.definition,
+            (draft: FlowDefinition) => {
+              reclassifyTerminalNodes(draft);
+              reclassifyVoiceWaitNodes(draft);
+              if (draft.nodes && draft._ui?.nodes) {
+                sortNodesByPosition(draft.nodes, draft._ui.nodes);
+              }
+            }
+          );
           state.flowInfo = flow.info;
           const issueMaps = buildIssueMaps(flow.info?.issues);
           state.issuesByNode = issueMaps.byNode;
@@ -488,17 +498,6 @@ export const zustand = createStore<AppState>()(
           state.languageCode = flowLang;
           state.isTranslating = false;
           state.viewingRevision = false;
-
-          reclassifyTerminalNodes(state.flowDefinition);
-          reclassifyVoiceWaitNodes(state.flowDefinition);
-
-          // Sort nodes by position when loading flow
-          if (state.flowDefinition?.nodes && state.flowDefinition?._ui?.nodes) {
-            sortNodesByPosition(
-              state.flowDefinition.nodes,
-              state.flowDefinition._ui.nodes
-            );
-          }
         });
       },
 
