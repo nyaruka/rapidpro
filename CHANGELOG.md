@@ -1,3 +1,7 @@
+v26.3.65 (2026-08-31)
+-------------------------
+ * Fix flow editor crash reclassifying nodes in a frozen definition
+
 v26.3.64 (2026-08-27)
 -------------------------
  * Remove node_modules from STATICFILES_DIRS
