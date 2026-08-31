@@ -87,6 +87,8 @@ class BackfillMsgFolderTest(MigrationTest):
             status=Msg.STATUS_PENDING, folder=Msg.FOLDER_OUTBOX
         )
 
+        self.counts_before = self.org.counts.prefix("msgs:folder:").scope_totals()
+
     def test_migration(self):
         def assert_folder(msg, expected):
             msg.refresh_from_db()
@@ -113,6 +115,12 @@ class BackfillMsgFolderTest(MigrationTest):
         # a message that derives no folder is left alone rather than guessed at, either way round
         assert_folder(self.underivable, None)
         assert_folder(self.underivable_with_folder, Msg.FOLDER_OUTBOX)
+
+        # folder counts are scoped by the columns folder is derived from and not by folder itself, so correcting one
+        # can't move them - pinned down here because folder is a denormalization of nearly what that scope computes,
+        # and a future change that had it read folder instead would make this migration emit spurious deltas
+        self.assertTrue(self.counts_before)  # guard against the comparison below being two empty dicts
+        self.assertEqual(self.counts_before, self.org.counts.prefix("msgs:folder:").scope_totals())
 
 
 class BackfillMsgFolderPagingTest(MigrationTest):
