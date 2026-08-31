@@ -14,6 +14,7 @@ class RecordDeprecatedTest(TembaTest):
     def test_record(self):
         r = get_valkey_connection()
         key = f"warnings:{timezone.now():%Y-%m}"
+        r.delete(key)  # other tests may have recorded into this month's bucket
 
         record_deprecated(self.org, "contact_actions#archive_messages")
         record_deprecated(self.org, "contact_actions#archive_messages")
