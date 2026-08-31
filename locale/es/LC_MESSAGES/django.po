@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 20:36+0000\n"
+"POT-Creation-Date: 2026-08-31 22:54+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -434,6 +434,9 @@ msgstr "Envío de mensaje"
 msgid "Message Status"
 msgstr "Estado del mensaje"
 
+msgid "Receive"
+msgstr "Recibir"
+
 msgid "Message Receive"
 msgstr "Recepción de mensaje"
 
@@ -850,9 +853,6 @@ msgstr "La URL a la que llamaremos (POST) cuando enviemos mensajes, con sustituc
 
 msgid "Connect External Service"
 msgstr "Conectar Servicio Externo"
-
-msgid "Receive"
-msgstr "Recibir"
 
 msgid "Send"
 msgstr "Enviar"
