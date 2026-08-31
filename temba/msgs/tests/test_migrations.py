@@ -69,9 +69,25 @@ class BackfillMsgFolderTest(MigrationTest):
         # all of the above predate the folder column being written
         self.org.msgs.update(folder=None)
 
-        # a message that already has a folder shouldn't be recalculated
-        self.already_set = self.create_incoming_msg(contact, "Hi")
-        Msg.objects.filter(id=self.already_set.id).update(folder=Msg.FOLDER_ARCHIVED)
+        # messages whose folder was written and has since gone stale, as updating an outgoing message's status from
+        # an Android relayer's sync and archiving a contact's incoming messages in bulk both used to leave them
+        self.stale_sent = self.create_outgoing_msg(contact, "Hi", status=Msg.STATUS_SENT)
+        Msg.objects.filter(id=self.stale_sent.id).update(folder=Msg.FOLDER_OUTBOX)
+
+        self.stale_archived = self.create_incoming_msg(contact, "Hi", visibility=Msg.VISIBILITY_ARCHIVED)
+        Msg.objects.filter(id=self.stale_archived.id).update(folder=Msg.FOLDER_INBOX)
+
+        # a message whose folder agrees with its state is left as it is
+        self.correct = self.create_incoming_msg(contact, "Hi")
+        Msg.objects.filter(id=self.correct.id).update(folder=Msg.FOLDER_INBOX)
+
+        # an underivable message keeps the folder it has rather than having it cleared
+        self.underivable_with_folder = self.create_outgoing_msg(contact, "Hi")
+        Msg.objects.filter(id=self.underivable_with_folder.id).update(
+            status=Msg.STATUS_PENDING, folder=Msg.FOLDER_OUTBOX
+        )
+
+        self.counts_before = self.org.counts.prefix("msgs:folder:").scope_totals()
 
     def test_migration(self):
         def assert_folder(msg, expected):
@@ -92,8 +108,19 @@ class BackfillMsgFolderTest(MigrationTest):
         for msg in self.sent.values():
             assert_folder(msg, Msg.FOLDER_SENT)
 
-        assert_folder(self.already_set, Msg.FOLDER_ARCHIVED)  # not recalculated
-        assert_folder(self.underivable, None)  # left alone rather than guessed at
+        assert_folder(self.stale_sent, Msg.FOLDER_SENT)  # corrected, not just filled in
+        assert_folder(self.stale_archived, Msg.FOLDER_ARCHIVED)
+        assert_folder(self.correct, Msg.FOLDER_INBOX)  # unchanged
+
+        # a message that derives no folder is left alone rather than guessed at, either way round
+        assert_folder(self.underivable, None)
+        assert_folder(self.underivable_with_folder, Msg.FOLDER_OUTBOX)
+
+        # folder counts are scoped by the columns folder is derived from and not by folder itself, so correcting one
+        # can't move them - pinned down here because folder is a denormalization of nearly what that scope computes,
+        # and a future change that had it read folder instead would make this migration emit spurious deltas
+        self.assertTrue(self.counts_before)  # guard against the comparison below being two empty dicts
+        self.assertEqual(self.counts_before, self.org.counts.prefix("msgs:folder:").scope_totals())
 
 
 class BackfillMsgFolderPagingTest(MigrationTest):
@@ -118,9 +145,10 @@ class BackfillMsgFolderPagingTest(MigrationTest):
     def setUpBeforeMigration(self, apps):
         contact = self.create_contact("Bob", phone="+1234567890")
 
-        # enough messages to span several batches, all predating the folder column being written
+        # enough messages to span several batches, alternately never written and written wrongly
         self.msgs = [self.create_incoming_msg(contact, f"Hi {m}") for m in range(5)]
-        self.org.msgs.update(folder=None)
+        for m, msg in enumerate(self.msgs):
+            Msg.objects.filter(id=msg.id).update(folder=None if m % 2 else Msg.FOLDER_OUTBOX)
 
     def test_migration(self):
         # every message filled in, so no batch was skipped
