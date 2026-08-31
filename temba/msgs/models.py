@@ -763,19 +763,6 @@ class Msg(models.Model):
         return folder.code
 
     @classmethod
-    def archive_all_for_contacts(cls, contacts):
-        """
-        Archives all incoming messages for the given contacts
-        """
-        msgs = Msg.objects.filter(direction=cls.DIRECTION_IN, visibility=cls.VISIBILITY_VISIBLE, contact__in=contacts)
-        msg_ids = list(msgs.values_list("pk", flat=True))
-
-        # update modified on in small batches to avoid long table lock, and having too many non-unique values for
-        # modified_on which is the primary ordering for the API
-        for batch in itertools.batched(msg_ids, 100):
-            Msg.objects.filter(pk__in=batch).update(visibility=cls.VISIBILITY_ARCHIVED, modified_on=timezone.now())
-
-    @classmethod
     def apply_action_label(cls, user, msgs, label):
         label.toggle_label(msgs, add=True)
 

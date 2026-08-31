@@ -26,7 +26,6 @@ from temba.utils import json
 from temba.utils.fields import NameValidator
 
 from ..models import BulkActionFailure, Resthook, ResthookSubscriber, WebHookEvent
-from ..support import record_deprecated
 from ..validators import UniqueForOrgValidator
 from . import fields
 
@@ -947,11 +946,9 @@ class ContactBulkActionSerializer(WriteSerializer):
     BLOCK = "block"
     UNBLOCK = "unblock"
     INTERRUPT = "interrupt"
-    ARCHIVE_MESSAGES = "archive_messages"
     DELETE = "delete"
-    ARCHIVE = "archive"  # backward compatibility
 
-    ACTIONS = (ADD, REMOVE, BLOCK, UNBLOCK, INTERRUPT, ARCHIVE_MESSAGES, DELETE, ARCHIVE)
+    ACTIONS = (ADD, REMOVE, BLOCK, UNBLOCK, INTERRUPT, DELETE)
     ACTIONS_WITH_GROUP = (ADD, REMOVE)
 
     contacts = fields.ContactField(many=True)
@@ -995,11 +992,6 @@ class ContactBulkActionSerializer(WriteSerializer):
             Contact.bulk_change_group(user, contacts, group, add=False, via_api=True)
         elif action == self.INTERRUPT:
             Contact.bulk_interrupt(user, contacts)
-        elif action == self.ARCHIVE_MESSAGES or action == self.ARCHIVE:
-            # tracked separately for each action name so we can see if the older alias can be dropped on its own
-            record_deprecated(self.context["org"], f"contact_actions#{action}")
-
-            Msg.archive_all_for_contacts(contacts)
         elif action == self.BLOCK:
             Contact.bulk_change_status(user, contacts, modifiers.Status.BLOCKED, via_api=True)
         elif action == self.UNBLOCK:
