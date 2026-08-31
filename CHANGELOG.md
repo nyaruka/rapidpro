@@ -1,3 +1,8 @@
+v26.3.69 (2026-08-31)
+-------------------------
+ * Add display label for new consolidated receive channel log type
+ * Correct stale folders in Msg.folder backfill migration as well as missing ones
+
 v26.3.68 (2026-08-31)
 -------------------------
  * Reduce batch size of Msg.folder backfill migration
