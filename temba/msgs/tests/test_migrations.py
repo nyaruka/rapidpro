@@ -1,6 +1,8 @@
 from importlib import import_module
 from unittest.mock import patch
 
+from django.utils import timezone
+
 from temba.msgs.models import Msg
 from temba.tests import MigrationTest
 
@@ -38,10 +40,18 @@ class BackfillMsgFolderTest(MigrationTest):
         self.inbox = self.create_incoming_msg(contact, "Hi")
         self.handled = self.create_incoming_msg(contact, "Hi", flow=flow)
         self.archived = self.create_incoming_msg(contact, "Hi", visibility=Msg.VISIBILITY_ARCHIVED)
-        self.outbox = self.create_outgoing_msg(contact, "Hi", status=Msg.STATUS_QUEUED)
-        self.sent = self.create_outgoing_msg(contact, "Hi", status=Msg.STATUS_SENT)
         self.failed = self.create_outgoing_msg(contact, "Hi", status=Msg.STATUS_FAILED)
         self.pending = self.create_incoming_msg(contact, "Hi", status=Msg.STATUS_PENDING)
+
+        # the outbox and sent folders each fold in several statuses
+        self.outbox = {
+            s: self.create_outgoing_msg(contact, "Hi", status=s)
+            for s in (Msg.STATUS_INITIALIZING, Msg.STATUS_QUEUED, Msg.STATUS_ERRORED)
+        }
+        self.sent = {
+            s: self.create_outgoing_msg(contact, "Hi", status=s, sent_on=timezone.now())
+            for s in (Msg.STATUS_WIRED, Msg.STATUS_SENT, Msg.STATUS_DELIVERED, Msg.STATUS_READ)
+        }
 
         # deleted and unhandled take precedence over the user facing folders
         self.deleted = self.create_incoming_msg(contact, "Hi", visibility=Msg.VISIBILITY_DELETED_BY_USER)
@@ -56,6 +66,9 @@ class BackfillMsgFolderTest(MigrationTest):
         self.already_set = self.create_incoming_msg(contact, "Hi")
         Msg.objects.filter(id=self.already_set.id).update(folder=Msg.FOLDER_ARCHIVED)
 
+        # an outgoing message that is pending belongs to no folder - unlikely, but the database permits it
+        self.underivable = self.create_outgoing_msg(contact, "Hi", status=Msg.STATUS_PENDING)
+
     def test_migration(self):
         def assert_folder(msg, expected):
             msg.refresh_from_db()
@@ -64,15 +77,19 @@ class BackfillMsgFolderTest(MigrationTest):
         assert_folder(self.inbox, Msg.FOLDER_INBOX)
         assert_folder(self.handled, Msg.FOLDER_HANDLED)
         assert_folder(self.archived, Msg.FOLDER_ARCHIVED)
-        assert_folder(self.outbox, Msg.FOLDER_OUTBOX)
-        assert_folder(self.sent, Msg.FOLDER_SENT)
         assert_folder(self.failed, Msg.FOLDER_FAILED)
         assert_folder(self.pending, Msg.FOLDER_PENDING)
         assert_folder(self.deleted, Msg.FOLDER_DELETED)
         assert_folder(self.deleted_by_sender, Msg.FOLDER_DELETED)
         assert_folder(self.pending_archived, Msg.FOLDER_PENDING)
 
+        for msg in self.outbox.values():
+            assert_folder(msg, Msg.FOLDER_OUTBOX)
+        for msg in self.sent.values():
+            assert_folder(msg, Msg.FOLDER_SENT)
+
         assert_folder(self.already_set, Msg.FOLDER_ARCHIVED)  # not recalculated
+        assert_folder(self.underivable, None)  # left alone rather than guessed at
 
 
 class BackfillMsgFolderPagingTest(MigrationTest):

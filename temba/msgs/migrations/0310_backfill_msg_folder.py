@@ -6,15 +6,21 @@ from django.db.models import Max, Min
 # precedence: being deleted, and then being unhandled, both come before the user facing folders, so that a message
 # which is archived or deleted whilst still pending doesn't land in Archived.
 #
-# The branches are exhaustive over the states the database allows, because the temba_msg_on_change trigger rejects
-# the only two combinations that would otherwise fall through - an incoming message that isn't pending or handled,
-# and an outgoing message that is archived. Should one somehow exist, it keeps its null folder.
+# A message whose state matches no branch keeps its null folder rather than being guessed at. The temba_msg_on_change
+# trigger rules out most of those - an incoming message that isn't pending or handled, and an outgoing message that is
+# archived - but not every one: an outgoing message that is somehow pending or handled is legal and falls through.
 #
 # The table is far too large to scan for null folders, so we walk the primary key range in batches instead, newest
 # first so that the messages users are most likely to be looking at are filled in first. Each batch is its own
 # transaction, so an interrupted run can be resumed from the last id it reported.
+#
+# Batching by id range is what gets each statement served by the primary key, but the size is chosen by what one
+# statement should cost rather than by that: msgs_msg carries a FOR EACH ROW trigger, so a batch is that many plpgsql
+# calls, that many row locks held until it commits, and a WAL burst to match - all on the rows courier and mailroom
+# are concurrently writing. Hence a size that keeps a batch cheap on the dense recent end of the table, where ids and
+# rows are close to one to one.
 
-BATCH_SIZE = 1_000_000  # ids per batch, not rows - ids are sparse wherever messages have been deleted
+BATCH_SIZE = 100_000  # ids per batch, not rows - ids are sparse wherever messages have been deleted
 
 SQL_BACKFILL_FOLDER = """
 UPDATE msgs_msg SET folder = CASE
