@@ -1,3 +1,7 @@
+v26.3.67 (2026-08-31)
+-------------------------
+ * Add migration to backfill Msg.folder
+
 v26.3.66 (2026-08-31)
 -------------------------
  * Remove Android relayer sync handling
