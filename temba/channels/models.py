@@ -786,7 +786,6 @@ class ChannelEvent(TembaUUIDMixin, models.Model):
         (TYPE_DELETE_CONTACT, _("Delete Contact"), "delete-contact"),
     )
     TYPE_CHOICES = [(t[0], t[1]) for t in TYPE_CONFIG]
-    ALL_TYPES = {t[0] for t in TYPE_CONFIG}
 
     STATUS_PENDING = "P"
     STATUS_HANDLED = "H"
@@ -805,10 +804,6 @@ class ChannelEvent(TembaUUIDMixin, models.Model):
     created_on = models.DateTimeField(default=timezone.now)
 
     log_uuids = ArrayField(models.UUIDField(), null=True)
-
-    @classmethod
-    def is_valid_type(cls, event_type: str) -> bool:
-        return event_type in cls.ALL_TYPES
 
 
 @dataclass

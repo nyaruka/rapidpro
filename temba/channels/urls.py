@@ -1,7 +1,7 @@
 from django.conf.urls import include
 from django.urls import re_path
 
-from .android.views import register, sync
+from .android.views import register
 from .models import Channel
 from .views import ChannelCRUDL
 
@@ -20,6 +20,5 @@ for ch_type in Channel.get_types():
 urlpatterns = [
     re_path(r"^channels/", include(ChannelCRUDL().as_urlpatterns())),
     re_path(r"^channels/types/", include(type_urls)),
-    re_path(r"^relayers/relayer/sync/(\d+)/$", sync, {}, "sync"),
     re_path(r"^relayers/relayer/register/$", register, {}, "register"),
 ]

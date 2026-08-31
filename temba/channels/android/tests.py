@@ -1,11 +1,8 @@
 from django.urls import reverse
 
 from temba.channels.models import Channel
-from temba.msgs.models import Msg
 from temba.tests import TembaTest
 from temba.utils import json
-
-from .sync import get_sync_commands
 
 
 class AndroidTest(TembaTest):
@@ -38,58 +35,3 @@ class AndroidTest(TembaTest):
         reg_data = dict(cmds=[dict(cmd="fcm", uuid="uuid"), dict(cmd="status", cc="RW", dev="Nexus")])
         with self.assertRaises(ValueError):
             self.client.post(reverse("register"), json.dumps(reg_data), content_type="application/json")
-
-    def test_get_sync_commands(self):
-        joe = self.create_contact("Joe Blow", urns=["tel:789", "tel:123"])
-        frank = self.create_contact("Frank Blow", phone="321")
-        kevin = self.create_contact("Kevin Durant", phone="987")
-
-        msg1 = self.create_outgoing_msg(joe, "Hello, we heard from you.")
-        msg2 = self.create_outgoing_msg(frank, "Hello, we heard from you.")
-        msg3 = self.create_outgoing_msg(kevin, "Hello, we heard from you.")
-
-        commands = get_sync_commands(Msg.objects.filter(id__in=(msg1.id, msg2.id, msg3.id)))
-
-        self.assertEqual(
-            commands,
-            [
-                {
-                    "cmd": "mt_bcast",
-                    "to": [
-                        {"phone": "123", "id": msg1.id},
-                        {"phone": "321", "id": msg2.id},
-                        {"phone": "987", "id": msg3.id},
-                    ],
-                    "msg": "Hello, we heard from you.",
-                }
-            ],
-        )
-
-        msg4 = self.create_outgoing_msg(kevin, "Hello, there")
-
-        commands = get_sync_commands(Msg.objects.filter(id__in=(msg1.id, msg2.id, msg4.id)))
-
-        self.assertEqual(
-            commands,
-            [
-                {
-                    "cmd": "mt_bcast",
-                    "to": [{"phone": "123", "id": msg1.id}, {"phone": "321", "id": msg2.id}],
-                    "msg": "Hello, we heard from you.",
-                },
-                {"cmd": "mt_bcast", "to": [{"phone": "987", "id": msg4.id}], "msg": "Hello, there"},
-            ],
-        )
-
-        msg5 = self.create_outgoing_msg(frank, "Hello, we heard from you.")
-
-        commands = get_sync_commands(Msg.objects.filter(id__in=(msg1.id, msg4.id, msg5.id)))
-
-        self.assertEqual(
-            commands,
-            [
-                {"cmd": "mt_bcast", "to": [{"phone": "123", "id": msg1.id}], "msg": "Hello, we heard from you."},
-                {"cmd": "mt_bcast", "to": [{"phone": "987", "id": msg4.id}], "msg": "Hello, there"},
-                {"cmd": "mt_bcast", "to": [{"phone": "321", "id": msg5.id}], "msg": "Hello, we heard from you."},
-            ],
-        )

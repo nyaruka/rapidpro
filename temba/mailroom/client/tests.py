@@ -1,4 +1,3 @@
-from datetime import datetime, timezone as tzone
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -30,58 +29,6 @@ class MailroomClientTest(TembaTest):
         super().setUp()
 
         self.client = MailroomClient("http://localhost:8090", "sesame")
-
-    @patch("requests.post")
-    def test_android_event(self, mock_post):
-        mock_post.return_value = MockJsonResponse(200, {"id": 12345})
-        response = self.client.android_event(
-            org=self.org,
-            channel=self.channel,
-            phone="+1234567890",
-            event_type="mo_miss",
-            extra={"duration": 45},
-            occurred_on=datetime(2024, 4, 1, 16, 28, 30, 0, tzone.utc),
-        )
-
-        self.assertEqual({"id": 12345}, response)
-
-        mock_post.assert_called_once_with(
-            "http://localhost:8090/mi/android/event",
-            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={
-                "org_id": self.org.id,
-                "channel_id": self.channel.id,
-                "phone": "+1234567890",
-                "event_type": "mo_miss",
-                "extra": {"duration": 45},
-                "occurred_on": "2024-04-01T16:28:30+00:00",
-            },
-        )
-
-    @patch("requests.post")
-    def test_android_message(self, mock_post):
-        mock_post.return_value = MockJsonResponse(200, {"id": 12345})
-        response = self.client.android_message(
-            org=self.org,
-            channel=self.channel,
-            phone="+1234567890",
-            text="hello",
-            received_on=datetime(2024, 4, 1, 16, 28, 30, 0, tzone.utc),
-        )
-
-        self.assertEqual({"id": 12345}, response)
-
-        mock_post.assert_called_once_with(
-            "http://localhost:8090/mi/android/message",
-            headers={"User-Agent": "Temba", "Authorization": "Token sesame"},
-            json={
-                "org_id": self.org.id,
-                "channel_id": self.channel.id,
-                "phone": "+1234567890",
-                "text": "hello",
-                "received_on": "2024-04-01T16:28:30+00:00",
-            },
-        )
 
     @patch("requests.post")
     def test_android_sync(self, mock_post):

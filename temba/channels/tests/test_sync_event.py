@@ -1,6 +1,11 @@
+from datetime import timedelta
+
+from django.utils import timezone
+
 from temba.tests import TembaTest
 
 from ..models import Channel, SyncEvent
+from ..tasks import trim_channel_sync_events
 
 
 class SyncEventTest(TembaTest):
@@ -25,3 +30,18 @@ class SyncEventTest(TembaTest):
 
         # we shouldn't update country once the relayer is claimed
         self.assertEqual("RW", self.channel.country)
+
+    def test_trim_task(self):
+        for _ in range(3):
+            SyncEvent.create(
+                self.channel,
+                dict(p_src="AC", p_sts="DIS", p_lvl=80, net="WIFI", pending=[], retry=[], cc="RW"),
+                [],
+            )
+
+        SyncEvent.objects.all().update(created_on=timezone.now() - timedelta(days=45))
+
+        trim_channel_sync_events()
+
+        # should always leave at least one per channel
+        self.assertEqual(1, SyncEvent.objects.all().count())

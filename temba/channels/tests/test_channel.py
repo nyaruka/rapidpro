@@ -1,30 +1,19 @@
-import base64
-import hashlib
-import hmac
-import time
 from datetime import datetime, timedelta, timezone as tzone
 from unittest.mock import call, patch
-from urllib.parse import quote
 
 from django.urls import reverse
-from django.utils import timezone
-from django.utils.encoding import force_bytes
 
-from temba.apks.models import Apk
 from temba.contacts.models import URN, Contact
 from temba.msgs.models import Msg
-from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType, ChannelOutdatedAppIncidentType
-from temba.notifications.models import Incident
+from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType
 from temba.templates.models import TemplateTranslation
 from temba.tests import CRUDLTestMixin, MockResponse, TembaTest, mock_mailroom
 from temba.tests.crudl import StaffRedirect
 from temba.triggers.models import Trigger
 from temba.utils import json
-from temba.utils.models import generate_uuid
 from temba.utils.views.mixins import TEMBA_MENU_SELECTION
 
-from ..models import Channel, ChannelEvent, SyncEvent
-from ..tasks import trim_channel_sync_events
+from ..models import Channel, SyncEvent
 
 
 class ChannelTest(TembaTest, CRUDLTestMixin):
@@ -65,16 +54,6 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         android.refresh_from_db()
         return android
-
-    def assertHasCommand(self, cmd_name, response):
-        self.assertEqual(200, response.status_code)
-        data = response.json()
-
-        for cmd in data["cmds"]:
-            if cmd["cmd"] == cmd_name:
-                return
-
-        raise Exception("Did not find '%s' cmd in response: '%s'" % (cmd_name, response.content))
 
     def test_deactivate(self):
         self.login(self.admin)
@@ -281,37 +260,9 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         android.release(self.admin)
         android.refresh_from_db()
 
-        response = self.sync(android, cmds=[])
-        self.assertEqual(200, response.status_code)
-
-        # should be a rel cmd to instruct app to reset
-        self.assertEqual({"cmds": [{"cmd": "rel", "relayer_id": str(android.id)}]}, response.json())
-
         self.assertFalse(android.is_active)
         # and FCM ID now kept
         self.assertEqual("FCM111", android.config.get(Channel.CONFIG_FCM_ID))
-
-    def sync(self, channel, *, cmds, signature=None, auto_add_fcm=True):
-        # prepend FCM command if not included
-        if auto_add_fcm and (not cmds or cmds[0]["cmd"] != "fcm"):
-            cmds = [{"cmd": "fcm", "fcm_id": "3256262", "uuid": str(channel.uuid), "p_id": 1}] + cmds
-
-        post_data = json.dumps({"cmds": cmds})
-        ts = int(time.time())
-
-        if not signature:
-            # sign the request
-            key = str(channel.secret) + str(ts)
-            signature = hmac.new(key=force_bytes(key), msg=force_bytes(post_data), digestmod=hashlib.sha256).digest()
-
-            # base64 and url sanitize
-            signature = quote(base64.urlsafe_b64encode(signature))
-
-        return self.client.post(
-            "%s?signature=%s&ts=%d" % (reverse("sync", args=[channel.id]), signature, ts),
-            content_type="application/json",
-            data=post_data,
-        )
 
     def test_chart(self):
         chart_url = reverse("channels.channel_chart", args=[self.tel_channel.uuid])
@@ -343,22 +294,15 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             self.assertEqual(2, chart["data"]["datasets"][1]["data"][0])
 
     def test_read(self):
-        # now send the channel's updates
-        self.sync(
+        SyncEvent.create(
             self.tel_channel,
-            cmds=[
-                # device details status
-                dict(cmd="status", p_sts="CHA", p_src="BAT", p_lvl="60", net="UMTS", pending=[], retry=[])
-            ],
+            dict(p_sts="CHA", p_src="BAT", p_lvl="60", net="UMTS", pending=[], retry=[]),
+            [],
         )
-
-        # now send the channel's updates
-        self.sync(
+        SyncEvent.create(
             self.tel_channel,
-            cmds=[
-                # device details status
-                dict(cmd="status", p_sts="FUL", p_src="AC", p_lvl="100", net="WIFI", pending=[], retry=[])
-            ],
+            dict(p_sts="FUL", p_src="AC", p_lvl="100", net="WIFI", pending=[], retry=[]),
+            [],
         )
         self.assertEqual(2, SyncEvent.objects.all().count())
 
@@ -454,382 +398,3 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         # as staff
         self.requestView(tel_channel_read_url, self.customer_support, checks=[StaffRedirect()])
-
-    def test_invalid(self):
-        # Must be POST
-        response = self.client.get(
-            "%s?signature=sig&ts=123" % (reverse("sync", args=[100])), content_type="application/json"
-        )
-        self.assertEqual(500, response.status_code)
-
-        # Unknown channel
-        response = self.client.post(
-            "%s?signature=sig&ts=123" % (reverse("sync", args=[999])), content_type="application/json"
-        )
-        self.assertEqual(200, response.status_code)
-        self.assertEqual("rel", response.json()["cmds"][0]["cmd"])
-
-        # too old
-        ts = int(time.time()) - 60 * 16
-        response = self.client.post(
-            "%s?signature=sig&ts=%d" % (reverse("sync", args=[self.tel_channel.pk]), ts),
-            content_type="application/json",
-        )
-        self.assertEqual(401, response.status_code)
-        self.assertEqual(3, response.json()["error_id"])
-
-        # missing initial FCM command
-        response = self.sync(self.tel_channel, cmds=[], auto_add_fcm=False)
-        self.assertEqual(401, response.status_code)
-        self.assertEqual(4, response.json()["error_id"])
-
-    def test_sync_unclaimed(self):
-        response = self.sync(self.unclaimed_channel, cmds=[])
-        self.assertEqual(401, response.status_code)
-
-        # should be an error response
-        self.assertEqual({"error": "Can't sync unclaimed channel", "error_id": 4, "cmds": []}, response.json())
-
-        self.unclaimed_channel.secret = "12345674674"
-        self.unclaimed_channel.uuid = generate_uuid()
-        self.unclaimed_channel.claim_code = "ABCDEFGH9"
-        self.unclaimed_channel.save(update_fields=("secret", "uuid", "claim_code"))
-
-        response = self.sync(self.unclaimed_channel, cmds=[])
-        self.assertEqual(200, response.status_code)
-
-        response_json = response.json()
-        self.assertEqual(
-            response_json,
-            dict(
-                cmds=[
-                    dict(
-                        cmd="reg",
-                        relayer_claim_code="ABCDEFGH9",
-                        relayer_secret="12345674674",
-                        relayer_id=self.unclaimed_channel.pk,
-                    )
-                ]
-            ),
-        )
-
-        # Not matching UUID should be an error
-        response = self.sync(
-            self.unclaimed_channel,
-            cmds=[{"cmd": "fcm", "fcm_id": "3256262", "uuid": str(generate_uuid()), "p_id": 1}],
-            auto_add_fcm=False,
-        )
-        self.assertEqual(401, response.status_code)
-
-        # should be an error response
-        self.assertEqual({"error": "Can't sync unclaimed channel", "error_id": 4, "cmds": []}, response.json())
-
-    def test_sync_client_reset(self):
-        android = self.claim_new_android()
-
-        response = self.sync(android, cmds=[{"cmd": "reset"}])
-        self.assertEqual(200, response.status_code)
-
-        android.refresh_from_db()
-        self.assertFalse(android.is_active)
-
-    def test_sync_broadcast_multiple_channels(self):
-        channel2 = Channel.create(
-            self.org,
-            self.admin,
-            "RW",
-            "A",
-            name="Test Channel 2",
-            address="+250785551313",
-            role="SR",
-            secret="12367",
-            config={Channel.CONFIG_FCM_ID: "456"},
-        )
-
-        contact1 = self.create_contact("John Doe", phone="250788382382")
-        contact2 = self.create_contact("John Doe", phone="250788383383")
-
-        contact1_urn = contact1.get_urn()
-        contact1_urn.channel = self.tel_channel
-        contact1_urn.save()
-
-        contact2_urn = contact2.get_urn()
-        contact2_urn.channel = channel2
-        contact2_urn.save()
-
-        # send a broadcast to urns that have different preferred channels
-        self.create_outgoing_msg(contact1, "How is it going?", status=Msg.STATUS_QUEUED)
-        self.create_outgoing_msg(contact2, "How is it going?", status=Msg.STATUS_QUEUED)
-
-        # should contain messages for the channel only
-        response = self.sync(self.tel_channel, cmds=[])
-        self.assertEqual(200, response.status_code)
-
-        self.tel_channel.refresh_from_db()
-
-        response = response.json()
-        cmds = response["cmds"]
-        self.assertEqual(1, len(cmds))
-        self.assertEqual(len(cmds[0]["to"]), 1)
-        self.assertEqual(cmds[0]["to"][0]["phone"], "+250788382382")
-
-        # Should contain messages for the channel only
-        response = self.sync(channel2, cmds=[])
-        self.assertEqual(200, response.status_code)
-
-        channel2.refresh_from_db()
-
-        response = response.json()
-        cmds = response["cmds"]
-        self.assertEqual(1, len(cmds))
-        self.assertEqual(len(cmds[0]["to"]), 1)
-        self.assertEqual(cmds[0]["to"][0]["phone"], "+250788383383")
-
-    def test_sync(self):
-        date = timezone.now()
-        date = int(time.mktime(date.timetuple())) * 1000
-
-        Apk.objects.create(apk_type=Apk.TYPE_RELAYER, version="1.0.0")
-
-        contact1 = self.create_contact("Ann", phone="+250788382382")
-        contact2 = self.create_contact("Bob", phone="+250788383383")
-
-        # create a payload from the client
-        msg1 = self.create_outgoing_msg(
-            contact1, "How is it going?", channel=self.tel_channel, status=Msg.STATUS_QUEUED
-        )
-        msg2 = self.create_outgoing_msg(
-            contact2, "How is it going?", channel=self.tel_channel, status=Msg.STATUS_QUEUED
-        )
-        msg3 = self.create_outgoing_msg(
-            contact2, "What is your name?", channel=self.tel_channel, status=Msg.STATUS_QUEUED
-        )
-        msg4 = self.create_outgoing_msg(
-            contact2, "Do you have any children?", channel=self.tel_channel, status=Msg.STATUS_QUEUED
-        )
-        msg5 = self.create_outgoing_msg(
-            contact2, "What's my dog's name?", channel=self.tel_channel, status=Msg.STATUS_QUEUED
-        )
-        msg6 = self.create_outgoing_msg(contact2, "from when?", channel=self.tel_channel, status=Msg.STATUS_QUEUED)
-
-        # an incoming message that should not be included even if it is still pending
-        incoming_message = self.create_incoming_msg(
-            contact2, "hey", channel=self.tel_channel, status=Msg.STATUS_PENDING
-        )
-
-        # check our sync point has all three messages queued for delivery
-        response = self.sync(self.tel_channel, cmds=[])
-        self.assertEqual(200, response.status_code)
-
-        # check last seen and fcm id were updated
-        self.tel_channel.refresh_from_db()
-
-        response = response.json()
-        cmds = response["cmds"]
-        self.assertEqual(5, len(cmds))
-
-        # assert that our first command is the two message broadcast
-        cmd = cmds[0]
-        self.assertEqual("How is it going?", cmd["msg"])
-        self.assertIn("+250788382382", [m["phone"] for m in cmd["to"]])
-        self.assertIn("+250788383383", [m["phone"] for m in cmd["to"]])
-
-        self.assertTrue(msg1.pk in [m["id"] for m in cmd["to"]])
-        self.assertTrue(msg2.pk in [m["id"] for m in cmd["to"]])
-
-        # add another message we'll pretend is in retry to see that we exclude them from sync
-        msg6 = self.create_outgoing_msg(
-            contact1,
-            "Pretend this message is in retry on the client, don't send it on sync",
-            channel=self.tel_channel,
-            status=Msg.STATUS_QUEUED,
-        )
-
-        # a pending outgoing message should be included
-        self.create_outgoing_msg(
-            contact1, "Hello, we heard from you.", channel=self.tel_channel, status=Msg.STATUS_QUEUED
-        )
-
-        six_mins_ago = timezone.now() - timedelta(minutes=6)
-        self.tel_channel.last_seen = six_mins_ago
-        self.tel_channel.config["FCM_ID"] = "old_fcm_id"
-        self.tel_channel.save(update_fields=["last_seen", "config"])
-
-        cmds = [
-            # device fcm data
-            dict(cmd="fcm", fcm_id="12345", uuid="76d1e5d3-8a6b-4652-b95f-3b0d3b3d1a55"),
-            # device details status
-            dict(
-                cmd="status",
-                p_sts="DIS",
-                p_src="BAT",
-                p_lvl="60",
-                net="UMTS",
-                app_version="0.9.9",
-                org_id=8,
-                retry=[msg6.pk],
-                pending=[],
-            ),
-            # pending incoming message that should be acknowledged but not updated
-            dict(cmd="mt_sent", msg_id=incoming_message.pk, ts=date),
-            # results for the outgoing messages
-            dict(cmd="mt_sent", msg_id=msg1.pk, ts=date),
-            dict(cmd="mt_sent", msg_id=msg2.pk, ts=date),
-            dict(cmd="mt_dlvd", msg_id=msg3.pk, ts=date),
-            dict(cmd="mt_error", msg_id=msg4.pk, ts=date),
-            dict(cmd="mt_fail", msg_id=msg5.pk, ts=date),
-            dict(cmd="mt_fail", msg_id=(msg6.pk - 4294967296), ts=date),  # simulate a negative integer from relayer
-            # a missed call
-            dict(cmd="call", phone="0788381212", type="mo_miss", ts=date),
-            # repeated missed calls should be skipped
-            dict(cmd="call", phone="0788381212", type="mo_miss", ts=date),
-            dict(cmd="call", phone="0788381212", type="mo_miss", ts=date),
-            # incoming
-            dict(cmd="call", phone="0788381212", type="mt_call", dur=10, ts=date),
-            # repeated calls should be skipped
-            dict(cmd="call", phone="0788381212", type="mt_call", dur=10, ts=date),
-            # incoming, invalid URN
-            dict(cmd="call", phone="*", type="mt_call", dur=10, ts=date),
-            # outgoing
-            dict(cmd="call", phone="+250788383383", type="mo_call", dur=5, ts=date),
-            # a new incoming message
-            dict(cmd="mo_sms", phone="+250788383383", msg="This is giving me trouble", p_id="1", ts=date),
-            # an incoming message from an empty contact
-            dict(cmd="mo_sms", phone="", msg="This is spam", p_id="2", ts=date),
-            # an incoming message from an invalid phone number
-            dict(cmd="mo_sms", phone="!!@#$%", msg="sender ID invalid", p_id="4", ts=date),
-        ]
-
-        # now send the channel's updates
-        response = self.sync(self.tel_channel, cmds=cmds)
-
-        self.tel_channel.refresh_from_db()
-        self.assertEqual(self.tel_channel.config["FCM_ID"], "12345")
-        self.assertTrue(self.tel_channel.last_seen > six_mins_ago)
-
-        # new batch, our ack and our claim command for new org
-        self.assertEqual(6, len(response.json()["cmds"]))
-        self.assertContains(response, "Hello, we heard from you.")
-        self.assertContains(response, "mt_bcast")
-
-        # check that our messages were updated accordingly
-        self.assertEqual(2, Msg.objects.filter(channel=self.tel_channel, status="S", direction="O").count())
-        self.assertEqual(1, Msg.objects.filter(channel=self.tel_channel, status="D", direction="O").count())
-        self.assertEqual(1, Msg.objects.filter(channel=self.tel_channel, status="E", direction="O").count())
-        self.assertEqual(2, Msg.objects.filter(channel=self.tel_channel, status="F", direction="O").count())
-
-        # we should now have 4 incoming messages
-        self.assertEqual(2, Msg.objects.filter(direction="I").count())
-        # We should now have one sync
-        self.assertEqual(1, SyncEvent.objects.filter(channel=self.tel_channel).count())
-
-        # We should have 3 channel event
-        self.assertEqual(3, ChannelEvent.objects.filter(channel=self.tel_channel).count())
-
-        # We should have an incident for the app version
-        self.assertEqual(
-            1,
-            Incident.objects.filter(
-                incident_type=ChannelOutdatedAppIncidentType.slug, ended_on=None, channel=self.tel_channel
-            ).count(),
-        )
-
-        # check our channel fcm and uuid were updated
-        self.tel_channel = Channel.objects.get(pk=self.tel_channel.pk)
-        self.assertEqual("12345", self.tel_channel.config["FCM_ID"])
-        self.assertEqual("76d1e5d3-8a6b-4652-b95f-3b0d3b3d1a55", str(self.tel_channel.uuid))
-
-        # should ignore incoming messages without text
-        msgs_count = Msg.objects.all().count()
-        response = self.sync(
-            self.tel_channel,
-            cmds=[
-                # incoming msg without text
-                dict(cmd="mo_sms", phone="+250788383383", p_id="1", ts=date)
-            ],
-        )
-
-        # no new message
-        self.assertEqual(Msg.objects.all().count(), msgs_count)
-
-        response = self.sync(
-            self.tel_channel,
-            cmds=[
-                # device details status
-                dict(
-                    cmd="status",
-                    p_sts="DIS",
-                    p_src="BAT",
-                    p_lvl="15",
-                    net="UMTS",
-                    app_version="1.0.0",
-                    pending=[],
-                    retry=[],
-                )
-            ],
-        )
-
-        self.assertEqual(2, SyncEvent.objects.all().count())
-
-        # We should have all incident for the app version ended
-        self.assertEqual(
-            1,
-            Incident.objects.filter(
-                incident_type=ChannelOutdatedAppIncidentType.slug, channel=self.tel_channel
-            ).count(),
-        )
-        self.assertEqual(
-            0,
-            Incident.objects.filter(
-                incident_type=ChannelOutdatedAppIncidentType.slug, ended_on=None, channel=self.tel_channel
-            ).count(),
-        )
-
-        # make our events old so we can test trimming them
-        SyncEvent.objects.all().update(created_on=timezone.now() - timedelta(days=45))
-        trim_channel_sync_events()
-
-        # should be cleared out
-        self.assertEqual(1, SyncEvent.objects.all().count())
-
-        response = self.sync(
-            self.tel_channel,
-            cmds=[
-                # device fcm data
-                dict(cmd="fcm", fcm_id="12345", uuid="76d1e5d3-8a6b-4652-b95f-3b0d3b3d1a55")
-            ],
-        )
-
-        self.tel_channel.refresh_from_db()
-        self.assertTrue(self.tel_channel.last_seen > six_mins_ago)
-        self.assertEqual(self.tel_channel.config[Channel.CONFIG_FCM_ID], "12345")
-
-    def test_signing(self):
-        # good signature
-        self.assertEqual(200, self.sync(self.tel_channel, cmds=[]).status_code)
-
-        # bad signature, should result in 401 Unauthorized
-        self.assertEqual(401, self.sync(self.tel_channel, signature="badsig", cmds=[]).status_code)
-
-    def test_ignore_android_incoming_msg_invalid_phone(self):
-        date = timezone.now()
-        date = int(time.mktime(date.timetuple())) * 1000
-
-        response = self.sync(
-            self.tel_channel, cmds=[dict(cmd="mo_sms", phone="_@", msg="First message", p_id="1", ts=date)]
-        )
-        self.assertEqual(200, response.status_code)
-
-        responses = response.json()
-        cmds = responses["cmds"]
-
-        # check the server gave us responses for our message
-        r0 = self.get_response(cmds, "1")
-
-        self.assertIsNotNone(r0)
-        self.assertEqual(r0["cmd"], "ack")
-
-    def get_response(self, responses, p_id):
-        for response in responses:
-            if "p_id" in response and response["p_id"] == p_id:
-                return response

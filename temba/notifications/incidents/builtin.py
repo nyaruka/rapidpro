@@ -25,18 +25,11 @@ class ChannelDisconnectedIncidentType(IncidentType):
 
 class ChannelOutdatedAppIncidentType(IncidentType):
     """
-    Android channel using outdated version of the client app.
+    Android channel using outdated version of the client app - created by mailroom.
     """
 
     slug = "channel:outdated_app"
     title = _("Channel Android App Outdated")
-
-    @classmethod
-    def get_or_create(cls, channel):
-        """
-        Creates a channel outdated app incident if one is not already ongoing
-        """
-        return Incident.get_or_create(channel.org, cls.slug, scope=str(channel.id), channel=channel)
 
 
 class OrgFlaggedIncidentType(IncidentType):
