@@ -1,4 +1,5 @@
 import { expect } from '@open-wc/testing';
+import { freeze } from 'immer';
 import { useFakeTimers } from 'sinon';
 import { setDependencyResolver, zustand } from '../src/store/AppState';
 import { resolveDependencyNames } from '../src/flow/dependencies';
@@ -479,6 +480,68 @@ describe('store/AppState actions', () => {
     });
   });
 
+  describe('setFlowContents', () => {
+    it('reclassifies voice waits in a frozen definition', () => {
+      // restoring a pre-revision-view snapshot hands back frozen store state
+      const frozen = freeze(
+        definition({
+          type: 'voice',
+          nodes: [
+            {
+              uuid: 'node-1',
+              actions: [],
+              exits: [{ uuid: 'exit-1', destination_uuid: null }],
+              router: {
+                type: 'switch',
+                wait: { type: 'msg', hint: { type: 'digits', count: 1 } },
+                categories: [],
+                cases: [],
+                default_category_uuid: null
+              }
+            }
+          ],
+          _ui: {
+            nodes: {
+              'node-1': {
+                position: { left: 0, top: 0 },
+                type: 'wait_for_response'
+              }
+            }
+          }
+        }),
+        true
+      );
+
+      state().setFlowContents({ definition: frozen, info: info() } as any);
+
+      expect((state().flowDefinition as any)._ui.nodes['node-1'].type).to.equal(
+        'wait_for_menu'
+      );
+    });
+
+    it('sorts a frozen definition by node position', () => {
+      const frozen = freeze(
+        definition({
+          nodes: [
+            nodeWithExit('node-low', 'exit-1'),
+            nodeWithExit('node-high', 'exit-2')
+          ],
+          _ui: {
+            nodes: {
+              'node-low': { position: { left: 0, top: 100 } },
+              'node-high': { position: { left: 0, top: 0 } }
+            }
+          }
+        }),
+        true
+      );
+
+      state().setFlowContents({ definition: frozen, info: info() } as any);
+
+      expect(state().flowDefinition.nodes[0].uuid).to.equal('node-high');
+    });
+  });
+
   describe('fetchRevision', () => {
     const REVISION_URL = '/flow/revisions/flow-1';
 
@@ -618,6 +681,57 @@ describe('store/AppState actions', () => {
       expect(
         (state().flowDefinition as any)._ui.nodes['node-1'].config.operand.name
       ).to.equal('Age');
+    });
+
+    it('reclassifies voice waits even when name resolution freezes the definition', async () => {
+      // resolving names returns an immer-frozen definition, so the voice wait
+      // reclassification has to happen before it or the frozen _ui throws
+      setDependencyResolver(async () => [
+        { type: 'field', key: 'age', name: 'Age' }
+      ]);
+      mockRevision({
+        definition: definition({
+          type: 'voice',
+          nodes: [
+            {
+              uuid: 'node-1',
+              actions: [
+                {
+                  type: 'set_contact_field',
+                  uuid: 'action-1',
+                  field: { key: 'age', name: 'Old Age' },
+                  value: '10'
+                }
+              ],
+              exits: [{ uuid: 'exit-1', destination_uuid: null }],
+              router: {
+                type: 'switch',
+                wait: { type: 'msg', hint: { type: 'digits', count: 1 } },
+                categories: [],
+                cases: [],
+                default_category_uuid: null
+              }
+            }
+          ],
+          _ui: {
+            nodes: {
+              'node-1': {
+                position: { left: 0, top: 0 },
+                type: 'wait_for_response'
+              }
+            }
+          }
+        }),
+        info: info({
+          dependencies: [{ type: 'field', key: 'age', name: 'Old Age' }]
+        })
+      });
+
+      await state().fetchRevision(REVISION_URL);
+
+      expect((state().flowDefinition as any)._ui.nodes['node-1'].type).to.equal(
+        'wait_for_menu'
+      );
     });
 
     it('resolves every referenced flow before exposing a revision', async () => {
