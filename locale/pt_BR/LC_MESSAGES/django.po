@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 20:36+0000\n"
+"POT-Creation-Date: 2026-08-31 22:54+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -438,6 +438,9 @@ msgstr "Envio de mensagem"
 msgid "Message Status"
 msgstr "Estado da mensagem"
 
+msgid "Receive"
+msgstr "Receber"
+
 msgid "Message Receive"
 msgstr "Recebimento de mensagem"
 
@@ -854,9 +857,6 @@ msgstr "Que URL nós ENVIAREMOS para quando mensagens estiverem sendo enviadas, 
 
 msgid "Connect External Service"
 msgstr "Conectar serviço externo"
-
-msgid "Receive"
-msgstr "Receber"
 
 msgid "Send"
 msgstr "Enviar"

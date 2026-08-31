@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-27 20:36+0000\n"
+"POT-Creation-Date: 2026-08-31 22:54+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -418,6 +418,9 @@ msgid "Message Send"
 msgstr ""
 
 msgid "Message Status"
+msgstr ""
+
+msgid "Receive"
 msgstr ""
 
 msgid "Message Receive"
@@ -835,9 +838,6 @@ msgid "The URL we will POST to when sending messages, with variable substitution
 msgstr ""
 
 msgid "Connect External Service"
-msgstr ""
-
-msgid "Receive"
 msgstr ""
 
 msgid "Send"

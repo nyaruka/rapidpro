@@ -818,9 +818,13 @@ class ChannelLog:
     LOG_TYPE_UNKNOWN = "unknown"
     LOG_TYPE_MSG_SEND = "msg_send"
     LOG_TYPE_MSG_STATUS = "msg_status"
+    LOG_TYPE_RECEIVE = "receive"
+
+    # deprecated receive types, replaced by LOG_TYPE_RECEIVE, but kept for logs already in storage
     LOG_TYPE_MSG_RECEIVE = "msg_receive"
     LOG_TYPE_EVENT_RECEIVE = "event_receive"
     LOG_TYPE_MULTI_RECEIVE = "multi_receive"
+
     LOG_TYPE_IVR_START = "ivr_start"
     LOG_TYPE_IVR_INCOMING = "ivr_incoming"
     LOG_TYPE_IVR_CALLBACK = "ivr_callback"
@@ -834,6 +838,7 @@ class ChannelLog:
         LOG_TYPE_UNKNOWN: _("Other Event"),
         LOG_TYPE_MSG_SEND: _("Message Send"),
         LOG_TYPE_MSG_STATUS: _("Message Status"),
+        LOG_TYPE_RECEIVE: _("Receive"),
         LOG_TYPE_MSG_RECEIVE: _("Message Receive"),
         LOG_TYPE_EVENT_RECEIVE: _("Event Receive"),
         LOG_TYPE_MULTI_RECEIVE: _("Events Receive"),
