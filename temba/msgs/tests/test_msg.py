@@ -25,6 +25,9 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         def assert_folder(msg, expected):
             self.assertEqual(expected, msg.derive_folder(), f"folder mismatch for msg #{msg.id}")
 
+            # test fixtures write the folder at creation like mailroom and courier do
+            self.assertEqual(expected, msg.folder, f"folder mismatch for msg #{msg.id}")
+
         assert_folder(self.create_incoming_msg(self.joe, "Hi"), Msg.FOLDER_INBOX)
         assert_folder(self.create_incoming_msg(self.joe, "Hi", flow=flow), Msg.FOLDER_HANDLED)
         assert_folder(self.create_incoming_msg(self.joe, "Hi", visibility=Msg.VISIBILITY_ARCHIVED), Msg.FOLDER_ARCHIVED)
@@ -213,12 +216,14 @@ class MsgTest(TembaTest, CRUDLTestMixin):
 
         msg1 = Msg.objects.get(pk=msg1.pk)
         self.assertEqual(msg1.visibility, Msg.VISIBILITY_ARCHIVED)
+        self.assertEqual(Msg.FOLDER_ARCHIVED, msg1.folder)
         self.assertEqual(set(msg1.labels.all()), {label})  # don't remove labels
 
         Msg.bulk_restore(self.org, [msg1])
 
         msg1 = Msg.objects.get(pk=msg1.id)
         self.assertEqual(msg1.visibility, Msg.VISIBILITY_VISIBLE)
+        self.assertEqual(Msg.FOLDER_INBOX, msg1.folder)
 
         msg1.delete()
         self.assertFalse(Msg.objects.filter(pk=msg1.pk).exists())
@@ -284,6 +289,7 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             text="Hi there",
             channel=self.channel,
             status="H",
+            folder="I",
             msg_type="T",
             is_android=False,
             visibility="V",

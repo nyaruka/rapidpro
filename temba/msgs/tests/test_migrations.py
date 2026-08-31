@@ -62,12 +62,16 @@ class BackfillMsgFolderTest(MigrationTest):
             contact, "Hi", status=Msg.STATUS_PENDING, visibility=Msg.VISIBILITY_ARCHIVED
         )
 
+        # an outgoing message that is pending belongs to no folder - unlikely, but the database permits it
+        self.underivable = self.create_outgoing_msg(contact, "Hi")
+        Msg.objects.filter(id=self.underivable.id).update(status=Msg.STATUS_PENDING)
+
+        # all of the above predate the folder column being written
+        self.org.msgs.update(folder=None)
+
         # a message that already has a folder shouldn't be recalculated
         self.already_set = self.create_incoming_msg(contact, "Hi")
         Msg.objects.filter(id=self.already_set.id).update(folder=Msg.FOLDER_ARCHIVED)
-
-        # an outgoing message that is pending belongs to no folder - unlikely, but the database permits it
-        self.underivable = self.create_outgoing_msg(contact, "Hi", status=Msg.STATUS_PENDING)
 
     def test_migration(self):
         def assert_folder(msg, expected):
@@ -114,8 +118,9 @@ class BackfillMsgFolderPagingTest(MigrationTest):
     def setUpBeforeMigration(self, apps):
         contact = self.create_contact("Bob", phone="+1234567890")
 
-        # enough messages to span several batches
+        # enough messages to span several batches, all predating the folder column being written
         self.msgs = [self.create_incoming_msg(contact, f"Hi {m}") for m in range(5)]
+        self.org.msgs.update(folder=None)
 
     def test_migration(self):
         # every message filled in, so no batch was skipped

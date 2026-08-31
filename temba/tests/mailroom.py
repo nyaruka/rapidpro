@@ -1122,12 +1122,14 @@ def send_to_contact(org, contact, text: str, attachments: list[str], quick_repli
     channel, contact_urn = resolve_destination(org, contact)
 
     if contact_urn and channel:
-        status = "Q"
+        status = Msg.STATUS_QUEUED
+        folder = Msg.FOLDER_OUTBOX
         failed_reason = None
     else:
         contact_urn = None
         channel = None
-        status = "F"
+        status = Msg.STATUS_FAILED
+        folder = Msg.FOLDER_FAILED
         failed_reason = Msg.FAILED_NO_DESTINATION
 
     return Msg.objects.create(
@@ -1138,6 +1140,7 @@ def send_to_contact(org, contact, text: str, attachments: list[str], quick_repli
         contact_urn=contact_urn,
         direction=Msg.DIRECTION_OUT,
         status=status,
+        folder=folder,
         failed_reason=failed_reason,
         text=text or "",
         attachments=attachments or [],
