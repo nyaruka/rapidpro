@@ -1,3 +1,8 @@
+v26.3.66 (2026-08-31)
+-------------------------
+ * Remove Android relayer sync handling
+ * Make deprecated API feature recording test order-independent
+
 v26.3.65 (2026-08-31)
 -------------------------
  * Fix flow editor crash reclassifying nodes in a frozen definition
