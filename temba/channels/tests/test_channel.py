@@ -150,7 +150,7 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         # create some activity on this channel
         contact = self.create_contact("Bob", phone="+593979123456")
         self.create_incoming_msg(contact, "Hi", channel=channel1)
-        self.create_outgoing_msg(contact, "Hi", channel=channel1, status="P")
+        self.create_outgoing_msg(contact, "Hi", channel=channel1, status="Q")
         self.create_outgoing_msg(contact, "Hi", channel=channel1, status="E")
         self.create_outgoing_msg(contact, "Hi", channel=channel1, status="S")
         ChannelDisconnectedIncidentType.get_or_create(channel1)

@@ -399,7 +399,7 @@ class TembaTest(SmartminTest):
 
             assert channel and contact_urn, "messages require a channel and contact URN, except for failed_reason=D"
 
-        return Msg.objects.create(
+        msg = Msg(
             uuid=uuid7(created_on or timezone.now()),
             org=org,
             direction=direction,
@@ -426,6 +426,12 @@ class TembaTest(SmartminTest):
             failed_reason=failed_reason,
             log_uuids=[l.uuid for l in logs or []],
         )
+
+        # mailroom and courier write the folder when they write the message
+        msg.folder = msg.derive_folder()
+        msg.save()
+
+        return msg
 
     def create_broadcast(
         self,
@@ -601,6 +607,7 @@ class TembaTest(SmartminTest):
             contact_urn=contact.get_urn(),
             text="Hello",
             status=Msg.STATUS_SENT,
+            folder=Msg.FOLDER_SENT,
             msg_type=Msg.TYPE_VOICE,
             is_android=False,
             sent_on=timezone.now(),
