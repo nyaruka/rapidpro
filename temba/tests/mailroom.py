@@ -13,7 +13,6 @@ from django.utils import timezone
 
 from temba import mailroom
 from temba.campaigns.models import CampaignEvent
-from temba.channels.models import ChannelEvent
 from temba.contacts.models import URN, Contact, ContactField, ContactGroup, ContactURN
 from temba.flows.models import Flow, FlowRun, FlowSession, FlowStart
 from temba.locations.models import AdminBoundary
@@ -353,50 +352,6 @@ class TestClient(MailroomClient):
         raise LiveMailroomError(
             f"test reached un-faked mailroom endpoint /mi/{endpoint}; add a fake for it to TestClient"
         )
-
-    @_client_method
-    def android_event(self, org, channel, phone: str, event_type: str, extra: dict, occurred_on):
-        contact, contact_urn = contact_resolve(org, phone)
-
-        event = ChannelEvent.objects.create(
-            org=channel.org,
-            channel=channel,
-            contact=contact,
-            contact_urn=contact_urn,
-            occurred_on=occurred_on,
-            event_type=event_type,
-            extra=extra,
-        )
-        return {"id": event.id}
-
-    @_client_method
-    def android_message(self, org, channel, phone: str, text: str, received_on):
-        contact, contact_urn = contact_resolve(org, phone)
-        text = text[: Msg.MAX_TEXT_LEN]
-
-        now = timezone.now()
-
-        # don't create duplicate messages
-        existing = Msg.objects.filter(text=text, sent_on=received_on, contact=contact, direction="I").first()
-        if existing:
-            return {"id": existing.id, "duplicate": True}
-
-        msg = Msg.objects.create(
-            uuid=uuid7(),
-            org=org,
-            channel=channel,
-            contact=contact,
-            contact_urn=contact_urn,
-            text=text,
-            sent_on=received_on,
-            created_on=now,
-            modified_on=now,
-            direction=Msg.DIRECTION_IN,
-            status=Msg.STATUS_PENDING,
-            msg_type=Msg.TYPE_TEXT,
-            is_android=True,
-        )
-        return {"id": msg.id, "duplicate": False}
 
     @_client_method
     def android_sync(self, channel):
@@ -841,27 +796,8 @@ def apply_modifiers(org, user, contacts, modifiers: list):
                     g.contacts.remove(c)
 
 
-PHONE_REGEX = re.compile(r"^\+?[A-Za-z0-9]{1,64}$")
-
-
 def contact_urn_lookup(org, urn: str):
     return ContactURN.objects.filter(org=org, identity=URN.identity(urn)).first()
-
-
-def contact_resolve(org, phone: str) -> tuple:
-    if not PHONE_REGEX.match(phone):
-        raise mailroom.URNValidationException("not a number", "invalid", 0)
-
-    urn = f"tel:{phone}"
-
-    contact_urn = contact_urn_lookup(org, urn)
-    if contact_urn:
-        contact = contact_urn.contact
-    else:
-        contact = create_contact_locally(org, None, name="", language="", urns=[urn], fields={}, group_uuids=[])
-        contact_urn = contact_urn_lookup(org, urn)
-
-    return contact, contact_urn
 
 
 def create_contact_locally(

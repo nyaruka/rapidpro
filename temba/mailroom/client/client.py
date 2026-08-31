@@ -44,31 +44,6 @@ class MailroomClient:
         if auth_token:
             self.headers["Authorization"] = "Token " + auth_token
 
-    def android_event(self, org, channel, phone: str, event_type: str, extra: dict, occurred_on):
-        return self._request(
-            "android/event",
-            {
-                "org_id": org.id,
-                "channel_id": channel.id,
-                "phone": phone,
-                "event_type": event_type,
-                "extra": extra,
-                "occurred_on": occurred_on.isoformat(),
-            },
-        )
-
-    def android_message(self, org, channel, phone: str, text: str, received_on):
-        return self._request(
-            "android/message",
-            {
-                "org_id": org.id,
-                "channel_id": channel.id,
-                "phone": phone,
-                "text": text,
-                "received_on": received_on.isoformat(),
-            },
-        )
-
     def android_sync(self, channel):
         return self._request("android/sync", {"channel_id": channel.id})
 
