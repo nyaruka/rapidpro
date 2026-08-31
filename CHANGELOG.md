@@ -1,3 +1,9 @@
+v26.3.68 (2026-08-31)
+-------------------------
+ * Reduce batch size of Msg.folder backfill migration
+ * Set Msg.folder on messages created in tests, like mailroom and courier do
+ * Remove undocumented message archiving actions from contact bulk actions endpoint
+
 v26.3.67 (2026-08-31)
 -------------------------
  * Add migration to backfill Msg.folder

@@ -1726,7 +1726,7 @@ wheels = [
 
 [[package]]
 name = "temba"
-version = "26.3.67"
+version = "26.3.68"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
