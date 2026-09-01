@@ -211,13 +211,9 @@
           {% endblock error-dialog %}
           <temba-toast duration="5000" error-sticky>
           </temba-toast>
-          {% pop_session "sso_login_warning" as sso_login_warning %}
+          {% sso_login_warning as sso_login_warning %}
           {% if sso_login_warning %}
-            {% if sso_login_warning.provider %}
-              {% blocktrans with provider=sso_login_warning.provider asvar sso_warning_title %}Sign In with {{ provider }}{% endblocktrans %}
-            {% else %}
-              {% trans "Use Single Sign-On" as sso_warning_title %}
-            {% endif %}
+            {% trans "Use Single Sign-On" as sso_warning_title %}
             {% trans "Ok" as sso_warning_button %}
             <temba-dialog open
                           header="{{ sso_warning_title }}"
@@ -225,19 +221,7 @@
                           primaryButtonName=""
                           hideOnClick
                           id="sso-login-warning">
-              <div class="p-6">
-                {% if sso_login_warning.provider %}
-                  {% blocktrans trimmed with provider=sso_login_warning.provider %}
-                    Signing in with an email and password is going away for your organization. To keep access to your
-                    account, please use <b>Sign In with {{ provider }}</b> the next time you sign in.
-                  {% endblocktrans %}
-                {% else %}
-                  {% blocktrans trimmed %}
-                    Signing in with an email and password is going away for your organization. To keep access to your
-                    account, please use the single sign-on option the next time you sign in.
-                  {% endblocktrans %}
-                {% endif %}
-              </div>
+              <div class="p-6">{{ sso_login_warning }}</div>
             </temba-dialog>
           {% endif %}
           <div class="ajax-scripts"></div>

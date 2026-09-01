@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 20:36+0000\n"
+"POT-Creation-Date: 2026-09-01 21:13+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -5389,22 +5389,11 @@ msgstr "Oups !"
 msgid "We tried our best, but there was an error processing your request. If this keeps happening, please refresh your browser."
 msgstr "Nous avons fait de notre mieux, mais une erreur s'est produite lors du traitement de votre requête. Si cela se reproduit, veuillez actualiser votre navigateur."
 
-#, python-format
-msgid "Sign In with %(provider)s"
-msgstr "Se connecter avec %(provider)s"
-
 msgid "Use Single Sign-On"
 msgstr "Utiliser l'authentification unique"
 
 msgid "Ok"
 msgstr "OK"
-
-#, python-format
-msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use <b>Sign In with %(provider)s</b> the next time you sign in."
-msgstr "La connexion par adresse e-mail et mot de passe va être supprimée pour votre organisation. Pour conserver l'accès à votre compte, utilisez <b>Se connecter avec %(provider)s</b> lors de votre prochaine connexion."
-
-msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use the single sign-on option the next time you sign in."
-msgstr "La connexion par adresse e-mail et mot de passe va être supprimée pour votre organisation. Pour conserver l'accès à votre compte, utilisez l'option d'authentification unique lors de votre prochaine connexion."
 
 msgid "Are you sure you want to continue? This cannot be undone."
 msgstr "Es-tu sur de vouloir continuer? Ça ne peut pas être annulé."
@@ -6513,6 +6502,10 @@ msgstr "Compte tiers déconnecté"
 #, python-format
 msgid "Accept Invitation with %(provider)s"
 msgstr "Accepter l'invitation avec %(provider)s"
+
+#, python-format
+msgid "Sign In with %(provider)s"
+msgstr "Se connecter avec %(provider)s"
 
 #, python-format
 msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."

@@ -1,6 +1,7 @@
 import json
 from datetime import timezone as tzone
 
+from django.conf import settings
 from django.template.defaultfilters import register
 from django.urls import reverse
 from django.utils.html import escapejs
@@ -147,8 +148,14 @@ def absolute_url(context, url_pattern):
 
 
 @register.simple_tag(takes_context=True)
-def pop_session(context, key):
+def sso_login_warning(context):
     """
-    Removes and returns a value from the request session - for one-time flags such as login warnings.
+    Returns the warning for a user who just logged in with a password but should be using SSO, or None. The warning is
+    a one-time flag in the session and the message is looked up here so it's translated to the user's language.
     """
-    return context["request"].session.pop(key, None)
+    domain = context["request"].session.pop("sso_login_warning", None)
+    if not domain:
+        return None
+
+    messages = {d.lower(): m for d, m in settings.SSO_LOGIN_WARNING_DOMAINS.items()}
+    return str(messages.get(domain, "")) or None

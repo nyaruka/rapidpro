@@ -5,6 +5,7 @@ from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
+from django.utils.functional import lazystr
 
 from temba.orgs.models import Invitation, OrgRole
 from temba.tests.base import TembaTest
@@ -83,8 +84,7 @@ class UserAuthTest(TembaTest):
         self.assertTrue(emails.filter(email="newemail@temba.io").exists())
 
     @override_settings(
-        SSO_LOGIN_WARNING_DOMAINS={"SSO-Corp.com": "google", "no-sso-corp.com": "acme"},
-        SOCIALACCOUNT_PROVIDERS={"google": {"APPS": [{"client_id": "test-id", "secret": "test-secret", "key": ""}]}},
+        SSO_LOGIN_WARNING_DOMAINS={"SSO-Corp.com": lazystr("Use <b>Sign In with SSO Corp</b> next time.")}
     )
     def test_sso_login_warning(self):
         login_url = reverse("account_login")
@@ -103,25 +103,25 @@ class UserAuthTest(TembaTest):
 
         self.client.logout()
 
-        # but a user whose email domain should be using SSO gets a warning named after the mapped provider
+        # but a user whose email domain should be using SSO gets the warning configured for that domain, escaped
         user = create_verified_user("uma@sso-corp.com")
 
         response = self.client.post(login_url, {"login": user.email, "password": self.default_password}, follow=True)
         self.assertContains(response, "sso-login-warning")
-        self.assertContains(response, 'header="Sign In with Google"')
+        self.assertContains(response, 'header="Use Single Sign-On"')
+        self.assertContains(response, "Use &lt;b&gt;Sign In with SSO Corp&lt;/b&gt; next time.")
 
         # only on the first page load after login
         response = self.client.get(response.request["PATH_INFO"])
         self.assertNotContains(response, "sso-login-warning")
 
-        self.client.logout()
+        # a flagged domain that is no longer configured doesn't warn
+        session = self.client.session
+        session["sso_login_warning"] = "old-corp.com"
+        session.save()
 
-        # a domain mapped to a provider that isn't configured still warns, just generically
-        user2 = create_verified_user("ursula@no-sso-corp.com")
-
-        response = self.client.post(login_url, {"login": user2.email, "password": self.default_password}, follow=True)
-        self.assertContains(response, "sso-login-warning")
-        self.assertContains(response, 'header="Use Single Sign-On"')
+        response = self.client.get(response.request["PATH_INFO"])
+        self.assertNotContains(response, "sso-login-warning")
 
     def test_signup(self):
         signup_url = reverse("account_signup")
