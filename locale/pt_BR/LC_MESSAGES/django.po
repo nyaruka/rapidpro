@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 20:21+0000\n"
+"POT-Creation-Date: 2026-09-01 20:36+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -3720,6 +3720,9 @@ msgstr "Todos os tópicos"
 
 msgid "Members can access tickets of any topic, including topics created later."
 msgstr "Os membros podem acessar tickets de qualquer tópico, incluindo tópicos criados posteriormente."
+
+msgid "Select at least one topic or allow access to all topics."
+msgstr "Selecione pelo menos um tópico ou permita o acesso a todos os tópicos."
 
 #, python-format
 msgid "Teams can have at most %(limit)d topics."

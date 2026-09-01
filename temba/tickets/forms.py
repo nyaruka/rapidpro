@@ -41,6 +41,9 @@ class TeamForm(UniqueNameMixin, forms.ModelForm):
         if self.cleaned_data.get("all_topics"):
             return topics.none()
 
+        if not topics:
+            raise forms.ValidationError(_("Select at least one topic or allow access to all topics."))
+
         if len(topics) > Team.max_topics:
             raise forms.ValidationError(
                 _("Teams can have at most %(limit)d topics."), params={"limit": Team.max_topics}

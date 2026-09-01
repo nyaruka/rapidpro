@@ -31,13 +31,16 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
             create_url,
             self.admin,
             {"name": "", "topics": []},
-            form_errors={"name": "This field is required."},
+            form_errors={
+                "name": "This field is required.",
+                "topics": "Select at least one topic or allow access to all topics.",
+            },
         )
 
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "all topics", "topics": []},
+            {"name": "all topics", "all_topics": True, "topics": []},
             form_errors={"name": "Must be unique."},
         )
 
@@ -45,7 +48,7 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "\\ministry", "topics": []},
+            {"name": "\\ministry", "topics": [sales.id]},
             form_errors={"name": "Cannot contain the character: \\"},
         )
 
@@ -53,7 +56,7 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"name": "X" * 65, "topics": []},
+            {"name": "X" * 65, "topics": [sales.id]},
             form_errors={"name": "Ensure this value has at most 64 characters (it has 65)."},
         )
 
@@ -124,8 +127,17 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertUpdateSubmit(
             update_url,
             self.admin,
-            {"name": "all topics"},
+            {"name": "all topics", "topics": [sales.id]},
             form_errors={"name": "Must be unique."},
+            object_unchanged=team,
+        )
+
+        # a team restricted by topic must have at least one topic
+        self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {"name": "Sales", "topics": []},
+            form_errors={"topics": "Select at least one topic or allow access to all topics."},
             object_unchanged=team,
         )
 
