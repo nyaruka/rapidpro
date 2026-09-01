@@ -150,4 +150,7 @@ class ShortcutCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(list_url, [None, self.agent])
 
-        self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[shortcut1, shortcut2])
+        response = self.assertListFetch(list_url, [self.editor, self.admin], context_objects=[shortcut1, shortcut2])
+
+        # the search button is part of the tickets section menu so search has to be mounted here too
+        self.assertContains(response, "<temba-ticket-search")

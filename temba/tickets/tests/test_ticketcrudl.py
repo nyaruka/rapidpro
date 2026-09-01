@@ -191,6 +191,9 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertContains(response, "Analytics")
         self.assertContains(response, "Tickets Opened")
 
+        # the search button is part of the tickets section menu so search has to be mounted here too
+        self.assertContains(response, "<temba-ticket-search")
+
         # org doesn't have the teams feature so response count chart shouldn't be split by team
         self.assertFalse(response.context["has_teams"])
         self.assertNotContains(response, 'dataname="Teams"')

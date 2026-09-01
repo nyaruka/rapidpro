@@ -70,6 +70,23 @@ def shortcuts_url(org) -> str:
     return reverse("tickets.shortcut_list")
 
 
+class SearchMixin:
+    """
+    Mounts cross-ticket search (see tickets/search.html) on a page in the tickets section. The search button is part of
+    the section menu (see TicketCRUDL.Menu) rather than any one page, so every page there needs to be able to open it.
+    """
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        # cross-ticket search is only available to users who can access all topics (see TicketCRUDL.Search)
+        context["can_search"] = (
+            self.has_org_perm("tickets.ticket_list")
+            and Topic.get_restriction(self.request.org, self.request.user) is None
+        )
+        return context
+
+
 class ShortcutCRUDL(SmartCRUDL):
     model = Shortcut
     actions = ("create", "update", "delete", "list")
@@ -95,7 +112,7 @@ class ShortcutCRUDL(SmartCRUDL):
         def get_redirect_url(self, **kwargs):
             return shortcuts_url(self.request.org)
 
-    class List(SpaMixin, ContextMenuMixin, BaseListView):
+    class List(SpaMixin, SearchMixin, ContextMenuMixin, BaseListView):
         menu_path = "/ticket/shortcuts"
 
         def derive_queryset(self, **kwargs):
@@ -289,7 +306,7 @@ class TicketCRUDL(SmartCRUDL):
 
             return menu
 
-    class Analytics(SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
+    class Analytics(SpaMixin, SearchMixin, ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
         title = _("Analytics")
         menu_path = "/ticket/analytics"
@@ -314,7 +331,7 @@ class TicketCRUDL(SmartCRUDL):
 
             return response_from_workbook(workbook, f"ticket-stats-{timezone.now().strftime('%Y-%m-%d')}.xlsx")
 
-    class List(SpaMixin, ContextMenuMixin, OrgPermsMixin, SmartListView):
+    class List(SpaMixin, SearchMixin, ContextMenuMixin, OrgPermsMixin, SmartListView):
         """
         Placeholder view for the ticketing frontend components which fetch tickets from the folders view below.
         """
@@ -393,9 +410,6 @@ class TicketCRUDL(SmartCRUDL):
             context["user_role"] = membership.role_code if membership else OrgRole.ADMINISTRATOR.code
             context["can_assign"] = membership.can_assign if membership else True
             context["can_reply_non_own"] = membership.can_reply_non_own if membership else True
-
-            # cross-ticket search is only available to users who can access all topics (see TicketCRUDL.Search)
-            context["can_search"] = Topic.get_restriction(self.request.org, self.request.user) is None
 
             return context
 

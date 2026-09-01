@@ -1,0 +1,60 @@
+{% comment %}
+  Cross-ticket search, included by every page in the tickets section - the search button lives in the section menu
+  (see TicketCRUDL.Menu) so it has to open from wherever the user happens to be, not just the ticket list.
+{% endcomment %}
+{% if can_search %}
+  <script>
+    function handleTicketSearchSelected(event) {
+      const result = event.detail;
+
+      // once the ticket's chat loads, re-run the search within it, landing
+      // on the matched message
+      window.pendingTicketSearch = {
+        query: result.query,
+        event: result.event,
+        ticketUuid: result.ticket.uuid,
+        expires: Date.now() + 15000
+      };
+
+      const path = `/ticket/all/${result.ticket.uuid}/`;
+      if (typeof spaGet !== 'undefined') {
+        spaGet(path);
+      } else {
+        document.location.href = path;
+      }
+    }
+
+    // cmd/ctrl+F and the menu's search button (see TicketCRUDL.Menu) open ticket
+    // search while a page in the tickets section is loaded (the handlers are
+    // stored on window so SPA navigations don't stack up listeners). they're
+    // no-ops once we navigate away - the modal isn't in the DOM anymore
+    if (window.handleTicketSearchHotkey) {
+      document.removeEventListener("keydown", window.handleTicketSearchHotkey);
+    }
+    window.handleTicketSearchHotkey = function(event) {
+      const search = document.querySelector("temba-ticket-search");
+      if (!search) {
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        search.show();
+      }
+    };
+    document.addEventListener("keydown", window.handleTicketSearchHotkey);
+
+    if (window.handleTicketSearchShow) {
+      document.removeEventListener("temba-ticket-search-show", window.handleTicketSearchShow);
+    }
+    window.handleTicketSearchShow = function() {
+      const search = document.querySelector("temba-ticket-search");
+      if (search) {
+        search.show();
+      }
+    };
+    document.addEventListener("temba-ticket-search-show", window.handleTicketSearchShow);
+  </script>
+  <temba-ticket-search endpoint="{% url 'tickets.ticket_search' %}"
+                       -temba-search-result-selected="handleTicketSearchSelected(event)">
+  </temba-ticket-search>
+{% endif %}
