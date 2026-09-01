@@ -897,6 +897,14 @@ class Msg(models.Model):
                 fields=["org", "-sent_on", "-id"],
                 condition=Q(direction="O", visibility="V", status__in=("W", "S", "D", "R")),
             ),
+            # will replace the five folder indexes above once the folder views and API folders read from folder and
+            # order by uuid (which is time ordered as message uuids are v7). Partial on the user facing folders so it
+            # doesn't also index every pending and deleted message.
+            models.Index(
+                name="msgs_by_folder",
+                fields=["org", "folder", "-uuid"],
+                condition=Q(folder__in=("I", "W", "A", "O", "S", "X")),
+            ),
         ]
         constraints = [
             models.CheckConstraint(name="direction_is_in_or_out", condition=Q(direction="I") | Q(direction="O")),
