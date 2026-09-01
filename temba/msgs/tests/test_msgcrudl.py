@@ -265,7 +265,7 @@ class MsgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # create broadcast and fail the only message
         broadcast = self.create_broadcast(self.admin, {"eng": {"text": "message number 2"}}, contacts=[contact1])
-        broadcast.get_messages().update(status="F")
+        broadcast.get_messages().update(status="F", folder=Msg.FOLDER_FAILED)
         msg2 = broadcast.get_messages()[0]
 
         # message without a broadcast

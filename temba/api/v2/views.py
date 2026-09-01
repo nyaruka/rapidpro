@@ -2,6 +2,7 @@ import itertools
 from collections import defaultdict
 from datetime import date, timedelta
 from enum import Enum
+from functools import cached_property
 
 from rest_framework import generics, status
 from rest_framework.pagination import CursorPagination
@@ -41,7 +42,7 @@ from ..support import (
     InvalidQueryError,
     ModifiedOnCursorPagination,
     OrgUserRateThrottle,
-    SentOnCursorPagination,
+    UUIDCursorPagination,
     record_deprecated,
 )
 from ..views import BaseAPIView, BulkWriteAPIMixin, DeleteAPIMixin, ListAPIMixin, WriteAPIMixin
@@ -2195,7 +2196,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
 
     You can also filter by `folder` where folder is one of `inbox`, `flows`, `archived`, `outbox`, `sent` or `failed`.
 
-    The sort order for the `sent` folder is the sent date. All other requests are sorted by the message creation date.
+    Results are sorted by the message creation date, most recent first.
 
     Without any parameters this endpoint will return all incoming and outgoing messages ordered by creation date.
 
@@ -2279,14 +2280,12 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
 
     class Pagination(CreatedOnCursorPagination):
         """
-        Overridden paginator that switches depending on folder being requested.
+        Folder requests are paged by uuid, which is what the folder index is keyed on (and time ordered, as message
+        uuids are v7). Everything else is paged by created_on.
         """
 
-        ordering = {"sent": SentOnCursorPagination.ordering}
-
         def get_ordering(self, request, queryset, view=None):
-            folder = request.query_params.get("folder", "").lower()
-            return self.ordering.get(folder, CreatedOnCursorPagination.ordering)
+            return UUIDCursorPagination.ordering if view.folder else self.ordering
 
     model = Msg
     serializer_class = MsgReadSerializer
@@ -2305,15 +2304,29 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
         "failed": MsgFolder.FAILED,
     }
 
+    @cached_property
+    def folder(self):
+        """
+        The folder selected by the `folder` param, or None if there isn't one or it isn't valid
+        """
+        folder = self.request.query_params.get("folder")
+        return self.FOLDER_FILTERS.get(folder.lower()) if folder else None
+
     def derive_queryset(self):
         org = self.request.org
-        folder = self.request.query_params.get("folder")
 
-        if folder:
-            if msg_folder := self.FOLDER_FILTERS.get(folder.lower()):
-                return msg_folder.get_queryset(org)
-            else:
+        if self.request.query_params.get("folder"):
+            if not self.folder:
                 return self.model.objects.none()
+
+            # before/after are passed to the folder as uuid bounds so that they're conditions on the folder index -
+            # filter_queryset still applies them to created_on so that they're exact
+            try:
+                before, after = self.get_before_after()
+            except ValueError:
+                return self.model.objects.none()
+
+            return self.folder.get_queryset(org, after=after, before=before)
         else:
             return self.model.objects.filter(
                 org=org, visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED)

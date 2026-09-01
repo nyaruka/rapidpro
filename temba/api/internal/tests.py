@@ -193,9 +193,9 @@ class EndpointsTest(APITestMixin, TembaTest):
         # an unknown folder returns nothing
         self.assertGet(endpoint_url + "?folder=nope", [self.admin], results=[])
 
-        # ?folder=sent orders by sent_on rather than created_on
-        sent_old = self.create_outgoing_msg(contact1, "Old reply", sent_on=timezone.now() - timedelta(hours=2))
-        sent_new = self.create_outgoing_msg(contact1, "Newer reply", sent_on=timezone.now() - timedelta(minutes=5))
+        # ?folder=sent is ordered by creation like the other folders, not by sent_on
+        sent_old = self.create_outgoing_msg(contact1, "Old reply", sent_on=timezone.now() - timedelta(minutes=5))
+        sent_new = self.create_outgoing_msg(contact1, "Newer reply", sent_on=timezone.now() - timedelta(hours=2))
         self.assertGet(endpoint_url + "?folder=sent", [self.admin], results=[sent_new, sent_old])
 
         # ?label=<uuid> filters to that label's visible messages

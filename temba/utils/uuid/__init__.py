@@ -65,6 +65,10 @@ _last_counter_v7 = 0  # 42-bit counter
 _RFC_4122_VERSION_7_FLAGS = (7 << 76) | (0x8000 << 48)
 
 
+def _uuid7_timestamp_ms(when) -> int:
+    return int(when.timestamp()) * 1000 + when.microsecond // 1000
+
+
 def _uuid7_get_counter_and_tail():
     rand = int.from_bytes(os.urandom(10))
     # 42-bit counter with MSB set to 0
@@ -96,8 +100,14 @@ def uuid7(when=None) -> UUID:
     global _last_counter_v7
 
     if when:
-        timestamp_ms = int(when.timestamp() * 1000)
-        counter, tail = _uuid7_get_counter_and_tail()
+        timestamp_ms = _uuid7_timestamp_ms(when)
+
+        # keep UUIDs generated for the same millisecond ordered as generated, as the clock based branch below does
+        if timestamp_ms == _last_timestamp_v7 and _last_counter_v7 < 0x3FF_FFFF_FFFF:
+            counter = _last_counter_v7 + 1
+            tail = int.from_bytes(os.urandom(4))
+        else:
+            counter, tail = _uuid7_get_counter_and_tail()
     else:
         nanoseconds = time.time_ns()
         timestamp_ms = nanoseconds // 1_000_000
@@ -141,3 +151,14 @@ def uuid7(when=None) -> UUID:
 
     hex = "%032x" % int_uuid_7
     return UUID(f"{hex[:8]}-{hex[8:12]}-{hex[12:16]}-{hex[16:20]}-{hex[20:]}")
+
+
+def uuid7_range(when) -> tuple[UUID, UUID]:
+    """
+    Returns the lowest and highest possible v7 UUIDs for the millisecond containing the given time, i.e. bounds on the
+    UUIDs of anything created in that millisecond.
+    """
+    lowest = ((_uuid7_timestamp_ms(when) & 0xFFFF_FFFF_FFFF) << 80) | _RFC_4122_VERSION_7_FLAGS
+    highest = lowest | 0x0FFF_3FFF_FFFF_FFFF_FFFF  # every counter and random bit set
+
+    return UUID(int=lowest), UUID(int=highest)

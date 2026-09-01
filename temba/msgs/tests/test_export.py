@@ -106,6 +106,7 @@ class MessageExportTest(TembaTest):
 
         # archive last message
         msg3.visibility = Msg.VISIBILITY_ARCHIVED
+        msg3.folder = Msg.FOLDER_ARCHIVED
         msg3.save()
 
         expected_headers = [
@@ -559,6 +560,7 @@ class MessageExportTest(TembaTest):
 
         # archive last message
         msg3.visibility = Msg.VISIBILITY_ARCHIVED
+        msg3.folder = Msg.FOLDER_ARCHIVED
         msg3.save()
 
         # archive 6 msgs

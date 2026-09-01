@@ -148,6 +148,25 @@ class MessagesEndpointTest(APITest):
             results=[joe_msg4, joe_msg3, joe_msg2],
         )
 
+        # filter by before/after within a folder, which pages by uuid and so applies them as uuid bounds as well
+        self.assertGet(
+            endpoint_url + f"?folder=flows&before={format_datetime(joe_msg1.created_on)}",
+            [self.editor],
+            results=[joe_msg1],
+        )
+        self.assertGet(
+            endpoint_url + f"?folder=flows&after={format_datetime(joe_msg3.created_on)}",
+            [self.editor],
+            results=[joe_msg3],
+        )
+        self.assertGet(
+            endpoint_url
+            + f"?folder=flows&after={format_datetime(joe_msg1.created_on)}&before={format_datetime(joe_msg3.created_on)}",
+            [self.editor],
+            results=[joe_msg3, joe_msg1],
+        )
+        self.assertGet(endpoint_url + "?folder=flows&before=nope", [self.editor], results=[])
+
         # filter by broadcast (deprecated, so recorded)
         broadcast = self.create_broadcast(
             self.editor, {"eng": {"text": "A beautiful broadcast"}}, contacts=[joe, frank]

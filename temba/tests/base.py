@@ -390,6 +390,7 @@ class TembaTest(SmartminTest):
         assert not channel or channel.org == contact.org, "channel belong to different org than contact"
 
         org = contact.org
+        created_on = created_on or timezone.now()  # uuid is derived from it, so read the clock once
 
         if failed_reason == Msg.FAILED_NO_DESTINATION:
             channel = None
@@ -400,7 +401,7 @@ class TembaTest(SmartminTest):
             assert channel and contact_urn, "messages require a channel and contact URN, except for failed_reason=D"
 
         msg = Msg(
-            uuid=uuid7(created_on or timezone.now()),
+            uuid=uuid7(created_on),
             org=org,
             direction=direction,
             contact=contact,
@@ -416,7 +417,7 @@ class TembaTest(SmartminTest):
             is_android=bool(channel and channel.is_android),
             external_identifier=external_identifier,
             high_priority=high_priority,
-            created_on=created_on or timezone.now(),
+            created_on=created_on,
             created_by=created_by,
             modified_on=timezone.now(),
             sent_on=sent_on,
