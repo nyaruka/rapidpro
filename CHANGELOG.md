@@ -1,3 +1,7 @@
+v26.3.70 (2026-09-01)
+-------------------------
+ * Make cross-ticket search work from any page in the tickets section
+
 v26.3.69 (2026-08-31)
 -------------------------
  * Add display label for new consolidated receive channel log type
