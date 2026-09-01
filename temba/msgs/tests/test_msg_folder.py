@@ -41,19 +41,21 @@ class MsgFolderTest(TembaTest):
         self.create_channel("A", "Org2Channel", "123456", country="RW", org=self.org2)
         t0 = (timezone.now() - timedelta(days=1)).replace(microsecond=0)
 
-        # one well before the others, then some a millisecond apart so that their uuids are strictly ordered, with
-        # the last in the same millisecond as the one before it so that the bounds are seen to be millisecond granular
-        msg0 = self.create_incoming_msg(contact, "Msg 0", created_on=t0 - timedelta(minutes=2))
+        # one a second before the others and one 20ms after, with the others a millisecond apart so that their uuids
+        # are strictly ordered, and the last in the same millisecond as the one before it so that the bounds are seen
+        # to be millisecond granular
+        msg0 = self.create_incoming_msg(contact, "Msg 0", created_on=t0 - timedelta(seconds=1))
         msg1 = self.create_incoming_msg(contact, "Msg 1", created_on=t0)
         msg2 = self.create_incoming_msg(contact, "Msg 2", created_on=t0 + timedelta(milliseconds=1))
         msg3 = self.create_incoming_msg(contact, "Msg 3", created_on=t0 + timedelta(milliseconds=2))
         msg4 = self.create_incoming_msg(contact, "Msg 4", created_on=t0 + timedelta(milliseconds=2, microseconds=500))
+        msg5 = self.create_incoming_msg(contact, "Msg 5", created_on=t0 + timedelta(milliseconds=20))
         self.create_incoming_msg(contact, "Archived", created_on=t0, visibility=Msg.VISIBILITY_ARCHIVED)
         self.create_incoming_msg(other_contact, "Other org", created_on=t0)
 
         # newest first, filtered by folder rather than the columns it's derived from
         qs = MsgFolder.INBOX.get_queryset(self.org)
-        self.assertEqual([msg4, msg3, msg2, msg1, msg0], list(qs))
+        self.assertEqual([msg5, msg4, msg3, msg2, msg1, msg0], list(qs))
         self.assertRegex(
             str(qs.query),
             r'WHERE \("msgs_msg"\."folder" = I AND "msgs_msg"\."org_id" = \d+\) ORDER BY "msgs_msg"\."uuid" DESC$',
@@ -62,19 +64,19 @@ class MsgFolderTest(TembaTest):
         def assert_range(expected, **bounds):
             self.assertEqual(expected, list(MsgFolder.INBOX.get_queryset(self.org, **bounds)), bounds)
 
-        # the before bound is inclusive and spans the whole millisecond of the given time
-        assert_range([msg2, msg1, msg0], before=msg2.created_on)
-        assert_range([msg4, msg3, msg2, msg1, msg0], before=msg3.created_on)
-        assert_range([msg0], before=t0 - timedelta(milliseconds=1))
-        assert_range([], before=t0 - timedelta(minutes=3))
+        # bounds are inclusive, millisecond granular, and padded by 10ms at each end
+        assert_range([msg4, msg3, msg2, msg1, msg0], before=msg2.created_on)
+        assert_range([msg4, msg3, msg2, msg1, msg0], before=t0 + timedelta(milliseconds=9))
+        assert_range([msg5, msg4, msg3, msg2, msg1, msg0], before=t0 + timedelta(milliseconds=10))
+        assert_range([msg0], before=t0 - timedelta(seconds=1, milliseconds=10))
+        assert_range([], before=t0 - timedelta(seconds=1, milliseconds=11))
 
-        # the after bound is inclusive but padded to a minute earlier
-        assert_range([msg4, msg3, msg2, msg1], after=msg2.created_on)
-        assert_range([msg4, msg3, msg2, msg1, msg0], after=t0 - timedelta(minutes=1))
-        assert_range([msg4, msg3, msg2, msg1], after=t0 - timedelta(minutes=1, milliseconds=-1))
-        assert_range([], after=msg4.created_on + timedelta(minutes=1, milliseconds=1))
+        assert_range([msg5, msg4, msg3, msg2, msg1], after=msg2.created_on)
+        assert_range([msg5, msg4, msg3, msg2, msg1], after=t0 - timedelta(seconds=1) + timedelta(milliseconds=11))
+        assert_range([msg5, msg4, msg3, msg2, msg1, msg0], after=t0 - timedelta(seconds=1) + timedelta(milliseconds=10))
+        assert_range([msg5], after=msg5.created_on + timedelta(milliseconds=10))
+        assert_range([], after=msg5.created_on + timedelta(milliseconds=11))
 
-        # and both together
         assert_range([msg4, msg3, msg2, msg1], before=msg3.created_on, after=msg3.created_on)
         assert_range([msg0], before=msg0.created_on, after=msg0.created_on)
 

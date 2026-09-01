@@ -1047,19 +1047,19 @@ class MsgFolder(Enum):
         """
         Returns the messages in this folder, newest first, optionally bounded by created_on (inclusive at both ends).
         The bounds are applied to uuid rather than created_on - message uuids are v7 and so time ordered - so that
-        they're conditions on the folder index rather than a filter over everything it yields. Because a message's
-        uuid is allocated before its created_on is set, the before bound is exact to the millisecond, but a uuid can
-        predate its created_on by more than that (e.g. one allocated before an external call, with created_on set
-        after it), so the after bound is padded to cover that - the padded rows only cost anything when a walk of the
-        folder reaches its low end. The bounds are therefore a superset of the messages created in the range, and
-        callers which need created_on itself honored filter on it as well.
+        they're conditions on the folder index rather than a filter over everything it yields. A message's uuid can
+        be a few milliseconds either side of its created_on - the writers read the clock separately for each, and a
+        v7 generator which exhausts its sequence within a millisecond spills into the next - so both bounds are
+        padded to cover that, at the cost of a few milliseconds of rows read and discarded at each end of a walk of
+        the folder. The bounds are therefore a superset of the messages created in the range, and callers which need
+        created_on itself honored filter on it as well.
         """
         # we don't use org.msgs here because it causes problems when the API is using different db connections
         qs = Msg.objects.filter(org=org, folder=self.code)
         if after:
-            qs = qs.filter(uuid__gte=uuid7_range(after - self.AFTER_PADDING)[0])
+            qs = qs.filter(uuid__gte=uuid7_range(after - self.UUID_PADDING)[0])
         if before:
-            qs = qs.filter(uuid__lte=uuid7_range(before)[1])
+            qs = qs.filter(uuid__lte=uuid7_range(before + self.UUID_PADDING)[1])
 
         return qs.order_by("-uuid")
 
@@ -1088,9 +1088,9 @@ class MsgFolder(Enum):
         return f"<MsgFolder.{self.name} code={self.code}>"
 
 
-# how far the after bound of a folder's uuid range is widened - see MsgFolder.get_queryset. Set outside the class as
-# an attribute defined inside it would become a member.
-MsgFolder.AFTER_PADDING = timedelta(minutes=1)
+# how far the bounds of a folder's uuid range are widened - see MsgFolder.get_queryset. Set outside the class as an
+# attribute defined inside it would become a member.
+MsgFolder.UUID_PADDING = timedelta(milliseconds=10)
 
 
 class Label(TembaModel, DependencyMixin):
