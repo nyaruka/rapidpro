@@ -1,0 +1,10 @@
+{% extends "includes/modax.html" %}
+{% load i18n %}
+
+{% block fields %}
+  {% include "tickets/team_fields.html" %}
+{% endblock fields %}
+{% block modal-script %}
+  {{ block.super }}
+  {% include "tickets/team_script.html" with modax_id="#update-team" %}
+{% endblock modal-script %}

@@ -20,7 +20,7 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(create_url, [None, self.agent, self.editor])
 
-        self.assertCreateFetch(create_url, [self.admin], form_fields=("name", "topics"))
+        self.assertCreateFetch(create_url, [self.admin], form_fields={"name": None, "all_topics": True, "topics": None})
 
         sales = Topic.create(self.org, self.admin, "Sales")
         for n in range(Team.max_topics + 1):
@@ -74,11 +74,38 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
         )
 
         team = Team.objects.get(name="Sales")
+        self.assertFalse(team.all_topics)
         self.assertEqual({sales}, set(team.topics.all()))
 
         # check we get the limit warning when we've reached the limit
         response = self.requestView(create_url, self.admin)
         self.assertContains(response, "You have reached the per-workspace limit")
+
+    def test_create_all_topics(self):
+        self.org.features = [Org.FEATURE_TEAMS]
+        self.org.save(update_fields=("features",))
+
+        create_url = reverse("tickets.team_create")
+
+        for n in range(Team.max_topics + 1):
+            Topic.create(self.org, self.admin, f"Topic {n}")
+
+        # selected topics are ignored (and the topic limit doesn't apply) when a team can access all topics
+        self.assertCreateSubmit(
+            create_url,
+            self.admin,
+            {"name": "Everything", "all_topics": True, "topics": [t.id for t in self.org.topics.all()]},
+            new_obj_query=Team.objects.filter(name="Everything", is_system=False),
+            success_status=302,
+        )
+
+        team = Team.objects.get(name="Everything")
+        self.assertTrue(team.all_topics)
+        self.assertEqual(set(), set(team.topics.all()))
+
+        # agents in this team aren't restricted to any topics
+        self.org.add_user(self.agent, OrgRole.AGENT, team=team)
+        self.assertIsNone(Topic.get_restriction(self.org, self.agent))
 
     def test_update(self):
         sales = Topic.create(self.org, self.admin, "Sales")
@@ -89,7 +116,9 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(update_url, [None, self.agent, self.editor, self.admin2])
 
-        self.assertUpdateFetch(update_url, [self.admin], form_fields=["name", "topics"])
+        self.assertUpdateFetch(
+            update_url, [self.admin], form_fields={"name": "Sales", "all_topics": False, "topics": [sales]}
+        )
 
         # names must be unique (case-insensitive)
         self.assertUpdateSubmit(
@@ -106,7 +135,33 @@ class TeamCRUDLTest(TembaTest, CRUDLTestMixin):
 
         team.refresh_from_db()
         self.assertEqual(team.name, "Marketing")
+        self.assertFalse(team.all_topics)
         self.assertEqual({marketing}, set(team.topics.all()))
+
+        # switching to all topics clears any selected topics
+        self.assertUpdateSubmit(
+            update_url,
+            self.admin,
+            {"name": "Marketing", "all_topics": True, "topics": [marketing.id]},
+            success_status=302,
+        )
+
+        team.refresh_from_db()
+        self.assertTrue(team.all_topics)
+        self.assertEqual(set(), set(team.topics.all()))
+
+        self.assertUpdateFetch(
+            update_url, [self.admin], form_fields={"name": "Marketing", "all_topics": True, "topics": []}
+        )
+
+        # and back to a subset of topics
+        self.assertUpdateSubmit(
+            update_url, self.admin, {"name": "Marketing", "topics": [sales.id, marketing.id]}, success_status=302
+        )
+
+        team.refresh_from_db()
+        self.assertFalse(team.all_topics)
+        self.assertEqual({sales, marketing}, set(team.topics.all()))
 
         # can't edit a system team
         self.assertRequestDisallowed(reverse("tickets.team_update", args=[self.org.default_team.uuid]), [self.admin])

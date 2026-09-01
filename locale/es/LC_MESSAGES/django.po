@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-31 22:54+0000\n"
+"POT-Creation-Date: 2026-09-01 20:21+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -3711,6 +3711,12 @@ msgstr "Sus plantillas se han obtenido y actualizado."
 msgid "Unable to refresh all templates. See the log for details."
 msgstr "No se pudieron actualizar todas las plantillas. Consulte el registro para obtener más detalles."
 
+msgid "All topics"
+msgstr "Todos los temas"
+
+msgid "Members can access tickets of any topic, including topics created later."
+msgstr "Los miembros pueden acceder a los tickets de cualquier tema, incluidos los temas creados más adelante."
+
 #, python-format
 msgid "Teams can have at most %(limit)d topics."
 msgstr "Los equipos pueden tener como máximo %(limit)d temas."
@@ -6578,6 +6584,9 @@ msgstr "Lo sentimos, el equipo <b>%(object)s</b> no se puede eliminar mientras s
 #, python-format
 msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
 msgstr "Está a punto de eliminar el equipo <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
+
+msgid "Ticket search is not currently supported for teams that are restricted to specific topics."
+msgstr "La búsqueda de tickets no está disponible actualmente para los equipos restringidos a temas específicos."
 
 msgid "Agent users can be organized into teams to restrict which ticket topics they can access."
 msgstr "Los usuarios agentes se pueden organizar en equipos para restringir a qué temas de tickets pueden acceder."
