@@ -1,3 +1,7 @@
+v26.3.72 (2026-09-01)
+-------------------------
+ * Read message folders from Msg.folder, paging by uuid
+
 v26.3.71 (2026-09-01)
 -------------------------
  * Make SSO login warning message configurable per domain
