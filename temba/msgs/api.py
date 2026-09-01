@@ -13,7 +13,7 @@ from temba.api.support import (
     ListPagination,
     SearchCountMixin,
     SearchLengthMixin,
-    SentOnCursorPagination,
+    UUIDCursorPagination,
 )
 from temba.api.views import ListAPIMixin
 from temba.utils.uuid import is_uuid
@@ -96,13 +96,10 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
 
     class Pagination(SearchCountMixin, CreatedOnCursorPagination):
         """
-        Folders are ordered by `-created_on, -id`, and the sent folder by `-sent_on, -id`. Those are the orderings
-        the partial folder indexes are built on (`msgs_inbox`, `msgs_flows`, `msgs_archived`,
-        `msgs_outbox_and_failed`, `msgs_sent` — see Msg.Meta.indexes), so a page is an index-ordered read rather
-        than a sort. Ordering by `-uuid` instead would be time-ordered too (msg.uuid is uuid7) but uuid isn't part
-        of any folder index, leaving the database to either sort the whole folder or walk the global uuid index
-        filtering by folder. The response always carries a `count` so the list UI can show a total: a search
-        count via SearchCountMixin, otherwise the folder/label's cheap pre-calculated count (see
+        Folders are paged by `-uuid`, which is what the folder index (`msgs_by_folder`, see Msg.Meta.indexes) is
+        keyed on and time ordered as message uuids are v7, so a page is an index-ordered read rather than a sort.
+        Labels are paged by `-created_on, -id`. The response always carries a `count` so the list UI can show a
+        total: a search count via SearchCountMixin, otherwise the folder/label's cheap pre-calculated count (see
         `get_total_count`) — never a COUNT(*) on the messages table.
         """
 
@@ -114,9 +111,7 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         max_page_size = 500
 
         def get_ordering(self, request, queryset, view=None):
-            if request.query_params.get("folder", "").lower() == "sent":
-                return SentOnCursorPagination.ordering
-            return self.ordering
+            return UUIDCursorPagination.ordering if view.folder else self.ordering
 
         def paginate_queryset(self, queryset, request, view=None):
             page = super().paginate_queryset(queryset, request, view)
@@ -156,6 +151,16 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
             return None
         return self.request.org.msgs_labels.filter(uuid=label_uuid).first()
 
+    @cached_property
+    def folder(self):
+        """
+        The folder selected by the `folder` param (defaulting to inbox), or None if a label is selected instead or
+        the folder isn't valid.
+        """
+        if self.request.query_params.get("label"):
+            return None
+        return self.FOLDERS.get(self.request.query_params.get("folder", "inbox").lower())
+
     def get_total_count(self) -> int:
         # Cheap pre-calculated total for the active folder/label (squashed count tables) — used as the list's total
         # when there's no search, avoiding a COUNT(*) on the messages table.
@@ -163,10 +168,7 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
         if self.request.query_params.get("label"):
             return self.label.get_visible_count() if self.label else 0
 
-        folder = self.FOLDERS.get(self.request.query_params.get("folder", "inbox").lower())
-        if not folder:
-            return 0
-        return MsgFolder.get_counts(org).get(folder, 0)
+        return MsgFolder.get_counts(org).get(self.folder, 0) if self.folder else 0
 
     def derive_queryset(self):
         # `label` takes precedence — the filter view passes a label UUID rather than a folder name, and the visible
@@ -183,22 +185,29 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
                 .prefetch_related("labels")
             )
 
-        folder = self.FOLDERS.get(self.request.query_params.get("folder", "inbox").lower())
-        if not folder:
+        if not self.folder:
             return Msg.objects.none()
 
+        # a search's window is passed to the folder as a uuid bound so that it's a condition on the folder index
+        # rather than something checked on every row the search then has to scan - filter_queryset makes it exact
         return (
-            folder.get_queryset(self.request.org)
+            self.folder.get_queryset(self.request.org, after=self.search_since)
             .select_related("contact", "channel", "flow", "org")
             .prefetch_related("labels")
         )
+
+    @cached_property
+    def search_since(self):
+        """
+        The start of the search window if this request is a search, or None if it isn't
+        """
+        return timezone.now() - self.SEARCH_WINDOW if self.request.query_params.get("search") else None
 
     def filter_queryset(self, queryset):
         search = self.request.query_params.get("search")
         if search:
             queryset = queryset.filter(
-                Q(created_on__gte=timezone.now() - self.SEARCH_WINDOW)
-                & (Q(text__icontains=search) | Q(contact__name__icontains=search))
+                Q(created_on__gte=self.search_since) & (Q(text__icontains=search) | Q(contact__name__icontains=search))
             )
 
         return queryset

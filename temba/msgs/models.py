@@ -5,6 +5,7 @@ import os
 import re
 from array import array
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import Enum
 from fnmatch import fnmatch
 from urllib.parse import unquote, urlparse
@@ -31,7 +32,7 @@ from temba.utils.export.models import MultiSheetExporter
 from temba.utils.models import LegacyIDMixin, TembaModel
 from temba.utils.models.counts import BaseSquashableCount
 from temba.utils.s3 import public_file_storage
-from temba.utils.uuid import uuid4
+from temba.utils.uuid import uuid4, uuid7_range
 
 logger = logging.getLogger(__name__)
 
@@ -745,10 +746,10 @@ class Msg(models.Model):
 
     def derive_folder(self) -> str:
         """
-        Derives the folder code for this message. Nothing reads this yet - it exists to pin down the contract that
-        mailroom and courier implement, in particular the precedence, which matters for states that fall outside the
-        user facing folders entirely: a message can be archived or deleted while still pending, and such messages
-        must not appear in the Archived folder.
+        Derives the folder code for this message. Folder is written by mailroom and courier - this exists to pin down
+        the contract they implement (and to set it on messages created in tests), in particular the precedence, which
+        matters for states that fall outside the user facing folders entirely: a message can be archived or deleted
+        while still pending, and such messages must not appear in the Archived folder.
         """
 
         if self.visibility in (self.VISIBILITY_DELETED_BY_USER, self.VISIBILITY_DELETED_BY_SENDER):
@@ -867,39 +868,36 @@ class Msg(models.Model):
                 fields=["created_on"],
                 condition=Q(direction="O", is_android=True, status__in=("I", "Q", "E")),
             ),
-            # used for Inbox view and API folder
+            # the five indexes below are no longer used now that the folder views and API folders read from
+            # msgs_by_folder - they're dropped in a follow-up once that has been released
             models.Index(
                 name="msgs_inbox",
                 fields=["org", "-created_on", "-id"],
                 condition=Q(direction="I", visibility="V", status="H", flow__isnull=True),
             ),
-            # used for Flows view and API folder
             models.Index(
                 name="msgs_flows",
                 fields=["org", "-created_on", "-id"],
                 condition=Q(direction="I", visibility="V", status="H", flow__isnull=False),
             ),
-            # used for Archived view and API folder
             models.Index(
                 name="msgs_archived",
                 fields=["org", "-created_on", "-id"],
                 condition=Q(direction="I", visibility="A", status="H"),
             ),
-            # used for Outbox and Failed views and API folders
             models.Index(
                 name="msgs_outbox_and_failed",
                 fields=["org", "status", "-created_on", "-id"],
                 condition=Q(direction="O", visibility="V", status__in=("I", "Q", "E", "F")),
             ),
-            # used for Sent view / API folder (distinct because of the ordering)
             models.Index(
                 name="msgs_sent",
                 fields=["org", "-sent_on", "-id"],
                 condition=Q(direction="O", visibility="V", status__in=("W", "S", "D", "R")),
             ),
-            # will replace the five folder indexes above once the folder views and API folders read from folder and
-            # order by uuid (which is time ordered as message uuids are v7). Partial on the user facing folders so it
-            # doesn't also index every pending and deleted message.
+            # used by the folder views and API folders, which filter by folder and page by uuid (time ordered as
+            # message uuids are v7) - see MsgFolder.get_queryset. Partial on the user facing folders so it doesn't
+            # also index every pending and deleted message.
             models.Index(
                 name="msgs_by_folder",
                 fields=["org", "folder", "-uuid"],
@@ -1045,9 +1043,25 @@ class MsgFolder(Enum):
 
         return None
 
-    def get_queryset(self, org):
+    def get_queryset(self, org, *, after=None, before=None):
+        """
+        Returns the messages in this folder, newest first, optionally bounded by created_on (inclusive at both ends).
+        The bounds are applied to uuid rather than created_on - message uuids are v7 and so time ordered - so that
+        they're conditions on the folder index rather than a filter over everything it yields. A message's uuid can
+        be a few milliseconds either side of its created_on - the writers read the clock separately for each, and a
+        v7 generator which exhausts its sequence within a millisecond spills into the next - so both bounds are
+        padded to cover that, at the cost of a few milliseconds of rows read and discarded at each end of a walk of
+        the folder. The bounds are therefore a superset of the messages created in the range, and callers which need
+        created_on itself honored filter on it as well.
+        """
         # we don't use org.msgs here because it causes problems when the API is using different db connections
-        return Msg.objects.filter(org=org, **self.query)
+        qs = Msg.objects.filter(org=org, folder=self.code)
+        if after:
+            qs = qs.filter(uuid__gte=uuid7_range(after - self.UUID_PADDING)[0])
+        if before:
+            qs = qs.filter(uuid__lte=uuid7_range(before + self.UUID_PADDING)[1])
+
+        return qs.order_by("-uuid")
 
     def get_archive_query(self) -> dict:
         return self.archive_query.copy()
@@ -1072,6 +1086,11 @@ class MsgFolder(Enum):
 
     def __repr__(self):  # pragma: no cover
         return f"<MsgFolder.{self.name} code={self.code}>"
+
+
+# how far the bounds of a folder's uuid range are widened - see MsgFolder.get_queryset. Set outside the class as an
+# attribute defined inside it would become a member.
+MsgFolder.UUID_PADDING = timedelta(milliseconds=10)
 
 
 class Label(TembaModel, DependencyMixin):
@@ -1304,8 +1323,13 @@ class MessageExport(ExportType):
                 matching.append(record)
             yield matching
 
+        order_by = "created_on"
+
         if folder:
-            messages = folder.get_queryset(export.org)
+            # the uuid bounds put the date range on the folder index, and ordering by uuid walks it rather than
+            # sorting - they're a superset of the range, which the created_on filter below then makes exact
+            messages = folder.get_queryset(export.org, after=start_date, before=end_date)
+            order_by = "uuid"
         elif label:
             messages = label.get_messages()
         else:
@@ -1313,7 +1337,7 @@ class MessageExport(ExportType):
 
         messages = messages.filter(created_on__gte=start_date, created_on__lte=end_date)
 
-        messages = messages.order_by("created_on").using("readonly")
+        messages = messages.order_by(order_by).using("readonly")
         if last_created_on:
             messages = messages.filter(created_on__gt=last_created_on)
 

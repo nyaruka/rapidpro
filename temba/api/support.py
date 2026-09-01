@@ -242,9 +242,12 @@ class ModifiedOnCursorPagination(CursorPagination):
             return self.ordering
 
 
-class SentOnCursorPagination(CursorPagination):
-    ordering = ("-sent_on", "-id")
-    offset_cutoff = 100000
+class UUIDCursorPagination(CursorPagination):
+    """
+    For objects whose uuids are v7 and so time ordered
+    """
+
+    ordering = ("-uuid",)
 
 
 class DateJoinedCursorPagination(CursorPagination):

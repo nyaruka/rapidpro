@@ -724,7 +724,6 @@ class MsgCRUDL(SmartCRUDL):
         folder = MsgFolder.SENT
         bulk_actions = ()
         allow_export = True
-        default_order = ("-sent_on", "-id")
 
     class Failed(MsgListView):
         title = _("Failed")

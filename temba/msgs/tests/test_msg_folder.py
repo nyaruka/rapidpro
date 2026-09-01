@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.utils import timezone
 
 from temba.flows.models import Flow, FlowRun, FlowSession
@@ -32,6 +34,51 @@ class MsgFolderTest(TembaTest):
         # messages which aren't in a user facing folder
         assert_folder(self.create_incoming_msg(contact, "Hi", status=Msg.STATUS_PENDING), None)
         assert_folder(self.create_incoming_msg(contact, "Hi", visibility=Msg.VISIBILITY_DELETED_BY_USER), None)
+
+    def test_get_queryset(self):
+        contact = self.create_contact("Bob", phone="0783835001")
+        other_contact = self.create_contact("Jim", phone="0783835002", org=self.org2)
+        self.create_channel("A", "Org2Channel", "123456", country="RW", org=self.org2)
+        t0 = (timezone.now() - timedelta(days=1)).replace(microsecond=0)
+
+        # one a second before the others and one 20ms after, with the others a millisecond apart so that their uuids
+        # are strictly ordered, and the last in the same millisecond as the one before it so that the bounds are seen
+        # to be millisecond granular
+        msg0 = self.create_incoming_msg(contact, "Msg 0", created_on=t0 - timedelta(seconds=1))
+        msg1 = self.create_incoming_msg(contact, "Msg 1", created_on=t0)
+        msg2 = self.create_incoming_msg(contact, "Msg 2", created_on=t0 + timedelta(milliseconds=1))
+        msg3 = self.create_incoming_msg(contact, "Msg 3", created_on=t0 + timedelta(milliseconds=2))
+        msg4 = self.create_incoming_msg(contact, "Msg 4", created_on=t0 + timedelta(milliseconds=2, microseconds=500))
+        msg5 = self.create_incoming_msg(contact, "Msg 5", created_on=t0 + timedelta(milliseconds=20))
+        self.create_incoming_msg(contact, "Archived", created_on=t0, visibility=Msg.VISIBILITY_ARCHIVED)
+        self.create_incoming_msg(other_contact, "Other org", created_on=t0)
+
+        # newest first, filtered by folder rather than the columns it's derived from
+        qs = MsgFolder.INBOX.get_queryset(self.org)
+        self.assertEqual([msg5, msg4, msg3, msg2, msg1, msg0], list(qs))
+        self.assertRegex(
+            str(qs.query),
+            r'WHERE \("msgs_msg"\."folder" = I AND "msgs_msg"\."org_id" = \d+\) ORDER BY "msgs_msg"\."uuid" DESC$',
+        )
+
+        def assert_range(expected, **bounds):
+            self.assertEqual(expected, list(MsgFolder.INBOX.get_queryset(self.org, **bounds)), bounds)
+
+        # bounds are inclusive, millisecond granular, and padded by 10ms at each end
+        assert_range([msg4, msg3, msg2, msg1, msg0], before=msg2.created_on)
+        assert_range([msg4, msg3, msg2, msg1, msg0], before=t0 + timedelta(milliseconds=9))
+        assert_range([msg5, msg4, msg3, msg2, msg1, msg0], before=t0 + timedelta(milliseconds=10))
+        assert_range([msg0], before=t0 - timedelta(seconds=1, milliseconds=10))
+        assert_range([], before=t0 - timedelta(seconds=1, milliseconds=11))
+
+        assert_range([msg5, msg4, msg3, msg2, msg1], after=msg2.created_on)
+        assert_range([msg5, msg4, msg3, msg2, msg1], after=t0 - timedelta(seconds=1) + timedelta(milliseconds=11))
+        assert_range([msg5, msg4, msg3, msg2, msg1, msg0], after=t0 - timedelta(seconds=1) + timedelta(milliseconds=10))
+        assert_range([msg5], after=msg5.created_on + timedelta(milliseconds=10))
+        assert_range([], after=msg5.created_on + timedelta(milliseconds=11))
+
+        assert_range([msg4, msg3, msg2, msg1], before=msg3.created_on, after=msg3.created_on)
+        assert_range([msg0], before=msg0.created_on, after=msg0.created_on)
 
     def test_get_archive_query(self):
         tcs = (

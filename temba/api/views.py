@@ -146,25 +146,28 @@ class ListAPIMixin(mixins.ListModelMixin):
         if sum([(1 if params.get(p) else 0) for p in self.exclusive_params]) > 1:
             raise InvalidQueryError("You may only specify one of the %s parameters" % ", ".join(self.exclusive_params))
 
+    def get_before_after(self) -> tuple:
+        """
+        Returns the parsed before/after params, raising ValueError if either is malformed
+        """
+        before = self.request.query_params.get("before")
+        after = self.request.query_params.get("after")
+
+        return iso8601.parse_date(before) if before else None, iso8601.parse_date(after) if after else None
+
     def filter_before_after(self, queryset, field):
         """
         Filters the queryset by the before/after params if are provided
         """
-        before = self.request.query_params.get("before")
-        if before:
-            try:
-                before = iso8601.parse_date(before)
-                queryset = queryset.filter(**{field + "__lte": before})
-            except ValueError:
-                queryset = queryset.filter(pk=-1)
+        try:
+            before, after = self.get_before_after()
+        except ValueError:
+            return queryset.filter(pk=-1)
 
-        after = self.request.query_params.get("after")
+        if before:
+            queryset = queryset.filter(**{field + "__lte": before})
         if after:
-            try:
-                after = iso8601.parse_date(after)
-                queryset = queryset.filter(**{field + "__gte": after})
-            except ValueError:
-                queryset = queryset.filter(pk=-1)
+            queryset = queryset.filter(**{field + "__gte": after})
 
         return queryset
 
