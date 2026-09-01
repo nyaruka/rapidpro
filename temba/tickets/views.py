@@ -166,7 +166,13 @@ class TeamCRUDL(SmartCRUDL):
         success_url = "@tickets.team_list"
 
         def save(self, obj):
-            return Team.create(self.request.org, self.request.user, obj.name, topics=self.form.cleaned_data["topics"])
+            return Team.create(
+                self.request.org,
+                self.request.user,
+                obj.name,
+                topics=self.form.cleaned_data["topics"],
+                all_topics=self.form.cleaned_data["all_topics"],
+            )
 
     class Update(BaseUpdateModal):
         form_class = TeamForm

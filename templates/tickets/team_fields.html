@@ -1,0 +1,12 @@
+{% load smartmin i18n %}
+
+{% render_field 'name' %}
+{% render_field 'all_topics' %}
+<div class="topics hidden">
+  {% render_field 'topics' %}
+  <temba-alert level="warning" class="mb-4">
+    {% blocktrans trimmed %}
+      Ticket search is not currently supported for teams that are restricted to specific topics.
+    {% endblocktrans %}
+  </temba-alert>
+</div>

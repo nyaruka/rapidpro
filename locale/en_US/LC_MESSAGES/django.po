@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 20:57+0000\n"
+"POT-Creation-Date: 2026-09-01 21:13+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -3685,6 +3685,15 @@ msgstr ""
 msgid "Unable to refresh all templates. See the log for details."
 msgstr ""
 
+msgid "All topics"
+msgstr ""
+
+msgid "Members can access tickets of any topic, including topics created later."
+msgstr ""
+
+msgid "Select at least one topic or allow access to all topics."
+msgstr ""
+
 #, python-format
 msgid "Teams can have at most %(limit)d topics."
 msgstr ""
@@ -6388,6 +6397,9 @@ msgstr ""
 
 #, python-format
 msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
+msgstr ""
+
+msgid "Ticket search is not currently supported for teams that are restricted to specific topics."
 msgstr ""
 
 msgid "Agent users can be organized into teams to restrict which ticket topics they can access."

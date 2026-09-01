@@ -1,1 +1,14 @@
 {% extends "orgs/base/create.html" %}
+{% load i18n %}
+
+{% block fields %}
+  {% if limit_reached %}
+    {{ block.super }}
+  {% else %}
+    {% include "tickets/team_fields.html" %}
+  {% endif %}
+{% endblock fields %}
+{% block modal-script %}
+  {{ block.super }}
+  {% if not limit_reached %}{% include "tickets/team_script.html" with modax_id="#new-team" %}{% endif %}
+{% endblock modal-script %}

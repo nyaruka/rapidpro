@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 20:57+0000\n"
+"POT-Creation-Date: 2026-09-01 21:13+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -3711,6 +3711,15 @@ msgstr "Vos modèles ont été récupérés et actualisés."
 msgid "Unable to refresh all templates. See the log for details."
 msgstr "Impossible d'actualiser tous les modèles. Consultez le journal pour plus de détails."
 
+msgid "All topics"
+msgstr "Tous les sujets"
+
+msgid "Members can access tickets of any topic, including topics created later."
+msgstr "Les membres peuvent accéder aux billets de n'importe quel sujet, y compris les sujets créés ultérieurement."
+
+msgid "Select at least one topic or allow access to all topics."
+msgstr "Sélectionnez au moins un sujet ou autorisez l'accès à tous les sujets."
+
 #, python-format
 msgid "Teams can have at most %(limit)d topics."
 msgstr "Les équipes ne peuvent avoir que %(limit)d sujets au maximum."
@@ -6569,6 +6578,9 @@ msgstr "Désolé, l'équipe <b>%(object)s</b> ne peut pas être supprimée tant 
 #, python-format
 msgid "You are about to delete the <b>%(object)s</b> team. There is no way to undo this. Are you sure?"
 msgstr "Vous êtes sur le point de supprimer l'équipe <b>%(object)s</b>. Cette action est irréversible. Voulez-vous continuer ?"
+
+msgid "Ticket search is not currently supported for teams that are restricted to specific topics."
+msgstr "La recherche de billets n'est pas encore prise en charge pour les équipes limitées à des sujets spécifiques."
 
 msgid "Agent users can be organized into teams to restrict which ticket topics they can access."
 msgstr "Les utilisateurs agents peuvent être organisés en équipes afin de restreindre les sujets de billets auxquels ils ont accès."
