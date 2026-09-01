@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-31 22:54+0000\n"
+"POT-Creation-Date: 2026-09-01 20:57+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -5384,22 +5384,11 @@ msgstr "Opa!"
 msgid "We tried our best, but there was an error processing your request. If this keeps happening, please refresh your browser."
 msgstr "Nós tentamos o nosso melhor, mas ocorreu um erro ao processar a sua requisição. Se isso continuar acontecendo, por favor atualize o seu navegador."
 
-#, python-format
-msgid "Sign In with %(provider)s"
-msgstr "Entrar com %(provider)s"
-
 msgid "Use Single Sign-On"
 msgstr "Usar login único (SSO)"
 
 msgid "Ok"
 msgstr "Ok"
-
-#, python-format
-msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use <b>Sign In with %(provider)s</b> the next time you sign in."
-msgstr "Entrar com e-mail e senha deixará de existir para a sua organização. Para manter o acesso à sua conta, por favor use <b>Entrar com %(provider)s</b> na próxima vez que você entrar."
-
-msgid "Signing in with an email and password is going away for your organization. To keep access to your account, please use the single sign-on option the next time you sign in."
-msgstr "Entrar com e-mail e senha deixará de existir para a sua organização. Para manter o acesso à sua conta, por favor use a opção de login único na próxima vez que você entrar."
 
 msgid "Are you sure you want to continue? This cannot be undone."
 msgstr "Você tem certeza que quer continuar? Isso não pode ser desfeito."
@@ -6497,6 +6486,10 @@ msgstr "Conta de terceiros desconectada"
 #, python-format
 msgid "Accept Invitation with %(provider)s"
 msgstr "Aceitar convite com %(provider)s"
+
+#, python-format
+msgid "Sign In with %(provider)s"
+msgstr "Entrar com %(provider)s"
 
 #, python-format
 msgid "The page you are requesting belongs to a different workspace, <b>%(org)s</b>. To see it, you will need to service their account."
