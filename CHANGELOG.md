@@ -1,3 +1,10 @@
+v26.3.71 (2026-09-01)
+-------------------------
+ * Make SSO login warning message configurable per domain
+ * Let teams be explicitly unrestricted by topic and require at least one topic otherwise
+ * Warn that topic-restricted teams can't use ticket search
+ * Add msgs_by_folder index ahead of message folders reading from Msg.folder
+
 v26.3.70 (2026-09-01)
 -------------------------
  * Make cross-ticket search work from any page in the tickets section
