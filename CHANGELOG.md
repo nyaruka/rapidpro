@@ -1,3 +1,8 @@
+v26.3.73 (2026-09-02)
+-------------------------
+ * Drop the per-folder message indexes superseded by msgs_by_folder
+ * Remove the unsent messages warning from the channel read page
+
 v26.3.72 (2026-09-01)
 -------------------------
  * Read message folders from Msg.folder, paging by uuid
