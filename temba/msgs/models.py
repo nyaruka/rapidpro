@@ -868,33 +868,6 @@ class Msg(models.Model):
                 fields=["created_on"],
                 condition=Q(direction="O", is_android=True, status__in=("I", "Q", "E")),
             ),
-            # the five indexes below are no longer used now that the folder views and API folders read from
-            # msgs_by_folder - they're dropped in a follow-up once that has been released
-            models.Index(
-                name="msgs_inbox",
-                fields=["org", "-created_on", "-id"],
-                condition=Q(direction="I", visibility="V", status="H", flow__isnull=True),
-            ),
-            models.Index(
-                name="msgs_flows",
-                fields=["org", "-created_on", "-id"],
-                condition=Q(direction="I", visibility="V", status="H", flow__isnull=False),
-            ),
-            models.Index(
-                name="msgs_archived",
-                fields=["org", "-created_on", "-id"],
-                condition=Q(direction="I", visibility="A", status="H"),
-            ),
-            models.Index(
-                name="msgs_outbox_and_failed",
-                fields=["org", "status", "-created_on", "-id"],
-                condition=Q(direction="O", visibility="V", status__in=("I", "Q", "E", "F")),
-            ),
-            models.Index(
-                name="msgs_sent",
-                fields=["org", "-sent_on", "-id"],
-                condition=Q(direction="O", visibility="V", status__in=("W", "S", "D", "R")),
-            ),
             # used by the folder views and API folders, which filter by folder and page by uuid (time ordered as
             # message uuids are v7) - see MsgFolder.get_queryset. Partial on the user facing folders so it doesn't
             # also index every pending and deleted message.
