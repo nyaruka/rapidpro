@@ -492,8 +492,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(grant_url)
         self.assertRedirect(response, "/accounts/login/")
 
-        global_admins = Group.objects.get(name="Global Administrators")
-        user.groups.add(global_admins)
+        granters = Group.objects.get(name="Granters")
+        user.groups.add(granters)
 
         response = self.client.get(grant_url)
         self.assertEqual(200, response.status_code)
@@ -546,8 +546,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_org_grant_invalid_form(self):
         grant_url = reverse("orgs.org_grant")
 
-        global_admins = Group.objects.get(name="Global Administrators")
-        self.admin.groups.add(global_admins)
+        granters = Group.objects.get(name="Granters")
+        self.admin.groups.add(granters)
 
         self.login(self.admin)
 
@@ -605,8 +605,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_org_grant_form_clean(self):
         grant_url = reverse("orgs.org_grant")
 
-        global_admins = Group.objects.get(name="Global Administrators")
-        self.admin.groups.add(global_admins)
+        granters = Group.objects.get(name="Granters")
+        self.admin.groups.add(granters)
 
         self.login(self.admin)
 

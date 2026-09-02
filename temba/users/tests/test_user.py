@@ -2,6 +2,8 @@ from datetime import timezone as tzone
 
 from allauth.mfa.models import Authenticator
 
+from django.contrib.auth.models import Group
+
 from temba.api.models import APIToken
 from temba.orgs.models import Org, OrgRole
 from temba.orgs.tasks import update_members_seen
@@ -105,7 +107,8 @@ class UserTest(TembaTest):
         self.assertTrue(self.agent.is_mfa_enabled)
 
     def test_has_org_perm(self):
-        global_admin = self.create_user("jim@rapidpro.io", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        granter = self.create_user("jim@rapidpro.io", group_names=("Granters",))
+        global_admin = self.create_user("gad@rapidpro.io", group_names=(User.GLOBAL_ADMINS_GROUP,))
 
         tests = (
             (
@@ -136,7 +139,7 @@ class UserTest(TembaTest):
             (
                 self.org,
                 "orgs.org_grant",
-                {self.agent: False, self.admin: False, self.admin2: False, global_admin: True},
+                {self.agent: False, self.admin: False, self.admin2: False, granter: True, global_admin: True},
             ),
             (
                 self.org,
@@ -154,6 +157,7 @@ class UserTest(TembaTest):
 
     def test_release(self):
         token = APIToken.create(self.org, self.admin)
+        self.admin.groups.add(Group.objects.get(name="Granters"))
 
         # admin doesn't "own" any orgs
         self.assertEqual(0, len(self.admin.get_owned_orgs()))
@@ -176,6 +180,7 @@ class UserTest(TembaTest):
 
         token.refresh_from_db()
         self.assertFalse(token.is_active)
+        self.assertEqual(0, self.admin.groups.count())
 
     def test_last_seen(self):
         membership = self.org.get_membership(self.admin)

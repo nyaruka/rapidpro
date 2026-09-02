@@ -403,6 +403,7 @@ PERMISSIONS = {
 # assigns the permissions that each group should have
 GROUP_PERMISSIONS = {
     "Dashboard": ("orgs.org_dashboard",),
+    "Granters": ("orgs.org_grant",),
     "Administrators": (
         "ai.llm.*",
         "airtime.airtimetransfer_list",

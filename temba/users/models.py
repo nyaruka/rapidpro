@@ -229,6 +229,9 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         # release any API tokens
         self.api_tokens.update(is_active=False)
 
+        # remove from any permission groups
+        self.groups.clear()
+
         # release any orgs we own
         for org in self.get_owned_orgs():
             org.release(user, release_users=False)
