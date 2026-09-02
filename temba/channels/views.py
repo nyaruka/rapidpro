@@ -518,12 +518,6 @@ class ChannelCRUDL(SmartCRUDL):
                 if channel.last_sync and (timezone.now() - channel.last_sync.created_on).total_seconds() > 3600:
                     context["delayed_sync_event"] = True
 
-                # unsent messages
-                unsent_msgs = channel.get_delayed_outgoing_messages()
-
-                if unsent_msgs:
-                    context["unsent_msgs_count"] = unsent_msgs.count()
-
             context["monthly_counts"] = self.get_monthly_counts()
             return context
 
