@@ -195,10 +195,14 @@ class MsgFolderTest(TembaTest):
         Msg.bulk_archive(self.org, [msg1])
         msg3.delete()  # deleting an archived msg
         msg4.delete()  # deleting a visible msg
+
+        # status changes are made the way mailroom and courier make them, with the folder
         msg5.status = "F"
-        msg5.save(update_fields=("status",))
+        msg5.folder = Msg.FOLDER_FAILED
+        msg5.save(update_fields=("status", "folder"))
         msg6.status = "S"
-        msg6.save(update_fields=("status",))
+        msg6.folder = Msg.FOLDER_SENT
+        msg6.save(update_fields=("status", "folder"))
         FlowRun.objects.all().delete()
         FlowSession.objects.all().delete()
         call1.delete()
@@ -219,9 +223,9 @@ class MsgFolderTest(TembaTest):
 
         Msg.bulk_restore(self.org, [msg1])
         msg5.status = "F"  # already failed
-        msg5.save(update_fields=("status",))
-        msg6.status = "D"
-        msg6.save(update_fields=("status",))
+        msg5.save(update_fields=("status", "folder"))
+        msg6.status = "D"  # still in the sent folder
+        msg6.save(update_fields=("status", "folder"))
 
         assert_counts(
             self.org,
@@ -258,3 +262,22 @@ class MsgFolderTest(TembaTest):
 
         # we should only have one count per folder with non-zero count
         self.assertEqual(self.org.counts.count(), 5)
+
+        # counts follow folder, so a state change which doesn't update it moves nothing - the message wouldn't have
+        # moved between folders either
+        msg6.status = "F"
+        msg6.save(update_fields=("status",))
+
+        assert_counts(
+            self.org,
+            {
+                MsgFolder.INBOX: 2,
+                MsgFolder.HANDLED: 0,
+                MsgFolder.ARCHIVED: 0,
+                MsgFolder.OUTBOX: 0,
+                MsgFolder.SENT: 3,
+                MsgFolder.FAILED: 1,
+                "scheduled": 2,
+                "calls": 1,
+            },
+        )

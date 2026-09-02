@@ -257,7 +257,8 @@ class MsgTest(TembaTest, CRUDLTestMixin):
             else:
                 msg = self.create_incoming_msg(self.joe, "Hey hey", flow=flow, status=status)
 
-            Msg.objects.filter(id=msg.id).update(visibility=visibility)
+            # change visibility the way mailroom does, with the folder
+            Msg.objects.filter(id=msg.id).update(visibility=visibility, folder=folder.code)
 
             # assert our folder count is right
             self.assertEqual(folder.get_count(self.org), 1)
