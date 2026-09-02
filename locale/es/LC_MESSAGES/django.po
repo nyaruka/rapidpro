@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 21:13+0000\n"
+"POT-Creation-Date: 2026-09-01 23:32+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -4433,12 +4433,6 @@ msgstr "%(last_sync)s hace"
 
 msgid "Not synced yet"
 msgstr "Aún no sincronizado"
-
-msgid "unsent message"
-msgid_plural "unsent messages"
-msgstr[0] "mensaje no enviado"
-msgstr[1] "mensajes no enviados"
-msgstr[2] "mensajes no enviados"
 
 #, python-format
 msgid "Activated on %(date)s"

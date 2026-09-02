@@ -337,16 +337,14 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             sync.created_on = two_hours_ago
             sync.save()
 
+        # an outgoing message from a couple of hours ago, which counts in this month's chart below
         bob = self.create_contact("Bob", phone="+250785551212")
-
-        # add a message, just sent so shouldn't be delayed
         with patch("django.utils.timezone.now", return_value=two_hours_ago):
-            self.create_outgoing_msg(bob, "delayed message", status=Msg.STATUS_QUEUED, channel=self.tel_channel)
+            self.create_outgoing_msg(bob, "hello", status=Msg.STATUS_QUEUED, channel=self.tel_channel)
 
         with patch("django.utils.timezone.now", return_value=test_date):
             response = self.requestView(tel_channel_read_url, self.admin)
             self.assertIn("delayed_sync_event", response.context_data.keys())
-            self.assertIn("unsent_msgs_count", response.context_data.keys())
 
             # now that we can access the channel, which messages do we display in the chart?
             joe = self.create_contact("Joe", phone="+2501234567890")
