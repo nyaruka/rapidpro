@@ -36,10 +36,10 @@ def org_perms_processor(request):
         org = request.org
 
         if org:
-            role = org.get_user_role(request.user)
-
-            if not role and request.user.is_staff:
+            if request.user.is_staff:
                 role = OrgRole.ADMINISTRATOR  # servicing staff get to see the UI like an org admin
+            else:
+                role = org.get_user_role(request.user)
 
     context = {"user_org": org}
     if role:
