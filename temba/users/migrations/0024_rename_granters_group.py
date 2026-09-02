@@ -1,10 +1,16 @@
 from django.db import migrations
 
 
-def rename_granters_group(apps, schema_editor):  # pragma: no cover
+def rename_granters_group(apps, schema_editor):
     Group = apps.get_model("auth", "Group")
 
     Group.objects.filter(name="Granters").update(name="Global Administrators")
+
+
+def apply_manual():  # pragma: no cover
+    from django.apps import apps
+
+    rename_granters_group(apps, None)
 
 
 class Migration(migrations.Migration):
@@ -13,4 +19,6 @@ class Migration(migrations.Migration):
         ("users", "0023_reset_dropped_languages"),
     ]
 
-    operations = [migrations.RunPython(rename_granters_group, migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(rename_granters_group, migrations.RunPython.noop),
+    ]
