@@ -274,7 +274,7 @@ class OrgsEndpoint(ListAPIMixin, BaseEndpoint):
     pagination_class = ModifiedOnCursorPagination
 
     def get_queryset(self):
-        return self.request.user.get_orgs()
+        return User.get_orgs_for_request(self.request)
 
 
 class ShortcutsEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):

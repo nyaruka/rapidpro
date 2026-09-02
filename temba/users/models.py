@@ -104,6 +104,14 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         return cls.objects.filter(email__iexact=email).first()
 
     @classmethod
+    def get_orgs_for_request(cls, request):
+        """
+        Gets the orgs that the logged in user has access to in the context of the given request.
+        """
+
+        return request.user.get_orgs()
+
+    @classmethod
     def get_system_user(cls):
         """
         Gets the system user
