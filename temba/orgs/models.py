@@ -24,7 +24,7 @@ from django.contrib.postgres.validators import ArrayMinLengthValidator
 from django.core.files import File
 from django.core.files.storage import default_storage
 from django.db import models, transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Exists, Prefetch, Q
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.functional import cached_property
@@ -905,7 +905,15 @@ class Org(LegacyIDMixin, SmartModel):
         """
 
         def get():
-            return OrgMembership.objects.filter(org=self, user=user).first()
+            # fetch the membership along with whether the user is a global admin so we can prime that property on the
+            # user without an extra query
+            is_global_admin = Exists(Group.objects.filter(name=User.GLOBAL_ADMINS_GROUP, user=user))
+            membership = (
+                OrgMembership.objects.filter(org=self, user=user).annotate(user_is_global_admin=is_global_admin).first()
+            )
+            if membership:
+                user.is_global_admin = membership.user_is_global_admin
+            return membership
 
         if user not in self._membership_cache:
             self._membership_cache[user] = get()
@@ -913,15 +921,16 @@ class Org(LegacyIDMixin, SmartModel):
 
     def get_user_role(self, user: User):
         """
-        Gets the role of the given user in this org (if any). Global administrators have the administrator role in any
-        org where they don't have an explicit membership.
+        Gets the role of the given user in this org (if any). Global administrators always have the administrator role
+        regardless of any explicit membership.
         """
 
-        membership = self.get_membership(user)
-        if membership:
-            return membership.role
+        membership = self.get_membership(user)  # fetched first as it primes user.is_global_admin
 
-        return OrgRole.ADMINISTRATOR if user.is_global_admin else None
+        if user.is_global_admin:
+            return OrgRole.ADMINISTRATOR
+
+        return membership.role if membership else None
 
     def create_sample_flows(self, api_url):
         # get our sample dir

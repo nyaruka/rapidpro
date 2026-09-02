@@ -124,7 +124,8 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     @cached_property
     def is_global_admin(self) -> bool:
         """
-        Returns whether this user is a global administrator, i.e. has an administrator role in every org.
+        Returns whether this user is a global administrator, i.e. has an administrator role in every org. Fetching an
+        org membership for this user primes this to avoid an extra query.
         """
         return self.groups.filter(name=self.GLOBAL_ADMINS_GROUP).exists()
 

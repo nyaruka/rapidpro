@@ -875,7 +875,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             endpoint_url,
             [self.agent, self.editor, self.admin],
             results=[{"id": self.org.id, "name": "Nyaruka"}],
-            num_queries=NUM_BASE_QUERIES + 2,  # global admin check + orgs
+            num_queries=NUM_BASE_QUERIES + 1,
         )
 
         # global admins see all active orgs

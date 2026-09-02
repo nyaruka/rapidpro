@@ -80,9 +80,9 @@ class UserTest(TembaTest):
         self.assertIsNone(self.org.get_membership(global_admin))
         self.assertNotIn(global_admin, self.org.get_users())
 
-        # though an explicit membership takes precedence
+        # and that overrides any explicit membership
         self.org2.add_user(global_admin, OrgRole.AGENT)
-        self.assertEqual(OrgRole.AGENT, self.org2.get_user_role(global_admin))
+        self.assertEqual(OrgRole.ADMINISTRATOR, self.org2.get_user_role(global_admin))
 
     def test_mfa(self):
         self.assertFalse(self.admin.is_mfa_enabled)
