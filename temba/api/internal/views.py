@@ -18,6 +18,7 @@ from temba.notifications.models import Notification
 from temba.orgs.models import Org
 from temba.templates.models import Template, TemplateTranslation
 from temba.tickets.models import Shortcut, Topic
+from temba.users.models import User
 
 from ..models import APIPermission, SSLPermission
 from ..support import (
