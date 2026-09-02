@@ -1,3 +1,8 @@
+v26.3.74 (2026-09-02)
+-------------------------
+ * Make Msg.folder non-null
+ * Derive message folder counts from Msg.folder rather than re-deriving the folder from state
+
 v26.3.73 (2026-09-02)
 -------------------------
  * Drop the per-folder message indexes superseded by msgs_by_folder
