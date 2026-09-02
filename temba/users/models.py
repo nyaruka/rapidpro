@@ -1,3 +1,5 @@
+from functools import cached_property
+
 import requests
 
 from django.conf import settings
@@ -41,6 +43,8 @@ class UserManager(AuthUserManager):
 
 
 class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
+    GLOBAL_ADMINS_GROUP = "Global Administrators"
+
     SYSTEM = {"email": "system", "first_name": "System"}
 
     EMAIL_FIELD = "email"
@@ -100,14 +104,6 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         return cls.objects.filter(email__iexact=email).first()
 
     @classmethod
-    def get_orgs_for_request(cls, request):
-        """
-        Gets the orgs that the logged in user has a membership of.
-        """
-
-        return request.user.orgs.filter(is_active=True).order_by("name")
-
-    @classmethod
     def get_system_user(cls):
         """
         Gets the system user
@@ -125,7 +121,22 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         full_name = "%s %s" % (self.first_name, self.last_name)
         return full_name.strip()
 
+    @cached_property
+    def is_global_admin(self) -> bool:
+        """
+        Returns whether this user is a global administrator, i.e. has an administrator role in every org.
+        """
+        return self.groups.filter(name=self.GLOBAL_ADMINS_GROUP).exists()
+
     def get_orgs(self):
+        """
+        Gets the orgs that this user has access to, which for global administrators is all active orgs.
+        """
+        from temba.orgs.models import Org
+
+        if self.is_global_admin:
+            return Org.objects.filter(is_active=True).order_by("name")
+
         return self.orgs.filter(is_active=True).order_by("name")
 
     def get_owned_orgs(self):
@@ -133,7 +144,7 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         Gets the orgs where this user is the only user.
         """
         owned_orgs = []
-        for org in self.get_orgs():
+        for org in self.orgs.filter(is_active=True):
             if not org.users.exclude(id=self.id).exists():
                 owned_orgs.append(org)
         return owned_orgs
@@ -223,7 +234,7 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
             org.release(user, release_users=False)
 
         # remove user from all roles on other orgs
-        for org in self.get_orgs():
+        for org in self.orgs.filter(is_active=True):
             org.remove_user(self)
 
     def __str__(self):

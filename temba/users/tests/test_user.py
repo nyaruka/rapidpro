@@ -1,7 +1,9 @@
+from datetime import timezone as tzone
+
 from allauth.mfa.models import Authenticator
 
 from temba.api.models import APIToken
-from temba.orgs.models import OrgRole
+from temba.orgs.models import Org, OrgRole
 from temba.orgs.tasks import update_members_seen
 from temba.tests import TembaTest
 from temba.users.models import User
@@ -58,6 +60,28 @@ class UserTest(TembaTest):
         self.assertTrue(user.is_verified())
         self.assertTrue(user.emailaddress_set.filter(email="jim@rapidpro.io", primary=True, verified=True).exists())
 
+    def test_global_admin(self):
+        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        Org.objects.create(
+            name="Inactive", timezone=tzone.utc, created_by=self.admin, modified_by=self.admin, is_active=False
+        )
+
+        self.assertFalse(self.admin.is_global_admin)
+        self.assertTrue(global_admin.is_global_admin)
+
+        # global admins have access to all active orgs but don't own any
+        self.assertEqual([self.org, self.org2], list(global_admin.get_orgs().order_by("id")))
+        self.assertEqual([], global_admin.get_owned_orgs())
+
+        # and have the administrator role in every org without needing a membership
+        self.assertEqual(OrgRole.ADMINISTRATOR, self.org.get_user_role(global_admin))
+        self.assertIsNone(self.org.get_membership(global_admin))
+        self.assertNotIn(global_admin, self.org.get_users())
+
+        # though an explicit membership takes precedence
+        self.org2.add_user(global_admin, OrgRole.AGENT)
+        self.assertEqual(OrgRole.AGENT, self.org2.get_user_role(global_admin))
+
     def test_mfa(self):
         self.assertFalse(self.admin.is_mfa_enabled)
         self.assertFalse(self.editor.is_mfa_enabled)
@@ -81,43 +105,43 @@ class UserTest(TembaTest):
         self.assertTrue(self.agent.is_mfa_enabled)
 
     def test_has_org_perm(self):
-        granter = self.create_user("jim@rapidpro.io", group_names=("Granters",))
+        global_admin = self.create_user("jim@rapidpro.io", group_names=(User.GLOBAL_ADMINS_GROUP,))
 
         tests = (
             (
                 self.org,
                 "contacts.contact_list",
-                {self.agent: False, self.admin: True, self.admin2: False},
+                {self.agent: False, self.admin: True, self.admin2: False, global_admin: True},
             ),
             (
                 self.org2,
                 "contacts.contact_list",
-                {self.agent: False, self.admin: False, self.admin2: True},
+                {self.agent: False, self.admin: False, self.admin2: True, global_admin: True},
             ),
             (
                 self.org2,
                 "contacts.contact_read",
-                {self.agent: False, self.admin: False, self.admin2: True},
+                {self.agent: False, self.admin: False, self.admin2: True, global_admin: True},
             ),
             (
                 self.org,
                 "orgs.org_edit",
-                {self.agent: False, self.admin: True, self.admin2: False},
+                {self.agent: False, self.admin: True, self.admin2: False, global_admin: True},
             ),
             (
                 self.org2,
                 "orgs.org_edit",
-                {self.agent: False, self.admin: False, self.admin2: True},
+                {self.agent: False, self.admin: False, self.admin2: True, global_admin: True},
             ),
             (
                 self.org,
                 "orgs.org_grant",
-                {self.agent: False, self.admin: False, self.admin2: False, granter: True},
+                {self.agent: False, self.admin: False, self.admin2: False, global_admin: True},
             ),
             (
                 self.org,
                 "xxx.yyy_zzz",
-                {self.agent: False, self.admin: False, self.admin2: False},
+                {self.agent: False, self.admin: False, self.admin2: False, global_admin: False},
             ),
         )
         for org, perm, checks in tests:

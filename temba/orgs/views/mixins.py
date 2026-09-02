@@ -57,7 +57,7 @@ class OrgPermsMixin:
 
         if org:
             # when servicing, non-superuser staff can only GET
-            is_servicing = request.user.is_staff and not org.users.filter(id=request.user.id).exists()
+            is_servicing = request.user.is_staff and not org.get_user_role(request.user)
             if (
                 is_servicing
                 and self.derive_readonly_servicing()
@@ -96,7 +96,7 @@ class OrgObjPermsMixin(OrgPermsMixin):
         obj_org = self.get_object_org()
         is_this_org = self.request.org == obj_org
 
-        return has_perm and (is_this_org or obj_org.get_users().filter(id=request.user.id).exists())
+        return has_perm and (is_this_org or obj_org.get_user_role(request.user) is not None)
 
     def pre_process(self, request, *args, **kwargs):
         org = self.get_object_org()

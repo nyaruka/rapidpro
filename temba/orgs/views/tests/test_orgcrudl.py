@@ -492,8 +492,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(grant_url)
         self.assertRedirect(response, "/accounts/login/")
 
-        granters = Group.objects.get(name="Granters")
-        user.groups.add(granters)
+        global_admins = Group.objects.get(name="Global Administrators")
+        user.groups.add(global_admins)
 
         response = self.client.get(grant_url)
         self.assertEqual(200, response.status_code)
@@ -546,8 +546,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_org_grant_invalid_form(self):
         grant_url = reverse("orgs.org_grant")
 
-        granters = Group.objects.get(name="Granters")
-        self.admin.groups.add(granters)
+        global_admins = Group.objects.get(name="Global Administrators")
+        self.admin.groups.add(global_admins)
 
         self.login(self.admin)
 
@@ -605,8 +605,8 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_org_grant_form_clean(self):
         grant_url = reverse("orgs.org_grant")
 
-        granters = Group.objects.get(name="Granters")
-        self.admin.groups.add(granters)
+        global_admins = Group.objects.get(name="Global Administrators")
+        self.admin.groups.add(global_admins)
 
         self.login(self.admin)
 
@@ -938,6 +938,16 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # user clicks org 2...
         response = self.requestView(choose_url, self.editor, post_data={"organization": self.org2.id})
         self.assertRedirect(response, "/org/start/")
+
+        # global admins without any memberships are sent to the first org by name
+        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        self.assertRedirect(self.requestView(choose_url, global_admin), "/org/start/")
+        self.assertEqual(self.org.id, self.client.session["org_id"])
+
+        # and can choose any active org
+        response = self.requestView(choose_url, global_admin, post_data={"organization": org4.id}, choose_org=self.org)
+        self.assertRedirect(response, "/org/start/")
+        self.assertEqual(org4.id, self.client.session["org_id"])
 
     def test_edit(self):
         edit_url = reverse("orgs.org_edit")

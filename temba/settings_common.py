@@ -403,7 +403,6 @@ PERMISSIONS = {
 # assigns the permissions that each group should have
 GROUP_PERMISSIONS = {
     "Dashboard": ("orgs.org_dashboard",),
-    "Granters": ("orgs.org_grant",),
     "Administrators": (
         "ai.llm.*",
         "airtime.airtimetransfer_list",
@@ -615,6 +614,9 @@ GROUP_PERMISSIONS = {
         "tickets.topic_list",
     ),
 }
+
+# global administrators have administrator permissions in every workspace and can grant new workspaces
+GROUP_PERMISSIONS["Global Administrators"] = ("orgs.org_grant", *GROUP_PERMISSIONS["Administrators"])
 
 # extra permissions that only apply to API requests (wildcard notation not supported here)
 API_PERMISSIONS = {

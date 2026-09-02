@@ -913,11 +913,15 @@ class Org(LegacyIDMixin, SmartModel):
 
     def get_user_role(self, user: User):
         """
-        Convenience method to get just the role of the given user in this org (if any).
+        Gets the role of the given user in this org (if any). Global administrators have the administrator role in any
+        org where they don't have an explicit membership.
         """
 
         membership = self.get_membership(user)
-        return membership.role if membership else None
+        if membership:
+            return membership.role
+
+        return OrgRole.ADMINISTRATOR if user.is_global_admin else None
 
     def create_sample_flows(self, api_url):
         # get our sample dir
@@ -1080,9 +1084,9 @@ class Org(LegacyIDMixin, SmartModel):
         # release any user that belongs only to us
         if release_users:
             for org_user in self.users.all():
-                # check if this user is a member of any org
-                other_orgs = org_user.get_orgs().exclude(id=self.id)
-                if not other_orgs:
+                # check if this user is a member of any other org
+                other_orgs = org_user.orgs.filter(is_active=True).exclude(id=self.id)
+                if not other_orgs and not org_user.is_global_admin:
                     org_user.release(user)
 
         # remove all the org users

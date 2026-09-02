@@ -22,6 +22,7 @@ from temba.templates.models import Template, TemplateTranslation
 from temba.tests import TembaTest, matchers, mock_mailroom
 from temba.tickets.models import Shortcut, TicketExport, Topic
 from temba.triggers.models import Trigger
+from temba.users.models import User
 from temba.utils.uuid import uuid4
 
 NUM_BASE_QUERIES = 3  # number of queries required for any request (internal API is session only)
@@ -874,8 +875,15 @@ class EndpointsTest(APITestMixin, TembaTest):
             endpoint_url,
             [self.agent, self.editor, self.admin],
             results=[{"id": self.org.id, "name": "Nyaruka"}],
-            num_queries=NUM_BASE_QUERIES + 1,
+            num_queries=NUM_BASE_QUERIES + 2,  # global admin check + orgs
         )
+
+        # global admins see all active orgs
+        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        self.login(global_admin, choose_org=self.org)
+
+        response = self.client.get(endpoint_url, content_type="application/json", HTTP_X_FORWARDED_HTTPS="https")
+        self.assertEqual({self.org.id, self.org2.id}, {r["id"] for r in response.json()["results"]})
 
     def test_articles(self):
         endpoint_url = reverse("api.internal.articles") + ".json"

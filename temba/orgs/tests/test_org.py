@@ -31,6 +31,7 @@ from temba.tests import TembaTest, mock_mailroom
 from temba.tests.base import get_contact_search
 from temba.tickets.models import Shortcut, Team, TicketExport, Topic
 from temba.triggers.models import Trigger
+from temba.users.models import User
 from temba.utils import json
 from temba.utils.uuid import uuid4
 
@@ -855,6 +856,10 @@ class OrgDeleteTest(TembaTest):
         # add editor to second org as agent
         self.org2.add_user(self.editor, OrgRole.AGENT)
 
+        # add a global admin as an explicit member of first org only
+        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        self.org.add_user(global_admin, OrgRole.ADMINISTRATOR)
+
         # can't delete an org that wasn't previously released
         with self.assertRaises(AssertionError):
             self.org.delete()
@@ -875,6 +880,7 @@ class OrgDeleteTest(TembaTest):
         self.assertUserReleased(self.agent)
         self.assertUserReleased(self.admin)
         self.assertUserActive(self.admin2)
+        self.assertUserActive(global_admin)  # because global admins are never released with an org
 
         delete_released_orgs()
 
