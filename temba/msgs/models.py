@@ -643,9 +643,9 @@ class Msg(models.Model):
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
     visibility = models.CharField(max_length=1, choices=VISIBILITY_CHOICES, default=VISIBILITY_VISIBLE)
-    # denormalized folder, derived from direction/visibility/status/flow, maintained by mailroom and courier. null
-    # means not yet written, not "in no folder" - see derive_folder.
-    folder = models.CharField(max_length=1, null=True, choices=FOLDER_CHOICES)
+    # denormalized folder, derived from direction/visibility/status/flow (see derive_folder) and maintained by mailroom
+    # and courier - every message is in one, including those not in a user facing folder
+    folder = models.CharField(max_length=1, choices=FOLDER_CHOICES)
 
     is_android = models.BooleanField()
     labels = models.ManyToManyField("Label", related_name="msgs")
