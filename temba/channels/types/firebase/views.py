@@ -36,6 +36,7 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             return super().clean()
 
     form_class = Form
+    readonly_servicing = False  # staff can create these channels whilst servicing an org
 
     def form_valid(self, form):
         title = form.cleaned_data.get("title")

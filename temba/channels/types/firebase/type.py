@@ -48,3 +48,8 @@ class FirebaseCloudMessagingType(ChannelType):
             ),
         ],
     )
+
+    def is_available_to(self, org, user):
+        available = user.is_staff  # no longer available to non-staff users for creating new channels
+
+        return available, available
