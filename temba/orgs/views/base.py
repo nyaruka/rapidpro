@@ -54,7 +54,7 @@ class BaseReadView(OrgObjPermsMixin, SmartReadView):
 
         # filter by allowed org as we'll let OrgObjPermsMixin provide a redirect
         if not self.request.user.is_staff:
-            qs = qs.filter(**{f"{self.model_org_lookup}__in": self.request.user.get_orgs()})
+            qs = qs.filter(**{f"{self.model_org_lookup}__in": self.request.user.get_orgs(self.request)})
 
         if hasattr(self.model, "is_active"):
             qs = qs.filter(is_active=True)

@@ -571,7 +571,7 @@ class OrgCRUDL(SmartCRUDL):
             menu = []
             if org:
                 org_options = []
-                has_other_orgs = User.get_orgs_for_request(self.request).exclude(id=org.id).exists()
+                has_other_orgs = self.request.user.get_orgs(self.request).exclude(id=org.id).exists()
                 if has_other_orgs:
                     org_options = [
                         self.create_list(
@@ -1056,7 +1056,7 @@ class OrgCRUDL(SmartCRUDL):
             def __init__(self, request, *args, **kwargs):
                 super().__init__(**kwargs)
                 self.request = request
-                self.fields["other_org"].queryset = User.get_orgs_for_request(self.request)
+                self.fields["other_org"].queryset = self.request.user.get_orgs(self.request)
 
             class Meta:
                 fields = ("other_org", "next")
@@ -1070,7 +1070,7 @@ class OrgCRUDL(SmartCRUDL):
             other_org_id = self.request.GET.get("other_org", self.request.POST.get("other_org"))
             if other_org_id:
                 # make sure we have access to that org
-                if not User.get_orgs_for_request(self.request).filter(id=other_org_id).exists():
+                if not self.request.user.get_orgs(self.request).filter(id=other_org_id).exists():
                     return HttpResponseRedirect(reverse("orgs.org_choose"))
 
             return super().pre_process(request, *args, **kwargs)
@@ -1083,7 +1083,7 @@ class OrgCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["other_org"] = (
-                User.get_orgs_for_request(self.request).filter(id=self.request.GET.get("other_org")).first()
+                self.request.user.get_orgs(self.request).filter(id=self.request.GET.get("other_org")).first()
             )
             context["next"] = self.request.GET.get("next", "")
             return context
@@ -1140,7 +1140,7 @@ class OrgCRUDL(SmartCRUDL):
 
             # if we don't have an org, try to find one for the user
             if user.is_authenticated and request.method == "GET":
-                user_orgs = User.get_orgs_for_request(self.request)
+                user_orgs = self.request.user.get_orgs(self.request)
                 if user_orgs.count() == 0:
                     # staff users aren't required to have an org
                     if user.is_staff:
@@ -1170,12 +1170,12 @@ class OrgCRUDL(SmartCRUDL):
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
-            context["orgs"] = User.get_orgs_for_request(self.request)
+            context["orgs"] = self.request.user.get_orgs(self.request)
             return context
 
         def get_form_kwargs(self):
             kwargs = super().get_form_kwargs()
-            kwargs["orgs"] = User.get_orgs_for_request(self.request)
+            kwargs["orgs"] = self.request.user.get_orgs(self.request)
             return kwargs
 
         def has_permission(self, request, *args, **kwargs):

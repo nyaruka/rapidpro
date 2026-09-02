@@ -104,14 +104,6 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         return cls.objects.filter(email__iexact=email).first()
 
     @classmethod
-    def get_orgs_for_request(cls, request):
-        """
-        Gets the orgs that the logged in user has access to in the context of the given request.
-        """
-
-        return request.user.get_orgs()
-
-    @classmethod
     def get_system_user(cls):
         """
         Gets the system user
@@ -136,9 +128,10 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         """
         return self.groups.filter(name=self.GLOBAL_ADMINS_GROUP).exists()
 
-    def get_orgs(self):
+    def get_orgs(self, request=None):
         """
-        Gets the orgs that this user has access to, which for global administrators is all active orgs.
+        Gets the orgs that this user has access to, which for global administrators is all active orgs. The request is
+        optional and allows the listing to be narrowed for the context of a request, e.g. by brand.
         """
         from temba.orgs.models import Org
 
