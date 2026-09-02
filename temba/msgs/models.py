@@ -566,7 +566,7 @@ class Msg(models.Model):
     TYPE_SLUGS = {TYPE_TEXT: "text", TYPE_OPTIN: "optin", TYPE_VOICE: "voice"}
 
     # which folder this message belongs to. the first six are the user facing folders defined by MsgFolder - the last
-    # two exist so that every message has a folder, and so that a null folder means only "not yet written".
+    # two exist so that messages outside the user facing folders still have one.
     FOLDER_INBOX = "I"
     FOLDER_HANDLED = "W"
     FOLDER_ARCHIVED = "A"
