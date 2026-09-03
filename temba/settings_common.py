@@ -616,6 +616,10 @@ GROUP_PERMISSIONS = {
     ),
 }
 
+# whether users directly in the Administrators group are global administrators, i.e. have the administrator role in
+# every workspace. Intended for deployments where every workspace belongs to a single organization.
+GLOBAL_ADMINISTRATORS = False
+
 # extra permissions that only apply to API requests (wildcard notation not supported here)
 API_PERMISSIONS = {
     "Editors": ("orgs.org_list", "users.user_list"),

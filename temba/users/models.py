@@ -122,11 +122,14 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     @cached_property
     def is_global_admin(self) -> bool:
         """
-        Returns whether this user is a global administrator, i.e. is directly in the Administrators group and so has
-        the administrator role in every org. Fetching an org membership for this user primes this to avoid an extra
-        query.
+        Returns whether this user is a global administrator, i.e. the GLOBAL_ADMINISTRATORS setting is enabled and they
+        are directly in the Administrators group and so have the administrator role in every org. Fetching an org
+        membership for this user primes this to avoid an extra query.
         """
         from temba.orgs.models import OrgRole
+
+        if not settings.GLOBAL_ADMINISTRATORS:
+            return False
 
         return self.groups.filter(name=OrgRole.ADMINISTRATOR.group_name).exists()
 

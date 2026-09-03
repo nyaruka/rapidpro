@@ -4,6 +4,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.db.models import F, Model
+from django.test import override_settings
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -858,6 +859,9 @@ class OrgDeleteTest(TembaTest):
         # add a global admin as an explicit member of first org only
         global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         self.org.add_user(global_admin, OrgRole.ADMINISTRATOR)
+        self.settings_override = override_settings(GLOBAL_ADMINISTRATORS=True)
+        self.settings_override.enable()
+        self.addCleanup(self.settings_override.disable)
 
         # can't delete an org that wasn't previously released
         with self.assertRaises(AssertionError):

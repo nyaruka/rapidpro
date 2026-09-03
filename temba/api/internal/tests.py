@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest.mock import call, patch
 
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -868,6 +869,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             self.assertEqual(400, response.status_code)
             self.assertEqual("Asset type 'flow' must be a list of identifiers.", response.json()["detail"])
 
+    @override_settings(GLOBAL_ADMINISTRATORS=True)
     def test_orgs(self):
         endpoint_url = reverse("api.internal.orgs") + ".json"
         self.assertGet(

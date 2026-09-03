@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core import mail
+from django.test import override_settings
 from django.test.utils import override_settings
 from django.urls import reverse
 
@@ -890,6 +891,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
         self.assertRedirect(self.client.get(check_url), reverse("orgs.org_choose"))
 
+    @override_settings(GLOBAL_ADMINISTRATORS=True)
     def test_choose(self):
         choose_url = reverse("orgs.org_choose")
 

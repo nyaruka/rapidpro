@@ -7,6 +7,7 @@ from temba.tests import TembaTest, override_brand
 
 
 class MiddlewareTest(TembaTest):
+    @override_settings(GLOBAL_ADMINISTRATORS=True)
     def test_org(self):
         index_url = reverse("public.public_index")
 

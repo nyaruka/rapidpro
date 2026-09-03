@@ -3,6 +3,7 @@ from datetime import timezone as tzone
 from allauth.mfa.models import Authenticator
 
 from django.contrib.auth.models import Group
+from django.test import override_settings
 
 from temba.api.models import APIToken
 from temba.orgs.models import Org, OrgRole
@@ -62,6 +63,7 @@ class UserTest(TembaTest):
         self.assertTrue(user.is_verified())
         self.assertTrue(user.emailaddress_set.filter(email="jim@rapidpro.io", primary=True, verified=True).exists())
 
+    @override_settings(GLOBAL_ADMINISTRATORS=True)
     def test_global_admin(self):
         global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         Org.objects.create(
@@ -83,6 +85,14 @@ class UserTest(TembaTest):
         # and that overrides any explicit membership
         self.org2.add_user(global_admin, OrgRole.AGENT)
         self.assertEqual(OrgRole.ADMINISTRATOR, self.org2.get_user_role(global_admin))
+
+        # none of which applies if global administrators aren't enabled for this deployment
+        with override_settings(GLOBAL_ADMINISTRATORS=False):
+            global_admin = User.objects.get(id=global_admin.id)
+            self.assertFalse(global_admin.is_global_admin)
+            self.assertEqual([self.org2], list(global_admin.get_orgs()))
+            self.assertIsNone(self.org.get_user_role(global_admin))
+            self.assertEqual(OrgRole.AGENT, self.org2.get_user_role(global_admin))
 
     def test_mfa(self):
         self.assertFalse(self.admin.is_mfa_enabled)

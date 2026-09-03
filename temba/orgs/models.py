@@ -905,13 +905,16 @@ class Org(LegacyIDMixin, SmartModel):
         """
 
         def get():
-            # fetch the membership along with whether the user is a global admin so we can prime that property on the
-            # user without an extra query
-            is_global_admin = Exists(Group.objects.filter(name=OrgRole.ADMINISTRATOR.group_name, user=user))
-            membership = (
-                OrgMembership.objects.filter(org=self, user=user).annotate(user_is_global_admin=is_global_admin).first()
-            )
-            if membership:
+            qs = OrgMembership.objects.filter(org=self, user=user)
+
+            # if global admins are enabled, fetch the membership along with whether the user is one so we can prime
+            # that property on the user without an extra query
+            if settings.GLOBAL_ADMINISTRATORS:
+                is_global_admin = Exists(Group.objects.filter(name=OrgRole.ADMINISTRATOR.group_name, user=user))
+                qs = qs.annotate(user_is_global_admin=is_global_admin)
+
+            membership = qs.first()
+            if membership and settings.GLOBAL_ADMINISTRATORS:
                 user.is_global_admin = membership.user_is_global_admin
             return membership
 
