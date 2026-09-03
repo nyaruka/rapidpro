@@ -77,6 +77,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "features",
                 "is_anon",
                 "channels_limit",
+                "contacts_limit",
                 "fields_limit",
                 "globals_limit",
                 "groups_limit",
@@ -91,6 +92,11 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             list(response.context["form"].fields.keys()),
         )
 
+        # limits with a default show it as the placeholder, those without show unlimited
+        form = response.context["form"]
+        self.assertEqual("10", str(form.fields["channels_limit"].widget.attrs["placeholder"]))
+        self.assertEqual("Unlimited", str(form.fields["contacts_limit"].widget.attrs["placeholder"]))
+
         # make some changes to our org
         response = self.client.post(
             update_url,
@@ -99,6 +105,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "features": ["new_orgs"],
                 "is_anon": False,
                 "channels_limit": 20,
+                "contacts_limit": 100_000,
                 "fields_limit": 300,
                 "globals_limit": "",
                 "groups_limit": 400,
@@ -118,6 +125,35 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(self.org.get_limit(Org.LIMIT_GLOBALS), 250)  # uses default
         self.assertEqual(self.org.get_limit(Org.LIMIT_GROUPS), 400)
         self.assertEqual(self.org.get_limit(Org.LIMIT_CHANNELS), 20)
+        self.assertEqual(self.org.get_limit(Org.LIMIT_CONTACTS), 100_000)
+
+        # limits left blank aren't recorded on the org
+        self.assertEqual({"channels": 20, "contacts": 100_000, "fields": 300, "groups": 400}, self.org.limits)
+
+        # and clearing a limit removes it, making contacts unlimited again
+        response = self.client.post(
+            update_url,
+            {
+                "name": "Temba II",
+                "features": ["new_orgs"],
+                "is_anon": False,
+                "channels_limit": 20,
+                "contacts_limit": "",
+                "fields_limit": 300,
+                "globals_limit": "",
+                "groups_limit": 400,
+                "knowledge_limit": "",
+                "labels_limit": "",
+                "llms_limit": "",
+                "teams_limit": "",
+                "topics_limit": "",
+            },
+        )
+        self.assertEqual(302, response.status_code)
+
+        self.org.refresh_from_db()
+        self.assertEqual({"channels": 20, "fields": 300, "groups": 400}, self.org.limits)
+        self.assertIsNone(self.org.get_limit(Org.LIMIT_CONTACTS))
 
         # flag org
         self.client.post(update_url, {"action": "flag"})

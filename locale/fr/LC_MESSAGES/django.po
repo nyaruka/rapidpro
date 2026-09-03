@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 23:32+0000\n"
+"POT-Creation-Date: 2026-09-03 19:19+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -3662,6 +3662,9 @@ msgstr "Suspendu"
 
 msgid "Verified"
 msgstr "Vérifié"
+
+msgid "Unlimited"
+msgstr "Illimité"
 
 msgid "Edit User"
 msgstr "Modifier l'utilisateur"
