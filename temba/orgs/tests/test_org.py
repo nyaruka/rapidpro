@@ -4,7 +4,6 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.db.models import F, Model
-from django.test import override_settings
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone

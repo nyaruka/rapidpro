@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core import mail
-from django.test import override_settings
 from django.test.utils import override_settings
 from django.urls import reverse
 
