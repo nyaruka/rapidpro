@@ -22,7 +22,6 @@ from temba.templates.models import Template, TemplateTranslation
 from temba.tests import TembaTest, matchers, mock_mailroom
 from temba.tickets.models import Shortcut, TicketExport, Topic
 from temba.triggers.models import Trigger
-from temba.users.models import User
 from temba.utils.uuid import uuid4
 
 NUM_BASE_QUERIES = 3  # number of queries required for any request (internal API is session only)
@@ -879,7 +878,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         )
 
         # global admins see all active orgs
-        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         self.login(global_admin, choose_org=self.org)
 
         response = self.client.get(endpoint_url, content_type="application/json", HTTP_X_FORWARDED_HTTPS="https")

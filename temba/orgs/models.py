@@ -907,7 +907,7 @@ class Org(LegacyIDMixin, SmartModel):
         def get():
             # fetch the membership along with whether the user is a global admin so we can prime that property on the
             # user without an extra query
-            is_global_admin = Exists(Group.objects.filter(name=User.GLOBAL_ADMINS_GROUP, user=user))
+            is_global_admin = Exists(Group.objects.filter(name=OrgRole.ADMINISTRATOR.group_name, user=user))
             membership = (
                 OrgMembership.objects.filter(org=self, user=user).annotate(user_is_global_admin=is_global_admin).first()
             )

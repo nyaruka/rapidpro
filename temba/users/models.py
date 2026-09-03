@@ -43,8 +43,6 @@ class UserManager(AuthUserManager):
 
 
 class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
-    GLOBAL_ADMINS_GROUP = "Global Administrators"
-
     SYSTEM = {"email": "system", "first_name": "System"}
 
     EMAIL_FIELD = "email"
@@ -124,10 +122,13 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
     @cached_property
     def is_global_admin(self) -> bool:
         """
-        Returns whether this user is a global administrator, i.e. has an administrator role in every org. Fetching an
-        org membership for this user primes this to avoid an extra query.
+        Returns whether this user is a global administrator, i.e. is directly in the Administrators group and so has
+        the administrator role in every org. Fetching an org membership for this user primes this to avoid an extra
+        query.
         """
-        return self.groups.filter(name=self.GLOBAL_ADMINS_GROUP).exists()
+        from temba.orgs.models import OrgRole
+
+        return self.groups.filter(name=OrgRole.ADMINISTRATOR.group_name).exists()
 
     def get_orgs(self, request=None):
         """

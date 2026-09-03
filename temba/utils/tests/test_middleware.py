@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from temba.orgs.models import OrgRole
 from temba.tests import TembaTest, override_brand
-from temba.users.models import User
 
 
 class MiddlewareTest(TembaTest):
@@ -63,7 +62,7 @@ class MiddlewareTest(TembaTest):
         self.assertFalse(response.has_header("X-Temba-Workspace"))
 
         # global admins can access any org without a membership
-        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         self.login(global_admin, choose_org=self.org2)
 
         response = self.client.get(index_url)

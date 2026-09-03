@@ -940,7 +940,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, "/org/start/")
 
         # global admins without any memberships are sent to the first org by name
-        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         self.assertRedirect(self.requestView(choose_url, global_admin), "/org/start/")
         self.assertEqual(self.org.id, self.client.session["org_id"])
 

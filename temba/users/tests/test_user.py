@@ -63,7 +63,7 @@ class UserTest(TembaTest):
         self.assertTrue(user.emailaddress_set.filter(email="jim@rapidpro.io", primary=True, verified=True).exists())
 
     def test_global_admin(self):
-        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         Org.objects.create(
             name="Inactive", timezone=tzone.utc, created_by=self.admin, modified_by=self.admin, is_active=False
         )
@@ -108,7 +108,7 @@ class UserTest(TembaTest):
 
     def test_has_org_perm(self):
         granter = self.create_user("jim@rapidpro.io", group_names=("Granters",))
-        global_admin = self.create_user("gad@rapidpro.io", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        global_admin = self.create_user("gad@rapidpro.io", group_names=("Administrators",))
 
         tests = (
             (
@@ -139,7 +139,7 @@ class UserTest(TembaTest):
             (
                 self.org,
                 "orgs.org_grant",
-                {self.agent: False, self.admin: False, self.admin2: False, granter: True, global_admin: True},
+                {self.agent: False, self.admin: False, self.admin2: False, granter: True, global_admin: False},
             ),
             (
                 self.org,

@@ -2,7 +2,6 @@ from django.urls import reverse
 
 from temba.orgs.models import OrgRole
 from temba.tests import TembaTest
-from temba.users.models import User
 
 
 class OrgPermsMixinTest(TembaTest):
@@ -45,7 +44,7 @@ class OrgPermsMixinTest(TembaTest):
         self.assertRedirect(self.client.post(create_url, {"name": "Support"}), "hide")
 
         # global admins can access and modify any org without a membership
-        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         self.login(global_admin, choose_org=self.org2)
 
         self.assertEqual(200, self.client.get(create_url).status_code)
@@ -102,7 +101,7 @@ class OrgPermsMixinTest(TembaTest):
         self.assertEqual(404, self.client.get(org2_update_url).status_code)
 
         # global admins have access to objects in any org, being redirected to switch if it's not the current org
-        global_admin = self.create_user("gad@textit.com", group_names=(User.GLOBAL_ADMINS_GROUP,))
+        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         self.login(global_admin, choose_org=self.org)
         self.assertEqual(200, self.client.get(org1_read_url).status_code)
         self.assertEqual(200, self.client.get(org1_update_url).status_code)
