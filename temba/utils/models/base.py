@@ -177,7 +177,9 @@ class OrgLimitMixin:
         """
 
         if cls.org_limit_key:
-            return cls.get_countable_for_org(org).count() >= org.get_limit(cls.org_limit_key)
+            limit = org.get_limit(cls.org_limit_key)
+
+            return limit is not None and cls.get_countable_for_org(org).count() >= limit
 
         return False
 
