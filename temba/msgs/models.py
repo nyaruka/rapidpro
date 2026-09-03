@@ -643,8 +643,9 @@ class Msg(models.Model):
     direction = models.CharField(max_length=1, choices=DIRECTION_CHOICES)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default=STATUS_PENDING)
     visibility = models.CharField(max_length=1, choices=VISIBILITY_CHOICES, default=VISIBILITY_VISIBLE)
-    # denormalized folder, derived from direction/visibility/status/flow (see derive_folder) and maintained by mailroom
-    # and courier - every message is in one, including those not in a user facing folder
+    # the folder this message is in, derived from direction/visibility/status/flow and maintained by mailroom and
+    # courier - every message is in one, including those not in a user facing folder. This is what's read to tell
+    # which folder a message is in, including whether it's archived, rather than the state it's derived from.
     folder = models.CharField(max_length=1, choices=FOLDER_CHOICES)
 
     is_android = models.BooleanField()
@@ -743,25 +744,6 @@ class Msg(models.Model):
         """
 
         mailroom.get_client().msg_handle(self.org, [self])
-
-    def derive_folder(self) -> str:
-        """
-        Derives the folder code for this message. Folder is written by mailroom and courier - this exists to pin down
-        the contract they implement (and to set it on messages created in tests), in particular the precedence, which
-        matters for states that fall outside the user facing folders entirely: a message can be archived or deleted
-        while still pending, and such messages must not appear in the Archived folder.
-        """
-
-        if self.visibility in (self.VISIBILITY_DELETED_BY_USER, self.VISIBILITY_DELETED_BY_SENDER):
-            return self.FOLDER_DELETED
-        if self.direction == self.DIRECTION_IN and self.status == self.STATUS_PENDING:
-            return self.FOLDER_PENDING
-
-        folder = MsgFolder.from_msg(self)
-
-        assert folder is not None, f"unable to derive folder for msg #{self.id}"
-
-        return folder.code
 
     @classmethod
     def apply_action_label(cls, user, msgs, label):
@@ -928,93 +910,40 @@ class MsgFolder(Enum):
     A folder of messages owned by an org.
     """
 
+    # each folder's code (the Msg.folder value) and the S3 Select query which selects its messages from archived
+    # message records - which have no folder field, so describe messages by state
     INBOX = (
         Msg.FOLDER_INBOX,
-        dict(
-            direction=Msg.DIRECTION_IN,
-            visibility=Msg.VISIBILITY_VISIBLE,
-            status=Msg.STATUS_HANDLED,
-            flow__isnull=True,
-        ),
         dict(direction="in", visibility="visible", status="handled", flow__isnull=True),
     )
     HANDLED = (
         Msg.FOLDER_HANDLED,
-        dict(
-            direction=Msg.DIRECTION_IN,
-            visibility=Msg.VISIBILITY_VISIBLE,
-            status=Msg.STATUS_HANDLED,
-            flow__isnull=False,
-        ),
         dict(direction="in", visibility="visible", status="handled", flow__isnull=False),
     )
     ARCHIVED = (
         Msg.FOLDER_ARCHIVED,
-        dict(
-            direction=Msg.DIRECTION_IN,
-            visibility=Msg.VISIBILITY_ARCHIVED,
-            status=Msg.STATUS_HANDLED,
-        ),
         dict(direction="in", visibility="archived", status="handled"),
     )
     OUTBOX = (
         Msg.FOLDER_OUTBOX,
-        dict(
-            direction=Msg.DIRECTION_OUT,
-            visibility=Msg.VISIBILITY_VISIBLE,
-            status__in=(Msg.STATUS_INITIALIZING, Msg.STATUS_QUEUED, Msg.STATUS_ERRORED),
-        ),
         dict(direction="out", visibility="visible", status__in=("initializing", "queued", "errored")),
     )
     SENT = (
         Msg.FOLDER_SENT,
-        dict(
-            direction=Msg.DIRECTION_OUT,
-            visibility=Msg.VISIBILITY_VISIBLE,
-            status__in=(Msg.STATUS_WIRED, Msg.STATUS_SENT, Msg.STATUS_DELIVERED, Msg.STATUS_READ),
-        ),
         dict(direction="out", visibility="visible", status__in=("wired", "sent", "delivered", "read")),
     )
     FAILED = (
         Msg.FOLDER_FAILED,
-        dict(direction=Msg.DIRECTION_OUT, visibility=Msg.VISIBILITY_VISIBLE, status=Msg.STATUS_FAILED),
         dict(direction="out", visibility="visible", status="failed"),
     )
 
-    def __init__(self, code, query: dict, archive_query: dict = None):
+    def __init__(self, code, records_query: dict):
         self.code = code
-        self.query = query
-        self.archive_query = archive_query
+        self.records_query = records_query
 
     @classmethod
     def from_code(cls, code):
         return next(f for f in cls if f.code == code)
-
-    @classmethod
-    def from_msg(cls, msg):
-        """
-        Derives the folder that the given message belongs to, or None if it isn't in one (e.g. an unhandled incoming
-        message, or one deleted by its sender).
-        """
-
-        def matches(lookup: str, expected) -> bool:
-            field, _, op = lookup.partition("__")
-            actual = getattr(msg, Msg._meta.get_field(field).attname)
-
-            if op == "in":
-                return actual in expected
-            elif op == "isnull":
-                return (actual is None) == expected
-
-            assert op == "", f"unsupported lookup: {lookup}"
-
-            return actual == expected
-
-        for folder in cls:
-            if all(matches(lookup, expected) for lookup, expected in folder.query.items()):
-                return folder
-
-        return None
 
     def get_queryset(self, org, *, after=None, before=None):
         """
@@ -1037,7 +966,7 @@ class MsgFolder(Enum):
         return qs.order_by("-uuid")
 
     def get_archive_query(self) -> dict:
-        return self.archive_query.copy()
+        return self.records_query.copy()
 
     @property
     def _count_scope(self) -> str:
@@ -1306,7 +1235,7 @@ class MessageExport(ExportType):
         elif label:
             messages = label.get_messages()
         else:
-            messages = export.org.msgs.filter(visibility=Msg.VISIBILITY_VISIBLE)
+            messages = export.org.msgs.exclude(folder__in=(Msg.FOLDER_ARCHIVED, Msg.FOLDER_DELETED))
 
         messages = messages.filter(created_on__gte=start_date, created_on__lte=end_date)
 

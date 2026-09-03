@@ -413,9 +413,7 @@ class MessageField(TembaModelField):
     require_exists = False
 
     def get_queryset(self):
-        return self.model.objects.filter(
-            org=self.context["org"], visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED)
-        )
+        return self.model.objects.filter(org=self.context["org"]).exclude(folder=Msg.FOLDER_DELETED)
 
 
 class TicketField(TembaModelField):

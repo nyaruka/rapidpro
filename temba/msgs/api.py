@@ -180,7 +180,8 @@ class MessagesEndpoint(SearchLengthMixin, ListAPIMixin, BaseEndpoint):
             if not label:
                 return Msg.objects.none()
             return (
-                Msg.objects.filter(org=self.request.org, labels=label, visibility=Msg.VISIBILITY_VISIBLE)
+                Msg.objects.filter(org=self.request.org, labels=label)
+                .exclude(folder__in=(Msg.FOLDER_ARCHIVED, Msg.FOLDER_DELETED))
                 .select_related("contact", "channel", "flow", "org")
                 .prefetch_related("labels")
             )

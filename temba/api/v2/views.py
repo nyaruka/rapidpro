@@ -2328,9 +2328,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
 
             return self.folder.get_queryset(org, after=after, before=before)
         else:
-            return self.model.objects.filter(
-                org=org, visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED)
-            ).exclude(status=Msg.STATUS_PENDING)
+            return self.model.objects.filter(org=org).exclude(folder__in=(Msg.FOLDER_PENDING, Msg.FOLDER_DELETED))
 
     def filter_queryset(self, queryset):
         params = self.request.query_params
