@@ -1350,11 +1350,6 @@ class MsgReadSerializer(ReadSerializer):
         Msg.STATUS_ERRORED: "errored",
         Msg.STATUS_FAILED: "failed",
     }
-    VISIBILITIES = {  # deleted messages should never be exposed over API
-        Msg.VISIBILITY_VISIBLE: "visible",
-        Msg.VISIBILITY_ARCHIVED: "archived",
-    }
-
     broadcast = serializers.SerializerMethodField()
     contact = fields.ContactField()
     urn = fields.URNField(source="contact_urn")
@@ -1395,10 +1390,11 @@ class MsgReadSerializer(ReadSerializer):
         return obj.attachments[0] if obj.attachments else None
 
     def get_archived(self, obj):
-        return obj.visibility == Msg.VISIBILITY_ARCHIVED
+        return obj.folder == Msg.FOLDER_ARCHIVED
 
     def get_visibility(self, obj):
-        return self.VISIBILITIES.get(obj.visibility)
+        # deleted messages are never exposed over the API so everything is either visible or archived
+        return "archived" if obj.folder == Msg.FOLDER_ARCHIVED else "visible"
 
     def get_labels(self, obj):
         # to optimize the POST case that creates an outgoing message, don't even try to look for labels

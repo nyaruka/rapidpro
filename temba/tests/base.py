@@ -44,6 +44,7 @@ from .mailroom import (
     create_broadcast,
     create_contact_locally,
     create_flowstart,
+    derive_msg_folder,
     resolve_destination,
     set_mocks,
     update_field_locally,
@@ -429,7 +430,7 @@ class TembaTest(SmartminTest):
         )
 
         # mailroom and courier write the folder when they write the message
-        msg.folder = msg.derive_folder()
+        msg.folder = derive_msg_folder(msg)
         msg.save()
 
         return msg
