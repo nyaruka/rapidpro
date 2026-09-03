@@ -330,6 +330,10 @@ BRAND = {
     # sent to create one - account creation itself is invite-only unless the adapters say otherwise
 }
 
+# deployment level features:
+#  - locations: enable location types for contact fields
+#  - global_admins: users directly in the Administrators group are administrators of every workspace, intended for
+#    deployments where every workspace belongs to a single organization
 FEATURES = {"locations"}
 
 # The default checked options for flow starts and broadcasts
@@ -615,10 +619,6 @@ GROUP_PERMISSIONS = {
         "tickets.topic_list",
     ),
 }
-
-# whether users directly in the Administrators group are global administrators, i.e. have the administrator role in
-# every workspace. Intended for deployments where every workspace belongs to a single organization.
-GLOBAL_ADMINISTRATORS = False
 
 # extra permissions that only apply to API requests (wildcard notation not supported here)
 API_PERMISSIONS = {

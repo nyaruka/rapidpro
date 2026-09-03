@@ -6,7 +6,7 @@ from temba.tests import TembaTest
 
 
 class OrgPermsMixinTest(TembaTest):
-    @override_settings(GLOBAL_ADMINISTRATORS=True)
+    @override_settings(FEATURES={"locations", "global_admins"})
     def test_has_permission(self):
         create_url = reverse("tickets.topic_create")
 
@@ -53,7 +53,7 @@ class OrgPermsMixinTest(TembaTest):
         self.assertRedirect(self.client.post(create_url, {"name": "Marketing"}), "hide")
         self.assertTrue(self.org2.topics.filter(name="Marketing").exists())
 
-    @override_settings(GLOBAL_ADMINISTRATORS=True)
+    @override_settings(FEATURES={"locations", "global_admins"})
     def test_obj_perms_mixin(self):
         contact1 = self.create_contact("Bob", phone="+18001234567", org=self.org)
         contact2 = self.create_contact("Zob", phone="+18001234567", org=self.org2)

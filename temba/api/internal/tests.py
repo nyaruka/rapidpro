@@ -869,7 +869,7 @@ class EndpointsTest(APITestMixin, TembaTest):
             self.assertEqual(400, response.status_code)
             self.assertEqual("Asset type 'flow' must be a list of identifiers.", response.json()["detail"])
 
-    @override_settings(GLOBAL_ADMINISTRATORS=True)
+    @override_settings(FEATURES={"locations", "global_admins"})
     def test_orgs(self):
         endpoint_url = reverse("api.internal.orgs") + ".json"
         self.assertGet(

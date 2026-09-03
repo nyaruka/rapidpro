@@ -63,7 +63,7 @@ class UserTest(TembaTest):
         self.assertTrue(user.is_verified())
         self.assertTrue(user.emailaddress_set.filter(email="jim@rapidpro.io", primary=True, verified=True).exists())
 
-    @override_settings(GLOBAL_ADMINISTRATORS=True)
+    @override_settings(FEATURES={"locations", "global_admins"})
     def test_global_admin(self):
         global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         Org.objects.create(
@@ -86,8 +86,8 @@ class UserTest(TembaTest):
         self.org2.add_user(global_admin, OrgRole.AGENT)
         self.assertEqual(OrgRole.ADMINISTRATOR, self.org2.get_user_role(global_admin))
 
-        # none of which applies if global administrators aren't enabled for this deployment
-        with override_settings(GLOBAL_ADMINISTRATORS=False):
+        # none of which applies if the global_admins feature isn't enabled for this deployment
+        with override_settings(FEATURES={"locations"}):
             global_admin = User.objects.get(id=global_admin.id)
             self.assertFalse(global_admin.is_global_admin)
             self.assertEqual([self.org2], list(global_admin.get_orgs()))

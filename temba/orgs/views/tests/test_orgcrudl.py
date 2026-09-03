@@ -890,7 +890,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
         self.assertRedirect(self.client.get(check_url), reverse("orgs.org_choose"))
 
-    @override_settings(GLOBAL_ADMINISTRATORS=True)
+    @override_settings(FEATURES={"locations", "global_admins"})
     def test_choose(self):
         choose_url = reverse("orgs.org_choose")
 

@@ -7,7 +7,7 @@ from temba.tests import TembaTest, override_brand
 
 
 class MiddlewareTest(TembaTest):
-    @override_settings(GLOBAL_ADMINISTRATORS=True)
+    @override_settings(FEATURES={"locations", "global_admins"})
     def test_org(self):
         index_url = reverse("public.public_index")
 

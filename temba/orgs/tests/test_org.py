@@ -858,7 +858,7 @@ class OrgDeleteTest(TembaTest):
         # add a global admin as an explicit member of first org only
         global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
         self.org.add_user(global_admin, OrgRole.ADMINISTRATOR)
-        self.settings_override = override_settings(GLOBAL_ADMINISTRATORS=True)
+        self.settings_override = override_settings(FEATURES={"locations", "global_admins"})
         self.settings_override.enable()
         self.addCleanup(self.settings_override.disable)
 
