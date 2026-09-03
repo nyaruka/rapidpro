@@ -53,6 +53,49 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             ],
         )
 
+    @override_settings(ORG_LIMIT_DEFAULTS={"flows": 2})
+    def test_org_limit(self):
+        list_url = reverse("flows.flow_list")
+        create_url = reverse("flows.flow_create")
+
+        flow1 = self.create_flow("Flow 1")
+        editor_url = reverse("flows.flow_editor", args=[flow1.uuid])
+        self.login(self.admin)
+
+        # below the limit everything is offered as usual
+        self.assertContentMenu(list_url, self.admin, ["New Flow", "New Label", "Import", "Export"])
+        self.assertContentMenu(
+            editor_url,
+            self.admin,
+            ["Start", "Interrupt", "Results", "-", "Edit", "Copy", "Delete", "-", "Export Definition"],
+        )
+        response = self.client.get(create_url)
+        self.assertFalse(response.context["limit_reached"])
+
+        self.create_flow("Flow 2")
+
+        # at the limit the create option disappears and the modal explains why
+        self.assertContentMenu(list_url, self.admin, ["New Label", "Import", "Export"])
+        response = self.client.get(create_url)
+        self.assertTrue(response.context["limit_reached"])
+        self.assertContains(response, "You have reached the per-workspace limit")
+
+        # as does copy, and posting to it anyway is refused
+        self.assertContentMenu(
+            editor_url,
+            self.admin,
+            ["Start", "Interrupt", "Results", "-", "Edit", "Delete", "-", "Export Definition"],
+        )
+
+        response = self.client.post(reverse("flows.flow_copy", args=[flow1.id]))
+        self.assertRedirect(response, editor_url)
+        self.assertEqual(2, self.org.flows.filter(is_active=True).count())
+
+        # archived flows still count against the limit but released ones don't
+        flow1.release(self.admin)
+
+        self.assertContentMenu(list_url, self.admin, ["New Flow", "New Label", "Import", "Export"])
+
     def test_create(self):
         create_url = reverse("flows.flow_create")
         self.create_flow("Registration")

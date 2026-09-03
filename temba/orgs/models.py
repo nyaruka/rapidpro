@@ -257,7 +257,9 @@ class Org(LegacyIDMixin, SmartModel):
     )
 
     LIMIT_CHANNELS = "channels"
+    LIMIT_CONTACTS = "contacts"
     LIMIT_FIELDS = "fields"
+    LIMIT_FLOWS = "flows"
     LIMIT_GLOBALS = "globals"
     LIMIT_GROUPS = "groups"
     LIMIT_KNOWLEDGE = "knowledge"
@@ -435,7 +437,7 @@ class Org(LegacyIDMixin, SmartModel):
 
         return [t for t in IntegrationType.get_all(category) if t.is_connected(self)]
 
-    def get_limit(self, limit_type):
+    def get_limit(self, limit_type) -> int:
         return int(self.limits.get(limit_type, settings.ORG_LIMIT_DEFAULTS.get(limit_type)))
 
     def suspend(self):

@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 23:32+0000\n"
+"POT-Creation-Date: 2026-09-03 19:53+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -2568,6 +2568,9 @@ msgstr "Elija el método para su flujo"
 msgid "Choose a unique name to describe this flow, e.g. Registration"
 msgstr "Elija un nombre único que describa este flujo, p. ej. Registro"
 
+msgid "You have reached the per-workspace limit and must delete existing ones before you can create new ones."
+msgstr "Ha alcanzado el límite por workspace y debe eliminar los existentes antes de poder crear nuevos."
+
 msgid "Keywords"
 msgstr "Palabras clave"
 
@@ -3494,6 +3497,9 @@ msgstr "Este archivo ya no es válido. Exporte una nueva versión y vuelva a int
 
 msgid "This file contains flows with a version that is too new."
 msgstr "Este archivo contiene flujos con una versión demasiado reciente."
+
+msgid "This file contains more flows than this workspace has room for."
+msgstr "Este archivo contiene más flujos de los que caben en esta área de trabajo."
 
 msgid "Import started"
 msgstr "Importación iniciada"
@@ -5764,9 +5770,6 @@ msgstr "Algunas llamadas de webhook de sus flujos están tardando demasiado en r
 
 msgid "Your workspace is suspended and no longer processing messages."
 msgstr "Su workspace está suspendido y ya no procesa mensajes."
-
-msgid "You have reached the per-workspace limit and must delete existing ones before you can create new ones."
-msgstr "Ha alcanzado el límite por workspace y debe eliminar los existentes antes de poder crear nuevos."
 
 msgid "can't be deleted as it is still used by the following items:"
 msgstr "no se puede eliminar ya que todavía lo utilizan los siguientes elementos:"
