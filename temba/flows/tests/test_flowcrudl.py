@@ -4,7 +4,8 @@ from unittest.mock import call, patch
 
 from django_valkey import get_valkey_connection
 
-from django.test.utils import override_settings
+from django.db import connection
+from django.test.utils import CaptureQueriesContext, override_settings
 from django.urls import reverse
 
 from temba import mailroom
@@ -95,6 +96,13 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow1.release(self.admin)
 
         self.assertContentMenu(list_url, self.admin, ["New Flow", "New Label", "Import", "Export"])
+
+        # the limit check is only evaluated once per request even though both the menu and the context need it
+        with CaptureQueriesContext(connection) as captured:
+            self.client.get(list_url)
+
+        limit_queries = [q for q in captured.captured_queries if q["sql"].startswith('SELECT COUNT(*) AS "__count"')]
+        self.assertEqual(1, len(limit_queries))
 
     def test_create(self):
         create_url = reverse("flows.flow_create")
