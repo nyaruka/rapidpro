@@ -31,9 +31,15 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         assert_folder(self.create_incoming_msg(self.joe, "Hi"), Msg.FOLDER_INBOX)
         assert_folder(self.create_incoming_msg(self.joe, "Hi", flow=flow), Msg.FOLDER_HANDLED)
         assert_folder(self.create_incoming_msg(self.joe, "Hi", visibility=Msg.VISIBILITY_ARCHIVED), Msg.FOLDER_ARCHIVED)
-        assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=Msg.STATUS_QUEUED), Msg.FOLDER_OUTBOX)
-        assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=Msg.STATUS_SENT), Msg.FOLDER_SENT)
         assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=Msg.STATUS_FAILED), Msg.FOLDER_FAILED)
+
+        # the outbox and sent folders each fold in several statuses
+        for status in (Msg.STATUS_INITIALIZING, Msg.STATUS_QUEUED, Msg.STATUS_ERRORED):
+            assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=status), Msg.FOLDER_OUTBOX)
+
+        for status in (Msg.STATUS_WIRED, Msg.STATUS_SENT, Msg.STATUS_DELIVERED, Msg.STATUS_READ):
+            msg = self.create_outgoing_msg(self.joe, "Hi", status=status, sent_on=timezone.now())
+            assert_folder(msg, Msg.FOLDER_SENT)
 
         # incoming messages which haven't been handled yet are pending, whatever their visibility
         assert_folder(self.create_incoming_msg(self.joe, "Hi", status=Msg.STATUS_PENDING), Msg.FOLDER_PENDING)

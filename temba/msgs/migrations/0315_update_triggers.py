@@ -1,9 +1,17 @@
 from django.db import migrations
 
-# the label counts (which are split by whether the message is archived or deleted) and the guard against archiving
-# outgoing messages are keyed on the folder rather than visibility, like the folder counts already are. That's the last
-# thing in the database that read visibility to tell whether a message is archived, so archived can stop being a
-# visibility - and when the visibility of messages archived before then is updated, no counts move.
+# the label counts (which are split by whether the message is archived or deleted) are keyed on the folder rather than
+# visibility, like the folder counts already are. That's the last thing in the database that read visibility to tell
+# whether a message is archived, so archived can stop being a visibility - and when the visibility of messages archived
+# before then is updated, no counts move.
+#
+# The guard against archiving outgoing messages checks both columns, because until mailroom stops writing visibility an
+# outgoing message can be archived by either - and a folder-only check would never fire, since the folder outgoing
+# messages derive is never Archived. The visibility half comes out when the value does.
+#
+# The archived/restored WHERE clauses keep the old shape of two ANDed comparisons ORed together rather than comparing
+# the two IN expressions with <>. The planner has no selectivity estimate for the latter and falls back to a default
+# that badly over-estimates the join, which matters because these run per statement on the message write path.
 SQL = """
 ----------------------------------------------------------------------
 -- Handles DELETE statements on msgs_msg_labels table
@@ -45,7 +53,7 @@ BEGIN
     IF NEW.direction = 'I' AND NEW.status NOT IN ('P', 'H') THEN
       RAISE EXCEPTION 'Incoming messages can only be PENDING or HANDLED';
     END IF;
-    IF NEW.direction = 'O' AND NEW.folder = 'A' THEN
+    IF NEW.direction = 'O' AND (NEW.visibility = 'A' OR NEW.folder = 'A') THEN
       RAISE EXCEPTION 'Outgoing messages cannot be archived';
     END IF;
   END IF;
@@ -86,7 +94,8 @@ BEGIN
     SELECT ml.label_id, o.folder IN ('A', 'D'), -count(*), FALSE FROM oldtab o
     INNER JOIN newtab n ON n.id = o.id
     INNER JOIN msgs_msg_labels ml ON ml.msg_id = o.id
-    WHERE (o.folder IN ('A', 'D')) <> (n.folder IN ('A', 'D'))
+    WHERE (o.folder NOT IN ('A', 'D') AND n.folder IN ('A', 'D'))
+       OR (o.folder IN ('A', 'D') AND n.folder NOT IN ('A', 'D'))
     GROUP BY 1, 2;
 
     -- add new-state label counts for all messages being archived/restored
@@ -94,7 +103,8 @@ BEGIN
     SELECT ml.label_id, n.folder IN ('A', 'D'), count(*), FALSE FROM newtab n
     INNER JOIN oldtab o ON o.id = n.id
     INNER JOIN msgs_msg_labels ml ON ml.msg_id = n.id
-    WHERE (o.folder IN ('A', 'D')) <> (n.folder IN ('A', 'D'))
+    WHERE (o.folder NOT IN ('A', 'D') AND n.folder IN ('A', 'D'))
+       OR (o.folder IN ('A', 'D') AND n.folder NOT IN ('A', 'D'))
     GROUP BY 1, 2;
 
     -- add new flow activity counts for incoming messages now marked as handled by a flow

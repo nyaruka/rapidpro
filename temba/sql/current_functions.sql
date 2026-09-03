@@ -359,7 +359,7 @@ BEGIN
     IF NEW.direction = 'I' AND NEW.status NOT IN ('P', 'H') THEN
       RAISE EXCEPTION 'Incoming messages can only be PENDING or HANDLED';
     END IF;
-    IF NEW.direction = 'O' AND NEW.folder = 'A' THEN
+    IF NEW.direction = 'O' AND (NEW.visibility = 'A' OR NEW.folder = 'A') THEN
       RAISE EXCEPTION 'Outgoing messages cannot be archived';
     END IF;
   END IF;
@@ -439,7 +439,8 @@ BEGIN
     SELECT ml.label_id, o.folder IN ('A', 'D'), -count(*), FALSE FROM oldtab o
     INNER JOIN newtab n ON n.id = o.id
     INNER JOIN msgs_msg_labels ml ON ml.msg_id = o.id
-    WHERE (o.folder IN ('A', 'D')) <> (n.folder IN ('A', 'D'))
+    WHERE (o.folder NOT IN ('A', 'D') AND n.folder IN ('A', 'D'))
+       OR (o.folder IN ('A', 'D') AND n.folder NOT IN ('A', 'D'))
     GROUP BY 1, 2;
 
     -- add new-state label counts for all messages being archived/restored
@@ -447,7 +448,8 @@ BEGIN
     SELECT ml.label_id, n.folder IN ('A', 'D'), count(*), FALSE FROM newtab n
     INNER JOIN oldtab o ON o.id = n.id
     INNER JOIN msgs_msg_labels ml ON ml.msg_id = n.id
-    WHERE (o.folder IN ('A', 'D')) <> (n.folder IN ('A', 'D'))
+    WHERE (o.folder NOT IN ('A', 'D') AND n.folder IN ('A', 'D'))
+       OR (o.folder IN ('A', 'D') AND n.folder NOT IN ('A', 'D'))
     GROUP BY 1, 2;
 
     -- add new flow activity counts for incoming messages now marked as handled by a flow
