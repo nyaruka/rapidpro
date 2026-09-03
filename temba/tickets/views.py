@@ -196,7 +196,7 @@ class TeamCRUDL(SmartCRUDL):
             return super().derive_queryset(**kwargs).order_by(Lower("name"))
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("tickets.team_create") and not self.is_limit_reached():
+            if self.has_org_perm("tickets.team_create") and not self.is_limit_reached:
                 menu.add_modax(
                     _("New"), "new-team", reverse("tickets.team_create"), title=_("New Team"), as_button=True
                 )
