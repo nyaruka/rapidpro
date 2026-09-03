@@ -64,6 +64,8 @@ FLOW_LOCK_KEY = "org:%d:lock:flow:%d:definition"
 class Flow(AssetNameMixin, LegacyIDMixin, TembaModel, DependencyMixin):
     asset_type = "flow"
 
+    org_limit_key = Org.LIMIT_FLOWS
+
     # items in the flow definition JSON
     DEFINITION_UUID = "uuid"
     DEFINITION_NAME = "name"

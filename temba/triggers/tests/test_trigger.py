@@ -365,10 +365,6 @@ class TriggerTest(TembaTest):
         trigger1.restore(self.admin)
         self.assertTrue(Trigger.is_limit_reached(self.org))
 
-        # a limit type with no default is unlimited
-        with override_settings(ORG_LIMIT_DEFAULTS={}):
-            self.assertFalse(Trigger.is_limit_reached(self.org))
-
         trigger1.release(self.admin)
         self.assertFalse(Trigger.is_limit_reached(self.org))
 

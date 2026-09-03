@@ -79,6 +79,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "channels_limit",
                 "contacts_limit",
                 "fields_limit",
+                "flows_limit",
                 "globals_limit",
                 "groups_limit",
                 "knowledge_limit",
@@ -92,10 +93,11 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             list(response.context["form"].fields.keys()),
         )
 
-        # limits with a default show it as the placeholder, those without show unlimited
+        # every limit type shows its default as the placeholder
         form = response.context["form"]
-        self.assertEqual("10", str(form.fields["channels_limit"].widget.attrs["placeholder"]))
-        self.assertEqual("Unlimited", str(form.fields["contacts_limit"].widget.attrs["placeholder"]))
+        self.assertEqual("10", form.fields["channels_limit"].widget.attrs["placeholder"])
+        self.assertEqual("100000000", form.fields["contacts_limit"].widget.attrs["placeholder"])
+        self.assertEqual("100000", form.fields["flows_limit"].widget.attrs["placeholder"])
 
         # make some changes to our org
         response = self.client.post(
@@ -107,6 +109,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "channels_limit": 20,
                 "contacts_limit": 100_000,
                 "fields_limit": 300,
+                "flows_limit": "",
                 "globals_limit": "",
                 "groups_limit": 400,
                 "knowledge_limit": "",
@@ -130,7 +133,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # limits left blank aren't recorded on the org
         self.assertEqual({"channels": 20, "contacts": 100_000, "fields": 300, "groups": 400}, self.org.limits)
 
-        # and clearing a limit removes it, making contacts unlimited again
+        # and clearing a limit removes it, so it falls back to the default
         response = self.client.post(
             update_url,
             {
@@ -140,6 +143,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "channels_limit": 20,
                 "contacts_limit": "",
                 "fields_limit": 300,
+                "flows_limit": "",
                 "globals_limit": "",
                 "groups_limit": 400,
                 "knowledge_limit": "",
@@ -153,7 +157,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.org.refresh_from_db()
         self.assertEqual({"channels": 20, "fields": 300, "groups": 400}, self.org.limits)
-        self.assertIsNone(self.org.get_limit(Org.LIMIT_CONTACTS))
+        self.assertEqual(self.org.get_limit(Org.LIMIT_CONTACTS), 100_000_000)
 
         # flag org
         self.client.post(update_url, {"action": "flag"})

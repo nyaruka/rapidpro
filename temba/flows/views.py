@@ -15,6 +15,7 @@ from smartmin.views import (
 
 from django import forms
 from django.conf import settings
+from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models.functions import Lower
 from django.http import HttpResponseRedirect, JsonResponse
@@ -42,6 +43,7 @@ from temba.orgs.views.base import (
     BaseMenuView,
     BaseReadView,
     BaseUpdateModal,
+    LimitAwareMixin,
 )
 from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, UniqueNameMixin
 from temba.triggers.models import Trigger
@@ -314,7 +316,7 @@ class FlowCRUDL(SmartCRUDL):
 
             return JsonResponse({"status": "failure", "description": error, "detail": detail}, status=400)
 
-    class Create(ModalFormMixin, OrgPermsMixin, SmartCreateView):
+    class Create(ModalFormMixin, LimitAwareMixin, OrgPermsMixin, SmartCreateView):
         class Form(BaseFlowForm):
             keyword_triggers = forms.CharField(
                 required=False,
@@ -417,6 +419,17 @@ class FlowCRUDL(SmartCRUDL):
         fields = []
 
         def form_valid(self, form):
+            # the menu hides this action at the limit, but the endpoint can still be posted to directly
+            if Flow.is_limit_reached(self.request.org):
+                messages.error(
+                    self.request,
+                    _(
+                        "You have reached the per-workspace limit and must delete existing ones before you can "
+                        "create new ones."
+                    ),
+                )
+                return HttpResponseRedirect(reverse("flows.flow_editor", args=[self.object.uuid]))
+
             copy = self.object.clone(self.request.user)
 
             # redirect to the newly created flow
@@ -622,7 +635,7 @@ class FlowCRUDL(SmartCRUDL):
             return self.request.org.flow_labels.filter(is_active=True).order_by(Lower("name"))
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("flows.flow_create"):
+            if self.has_org_perm("flows.flow_create") and not self.is_limit_reached():
                 menu.add_modax(
                     _("New Flow"),
                     "new-flow",
@@ -787,7 +800,7 @@ class FlowCRUDL(SmartCRUDL):
                     title=_("Edit Flow"),
                 )
 
-            if self.has_org_perm("flows.flow_copy"):
+            if self.has_org_perm("flows.flow_copy") and not Flow.is_limit_reached(self.request.org):
                 menu.add_url_post(_("Copy"), reverse("flows.flow_copy", args=[obj.id]))
 
             if self.has_org_perm("flows.flow_delete"):

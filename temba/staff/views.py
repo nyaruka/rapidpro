@@ -175,14 +175,12 @@ class OrgCRUDL(SmartCRUDL):
                 return self.cleaned_data
 
             def add_limits_fields(self, org: Org):
-                for limit_type, default in settings.ORG_LIMIT_DEFAULTS.items():
+                for limit_type in settings.ORG_LIMIT_DEFAULTS.keys():
                     field = forms.IntegerField(
                         label=limit_type.capitalize(),
                         required=False,
                         initial=org.limits.get(limit_type),
-                        widget=forms.TextInput(
-                            attrs={"placeholder": str(default) if default is not None else _("Unlimited")}
-                        ),
+                        widget=forms.TextInput(attrs={"placeholder": f"{settings.ORG_LIMIT_DEFAULTS[limit_type]}"}),
                     )
                     field_key = f"{limit_type}_limit"
 

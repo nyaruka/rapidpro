@@ -897,11 +897,11 @@ WEBSOCKETS_AUTH_SECRET = None
 
 GLOBAL_VALUE_SIZE = 10_000  # max length of global values
 
-# default limits for each org limit type - a value of None means unlimited
 ORG_LIMIT_DEFAULTS = {
     "channels": 10,
-    "contacts": None,
+    "contacts": 100_000_000,
     "fields": 250,
+    "flows": 100_000,
     "globals": 250,
     "groups": 250,
     "knowledge": 10,

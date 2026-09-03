@@ -409,7 +409,8 @@ class OrgTest(TembaTest):
         self.assertEqual(self.org.get_limit(Org.LIMIT_FIELDS), 250)
         self.assertEqual(self.org.get_limit(Org.LIMIT_GROUPS), 250)
         self.assertEqual(self.org.get_limit(Org.LIMIT_GLOBALS), 250)
-        self.assertIsNone(self.org.get_limit(Org.LIMIT_CONTACTS))  # no default so unlimited
+        self.assertEqual(self.org.get_limit(Org.LIMIT_CONTACTS), 100_000_000)
+        self.assertEqual(self.org.get_limit(Org.LIMIT_FLOWS), 100_000)
 
         self.org.limits = dict(fields=500, groups=500, contacts=100_000)
         self.org.save()
@@ -418,6 +419,7 @@ class OrgTest(TembaTest):
         self.assertEqual(self.org.get_limit(Org.LIMIT_GROUPS), 500)
         self.assertEqual(self.org.get_limit(Org.LIMIT_GLOBALS), 250)
         self.assertEqual(self.org.get_limit(Org.LIMIT_CONTACTS), 100_000)
+        self.assertEqual(self.org.get_limit(Org.LIMIT_FLOWS), 100_000)
 
     def test_org_api_rates(self):
         self.assertEqual(self.org.api_rates, {})

@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.core.files.storage import default_storage
+from django.test import override_settings
 from django.urls import reverse
 
 from temba import mailroom
@@ -134,6 +135,22 @@ class DefinitionExportTest(TembaTest, CRUDLTestMixin):
         non_dict_data = io.BytesIO(b'[{"version": 7, "action_sets": []}]')
         response = self.client.post(create_url, {"file": non_dict_data})
         self.assertFormError(response.context["form"], "file", "This file is not a valid flow definition file.")
+
+    # note we merge rather than replace so the other limit types used by this import keep their defaults
+    @override_settings(ORG_LIMIT_DEFAULTS={**settings.ORG_LIMIT_DEFAULTS, "flows": 3})
+    def test_import_respects_flow_limit(self):
+        create_url = reverse("orgs.orgimport_create")
+
+        self.login(self.admin)
+
+        # the_clinic has 8 flows which won't fit, and an import is all or nothing so it's refused outright
+        with open("media/test_flows/the_clinic.json", "rb") as f:
+            response = self.client.post(create_url, {"file": f})
+
+        self.assertFormError(
+            response.context["form"], "file", "This file contains more flows than this workspace has room for."
+        )
+        self.assertEqual(0, self.org.flows.filter(is_active=True).count())
 
     def test_import_errors(self):
         self.login(self.admin)

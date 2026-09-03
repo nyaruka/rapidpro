@@ -1706,6 +1706,13 @@ class OrgImportCRUDL(SmartCRUDL):
                     if spec and Version(spec) > Version(Flow.CURRENT_SPEC_VERSION):
                         raise ValidationError(_("This file contains flows with a version that is too new."))
 
+                # an import has to be all or nothing because its triggers and campaigns reference its flows, so we
+                # refuse one that couldn't fit. flows in the file which match existing ones would be updated rather
+                # than created, so this can refuse an import that would actually have fit.
+                num_flows = len(json_data.get("flows", []))
+                if self.org.flows.filter(is_active=True).count() + num_flows > self.org.get_limit(Org.LIMIT_FLOWS):
+                    raise ValidationError(_("This file contains more flows than this workspace has room for."))
+
                 return self.cleaned_data["file"]
 
             class Meta:

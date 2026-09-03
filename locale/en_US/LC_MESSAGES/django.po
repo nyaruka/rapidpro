@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 19:19+0000\n"
+"POT-Creation-Date: 2026-09-03 19:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -2554,6 +2554,9 @@ msgstr ""
 msgid "Choose a unique name to describe this flow, e.g. Registration"
 msgstr ""
 
+msgid "You have reached the per-workspace limit and must delete existing ones before you can create new ones."
+msgstr ""
+
 msgid "Keywords"
 msgstr ""
 
@@ -3469,6 +3472,9 @@ msgstr ""
 msgid "This file contains flows with a version that is too new."
 msgstr ""
 
+msgid "This file contains more flows than this workspace has room for."
+msgstr ""
+
 msgid "Import started"
 msgstr ""
 
@@ -3635,9 +3641,6 @@ msgid "Suspended"
 msgstr ""
 
 msgid "Verified"
-msgstr ""
-
-msgid "Unlimited"
 msgstr ""
 
 msgid "Edit User"
@@ -5680,9 +5683,6 @@ msgid "Some webhook calls from your flows are taking too long to respond or fail
 msgstr ""
 
 msgid "Your workspace is suspended and no longer processing messages."
-msgstr ""
-
-msgid "You have reached the per-workspace limit and must delete existing ones before you can create new ones."
 msgstr ""
 
 msgid "can't be deleted as it is still used by the following items:"
