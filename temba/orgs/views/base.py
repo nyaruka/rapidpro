@@ -16,7 +16,7 @@ from django.db.models.functions import Lower
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.functional import Promise
+from django.utils.functional import Promise, cached_property
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
@@ -31,9 +31,10 @@ from .mixins import BulkActionMixin, DependencyMixin, OrgObjPermsMixin, OrgPerms
 class LimitAwareMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["limit_reached"] = self.is_limit_reached()
+        context["limit_reached"] = self.is_limit_reached
         return context
 
+    @cached_property
     def is_limit_reached(self) -> bool:
         """
         Returns whether we've reached the org limit for this model

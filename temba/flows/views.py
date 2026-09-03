@@ -635,7 +635,7 @@ class FlowCRUDL(SmartCRUDL):
             return self.request.org.flow_labels.filter(is_active=True).order_by(Lower("name"))
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("flows.flow_create") and not self.is_limit_reached():
+            if self.has_org_perm("flows.flow_create") and not self.is_limit_reached:
                 menu.add_modax(
                     _("New Flow"),
                     "new-flow",

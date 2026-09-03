@@ -1013,7 +1013,7 @@ class ContactFieldCRUDL(SmartCRUDL):
         template_name = "contacts/contactfield_list.html"
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("contacts.contactfield_create") and not self.is_limit_reached():
+            if self.has_org_perm("contacts.contactfield_create") and not self.is_limit_reached:
                 menu.add_modax(
                     _("New"),
                     "new-field",
