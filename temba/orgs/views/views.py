@@ -1710,7 +1710,8 @@ class OrgImportCRUDL(SmartCRUDL):
                 # refuse one that couldn't fit. flows in the file which match existing ones would be updated rather
                 # than created, so this can refuse an import that would actually have fit.
                 num_flows = len(json_data.get("flows", []))
-                if self.org.flows.filter(is_active=True).count() + num_flows > self.org.get_limit(Org.LIMIT_FLOWS):
+                num_existing = Flow.get_countable_for_org(self.org).count()
+                if num_existing + num_flows > self.org.get_limit(Org.LIMIT_FLOWS):
                     raise ValidationError(_("This file contains more flows than this workspace has room for."))
 
                 return self.cleaned_data["file"]
