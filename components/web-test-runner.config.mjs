@@ -253,6 +253,9 @@ const newWindowPage = async (context) => {
       browserContextId: context.id || undefined,
       newWindow: true
     });
+    // puppeteer exposes no public accessor for a target's id, so this reads its
+    // private field. If a puppeteer bump renames it the predicate never matches
+    // and waitForTarget fails with a timeout rather than a clear error.
     const target = await browser.waitForTarget((t) => t._targetId === targetId);
     return await target.page();
   } finally {
