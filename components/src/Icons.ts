@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 // for cache busting we dynamically generate a fingerprint, use bun run svg to update
-export const SVG_FINGERPRINT = '712144e39c5c9f5cd03bf49eb79710fd';
+export const SVG_FINGERPRINT = 'e94ae953c37b50469867dcc1c2f3ad89';
 
 // only icons below are included in the sprite sheet
 export enum Icon {
@@ -275,6 +275,7 @@ export enum Icon {
   channel_twa = 'channel-whatsapp',
   channel_twc = 'zap', // TODO
   channel_twt = 'channel-twitter',
+  channel_uwy = 'channel-unitedway',
   channel_vk = 'channel-vk',
   channel_vp = 'channel-viber',
   channel_wa = 'channel-whatsapp',
