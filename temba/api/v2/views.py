@@ -2795,8 +2795,6 @@ class RunsEndpoint(ListAPIMixin, BaseEndpoint):
      * **exited_on** - the datetime when this run exited or null if it is still active (datetime).
      * **exit_type** - how the run ended, one of `interrupted`, `completed`, `expired`.
 
-    Note that you cannot filter by `flow` and `contact` at the same time.
-
     Example:
 
         GET /api/v2/runs.json?flow=f5901b62-ba76-4003-9c62-72fdacc1b7b7
