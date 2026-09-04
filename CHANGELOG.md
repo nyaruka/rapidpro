@@ -1,3 +1,7 @@
+v26.3.76 (2026-09-04)
+-------------------------
+ * Record deprecated usage of label filter on messages endpoint
+
 v26.3.75 (2026-09-04)
 -------------------------
  * Add per-workspace limits on numbers of contacts and flows
