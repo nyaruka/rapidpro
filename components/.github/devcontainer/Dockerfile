@@ -1,4 +1,4 @@
-FROM "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye"
+FROM "mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm"
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
