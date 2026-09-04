@@ -1,3 +1,9 @@
+v26.3.77 (2026-09-04)
+-------------------------
+ * Add icon for United Way channel type
+ * Remove mention of deprecated contact filter from runs endpoint docs
+ * Update dependencies
+
 v26.3.76 (2026-09-04)
 -------------------------
  * Record deprecated usage of label filter on messages endpoint
