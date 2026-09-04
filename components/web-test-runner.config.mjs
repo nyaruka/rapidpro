@@ -240,6 +240,26 @@ const checkScreenshot = async (filename, excluded, threshold) => {
 rimrafSync(path.resolve(SCREENSHOTS, DIFF));
 rimrafSync(path.resolve(SCREENSHOTS, TEST));
 
+// Chromium's new headless mode (the only mode since 132) opens each new page as a
+// background tab of the first window, so it reports itself hidden and never gets
+// an animation frame. With concurrency > 1 any test waiting on a frame stalls
+// until it times out, so give each page its own window as old headless did.
+const newWindowPage = async (context) => {
+  const browser = context.browser();
+  const session = await browser.target().createCDPSession();
+  try {
+    const { targetId } = await session.send('Target.createTarget', {
+      url: 'about:blank',
+      browserContextId: context.id || undefined,
+      newWindow: true
+    });
+    const target = await browser.waitForTarget((t) => t._targetId === targetId);
+    return await target.page();
+  } finally {
+    await session.detach();
+  }
+};
+
 const wireScreenshots = async (page, context, wait, replaceScreenshots) => {
 
   await page.exposeFunction(
@@ -565,7 +585,7 @@ export default {
         const wait = !params.includes('--fast');
         const replaceScreenshots = params.includes('--replace-screenshots');
 
-        const page = await context.newPage();
+        const page = await newWindowPage(context);
         await page.setUserAgent(
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
         );
