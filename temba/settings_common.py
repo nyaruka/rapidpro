@@ -330,6 +330,10 @@ BRAND = {
     # sent to create one - account creation itself is invite-only unless the adapters say otherwise
 }
 
+# deployment level features:
+#  - locations: enable location types for contact fields
+#  - global_admins: users directly in the Administrators group are administrators of every workspace, intended for
+#    deployments where every workspace belongs to a single organization
 FEATURES = {"locations"}
 
 # The default checked options for flow starts and broadcasts

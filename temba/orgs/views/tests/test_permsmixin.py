@@ -1,3 +1,4 @@
+from django.test import override_settings
 from django.urls import reverse
 
 from temba.orgs.models import OrgRole
@@ -5,6 +6,7 @@ from temba.tests import TembaTest
 
 
 class OrgPermsMixinTest(TembaTest):
+    @override_settings(FEATURES={"locations", "global_admins"})
     def test_has_permission(self):
         create_url = reverse("tickets.topic_create")
 
@@ -43,6 +45,15 @@ class OrgPermsMixinTest(TembaTest):
         self.assertEqual(200, self.client.get(create_url).status_code)
         self.assertRedirect(self.client.post(create_url, {"name": "Support"}), "hide")
 
+        # global admins can access and modify any org without a membership
+        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
+        self.login(global_admin, choose_org=self.org2)
+
+        self.assertEqual(200, self.client.get(create_url).status_code)
+        self.assertRedirect(self.client.post(create_url, {"name": "Marketing"}), "hide")
+        self.assertTrue(self.org2.topics.filter(name="Marketing").exists())
+
+    @override_settings(FEATURES={"locations", "global_admins"})
     def test_obj_perms_mixin(self):
         contact1 = self.create_contact("Bob", phone="+18001234567", org=self.org)
         contact2 = self.create_contact("Zob", phone="+18001234567", org=self.org2)
@@ -90,4 +101,12 @@ class OrgPermsMixinTest(TembaTest):
 
         # staff still can't POST
         self.assertEqual(403, self.client.post(org1_update_url, {"name": "Bob"}).status_code)
+        self.assertEqual(404, self.client.get(org2_update_url).status_code)
+
+        # global admins have access to objects in any org, being redirected to switch if it's not the current org
+        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
+        self.login(global_admin, choose_org=self.org)
+        self.assertEqual(200, self.client.get(org1_read_url).status_code)
+        self.assertEqual(200, self.client.get(org1_update_url).status_code)
+        self.assertRedirect(self.client.get(org2_read_url), reverse("orgs.org_switch"))
         self.assertEqual(404, self.client.get(org2_update_url).status_code)

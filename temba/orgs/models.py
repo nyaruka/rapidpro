@@ -24,7 +24,7 @@ from django.contrib.postgres.validators import ArrayMinLengthValidator
 from django.core.files import File
 from django.core.files.storage import default_storage
 from django.db import models, transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Exists, Prefetch, Q
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.functional import cached_property
@@ -907,7 +907,19 @@ class Org(LegacyIDMixin, SmartModel):
         """
 
         def get():
-            return OrgMembership.objects.filter(org=self, user=user).first()
+            qs = OrgMembership.objects.filter(org=self, user=user)
+
+            # if global admins are enabled, fetch the membership along with whether the user is one so we can prime
+            # that property on the user without an extra query
+            global_admins = "global_admins" in settings.FEATURES
+            if global_admins:
+                is_global_admin = Exists(Group.objects.filter(name=OrgRole.ADMINISTRATOR.group_name, user=user))
+                qs = qs.annotate(user_is_global_admin=is_global_admin)
+
+            membership = qs.first()
+            if membership and global_admins:
+                user.is_global_admin = membership.user_is_global_admin
+            return membership
 
         if user not in self._membership_cache:
             self._membership_cache[user] = get()
@@ -915,10 +927,15 @@ class Org(LegacyIDMixin, SmartModel):
 
     def get_user_role(self, user: User):
         """
-        Convenience method to get just the role of the given user in this org (if any).
+        Gets the role of the given user in this org (if any). Global administrators always have the administrator role
+        regardless of any explicit membership.
         """
 
-        membership = self.get_membership(user)
+        membership = self.get_membership(user)  # fetched first as it primes user.is_global_admin
+
+        if user.is_global_admin:
+            return OrgRole.ADMINISTRATOR
+
         return membership.role if membership else None
 
     def create_sample_flows(self, api_url):
@@ -1082,9 +1099,9 @@ class Org(LegacyIDMixin, SmartModel):
         # release any user that belongs only to us
         if release_users:
             for org_user in self.users.all():
-                # check if this user is a member of any org
-                other_orgs = org_user.get_orgs().exclude(id=self.id)
-                if not other_orgs:
+                # check if this user is a member of any other org
+                other_orgs = org_user.orgs.filter(is_active=True).exclude(id=self.id)
+                if not other_orgs and not org_user.is_global_admin:
                     org_user.release(user)
 
         # remove all the org users
