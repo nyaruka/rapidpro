@@ -2356,8 +2356,9 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             else:
                 queryset = queryset.none()
 
-        # filter by label name/uuid (optional)
+        # filter by label name/uuid (optional, deprecated)
         if label_ref := params.get("label"):
+            record_deprecated(org, "messages#filter:label")
             label_filter = Q(name=label_ref)
             if is_uuid(label_ref):
                 label_filter |= Q(uuid=label_ref)
