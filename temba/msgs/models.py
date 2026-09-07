@@ -1316,16 +1316,14 @@ class MessageExport(ExportType):
 
         all_message_ids = array(str("l"), messages.values_list("id", flat=True))
 
-        # Django 6.1 no longer routes custom Prefetch querysets by the parent queryset's database so the
-        # prefetches need their own explicit .using(..)
         for msg_batch in MsgIterator(
             all_message_ids,
             order_by=("created_on",),
             select_related=("channel", "contact_urn"),
             prefetch_related=(
-                Prefetch("contact", queryset=Contact.objects.only("uuid", "name").using("readonly")),
-                Prefetch("flow", queryset=Flow.objects.only("uuid", "name").using("readonly")),
-                Prefetch("labels", queryset=Label.objects.only("uuid", "name").order_by("name").using("readonly")),
+                Prefetch("contact", queryset=Contact.objects.only("uuid", "name")),
+                Prefetch("flow", queryset=Flow.objects.only("uuid", "name")),
+                Prefetch("labels", queryset=Label.objects.only("uuid", "name").order_by("name")),
             ),
             using="readonly",
         ):
