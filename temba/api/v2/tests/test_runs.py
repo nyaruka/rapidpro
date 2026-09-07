@@ -3,12 +3,24 @@ import iso8601
 from django.urls import reverse
 
 from temba.api.v2.serializers import format_datetime
+from temba.contacts.models import Contact
+from temba.flows.models import FlowRun
 from temba.tests.engine import MockSessionWriter
 
 from . import APITest
 
 
 class RunsEndpointTest(APITest):
+    def test_readonly_routing(self):
+        # custom Prefetch querysets should be routed to the same database as the instances they're prefetched for
+        # (regressed in Django 6.1) as otherwise bulk_urn_cache_initialize mixes contacts and URNs from different dbs
+        run = FlowRun()
+        run._state.db = "readonly"
+
+        queryset = FlowRun.contact.get_prefetch_querysets([run], [Contact.objects.only("uuid", "name")])[0]
+
+        self.assertEqual("readonly", queryset.db)
+
     def test_endpoint(self):
         endpoint_url = reverse("api.v2.runs") + ".json"
 
