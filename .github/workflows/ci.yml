@@ -156,6 +156,9 @@ jobs:
           # check we can collect and compress all static files
           uv run python manage.py collectstatic --noinput --verbosity=0
           uv run python manage.py compress --extension=".html" --settings=temba.settings_compress
+          # collectstatic writes .gz/.br siblings for what it collects, but the compressor bundles are written
+          # after it, so they need their own pass - without it WhiteNoise serves them uncompressed
+          uv run python -m whitenoise.compress sitestatic
 
       - name: Run tests
         run: uv run coverage run manage.py test --keepdb --noinput --verbosity=2 --parallel 4
