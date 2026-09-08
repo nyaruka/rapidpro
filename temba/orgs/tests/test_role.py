@@ -11,7 +11,7 @@ class OrgRoleTest(TembaTest):
 
     def test_from_group(self):
         self.assertEqual(OrgRole.EDITOR, OrgRole.from_group(Group.objects.get(name="Editors")))
-        self.assertIsNone(OrgRole.from_group(Group.objects.get(name="Granters")))
+        self.assertIsNone(OrgRole.from_group(self.create_admin_group("Global Admins")))
 
     def test_group(self):
         self.assertEqual(Group.objects.get(name="Editors"), OrgRole.EDITOR.group)
