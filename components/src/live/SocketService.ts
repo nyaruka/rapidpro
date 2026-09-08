@@ -1,5 +1,6 @@
 import { Centrifuge, Subscription, SubscriptionState } from 'centrifuge';
 import { Watchers } from './Watchers';
+import { confirmWorkspaceStale } from '../workspace';
 
 /**
  * Access to our realtime messaging socket (centrifugo). The server lives
@@ -65,6 +66,35 @@ interface ChannelEntry {
   sub: Subscription;
   count: number;
 }
+
+// sockets the server authorizes by comparing the name against the session's
+// own workspace, with nothing else to consult - so being refused one of these
+// says the session is in a different workspace than this page was built for.
+// Every other socket is authorized on what the user may see, where a refusal
+// is an ordinary answer (an agent opening a ticket outside their topics) and
+// says nothing about the workspace
+const WORKSPACE_SOCKET = /^(org|notifications):/;
+
+// the code our subscribe proxy refuses with
+const FORBIDDEN = 403;
+
+/**
+ * Watches a workspace-scoped subscription for the server refusing it, which
+ * happens when the user has switched workspace since the page was rendered.
+ * It's a hint rather than a verdict - a refusal is confirmed against the
+ * session before anything is done about it.
+ */
+const watchForWorkspaceChange = (channel: string, sub: Subscription): void => {
+  if (!WORKSPACE_SOCKET.test(channel)) {
+    return;
+  }
+
+  sub.on('error', (ctx) => {
+    if (ctx.type === 'subscribe' && ctx.error?.code === FORBIDDEN) {
+      confirmWorkspaceStale();
+    }
+  });
+};
 
 export class SocketManager implements SocketProvider {
   private socket: Centrifuge = null;
@@ -192,6 +222,7 @@ export class SocketManager implements SocketProvider {
         count: 0
       };
       this.channels.set(channel, entry);
+      watchForWorkspaceChange(channel, entry.sub);
       entry.sub.subscribe();
     }
     entry.count++;

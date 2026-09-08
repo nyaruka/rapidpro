@@ -289,6 +289,21 @@ function fetchAjax(url, options, fullPage = false) {
 
   return fetch(toFetch, options)
     .then(function (response) {
+      // being refused without a workspace named is how a request for one we've
+      // since left is rejected - the header is set on the response only after
+      // that check. It reloads the page into the current workspace once it has
+      // confirmed that's what happened, so this is an error dialog we don't want.
+      if (
+        response.status === 403 &&
+        response.type !== 'cors' &&
+        !response.headers.get('X-Temba-Workspace') &&
+        options['headers']['X-Temba-Workspace'] &&
+        window.confirmWorkspaceStale
+      ) {
+        window.confirmWorkspaceStale();
+        return;
+      }
+
       if (response.status >= 400) {
         showErrorDialog();
         return;

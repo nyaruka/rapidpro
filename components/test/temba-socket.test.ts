@@ -1,5 +1,8 @@
-import { assert } from '@open-wc/testing';
+import { assert, expect } from '@open-wc/testing';
+import { SinonStub, stub } from 'sinon';
 import { ConnectionState, SocketManager } from '../src/live/SocketService';
+import { pageReloader, resetWorkspaceStale } from '../src/workspace';
+import { clearMockGets, mockGET } from './utils.test';
 
 class FakeSub {
   public handlers: { [event: string]: ((ctx: any) => void)[] } = {};
@@ -305,5 +308,105 @@ describe('SocketManager connection state', () => {
     fake.transition('disconnected');
 
     assert.deepEqual(seen, [ConnectionState.Connected]);
+  });
+});
+
+describe('SocketManager workspace changes', () => {
+  const PAGE_WORKSPACE = '11111111-1111-4111-8111-111111111111';
+  const OTHER_WORKSPACE = '22222222-2222-4222-8222-222222222222';
+
+  let previousWorkspace: any;
+  let reload: SinonStub;
+
+  // being refused a subscription, as the server's subscribe proxy answers it
+  const refuse = (fake: any, channel: string) => {
+    fake.subs.get(channel).emit('error', {
+      channel,
+      type: 'subscribe',
+      error: { code: 403, message: 'forbidden' }
+    });
+  };
+
+  // what the session answers when asked which workspace it's in
+  const sessionWorkspace = (uuid: string) => {
+    mockGET(/\/api\/v2\/workspace\.json/, {}, { 'X-Temba-Workspace': uuid });
+  };
+
+  beforeEach(() => {
+    previousWorkspace = (window as any).workspace;
+    (window as any).workspace = { uuid: PAGE_WORKSPACE };
+    resetWorkspaceStale();
+    reload = stub(pageReloader, 'reload');
+  });
+
+  afterEach(() => {
+    (window as any).workspace = previousWorkspace;
+    resetWorkspaceStale();
+    reload.restore();
+    clearMockGets();
+  });
+
+  it('reloads when refused the workspace socket', async () => {
+    const { fake, manager } = createManager();
+    sessionWorkspace(OTHER_WORKSPACE);
+
+    manager.subscribe(`org:${PAGE_WORKSPACE}`, () => undefined);
+    refuse(fake, `org:${PAGE_WORKSPACE}`);
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+    expect(reload.callCount).to.equal(1);
+  });
+
+  it('reloads when refused the notifications socket', async () => {
+    const { fake, manager } = createManager();
+    sessionWorkspace(OTHER_WORKSPACE);
+    const channel = `notifications:${PAGE_WORKSPACE}:user-uuid`;
+
+    manager.subscribe(channel, () => undefined);
+    refuse(fake, channel);
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+    expect(reload.callCount).to.equal(1);
+  });
+
+  it('ignores being refused any other socket', async () => {
+    const { fake, manager } = createManager();
+    // an agent opening a ticket outside their topics is refused the same way,
+    // and their workspace is fine
+    sessionWorkspace(OTHER_WORKSPACE);
+
+    manager.subscribe('history:abc', () => undefined);
+    refuse(fake, 'history:abc');
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+    expect(reload.callCount).to.equal(0);
+  });
+
+  it('stays put when the workspace is still ours', async () => {
+    const { fake, manager } = createManager();
+    // the socket can be refused for reasons of its own, so the session has
+    // the last word on whether this page is showing the wrong workspace
+    sessionWorkspace(PAGE_WORKSPACE);
+
+    manager.subscribe(`org:${PAGE_WORKSPACE}`, () => undefined);
+    refuse(fake, `org:${PAGE_WORKSPACE}`);
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+    expect(reload.callCount).to.equal(0);
+  });
+
+  it('ignores errors that are not a refusal', async () => {
+    const { fake, manager } = createManager();
+    sessionWorkspace(OTHER_WORKSPACE);
+
+    manager.subscribe(`org:${PAGE_WORKSPACE}`, () => undefined);
+    fake.subs.get(`org:${PAGE_WORKSPACE}`).emit('error', {
+      channel: `org:${PAGE_WORKSPACE}`,
+      type: 'subscribe',
+      error: { code: 109, message: 'token expired' }
+    });
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+    expect(reload.callCount).to.equal(0);
   });
 });
