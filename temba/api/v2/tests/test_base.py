@@ -242,7 +242,7 @@ class EndpointsTest(APITest):
         # agents can't access
         self.login(self.agent)
         response = self.client.get(explorer_url)
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         # editors and administrators can access
         self.login(self.editor)

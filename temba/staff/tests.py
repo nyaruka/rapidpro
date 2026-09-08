@@ -200,10 +200,10 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # same thing, no permission
         response = self.client.get(service_url, {"other_org": self.org.id, "next": inbox_url})
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         response = self.client.post(service_url, {"other_org": self.org.id})
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         # ok, log in as our cs rep
         self.login(self.customer_support)

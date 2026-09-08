@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-05 19:38+0000\n"
+"POT-Creation-Date: 2026-09-08 15:55+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -3976,6 +3976,9 @@ msgstr "O identificador exclusivo para este objeto"
 
 msgid "and"
 msgstr "e"
+
+msgid "You don't have permission to do that."
+msgstr "Você não tem permissão para fazer isso."
 
 msgid "Confirm Access"
 msgstr "Confirmar Acesso"
