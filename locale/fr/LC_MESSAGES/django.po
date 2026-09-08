@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-08 15:51+0000\n"
+"POT-Creation-Date: 2026-09-08 16:34+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -4436,7 +4436,10 @@ msgstr "à"
 msgid "Duration"
 msgstr "Durée"
 
-msgid "Last synced"
+msgid "Activated"
+msgstr "Activé"
+
+msgid "Last Synced"
 msgstr "Dernière synchronisation"
 
 #, python-format
@@ -4445,10 +4448,6 @@ msgstr "depuis %(last_sync)s "
 
 msgid "Not synced yet"
 msgstr "Pas encore synchronisé"
-
-#, python-format
-msgid "Activated on %(date)s"
-msgstr "Activé le %(date)s"
 
 msgid "ON"
 msgstr "ON"
