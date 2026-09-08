@@ -4,7 +4,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test.utils import override_settings
 from django.urls import reverse
@@ -492,8 +492,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(grant_url)
         self.assertPermissionDenied(response)
 
-        granters = Group.objects.get(name="Granters")
-        user.groups.add(granters)
+        user.user_permissions.add(Permission.objects.get(content_type__app_label="orgs", codename="org_grant"))
 
         response = self.client.get(grant_url)
         self.assertEqual(200, response.status_code)
@@ -546,8 +545,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_org_grant_invalid_form(self):
         grant_url = reverse("orgs.org_grant")
 
-        granters = Group.objects.get(name="Granters")
-        self.admin.groups.add(granters)
+        self.admin.user_permissions.add(Permission.objects.get(content_type__app_label="orgs", codename="org_grant"))
 
         self.login(self.admin)
 
@@ -605,8 +603,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_org_grant_form_clean(self):
         grant_url = reverse("orgs.org_grant")
 
-        granters = Group.objects.get(name="Granters")
-        self.admin.groups.add(granters)
+        self.admin.user_permissions.add(Permission.objects.get(content_type__app_label="orgs", codename="org_grant"))
 
         self.login(self.admin)
 

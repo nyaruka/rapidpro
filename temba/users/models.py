@@ -175,7 +175,7 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         Determines if a user has the given permission in the given org.
         """
 
-        # has it innately? e.g. Granter group
+        # has it innately? e.g. via a permission group configured by the install
         if self.has_perm(permission):
             return True
 

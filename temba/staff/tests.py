@@ -315,7 +315,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(update_url, self.customer_support)
         self.assertEqual(200, response.status_code)
 
-        granters = Group.objects.get(name="Granters")
+        global_admins = self.create_admin_group("Global Admins")
         editors = Group.objects.get(name="Editors")
 
         response = self.requestView(
@@ -325,7 +325,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
                 "email": "eddy@textit.com",
                 "first_name": "Edward",
                 "last_name": "",
-                "groups": [granters.id, editors.id],
+                "groups": [global_admins.id, editors.id],
             },
         )
         self.assertEqual(302, response.status_code)
@@ -334,7 +334,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("eddy@textit.com", self.editor.email)
         self.assertEqual("Edward", self.editor.first_name)
         self.assertEqual("", self.editor.last_name)
-        self.assertEqual({granters, editors}, set(self.editor.groups.all()))
+        self.assertEqual({global_admins, editors}, set(self.editor.groups.all()))
 
         # submit with one less group
         response = self.requestView(
@@ -345,7 +345,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
                 "new_password": "Asdf1234",
                 "first_name": "Edward",
                 "last_name": "",
-                "groups": [granters.id],
+                "groups": [global_admins.id],
             },
         )
         self.assertEqual(302, response.status_code)
@@ -354,7 +354,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("eddy@textit.com", self.editor.email)
         self.assertEqual("Edward", self.editor.first_name)
         self.assertEqual("", self.editor.last_name)
-        self.assertEqual({granters}, set(self.editor.groups.all()))
+        self.assertEqual({global_admins}, set(self.editor.groups.all()))
 
         # unverify user
         self.client.post(update_url, {"action": "unverify"})

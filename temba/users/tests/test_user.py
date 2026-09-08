@@ -1,6 +1,6 @@
 from allauth.mfa.models import Authenticator
 
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Permission
 
 from temba.api.models import APIToken
 from temba.orgs.models import Org, OrgRole
@@ -117,7 +117,8 @@ class UserTest(TembaTest):
         self.assertTrue(self.agent.is_mfa_enabled)
 
     def test_has_org_perm(self):
-        granter = self.create_user("jim@rapidpro.io", group_names=("Granters",))
+        granter = self.create_user("jim@rapidpro.io")
+        granter.user_permissions.add(Permission.objects.get(content_type__app_label="orgs", codename="org_grant"))
         group_admin = self.create_user("gad@rapidpro.io")
         self.create_admin_group("Global Admins", orgs=[self.org], users=[group_admin])
 
@@ -168,7 +169,7 @@ class UserTest(TembaTest):
 
     def test_release(self):
         token = APIToken.create(self.org, self.admin)
-        self.admin.groups.add(Group.objects.get(name="Granters"))
+        self.create_admin_group("Global Admins", users=[self.admin])
 
         # admin doesn't "own" any orgs
         self.assertEqual(0, len(self.admin.get_owned_orgs()))
