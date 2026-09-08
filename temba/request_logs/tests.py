@@ -190,4 +190,4 @@ class HTTPLogCRUDLTest(TembaTest, CRUDLTestMixin):
         # and can't be from other org
         self.login(self.admin2)
         response = self.client.get(log_url)
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)

@@ -1,10 +1,25 @@
+import json
 import logging
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger(__name__)
+
+
+def permission_denied(request, exception=None):
+    """
+    Handler for 403 responses which includes a toast so that the UI can tell the user what happened rather than
+    treating it as a generic error.
+    """
+
+    response = HttpResponseForbidden()
+    response["X-Temba-Toasts"] = json.dumps(
+        [{"level": "error", "text": str(_("You don't have permission to do that."))}]
+    )
+    return response
 
 
 class ExternalURLHandler(View):
