@@ -233,6 +233,13 @@ class ChannelCRUDLTest(TembaTest, CRUDLTestMixin):
             ["Configuration", "Edit", "Delete"],
         )
 
+        # and not for users without permission to view logs
+        self.assertContentMenu(
+            reverse("channels.channel_read", args=[self.ex_channel.uuid]),
+            self.editor,
+            ["Configuration", "Edit", "Delete"],
+        )
+
     def test_logs_list(self):
         channel = self.create_channel("T", "My Channel", "+250785551212")
 
