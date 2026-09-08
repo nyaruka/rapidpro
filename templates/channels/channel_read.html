@@ -52,7 +52,7 @@
       </div>
     {% endif %}
   </div>
-  <div class="surface flex px-4 rounded-lg mb-6 bg-white">
+  <div class="shadow flex px-4 rounded-lg mb-6 bg-white">
     <div class="flex-grow"></div>
     <temba-range-picker min="{{ object.created_on|date:"Y-m-d" }}">
     </temba-range-picker>
@@ -103,7 +103,7 @@
         </div>
       {% endif %}
     {% endif %}
-    <temba-chart class="mb-6"
+    <temba-chart class="shadow mb-6"
                  url="{% url 'channels.channel_chart' object.uuid %}"
                  dataname="Messages"
                  legend
@@ -238,12 +238,6 @@
 
     table.list th.text-right {
       text-align: right;
-    }
-
-    /* same elevation as table.list so every box on the page sits at one level */
-    .surface,
-    temba-chart {
-      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     }
 
     temba-chart {

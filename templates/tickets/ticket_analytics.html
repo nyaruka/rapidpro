@@ -65,12 +65,13 @@
   </style>
 {% endblock extra-style %}
 {% block content %}
-  <div class="flex px-4 rounded-lg mb-6 bg-white">
+  <div class="shadow flex px-4 rounded-lg mb-6 bg-white">
     <div class="flex-grow"></div>
     <temba-range-picker min="{{ request.org.created_on|date:"Y-m-d" }}">
     </temba-range-picker>
   </div>
-  <temba-chart header="{% trans "Tickets Opened" %}"
+  <temba-chart class="shadow"
+               header="{% trans "Tickets Opened" %}"
                url="{% url 'tickets.ticket_chart' 'opened' %}"
                dataname="Topics"
                xtype="time"
@@ -78,7 +79,7 @@
                requireWindow
                legend>
   </temba-chart>
-  <temba-chart class="mt-6"
+  <temba-chart class="shadow mt-6"
                header="{% trans "Response Time" %}"
                url="{% url 'tickets.ticket_chart' 'resptime' %}"
                dataname="Average Response"
@@ -89,7 +90,7 @@
                requireWindow>
   </temba-chart>
   {% if has_teams %}
-    <temba-chart class="mt-6"
+    <temba-chart class="shadow mt-6"
                  header="{% trans "Response Count" %}"
                  url="{% url 'tickets.ticket_chart' 'replies' %}"
                  dataname="Teams"
@@ -100,7 +101,7 @@
                  legend>
     </temba-chart>
   {% else %}
-    <temba-chart class="mt-6"
+    <temba-chart class="shadow mt-6"
                  header="{% trans "Response Count" %}"
                  url="{% url 'tickets.ticket_chart' 'replies' %}"
                  dataname="Responses"
@@ -110,7 +111,7 @@
                  requireWindow>
     </temba-chart>
   {% endif %}
-  <div class="leaderboard mt-6" id="leaderboard">
+  <div class="leaderboard shadow mt-6" id="leaderboard">
     <h3 style="margin: 0 0 1em 0; font-size: 1.1em; font-weight: 600;">{% trans "Top Responders" %}</h3>
     <table>
       <thead>

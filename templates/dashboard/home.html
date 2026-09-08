@@ -10,12 +10,12 @@
   </style>
 {% endblock extra-style %}
 {% block content %}
-  <div class="flex px-4 rounded-lg mb-6 bg-white">
+  <div class="shadow flex px-4 rounded-lg mb-6 bg-white">
     <div class="flex-grow"></div>
     <temba-range-picker min="{{ request.org.created_on|date:"Y-m-d" }}">
     </temba-range-picker>
   </div>
-  <div class="p-8 bg-white rounded-lg">
+  <div class="shadow p-8 bg-white rounded-lg">
     <temba-chart header="{% trans "Message History" %}"
                  url="{% url 'dashboard.dashboard_message_history' %}"
                  dataname="Messages"
