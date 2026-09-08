@@ -306,8 +306,10 @@ temba-menu.servicing {
 
 /* cards have overflow:hidden which zeroes their flex-item min-height, so as
    children of the scrolling flex column above they'd be squashed and clip
-   their own content once the page is taller than the viewport */
-.spa-content > .card {
+   their own content once the page is taller than the viewport. a card that
+   overrides that overflow to scroll itself is opting into being constrained,
+   so leave those alone */
+.spa-content > .card:not(.overflow-y-auto):not(.overflow-y-scroll) {
   flex-shrink: 0;
 }
 
