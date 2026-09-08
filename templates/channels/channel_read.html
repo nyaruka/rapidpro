@@ -9,45 +9,6 @@
   </div>
 {% endblock title %}
 {% block subtitle %}
-  <div class="text-gray-500 text-xl">
-    {{ object.type.name }}:
-    {{ object.get_address_display }}
-    {% if object.country %}({{ object.get_country_display }}){% endif %}
-  </div>
-  <div class="mb-4 text-base">
-    {% if delayed_sync_event %}
-      <div class="flex items-center text-error">
-        <div class="mr-1">
-          <div class="icon-warning text-error text-lg mt-1"></div>
-        </div>
-        <div class="inline-block ml-2">
-          {% if last_sync %}
-            {% trans "Last synced" %}
-            {% blocktrans trimmed with last_sync.created_on|timesince as last_sync %}
-              {{ last_sync }} ago
-            {% endblocktrans %}
-          {% else %}
-            {% trans "Not synced yet" %}
-          {% endif %}
-        </div>
-      </div>
-    {% else %}
-      {% if object.is_android %}
-        {% if last_sync %}
-          {% trans "Last synced" %}
-          {% blocktrans trimmed with last_sync.created_on|timesince as last_sync %}
-            {{ last_sync }} ago
-          {% endblocktrans %}
-        {% else %}
-          {% trans "Not synced yet" %}
-        {% endif %}
-      {% else %}
-        {% blocktrans trimmed with date=object.created_on|day %}
-          Activated on {{ date }}
-        {% endblocktrans %}
-      {% endif %}
-    {% endif %}
-  </div>
 {% endblock subtitle %}
 {% block top-form %}
 {% endblock top-form %}
@@ -58,7 +19,40 @@
 {% block fields %}
 {% endblock fields %}
 {% block content %}
-  <div class="flex px-4 rounded-lg mb-6 bg-white">
+  <div class="details card mt-0 mb-6 flex flex-wrap gap-4">
+    <div class="detail">
+      <div class="label">{% trans "Type" %}</div>
+      <div class="value">{{ object.type.name }}</div>
+    </div>
+    {% if object.address %}
+      <div class="detail">
+        <div class="label">{% trans "Address" %}</div>
+        <div class="value">
+          {{ object.get_address_display }}
+          {% if object.country %}({{ object.get_country_display }}){% endif %}
+        </div>
+      </div>
+    {% endif %}
+    <div class="detail">
+      <div class="label">{% trans "Activated" %}</div>
+      <div class="value">{{ object.created_on|day }}</div>
+    </div>
+    {% if object.is_android %}
+      <div class="detail">
+        <div class="label">{% trans "Last Synced" %}</div>
+        <div class="value {% if delayed_sync_event %}text-error{% endif %}">
+          {% if last_sync %}
+            {% blocktrans trimmed with last_sync.created_on|timesince as last_sync %}
+              {{ last_sync }} ago
+            {% endblocktrans %}
+          {% else %}
+            {% trans "Not synced yet" %}
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+  <div class="surface flex px-4 rounded-lg mb-6 bg-white">
     <div class="flex-grow"></div>
     <temba-range-picker min="{{ object.created_on|date:"Y-m-d" }}">
     </temba-range-picker>
@@ -123,14 +117,14 @@
       <thead>
         <tr>
           <th>{% trans "Month" %}</th>
-          <th>
+          <th class="text-right">
             {% if ivr_count %}
               {% trans "Incoming Text" %}
             {% else %}
               {% trans "Incoming" %}
             {% endif %}
           </th>
-          <th>
+          <th class="text-right">
             {% if ivr_count %}
               {% trans "Outgoing Text" %}
             {% else %}
@@ -138,8 +132,8 @@
             {% endif %}
           </th>
           {% if ivr_count %}
-            <th>{% trans "Incoming Voice" %}</th>
-            <th>{% trans "Outgoing Voice" %}</th>
+            <th class="text-right">{% trans "Incoming Voice" %}</th>
+            <th class="text-right">{% trans "Outgoing Voice" %}</th>
           {% endif %}
         </tr>
       </thead>
@@ -147,11 +141,11 @@
         {% for month_data in monthly_counts %}
           <tr>
             <td>{{ month_data.month_start|date:"F Y" }}</td>
-            <td>{{ month_data.text_in|intcomma }}</td>
-            <td>{{ month_data.text_out|intcomma }}</td>
+            <td class="text-right">{{ month_data.text_in|intcomma }}</td>
+            <td class="text-right">{{ month_data.text_out|intcomma }}</td>
             {% if ivr_count %}
-              <td>{{ month_data.voice_in|intcomma }}</td>
-              <td>{{ month_data.voice_out|intcomma }}</td>
+              <td class="text-right">{{ month_data.voice_in|intcomma }}</td>
+              <td class="text-right">{{ month_data.voice_out|intcomma }}</td>
             {% endif %}
           </tr>
         {% endfor %}
@@ -242,10 +236,36 @@
       padding: 0.5em;
     }
 
+    table.list th.text-right {
+      text-align: right;
+    }
+
+    /* same elevation as table.list so every box on the page sits at one level */
+    .surface,
+    temba-chart {
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
     temba-chart {
       background: #fff;
       padding: 2em;
       border-radius: var(--curvature);
+    }
+
+    /* same inset as the table cells below */
+    .details {
+      padding: 0.75rem 1rem;
+    }
+
+    .details .detail {
+      flex: 1 1 0;
+    }
+
+    .details .label {
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: var(--w-medium);
+      margin-bottom: 4px;
     }
   </style>
 {% endblock extra-style %}
