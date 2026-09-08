@@ -1,3 +1,10 @@
+v26.3.78 (2026-09-08)
+-------------------------
+ * Show channel type, address and activation in a details card on the channel read page
+ * Return 403 with a toast when an authenticated user lacks permission instead of redirecting to login
+ * Update Django to 6.1.1 and remove prefetch routing workarounds
+ * Only show channel logs menu items to users with permission to view them
+
 v26.3.77 (2026-09-04)
 -------------------------
  * Add icon for United Way channel type
