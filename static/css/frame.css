@@ -304,6 +304,13 @@ temba-menu.servicing {
   overflow-x: hidden;
 }
 
+/* cards have overflow:hidden which zeroes their flex-item min-height, so as
+   children of the scrolling flex column above they'd be squashed and clip
+   their own content once the page is taller than the viewport */
+.spa-content > .card {
+  flex-shrink: 0;
+}
+
 .input {
   border-radius: var(--curvature-widget);
   cursor: text;
