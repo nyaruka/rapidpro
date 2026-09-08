@@ -32,7 +32,7 @@ class ContactGroupCRUDLTest(TembaTest, CRUDLTestMixin):
         # can't create group as agent
         self.login(self.agent)
         response = self.client.post(url, {"name": "Spammers"})
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         self.login(self.admin)
 

@@ -64,6 +64,8 @@ FLOW_LOCK_KEY = "org:%d:lock:flow:%d:definition"
 class Flow(AssetNameMixin, LegacyIDMixin, TembaModel, DependencyMixin):
     asset_type = "flow"
 
+    org_limit_key = Org.LIMIT_FLOWS
+
     # items in the flow definition JSON
     DEFINITION_UUID = "uuid"
     DEFINITION_NAME = "name"
@@ -1558,14 +1560,12 @@ class ResultsExport(ExportType):
         )
 
         for id_batch in itertools.batched(run_ids, 1000):
-            # Django 6.1 no longer routes custom Prefetch querysets by the parent queryset's database so the
-            # prefetches need their own explicit .using(..)
             run_batch = (
                 FlowRun.objects.filter(id__in=id_batch)
                 .order_by("modified_on", "id")
                 .prefetch_related(
-                    Prefetch("contact", Contact.objects.only("uuid", "name").using("readonly")),
-                    Prefetch("flow", Flow.objects.only("uuid", "name").using("readonly")),
+                    Prefetch("contact", Contact.objects.only("uuid", "name")),
+                    Prefetch("flow", Flow.objects.only("uuid", "name")),
                 )
                 .using("readonly")
             )

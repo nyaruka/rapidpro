@@ -490,7 +490,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(user)
         response = self.client.get(grant_url)
-        self.assertRedirect(response, "/accounts/login/")
+        self.assertPermissionDenied(response)
 
         granters = Group.objects.get(name="Granters")
         user.groups.add(granters)

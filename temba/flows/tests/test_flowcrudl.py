@@ -4,7 +4,8 @@ from unittest.mock import call, patch
 
 from django_valkey import get_valkey_connection
 
-from django.test.utils import override_settings
+from django.db import connection
+from django.test.utils import CaptureQueriesContext, override_settings
 from django.urls import reverse
 
 from temba import mailroom
@@ -52,6 +53,56 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 ("Labels", ["Important (0)"]),
             ],
         )
+
+    @override_settings(ORG_LIMIT_DEFAULTS={"flows": 2})
+    def test_org_limit(self):
+        list_url = reverse("flows.flow_list")
+        create_url = reverse("flows.flow_create")
+
+        flow1 = self.create_flow("Flow 1")
+        editor_url = reverse("flows.flow_editor", args=[flow1.uuid])
+        self.login(self.admin)
+
+        # below the limit everything is offered as usual
+        self.assertContentMenu(list_url, self.admin, ["New Flow", "New Label", "Import", "Export"])
+        self.assertContentMenu(
+            editor_url,
+            self.admin,
+            ["Start", "Interrupt", "Results", "-", "Edit", "Copy", "Delete", "-", "Export Definition"],
+        )
+        response = self.client.get(create_url)
+        self.assertFalse(response.context["limit_reached"])
+
+        self.create_flow("Flow 2")
+
+        # at the limit the create option disappears and the modal explains why
+        self.assertContentMenu(list_url, self.admin, ["New Label", "Import", "Export"])
+        response = self.client.get(create_url)
+        self.assertTrue(response.context["limit_reached"])
+        self.assertContains(response, "You have reached the per-workspace limit")
+
+        # as does copy, and posting to it anyway is refused
+        self.assertContentMenu(
+            editor_url,
+            self.admin,
+            ["Start", "Interrupt", "Results", "-", "Edit", "Delete", "-", "Export Definition"],
+        )
+
+        response = self.client.post(reverse("flows.flow_copy", args=[flow1.id]))
+        self.assertRedirect(response, editor_url)
+        self.assertEqual(2, self.org.flows.filter(is_active=True).count())
+
+        # archived flows still count against the limit but released ones don't
+        flow1.release(self.admin)
+
+        self.assertContentMenu(list_url, self.admin, ["New Flow", "New Label", "Import", "Export"])
+
+        # the limit check is only evaluated once per request even though both the menu and the context need it
+        with CaptureQueriesContext(connection) as captured:
+            self.client.get(list_url)
+
+        limit_queries = [q for q in captured.captured_queries if q["sql"].startswith('SELECT COUNT(*) AS "__count"')]
+        self.assertEqual(1, len(limit_queries))
 
     def test_create(self):
         create_url = reverse("flows.flow_create")
@@ -893,7 +944,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # agents can't access
         self.login(self.agent)
         response = self.client.post(revisions_url, definition, content_type="application/json")
-        self.assertEqual(302, response.status_code)
+        self.assertPermissionDenied(response)
 
         # posting the unchanged definition is a no-op — no new revision created
         self.login(self.admin)
@@ -2009,7 +2060,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # agents don't have permission to change the language
         self.login(self.agent)
         response = self.client.post(change_url, {"language": "spa"}, content_type="application/json")
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         self.login(self.admin)
 

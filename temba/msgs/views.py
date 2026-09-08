@@ -786,7 +786,8 @@ class MsgCRUDL(SmartCRUDL):
             return (
                 super()
                 .get_queryset(**kwargs)
-                .filter(labels=self.label, visibility=Msg.VISIBILITY_VISIBLE)
+                .filter(labels=self.label)
+                .exclude(folder__in=(Msg.FOLDER_ARCHIVED, Msg.FOLDER_DELETED))
                 .prefetch_related("labels")
             )
 

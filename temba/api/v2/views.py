@@ -2328,9 +2328,7 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
 
             return self.folder.get_queryset(org, after=after, before=before)
         else:
-            return self.model.objects.filter(
-                org=org, visibility__in=(Msg.VISIBILITY_VISIBLE, Msg.VISIBILITY_ARCHIVED)
-            ).exclude(status=Msg.STATUS_PENDING)
+            return self.model.objects.filter(org=org).exclude(folder__in=(Msg.FOLDER_PENDING, Msg.FOLDER_DELETED))
 
     def filter_queryset(self, queryset):
         params = self.request.query_params
@@ -2358,8 +2356,9 @@ class MessagesEndpoint(ListAPIMixin, WriteAPIMixin, BaseEndpoint):
             else:
                 queryset = queryset.none()
 
-        # filter by label name/uuid (optional)
+        # filter by label name/uuid (optional, deprecated)
         if label_ref := params.get("label"):
+            record_deprecated(org, "messages#filter:label")
             label_filter = Q(name=label_ref)
             if is_uuid(label_ref):
                 label_filter |= Q(uuid=label_ref)
@@ -2795,8 +2794,6 @@ class RunsEndpoint(ListAPIMixin, BaseEndpoint):
      * **modified_on** - when this run was last modified (datetime), filterable as `before` and `after`.
      * **exited_on** - the datetime when this run exited or null if it is still active (datetime).
      * **exit_type** - how the run ended, one of `interrupted`, `completed`, `expired`.
-
-    Note that you cannot filter by `flow` and `contact` at the same time.
 
     Example:
 

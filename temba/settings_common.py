@@ -402,7 +402,6 @@ PERMISSIONS = {
 
 # assigns the permissions that each group should have
 GROUP_PERMISSIONS = {
-    "Dashboard": ("orgs.org_dashboard",),
     "Granters": ("orgs.org_grant",),
     "Administrators": (
         "ai.llm.*",
@@ -900,7 +899,9 @@ GLOBAL_VALUE_SIZE = 10_000  # max length of global values
 
 ORG_LIMIT_DEFAULTS = {
     "channels": 10,
+    "contacts": 50_000_000,
     "fields": 250,
+    "flows": 10_000,
     "globals": 250,
     "groups": 250,
     "knowledge": 10,

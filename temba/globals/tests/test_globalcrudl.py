@@ -122,11 +122,11 @@ class GlobalCRUDLTest(TembaTest, CRUDLTestMixin):
         # can't view update form for global in other org
         update_url = reverse("globals.global_update", args=[self.other_org_global.id])
         response = self.client.get(update_url)
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         # can't update global in other org
         response = self.client.post(update_url, {"value": "436734573"})
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         # global should be unchanged
         self.other_org_global.refresh_from_db()

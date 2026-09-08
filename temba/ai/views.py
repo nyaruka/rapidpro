@@ -228,7 +228,7 @@ class LLMCRUDL(SmartCRUDL):
             return super().derive_queryset(**kwargs).filter(is_system=False)
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("ai.llm_connect") and not self.is_limit_reached():
+            if self.has_org_perm("ai.llm_connect") and not self.is_limit_reached:
                 if any(t.is_available_to(self.request.org, self.request.user) for t in LLM.get_types()):
                     menu.add_modax(_("New Model"), "new-model", reverse("ai.llm_connect"), title=_("New Model"))
 

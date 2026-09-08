@@ -93,7 +93,7 @@ class AndroidTypeTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(
             reverse("channels.types.android.claim"), dict(claim_code=android1.claim_code, phone_number="0788123123")
         )
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         # try to claim with an invalid phone number
         self.login(self.admin)

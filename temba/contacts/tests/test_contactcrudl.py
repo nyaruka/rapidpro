@@ -420,9 +420,9 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         response = self.requestView(reverse("contacts.contact_group", args=["21343253"]), self.admin)
         self.assertEqual(404, response.status_code)
 
-        # if a user tries to access a group in another org, send them to the login page
+        # if a user tries to access a group in another org, they get a 403
         response = self.requestView(group3_url, self.admin)
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         # if the user has access to that org, we redirect to the switch page
         self.org2.add_user(self.admin, OrgRole.ADMINISTRATOR)
@@ -1790,7 +1790,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
         # can't interrupt contact in other org
         other_contact_interrupt = reverse("contacts.contact_interrupt", args=[other_org_contact.uuid])
         response = self.client.post(other_contact_interrupt)
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         # contact should be unchanged
         other_org_contact.refresh_from_db()
@@ -1811,7 +1811,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # can't delete if just agent
         response = self.client.post(delete_url, {"uuid": contact.uuid})
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         self.login(self.admin)
 

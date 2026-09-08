@@ -13,7 +13,7 @@ class OrgPermsMixinTest(TembaTest):
 
         # no agent role access to this specific view
         self.login(self.agent)
-        self.assertLoginRedirect(self.client.get(create_url))
+        self.assertPermissionDenied(self.client.get(create_url))
 
         # editor role does have access tho
         self.login(self.editor)
@@ -21,7 +21,7 @@ class OrgPermsMixinTest(TembaTest):
 
         # staff can't access without org
         self.login(self.customer_support)
-        self.assertLoginRedirect(self.client.get(create_url))
+        self.assertPermissionDenied(self.client.get(create_url))
 
         self.login(self.customer_support, choose_org=self.org)
         self.assertEqual(200, self.client.get(create_url).status_code)
@@ -70,10 +70,10 @@ class OrgPermsMixinTest(TembaTest):
 
         # no agent role access to these views
         self.login(self.agent)
-        self.assertLoginRedirect(self.client.get(org1_read_url))
-        self.assertLoginRedirect(self.client.get(org1_update_url))
-        self.assertLoginRedirect(self.client.get(org2_read_url))
-        self.assertLoginRedirect(self.client.get(org2_update_url))
+        self.assertPermissionDenied(self.client.get(org1_read_url))
+        self.assertPermissionDenied(self.client.get(org1_update_url))
+        self.assertPermissionDenied(self.client.get(org2_read_url))
+        self.assertPermissionDenied(self.client.get(org2_update_url))
 
         # editor does have access tho for contacts in their org
         self.login(self.editor)

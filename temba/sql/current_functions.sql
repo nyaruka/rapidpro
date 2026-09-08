@@ -326,9 +326,9 @@ CREATE OR REPLACE FUNCTION temba_msg_labels_on_delete() RETURNS TRIGGER AS $$
 BEGIN
     -- add negative label count for all deleted rows
     INSERT INTO msgs_labelcount("label_id", "is_archived", "count", "is_squashed")
-    SELECT o.label_id, m.visibility != 'V', -count(*), FALSE FROM oldtab o
+    SELECT o.label_id, m.folder IN ('A', 'D'), -count(*), FALSE FROM oldtab o
     INNER JOIN msgs_msg m ON m.id = o.msg_id
-    GROUP BY o.label_id, m.visibility != 'V';
+    GROUP BY o.label_id, m.folder IN ('A', 'D');
 
     RETURN NULL;
 END;
@@ -341,9 +341,9 @@ CREATE OR REPLACE FUNCTION temba_msg_labels_on_insert() RETURNS TRIGGER AS $$
 BEGIN
     -- add label count for all new rows
     INSERT INTO msgs_labelcount("label_id", "is_archived", "count", "is_squashed")
-    SELECT n.label_id, m.visibility != 'V', count(*), FALSE FROM newtab n
+    SELECT n.label_id, m.folder IN ('A', 'D'), count(*), FALSE FROM newtab n
     INNER JOIN msgs_msg m ON m.id = n.msg_id
-    GROUP BY n.label_id, m.visibility != 'V';
+    GROUP BY n.label_id, m.folder IN ('A', 'D');
 
     RETURN NULL;
 END;
@@ -359,7 +359,7 @@ BEGIN
     IF NEW.direction = 'I' AND NEW.status NOT IN ('P', 'H') THEN
       RAISE EXCEPTION 'Incoming messages can only be PENDING or HANDLED';
     END IF;
-    IF NEW.direction = 'O' AND NEW.visibility = 'A' THEN
+    IF NEW.direction = 'O' AND (NEW.visibility = 'A' OR NEW.folder = 'A') THEN
       RAISE EXCEPTION 'Outgoing messages cannot be archived';
     END IF;
   END IF;
@@ -436,18 +436,20 @@ BEGIN
 
     -- add negative old-state label counts for all messages being archived/restored
     INSERT INTO msgs_labelcount("label_id", "is_archived", "count", "is_squashed")
-    SELECT ml.label_id, o.visibility != 'V', -count(*), FALSE FROM oldtab o
+    SELECT ml.label_id, o.folder IN ('A', 'D'), -count(*), FALSE FROM oldtab o
     INNER JOIN newtab n ON n.id = o.id
     INNER JOIN msgs_msg_labels ml ON ml.msg_id = o.id
-    WHERE (o.visibility = 'V' AND n.visibility != 'V') or (o.visibility != 'V' AND n.visibility = 'V')
+    WHERE (o.folder NOT IN ('A', 'D') AND n.folder IN ('A', 'D'))
+       OR (o.folder IN ('A', 'D') AND n.folder NOT IN ('A', 'D'))
     GROUP BY 1, 2;
 
     -- add new-state label counts for all messages being archived/restored
     INSERT INTO msgs_labelcount("label_id", "is_archived", "count", "is_squashed")
-    SELECT ml.label_id, n.visibility != 'V', count(*), FALSE FROM newtab n
+    SELECT ml.label_id, n.folder IN ('A', 'D'), count(*), FALSE FROM newtab n
     INNER JOIN oldtab o ON o.id = n.id
     INNER JOIN msgs_msg_labels ml ON ml.msg_id = n.id
-    WHERE (o.visibility = 'V' AND n.visibility != 'V') or (o.visibility != 'V' AND n.visibility = 'V')
+    WHERE (o.folder NOT IN ('A', 'D') AND n.folder IN ('A', 'D'))
+       OR (o.folder IN ('A', 'D') AND n.folder NOT IN ('A', 'D'))
     GROUP BY 1, 2;
 
     -- add new flow activity counts for incoming messages now marked as handled by a flow

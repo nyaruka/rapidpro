@@ -11,7 +11,7 @@ from django.db.models import Max, Min
 #
 # So this works by comparison rather than by absence: recompute the folder every message should have and write it
 # wherever it disagrees with what's stored, which covers the never-written and the stale cases in one pass without
-# needing to know which messages fall into which. The CASE mirrors Msg.derive_folder, including its precedence: being
+# needing to know which messages fall into which. The CASE mirrors the folder derivation mailroom and courier implement, including its precedence: being
 # deleted, and then being unhandled, both come before the user facing folders, so that a message which is archived or
 # deleted whilst still pending doesn't land in Archived.
 #

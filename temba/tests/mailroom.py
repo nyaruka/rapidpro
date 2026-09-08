@@ -829,6 +829,33 @@ def create_contact_locally(
     return contact
 
 
+def derive_msg_folder(msg) -> str:
+    """
+    Derives the folder for a message from its state, as mailroom and courier do when they write it. In particular this
+    pins down the precedence, which matters for states that fall outside the user facing folders entirely: a message
+    can be archived or deleted while still pending, and such messages must not appear in the Archived folder.
+    """
+
+    if msg.visibility in (Msg.VISIBILITY_DELETED_BY_USER, Msg.VISIBILITY_DELETED_BY_SENDER):
+        return Msg.FOLDER_DELETED
+
+    if msg.direction == Msg.DIRECTION_IN:
+        if msg.status != Msg.STATUS_HANDLED:
+            return Msg.FOLDER_PENDING
+        if msg.visibility == Msg.VISIBILITY_ARCHIVED:
+            return Msg.FOLDER_ARCHIVED
+        return Msg.FOLDER_HANDLED if msg.flow_id else Msg.FOLDER_INBOX
+    elif msg.visibility == Msg.VISIBILITY_VISIBLE:
+        if msg.status in (Msg.STATUS_INITIALIZING, Msg.STATUS_QUEUED, Msg.STATUS_ERRORED):
+            return Msg.FOLDER_OUTBOX
+        elif msg.status in (Msg.STATUS_WIRED, Msg.STATUS_SENT, Msg.STATUS_DELIVERED, Msg.STATUS_READ):
+            return Msg.FOLDER_SENT
+        elif msg.status == Msg.STATUS_FAILED:
+            return Msg.FOLDER_FAILED
+
+    raise AssertionError(f"unable to derive folder for msg #{msg.id}")
+
+
 def delete_msgs(msgs):
     """
     Simulates mailroom soft deleting the given incoming messages - clearing their content and labels as well as
@@ -844,7 +871,7 @@ def delete_msgs(msgs):
             continue
 
         msg.visibility = Msg.VISIBILITY_DELETED_BY_USER
-        msg.folder = msg.derive_folder()
+        msg.folder = derive_msg_folder(msg)
         msg.text = ""
         msg.attachments = []
         msg.save(update_fields=("visibility", "folder", "text", "attachments"))
@@ -862,7 +889,7 @@ def update_msgs_visibility(msgs, from_visibility: str, to_visibility: str):
             continue
 
         msg.visibility = to_visibility
-        msg.folder = msg.derive_folder()
+        msg.folder = derive_msg_folder(msg)
         msg.modified_on = timezone.now()
         msg.save(update_fields=("visibility", "folder", "modified_on"))
 

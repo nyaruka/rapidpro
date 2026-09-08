@@ -479,10 +479,10 @@ class ChannelCRUDL(SmartCRUDL):
             if obj.type.config_ui:
                 menu.add_link(_("Configuration"), reverse("channels.channel_configuration", args=[obj.uuid]))
 
-            if obj.type.has_logs:
+            if obj.type.has_logs and self.has_org_perm("channels.channel_logs"):
                 menu.add_link(_("Logs"), reverse("channels.channel_logs_list", args=[obj.uuid]))
 
-            if obj.type.template_type:
+            if obj.type.template_type and self.has_org_perm("request_logs.httplog_list"):
                 menu.add_link(_("Template Logs"), reverse("request_logs.httplog_channel", args=[obj.uuid]))
 
             if self.has_org_perm("channels.channel_update"):

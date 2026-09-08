@@ -44,6 +44,7 @@ from .mailroom import (
     create_broadcast,
     create_contact_locally,
     create_flowstart,
+    derive_msg_folder,
     resolve_destination,
     set_mocks,
     update_field_locally,
@@ -441,7 +442,7 @@ class TembaTest(SmartminTest):
         )
 
         # mailroom and courier write the folder when they write the message
-        msg.folder = msg.derive_folder()
+        msg.folder = derive_msg_folder(msg)
         msg.save()
 
         return msg
@@ -828,6 +829,13 @@ class TembaTest(SmartminTest):
             if toast["level"] == level and toast["text"] == text:
                 return
         self.fail(f"Toast '{text}'@{level} not found: {toasts}")
+
+    def assertPermissionDenied(self, response, msg=None):
+        """
+        Asserts that the response is a 403 with the toast that the UI shows for permission denied.
+        """
+        self.assertEqual(403, response.status_code, msg=msg)
+        self.assertToast(response, "error", "You don't have permission to do that.")
 
     def assertOutbox(self, outbox_index, from_email, subject, body, recipients):
         self.assertEqual(len(mail.outbox), outbox_index + 1)

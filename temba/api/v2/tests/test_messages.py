@@ -127,12 +127,14 @@ class MessagesEndpointTest(APITest):
         # filter by invalid contact
         self.assertGet(endpoint_url + "?contact=invalid", [self.admin], results=[])
 
-        # filter by label UUID / name
+        # filter by label UUID / name (deprecated, so recorded)
         self.assertGet(endpoint_url + f"?label={label.uuid}", [self.admin], results=[frank_msg3, joe_msg3, frank_msg1])
         self.assertGet(endpoint_url + "?label=Spam", [self.admin], results=[frank_msg3, joe_msg3, frank_msg1])
+        self.assertDeprecatedRecorded("messages#filter:label", 2)
 
         # filter by invalid label
         self.assertGet(endpoint_url + "?label=invalid", [self.admin], results=[])
+        self.assertDeprecatedRecorded("messages#filter:label", 3)
 
         # filter by before (inclusive)
         self.assertGet(

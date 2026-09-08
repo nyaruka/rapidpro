@@ -5,6 +5,7 @@ from django.utils import timezone
 from temba.flows.models import Flow
 from temba.msgs.models import Msg, MsgFolder
 from temba.tests import CRUDLTestMixin, TembaTest, mock_mailroom
+from temba.tests.mailroom import derive_msg_folder
 from temba.utils.uuid import uuid7
 
 
@@ -19,21 +20,26 @@ class MsgTest(TembaTest, CRUDLTestMixin):
         self.just_joe = self.create_group("Just Joe", [self.joe])
         self.joe_and_frank = self.create_group("Joe and Frank", [self.joe, self.frank])
 
-    def test_derive_folder(self):
+    def test_folder(self):
         flow = self.create_flow("Test")
 
         def assert_folder(msg, expected):
-            self.assertEqual(expected, msg.derive_folder(), f"folder mismatch for msg #{msg.id}")
-
             # test fixtures write the folder at creation like mailroom and courier do
             self.assertEqual(expected, msg.folder, f"folder mismatch for msg #{msg.id}")
+            self.assertEqual(expected, derive_msg_folder(msg), f"folder mismatch for msg #{msg.id}")
 
         assert_folder(self.create_incoming_msg(self.joe, "Hi"), Msg.FOLDER_INBOX)
         assert_folder(self.create_incoming_msg(self.joe, "Hi", flow=flow), Msg.FOLDER_HANDLED)
         assert_folder(self.create_incoming_msg(self.joe, "Hi", visibility=Msg.VISIBILITY_ARCHIVED), Msg.FOLDER_ARCHIVED)
-        assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=Msg.STATUS_QUEUED), Msg.FOLDER_OUTBOX)
-        assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=Msg.STATUS_SENT), Msg.FOLDER_SENT)
         assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=Msg.STATUS_FAILED), Msg.FOLDER_FAILED)
+
+        # the outbox and sent folders each fold in several statuses
+        for status in (Msg.STATUS_INITIALIZING, Msg.STATUS_QUEUED, Msg.STATUS_ERRORED):
+            assert_folder(self.create_outgoing_msg(self.joe, "Hi", status=status), Msg.FOLDER_OUTBOX)
+
+        for status in (Msg.STATUS_WIRED, Msg.STATUS_SENT, Msg.STATUS_DELIVERED, Msg.STATUS_READ):
+            msg = self.create_outgoing_msg(self.joe, "Hi", status=status, sent_on=timezone.now())
+            assert_folder(msg, Msg.FOLDER_SENT)
 
         # incoming messages which haven't been handled yet are pending, whatever their visibility
         assert_folder(self.create_incoming_msg(self.joe, "Hi", status=Msg.STATUS_PENDING), Msg.FOLDER_PENDING)
@@ -49,6 +55,10 @@ class MsgTest(TembaTest, CRUDLTestMixin):
                 self.create_incoming_msg(self.joe, "Hi", status=Msg.STATUS_PENDING, visibility=visibility),
                 Msg.FOLDER_DELETED,
             )
+
+        # an outgoing message that is pending belongs to no folder - unlikely, but the database permits it
+        with self.assertRaises(AssertionError):
+            derive_msg_folder(Msg(direction=Msg.DIRECTION_OUT, status=Msg.STATUS_PENDING))
 
     def test_as_archive_json(self):
         flow = self.create_flow("Color Flow")

@@ -78,7 +78,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "is_anon",
                 "admin_groups",
                 "channels_limit",
+                "contacts_limit",
                 "fields_limit",
+                "flows_limit",
                 "globals_limit",
                 "groups_limit",
                 "knowledge_limit",
@@ -92,6 +94,12 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             list(response.context["form"].fields.keys()),
         )
 
+        # every limit type shows its default as the placeholder
+        form = response.context["form"]
+        self.assertEqual("10", form.fields["channels_limit"].widget.attrs["placeholder"])
+        self.assertEqual("50000000", form.fields["contacts_limit"].widget.attrs["placeholder"])
+        self.assertEqual("10000", form.fields["flows_limit"].widget.attrs["placeholder"])
+
         # make some changes to our org
         response = self.client.post(
             update_url,
@@ -100,7 +108,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "features": ["new_orgs"],
                 "is_anon": False,
                 "channels_limit": 20,
+                "contacts_limit": 100_000,
                 "fields_limit": 300,
+                "flows_limit": "",
                 "globals_limit": "",
                 "groups_limit": 400,
                 "knowledge_limit": "",
@@ -119,6 +129,36 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(self.org.get_limit(Org.LIMIT_GLOBALS), 250)  # uses default
         self.assertEqual(self.org.get_limit(Org.LIMIT_GROUPS), 400)
         self.assertEqual(self.org.get_limit(Org.LIMIT_CHANNELS), 20)
+        self.assertEqual(self.org.get_limit(Org.LIMIT_CONTACTS), 100_000)
+
+        # limits left blank aren't recorded on the org
+        self.assertEqual({"channels": 20, "contacts": 100_000, "fields": 300, "groups": 400}, self.org.limits)
+
+        # and clearing a limit removes it, so it falls back to the default
+        response = self.client.post(
+            update_url,
+            {
+                "name": "Temba II",
+                "features": ["new_orgs"],
+                "is_anon": False,
+                "channels_limit": 20,
+                "contacts_limit": "",
+                "fields_limit": 300,
+                "flows_limit": "",
+                "globals_limit": "",
+                "groups_limit": 400,
+                "knowledge_limit": "",
+                "labels_limit": "",
+                "llms_limit": "",
+                "teams_limit": "",
+                "topics_limit": "",
+            },
+        )
+        self.assertEqual(302, response.status_code)
+
+        self.org.refresh_from_db()
+        self.assertEqual({"channels": 20, "fields": 300, "groups": 400}, self.org.limits)
+        self.assertEqual(self.org.get_limit(Org.LIMIT_CONTACTS), 50_000_000)
 
         # flag org
         self.client.post(update_url, {"action": "flag"})
@@ -161,10 +201,10 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # same thing, no permission
         response = self.client.get(service_url, {"other_org": self.org.id, "next": inbox_url})
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         response = self.client.post(service_url, {"other_org": self.org.id})
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         # ok, log in as our cs rep
         self.login(self.customer_support)
@@ -276,7 +316,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(200, response.status_code)
 
         granters = Group.objects.get(name="Granters")
-        dashboard = Group.objects.get(name="Dashboard")
+        editors = Group.objects.get(name="Editors")
 
         response = self.requestView(
             update_url,
@@ -285,7 +325,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
                 "email": "eddy@textit.com",
                 "first_name": "Edward",
                 "last_name": "",
-                "groups": [granters.id, dashboard.id],
+                "groups": [granters.id, editors.id],
             },
         )
         self.assertEqual(302, response.status_code)
@@ -294,7 +334,7 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual("eddy@textit.com", self.editor.email)
         self.assertEqual("Edward", self.editor.first_name)
         self.assertEqual("", self.editor.last_name)
-        self.assertEqual({granters, dashboard}, set(self.editor.groups.all()))
+        self.assertEqual({granters, editors}, set(self.editor.groups.all()))
 
         # submit with one less group
         response = self.requestView(

@@ -95,7 +95,7 @@ class GlobalCRUDL(SmartCRUDL):
         menu_path = "/flow/globals"
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("globals.global_create") and not self.is_limit_reached():
+            if self.has_org_perm("globals.global_create") and not self.is_limit_reached:
                 menu.add_modax(
                     _("New"),
                     "new-global",

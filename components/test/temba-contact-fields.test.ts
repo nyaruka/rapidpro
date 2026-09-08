@@ -97,6 +97,9 @@ describe(TAG, () => {
       true
     );
 
+    // the save round trip is async, so wait for the response to land
+    await waitForCondition(() => fields.data.groups[0].is_dynamic === true);
+
     // the updated contact should still have is_dynamic flags added
     expect(fields.data.groups[0].is_dynamic).equals(true);
     expect(fields.data.groups[1].is_dynamic).equals(false);

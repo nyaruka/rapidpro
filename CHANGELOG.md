@@ -1,3 +1,20 @@
+v26.3.77 (2026-09-04)
+-------------------------
+ * Add icon for United Way channel type
+ * Remove mention of deprecated contact filter from runs endpoint docs
+ * Update dependencies
+
+v26.3.76 (2026-09-04)
+-------------------------
+ * Record deprecated usage of label filter on messages endpoint
+
+v26.3.75 (2026-09-04)
+-------------------------
+ * Add per-workspace limits on numbers of contacts and flows
+ * Stop reading Msg.visibility to tell whether a message is archived
+ * Remove Dashboard auth group as its permission is already part of the Administrators role
+ * Make Firebase Cloud Messaging channel type only available to staff users for creating new channels
+
 v26.3.74 (2026-09-02)
 -------------------------
  * Make Msg.folder non-null
