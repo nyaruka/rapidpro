@@ -62,8 +62,10 @@ temba-menu > div {
   display: none;
 }
 
+/* templates use the bare shadow utility on card-like boxes so give it the same
+   shadow as .card and table.list rather than tailwind's default */
 .shadow {
-  --tw-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 40px 0 rgba(0, 0, 0, 0.09);
+  --tw-shadow: var(--shadow-2);
 }
 
 temba-modax,

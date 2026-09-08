@@ -426,7 +426,7 @@ table.padded {
 }
 
 table.list {
-  @apply w-full shadow rounded-lg bg-white overflow-hidden;
+  @apply w-full shadow-card rounded-lg bg-white overflow-hidden;
 
   &.sticky {
     th {
@@ -744,7 +744,7 @@ ul.steps {
 }
 
 .card {
-  @apply rounded-lg py-6 px-6 shadow my-4 bg-white overflow-hidden transition duration-200;
+  @apply rounded-lg py-6 px-6 shadow-card my-4 bg-white overflow-hidden transition duration-200;
 
   .bleed-t {
     @apply -mt-6 mb-6;
@@ -806,7 +806,7 @@ ul.steps {
     margin-left: 0px;
     margin-right: 0px;
 
-    @apply border-0 rounded-lg shadow bg-white mb-4 p-0 overflow-hidden flex items-stretch;
+    @apply border-0 rounded-lg shadow-card bg-white mb-4 p-0 overflow-hidden flex items-stretch;
 
     &:hover {
       box-shadow: var(--widget-box-shadow-focused);
