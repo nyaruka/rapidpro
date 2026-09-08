@@ -1,3 +1,7 @@
+v26.3.81 (2026-09-08)
+-------------------------
+ * Remove the Granters permission group
+
 v26.3.80 (2026-09-08)
 -------------------------
  * Use a single design-system shadow token for cards, list tables and the shadow utility
