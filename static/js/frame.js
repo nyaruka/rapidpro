@@ -300,7 +300,7 @@ function fetchAjax(url, options, fullPage = false) {
   return fetch(toFetch, options)
     .then(function (response) {
       // permission denied responses come with a toast explaining that, anything else is unexpected
-      if (response.status === 403) {
+      if (response.status === 403 && response.headers.get('X-Temba-Toasts')) {
         showToasts(response);
         return;
       }
