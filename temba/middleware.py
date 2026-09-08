@@ -81,8 +81,8 @@ class OrgMiddleware:
                         membership.record_seen()
                         return org, False
 
-                    # global admins can access any org as a regular user
-                    elif user.is_global_admin:
+                    # members of the org's admin groups can access it as a regular user
+                    elif org.has_group_admin(user):
                         return org, False
 
                     # staff users can access any org from servicing

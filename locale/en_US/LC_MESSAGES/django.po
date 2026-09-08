@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 23:32+0000\n"
+"POT-Creation-Date: 2026-09-08 15:38+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -3635,6 +3635,9 @@ msgid "Suspended"
 msgstr ""
 
 msgid "Verified"
+msgstr ""
+
+msgid "Optional: Select groups whose members administer this workspace."
 msgstr ""
 
 msgid "Edit User"

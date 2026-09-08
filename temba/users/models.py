@@ -1,5 +1,3 @@
-from functools import cached_property
-
 import requests
 
 from django.conf import settings
@@ -7,6 +5,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserM
 from django.core.files.base import ContentFile
 from django.core.files.storage import storages
 from django.db import models
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -119,31 +118,17 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         full_name = "%s %s" % (self.first_name, self.last_name)
         return full_name.strip()
 
-    @cached_property
-    def is_global_admin(self) -> bool:
-        """
-        Returns whether this user is a global administrator, i.e. the global_admins feature is enabled and they are
-        directly in the Administrators group and so have the administrator role in every org. Fetching an org
-        membership for this user primes this to avoid an extra query.
-        """
-        from temba.orgs.models import OrgRole
-
-        if "global_admins" not in settings.FEATURES:
-            return False
-
-        return self.groups.filter(name=OrgRole.ADMINISTRATOR.group_name).exists()
-
     def get_orgs(self, request=None):
         """
-        Gets the orgs that this user has access to, which for global administrators is all active orgs. The request is
-        optional and allows the listing to be narrowed for the context of a request, e.g. by brand.
+        Gets the orgs that this user has access to, either as a member or via one of the org's admin groups. The request
+        is optional and allows the listing to be narrowed for the context of a request, e.g. by brand.
         """
-        from temba.orgs.models import Org
+        from temba.orgs.models import Org, OrgMembership
 
-        if self.is_global_admin:
-            return Org.objects.filter(is_active=True).order_by("name")
+        is_member = Exists(OrgMembership.objects.filter(org=OuterRef("id"), user=self))
+        is_group_admin = Exists(self.groups.filter(admin_orgs=OuterRef("id")))
 
-        return self.orgs.filter(is_active=True).order_by("name")
+        return Org.objects.filter(is_active=True).filter(is_member | is_group_admin).order_by("name")
 
     def get_owned_orgs(self):
         """

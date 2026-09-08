@@ -1,9 +1,6 @@
-from datetime import timezone as tzone
-
 from allauth.mfa.models import Authenticator
 
 from django.contrib.auth.models import Group
-from django.test import override_settings
 
 from temba.api.models import APIToken
 from temba.orgs.models import Org, OrgRole
@@ -63,36 +60,39 @@ class UserTest(TembaTest):
         self.assertTrue(user.is_verified())
         self.assertTrue(user.emailaddress_set.filter(email="jim@rapidpro.io", primary=True, verified=True).exists())
 
-    @override_settings(FEATURES={"locations", "global_admins"})
-    def test_global_admin(self):
-        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
-        Org.objects.create(
-            name="Inactive", timezone=tzone.utc, created_by=self.admin, modified_by=self.admin, is_active=False
-        )
+    def test_admin_groups(self):
+        admin = self.create_user("gad@textit.com")
+        group = self.create_admin_group("Global Admins", orgs=[self.org], users=[admin])
 
-        self.assertFalse(self.admin.is_global_admin)
-        self.assertTrue(global_admin.is_global_admin)
+        self.assertFalse(self.org.has_group_admin(self.admin))
+        self.assertTrue(self.org.has_group_admin(admin))
+        self.assertFalse(self.org2.has_group_admin(admin))
 
-        # global admins have access to all active orgs but don't own any
-        self.assertEqual([self.org, self.org2], list(global_admin.get_orgs().order_by("id")))
-        self.assertEqual([], global_admin.get_owned_orgs())
+        # group admins have access to the orgs of their groups but don't own any
+        self.assertEqual([self.org], list(admin.get_orgs()))
+        self.assertEqual([], admin.get_owned_orgs())
 
-        # and have the administrator role in every org without needing a membership
-        self.assertEqual(OrgRole.ADMINISTRATOR, self.org.get_user_role(global_admin))
-        self.assertIsNone(self.org.get_membership(global_admin))
-        self.assertNotIn(global_admin, self.org.get_users())
+        # and have the administrator role in those orgs without needing a membership
+        self.assertEqual(OrgRole.ADMINISTRATOR, self.org.get_user_role(admin))
+        self.assertIsNone(self.org.get_membership(admin))
+        self.assertNotIn(admin, self.org.get_users())
+        self.assertIsNone(self.org2.get_user_role(admin))
 
-        # and that overrides any explicit membership
-        self.org2.add_user(global_admin, OrgRole.AGENT)
-        self.assertEqual(OrgRole.ADMINISTRATOR, self.org2.get_user_role(global_admin))
+        # which overrides any explicit membership
+        self.org.add_user(admin, OrgRole.AGENT)
+        self.assertEqual(OrgRole.ADMINISTRATOR, self.org.get_user_role(admin))
 
-        # none of which applies if the global_admins feature isn't enabled for this deployment
-        with override_settings(FEATURES={"locations"}):
-            global_admin = User.objects.get(id=global_admin.id)
-            self.assertFalse(global_admin.is_global_admin)
-            self.assertEqual([self.org2], list(global_admin.get_orgs()))
-            self.assertIsNone(self.org.get_user_role(global_admin))
-            self.assertEqual(OrgRole.AGENT, self.org2.get_user_role(global_admin))
+        # but only in orgs where the group is an admin group
+        self.org2.add_user(admin, OrgRole.AGENT)
+        self.assertEqual(OrgRole.AGENT, self.org2.get_user_role(admin))
+        self.assertEqual([self.org, self.org2], list(admin.get_orgs().order_by("id")))
+
+        # child orgs inherit the admin groups of their parent
+        self.org.features = [Org.FEATURE_CHILD_ORGS]
+        self.org.save(update_fields=("features",))
+        child = self.org.create_new(self.admin, "Child", self.org.timezone, as_child=True)
+        self.assertEqual([group], list(child.admin_groups.all()))
+        self.assertEqual(OrgRole.ADMINISTRATOR, child.get_user_role(admin))
 
     def test_mfa(self):
         self.assertFalse(self.admin.is_mfa_enabled)
@@ -118,43 +118,44 @@ class UserTest(TembaTest):
 
     def test_has_org_perm(self):
         granter = self.create_user("jim@rapidpro.io", group_names=("Granters",))
-        global_admin = self.create_user("gad@rapidpro.io", group_names=("Administrators",))
+        group_admin = self.create_user("gad@rapidpro.io")
+        self.create_admin_group("Global Admins", orgs=[self.org], users=[group_admin])
 
         tests = (
             (
                 self.org,
                 "contacts.contact_list",
-                {self.agent: False, self.admin: True, self.admin2: False, global_admin: True},
+                {self.agent: False, self.admin: True, self.admin2: False, group_admin: True},
             ),
             (
                 self.org2,
                 "contacts.contact_list",
-                {self.agent: False, self.admin: False, self.admin2: True, global_admin: True},
+                {self.agent: False, self.admin: False, self.admin2: True, group_admin: False},
             ),
             (
                 self.org2,
                 "contacts.contact_read",
-                {self.agent: False, self.admin: False, self.admin2: True, global_admin: True},
+                {self.agent: False, self.admin: False, self.admin2: True, group_admin: False},
             ),
             (
                 self.org,
                 "orgs.org_edit",
-                {self.agent: False, self.admin: True, self.admin2: False, global_admin: True},
+                {self.agent: False, self.admin: True, self.admin2: False, group_admin: True},
             ),
             (
                 self.org2,
                 "orgs.org_edit",
-                {self.agent: False, self.admin: False, self.admin2: True, global_admin: True},
+                {self.agent: False, self.admin: False, self.admin2: True, group_admin: False},
             ),
             (
                 self.org,
                 "orgs.org_grant",
-                {self.agent: False, self.admin: False, self.admin2: False, granter: True, global_admin: False},
+                {self.agent: False, self.admin: False, self.admin2: False, granter: True, group_admin: False},
             ),
             (
                 self.org,
                 "xxx.yyy_zzz",
-                {self.agent: False, self.admin: False, self.admin2: False, global_admin: False},
+                {self.agent: False, self.admin: False, self.admin2: False, group_admin: False},
             ),
         )
         for org, perm, checks in tests:

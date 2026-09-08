@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 23:32+0000\n"
+"POT-Creation-Date: 2026-09-08 15:38+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -3662,6 +3662,9 @@ msgstr "Suspendido"
 
 msgid "Verified"
 msgstr "Verificado"
+
+msgid "Optional: Select groups whose members administer this workspace."
+msgstr "Opcional: seleccione los grupos cuyos miembros administran este espacio de trabajo."
 
 msgid "Edit User"
 msgstr "Editar usuario"

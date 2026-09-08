@@ -855,12 +855,10 @@ class OrgDeleteTest(TembaTest):
         # add editor to second org as agent
         self.org2.add_user(self.editor, OrgRole.AGENT)
 
-        # add a global admin as an explicit member of first org only
-        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
-        self.org.add_user(global_admin, OrgRole.ADMINISTRATOR)
-        self.settings_override = override_settings(FEATURES={"locations", "global_admins"})
-        self.settings_override.enable()
-        self.addCleanup(self.settings_override.disable)
+        # add a user as an explicit member of first org only but who is also a group admin of second org
+        group_admin = self.create_user("gad@textit.com")
+        self.org.add_user(group_admin, OrgRole.ADMINISTRATOR)
+        self.create_admin_group("Global Admins", orgs=[self.org2], users=[group_admin])
 
         # can't delete an org that wasn't previously released
         with self.assertRaises(AssertionError):
@@ -882,7 +880,7 @@ class OrgDeleteTest(TembaTest):
         self.assertUserReleased(self.agent)
         self.assertUserReleased(self.admin)
         self.assertUserActive(self.admin2)
-        self.assertUserActive(global_admin)  # because global admins are never released with an org
+        self.assertUserActive(group_admin)  # because they still have access to org #2
 
         delete_released_orgs()
 

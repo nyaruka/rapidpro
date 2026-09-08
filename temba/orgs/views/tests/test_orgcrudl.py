@@ -890,7 +890,6 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.login(self.admin)
         self.assertRedirect(self.client.get(check_url), reverse("orgs.org_choose"))
 
-    @override_settings(FEATURES={"locations", "global_admins"})
     def test_choose(self):
         choose_url = reverse("orgs.org_choose")
 
@@ -940,13 +939,14 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(choose_url, self.editor, post_data={"organization": self.org2.id})
         self.assertRedirect(response, "/org/start/")
 
-        # global admins without any memberships are sent to the first org by name
-        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
-        self.assertRedirect(self.requestView(choose_url, global_admin), "/org/start/")
+        # group admins without any memberships are sent to the first of their orgs by name
+        group_admin = self.create_user("gad@textit.com")
+        self.create_admin_group("Global Admins", orgs=[self.org, org4], users=[group_admin])
+        self.assertRedirect(self.requestView(choose_url, group_admin), "/org/start/")
         self.assertEqual(self.org.id, self.client.session["org_id"])
 
-        # and can choose any active org
-        response = self.requestView(choose_url, global_admin, post_data={"organization": org4.id}, choose_org=self.org)
+        # and can choose any of those orgs
+        response = self.requestView(choose_url, group_admin, post_data={"organization": org4.id}, choose_org=self.org)
         self.assertRedirect(response, "/org/start/")
         self.assertEqual(org4.id, self.client.session["org_id"])
 

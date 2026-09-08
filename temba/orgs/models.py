@@ -284,6 +284,9 @@ class Org(LegacyIDMixin, SmartModel):
     parent = models.ForeignKey("orgs.Org", on_delete=models.PROTECT, null=True, related_name="children")
     users = models.ManyToManyField(settings.AUTH_USER_MODEL, through="OrgMembership", related_name="orgs")
 
+    # auth groups whose members have the administrator role in this org without needing a membership
+    admin_groups = models.ManyToManyField(Group, related_name="admin_orgs")
+
     language = models.CharField(
         verbose_name=_("Default Language"),
         max_length=64,
@@ -336,6 +339,7 @@ class Org(LegacyIDMixin, SmartModel):
         super().__init__(*args, **kwargs)
 
         self._membership_cache = {}
+        self._group_admin_cache = {}
 
     @classmethod
     def get_unique_slug(cls, name):
@@ -404,6 +408,11 @@ class Org(LegacyIDMixin, SmartModel):
         )
 
         org.add_user(user, OrgRole.ADMINISTRATOR)
+
+        # child orgs inherit the admin groups of their parent
+        if as_child:
+            org.admin_groups.set(self.admin_groups.all())
+
         org.initialize()
         return org
 
@@ -905,33 +914,38 @@ class Org(LegacyIDMixin, SmartModel):
         """
 
         def get():
-            qs = OrgMembership.objects.filter(org=self, user=user)
-
-            # if global admins are enabled, fetch the membership along with whether the user is one so we can prime
-            # that property on the user without an extra query
-            global_admins = "global_admins" in settings.FEATURES
-            if global_admins:
-                is_global_admin = Exists(Group.objects.filter(name=OrgRole.ADMINISTRATOR.group_name, user=user))
-                qs = qs.annotate(user_is_global_admin=is_global_admin)
-
-            membership = qs.first()
-            if membership and global_admins:
-                user.is_global_admin = membership.user_is_global_admin
+            # fetch the membership along with whether the user is in one of our admin groups so we can cache that too
+            # without an extra query
+            in_admin_group = Exists(self.admin_groups.filter(user=user))
+            membership = (
+                OrgMembership.objects.filter(org=self, user=user).annotate(user_in_admin_group=in_admin_group).first()
+            )
+            if membership:
+                self._group_admin_cache[user] = membership.user_in_admin_group
             return membership
 
         if user not in self._membership_cache:
             self._membership_cache[user] = get()
         return self._membership_cache[user]
 
+    def has_group_admin(self, user: User) -> bool:
+        """
+        Returns whether the given user is an administrator of this org via one of its admin groups.
+        """
+
+        if user not in self._group_admin_cache:
+            self._group_admin_cache[user] = self.admin_groups.filter(user=user).exists()
+        return self._group_admin_cache[user]
+
     def get_user_role(self, user: User):
         """
-        Gets the role of the given user in this org (if any). Global administrators always have the administrator role
-        regardless of any explicit membership.
+        Gets the role of the given user in this org (if any). Members of the org's admin groups always have the
+        administrator role regardless of any explicit membership.
         """
 
-        membership = self.get_membership(user)  # fetched first as it primes user.is_global_admin
+        membership = self.get_membership(user)  # fetched first as it also caches the admin group check
 
-        if user.is_global_admin:
+        if self.has_group_admin(user):
             return OrgRole.ADMINISTRATOR
 
         return membership.role if membership else None
@@ -1097,9 +1111,9 @@ class Org(LegacyIDMixin, SmartModel):
         # release any user that belongs only to us
         if release_users:
             for org_user in self.users.all():
-                # check if this user is a member of any other org
-                other_orgs = org_user.orgs.filter(is_active=True).exclude(id=self.id)
-                if not other_orgs and not org_user.is_global_admin:
+                # check if this user has access to any other org
+                other_orgs = org_user.get_orgs().exclude(id=self.id)
+                if not other_orgs:
                     org_user.release(user)
 
         # remove all the org users

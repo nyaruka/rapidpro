@@ -7,7 +7,6 @@ from temba.tests import TembaTest, override_brand
 
 
 class MiddlewareTest(TembaTest):
-    @override_settings(FEATURES={"locations", "global_admins"})
     def test_org(self):
         index_url = reverse("public.public_index")
 
@@ -62,9 +61,10 @@ class MiddlewareTest(TembaTest):
         response = self.client.get(index_url)
         self.assertFalse(response.has_header("X-Temba-Workspace"))
 
-        # global admins can access any org without a membership
-        global_admin = self.create_user("gad@textit.com", group_names=("Administrators",))
-        self.login(global_admin, choose_org=self.org2)
+        # members of an org's admin groups can access it without a membership
+        group_admin = self.create_user("gad@textit.com")
+        self.create_admin_group("Global Admins", orgs=[self.org2], users=[group_admin])
+        self.login(group_admin, choose_org=self.org2)
 
         response = self.client.get(index_url)
         self.assertEqual(str(self.org2.uuid), response["X-Temba-Workspace"])
