@@ -155,6 +155,13 @@ class OrgCRUDL(SmartCRUDL):
                 widget=SelectMultipleWidget(),
                 required=False,
             )
+            admin_groups = forms.ModelMultipleChoiceField(
+                queryset=Group.objects.exclude(name__in=[r.group_name for r in OrgRole]).order_by("name"),
+                widget=SelectMultipleWidget(
+                    attrs={"placeholder": _("Optional: Select groups whose members administer this workspace.")}
+                ),
+                required=False,
+            )
 
             def __init__(self, org, *args, **kwargs):
                 super().__init__(*args, **kwargs)
@@ -189,7 +196,7 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ("name", "features", "is_anon")
+                fields = ("name", "features", "is_anon", "admin_groups")
 
         form_class = Form
         success_url = "id@staff.org_read"

@@ -61,6 +61,14 @@ class MiddlewareTest(TembaTest):
         response = self.client.get(index_url)
         self.assertFalse(response.has_header("X-Temba-Workspace"))
 
+        # members of an org's admin groups can access it without a membership
+        group_admin = self.create_user("gad@textit.com")
+        self.create_admin_group("Global Admins", orgs=[self.org2], users=[group_admin])
+        self.login(group_admin, choose_org=self.org2)
+
+        response = self.client.get(index_url)
+        self.assertEqual(str(self.org2.uuid), response["X-Temba-Workspace"])
+
         self.login(self.editor)
 
         response = self.client.get(index_url)

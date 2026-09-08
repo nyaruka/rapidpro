@@ -877,6 +877,14 @@ class EndpointsTest(APITestMixin, TembaTest):
             num_queries=NUM_BASE_QUERIES + 1,
         )
 
+        # group admins see the orgs of their groups
+        group_admin = self.create_user("gad@textit.com")
+        self.create_admin_group("Global Admins", orgs=[self.org, self.org2], users=[group_admin])
+        self.login(group_admin, choose_org=self.org)
+
+        response = self.client.get(endpoint_url, content_type="application/json", HTTP_X_FORWARDED_HTTPS="https")
+        self.assertEqual({self.org.id, self.org2.id}, {r["id"] for r in response.json()["results"]})
+
     def test_articles(self):
         endpoint_url = reverse("api.internal.articles") + ".json"
 

@@ -43,6 +43,15 @@ class OrgPermsMixinTest(TembaTest):
         self.assertEqual(200, self.client.get(create_url).status_code)
         self.assertRedirect(self.client.post(create_url, {"name": "Support"}), "hide")
 
+        # members of an org's admin groups can access and modify it without a membership
+        group_admin = self.create_user("gad@textit.com")
+        self.create_admin_group("Global Admins", orgs=[self.org2], users=[group_admin])
+        self.login(group_admin, choose_org=self.org2)
+
+        self.assertEqual(200, self.client.get(create_url).status_code)
+        self.assertRedirect(self.client.post(create_url, {"name": "Marketing"}), "hide")
+        self.assertTrue(self.org2.topics.filter(name="Marketing").exists())
+
     def test_obj_perms_mixin(self):
         contact1 = self.create_contact("Bob", phone="+18001234567", org=self.org)
         contact2 = self.create_contact("Zob", phone="+18001234567", org=self.org2)
@@ -90,4 +99,13 @@ class OrgPermsMixinTest(TembaTest):
 
         # staff still can't POST
         self.assertEqual(403, self.client.post(org1_update_url, {"name": "Bob"}).status_code)
+        self.assertEqual(404, self.client.get(org2_update_url).status_code)
+
+        # group admins have access to objects in their orgs, being redirected to switch if it's not the current org
+        group_admin = self.create_user("gad@textit.com")
+        self.create_admin_group("Global Admins", orgs=[self.org, self.org2], users=[group_admin])
+        self.login(group_admin, choose_org=self.org)
+        self.assertEqual(200, self.client.get(org1_read_url).status_code)
+        self.assertEqual(200, self.client.get(org1_update_url).status_code)
+        self.assertRedirect(self.client.get(org2_read_url), reverse("orgs.org_switch"))
         self.assertEqual(404, self.client.get(org2_update_url).status_code)

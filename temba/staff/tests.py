@@ -76,6 +76,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
                 "name",
                 "features",
                 "is_anon",
+                "admin_groups",
                 "channels_limit",
                 "contacts_limit",
                 "fields_limit",

@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserM
 from django.core.files.base import ContentFile
 from django.core.files.storage import storages
 from django.db import models
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -100,14 +101,6 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         return cls.objects.filter(email__iexact=email).first()
 
     @classmethod
-    def get_orgs_for_request(cls, request):
-        """
-        Gets the orgs that the logged in user has a membership of.
-        """
-
-        return request.user.orgs.filter(is_active=True).order_by("name")
-
-    @classmethod
     def get_system_user(cls):
         """
         Gets the system user
@@ -125,15 +118,24 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         full_name = "%s %s" % (self.first_name, self.last_name)
         return full_name.strip()
 
-    def get_orgs(self):
-        return self.orgs.filter(is_active=True).order_by("name")
+    def get_orgs(self, request=None):
+        """
+        Gets the orgs that this user has access to, either as a member or via one of the org's admin groups. The request
+        is optional and allows the listing to be narrowed for the context of a request, e.g. by brand.
+        """
+        from temba.orgs.models import Org, OrgMembership
+
+        is_member = Exists(OrgMembership.objects.filter(org=OuterRef("id"), user=self))
+        is_group_admin = Exists(self.groups.filter(admin_orgs=OuterRef("id")))
+
+        return Org.objects.filter(is_active=True).filter(is_member | is_group_admin).order_by("name")
 
     def get_owned_orgs(self):
         """
         Gets the orgs where this user is the only user.
         """
         owned_orgs = []
-        for org in self.get_orgs():
+        for org in self.orgs.filter(is_active=True):
             if not org.users.exclude(id=self.id).exists():
                 owned_orgs.append(org)
         return owned_orgs
@@ -218,12 +220,15 @@ class User(LegacyIDMixin, TembaUUIDMixin, AbstractBaseUser, PermissionsMixin):
         # release any API tokens
         self.api_tokens.update(is_active=False)
 
+        # remove from any permission groups
+        self.groups.clear()
+
         # release any orgs we own
         for org in self.get_owned_orgs():
             org.release(user, release_users=False)
 
         # remove user from all roles on other orgs
-        for org in self.get_orgs():
+        for org in self.orgs.filter(is_active=True):
             org.remove_user(self)
 
     def __str__(self):

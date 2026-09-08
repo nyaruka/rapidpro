@@ -205,6 +205,18 @@ class TembaTest(SmartminTest):
         return flow
 
     @classmethod
+    def create_admin_group(cls, name: str, orgs=(), users=()) -> Group:
+        """
+        Creates an auth group which is an admin group of the given orgs, with the given users as members
+        """
+        group = Group.objects.create(name=name)
+        for org in orgs:
+            org.admin_groups.add(group)
+        for user in users:
+            user.groups.add(group)
+        return group
+
+    @classmethod
     def create_user(cls, email, group_names=(), **kwargs):
         user = User.objects.create_user(email=email, password=cls.default_password, **kwargs)
         user.save()
