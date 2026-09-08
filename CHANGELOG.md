@@ -1,3 +1,7 @@
+v26.3.80 (2026-09-08)
+-------------------------
+ * Use a single design-system shadow token for cards, list tables and the shadow utility
+
 v26.3.79 (2026-09-08)
 -------------------------
  * Stop cards being squashed when they are direct children of the scrolling page container
