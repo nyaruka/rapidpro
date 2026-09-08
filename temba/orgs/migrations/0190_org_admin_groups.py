@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
     dependencies = [
         ("auth", "0012_alter_user_first_name_max_length"),
-        ("orgs", "0188_reset_dropped_languages"),
+        ("orgs", "0189_delete_dashboard_group"),
     ]
 
     operations = [
