@@ -1,3 +1,9 @@
+v26.3.79 (2026-09-08)
+-------------------------
+ * Stop cards being squashed when they are direct children of the scrolling page container
+ * Add admin groups to workspaces whose members are implicit administrators
+ * Use the shared shadow utility on dashboard and ticket analytics boxes to match the channel read page
+
 v26.3.78 (2026-09-08)
 -------------------------
  * Show channel type, address and activation in a details card on the channel read page
