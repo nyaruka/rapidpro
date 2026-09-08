@@ -410,11 +410,6 @@ class Org(LegacyIDMixin, SmartModel):
         )
 
         org.add_user(user, OrgRole.ADMINISTRATOR)
-
-        # child orgs inherit the admin groups of their parent
-        if as_child:
-            org.admin_groups.set(self.admin_groups.all())
-
         org.initialize()
         return org
 

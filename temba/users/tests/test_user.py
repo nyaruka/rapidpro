@@ -62,7 +62,7 @@ class UserTest(TembaTest):
 
     def test_admin_groups(self):
         admin = self.create_user("gad@textit.com")
-        group = self.create_admin_group("Global Admins", orgs=[self.org], users=[admin])
+        self.create_admin_group("Global Admins", orgs=[self.org], users=[admin])
 
         self.assertFalse(self.org.has_group_admin(self.admin))
         self.assertTrue(self.org.has_group_admin(admin))
@@ -87,12 +87,12 @@ class UserTest(TembaTest):
         self.assertEqual(OrgRole.AGENT, self.org2.get_user_role(admin))
         self.assertEqual([self.org, self.org2], list(admin.get_orgs().order_by("id")))
 
-        # child orgs inherit the admin groups of their parent
+        # child orgs don't inherit the admin groups of their parent
         self.org.features = [Org.FEATURE_CHILD_ORGS]
         self.org.save(update_fields=("features",))
         child = self.org.create_new(self.admin, "Child", self.org.timezone, as_child=True)
-        self.assertEqual([group], list(child.admin_groups.all()))
-        self.assertEqual(OrgRole.ADMINISTRATOR, child.get_user_role(admin))
+        self.assertEqual([], list(child.admin_groups.all()))
+        self.assertIsNone(child.get_user_role(admin))
 
     def test_mfa(self):
         self.assertFalse(self.admin.is_mfa_enabled)
