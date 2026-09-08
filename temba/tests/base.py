@@ -818,6 +818,13 @@ class TembaTest(SmartminTest):
                 return
         self.fail(f"Toast '{text}'@{level} not found: {toasts}")
 
+    def assertPermissionDenied(self, response, msg=None):
+        """
+        Asserts that the response is a 403 with the toast that the UI shows for permission denied.
+        """
+        self.assertEqual(403, response.status_code, msg=msg)
+        self.assertToast(response, "error", "You don't have permission to do that.")
+
     def assertOutbox(self, outbox_index, from_email, subject, body, recipients):
         self.assertEqual(len(mail.outbox), outbox_index + 1)
         email = mail.outbox[outbox_index]

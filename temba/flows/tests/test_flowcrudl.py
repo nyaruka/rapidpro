@@ -944,7 +944,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # agents can't access
         self.login(self.agent)
         response = self.client.post(revisions_url, definition, content_type="application/json")
-        self.assertEqual(302, response.status_code)
+        self.assertPermissionDenied(response)
 
         # posting the unchanged definition is a no-op — no new revision created
         self.login(self.admin)
@@ -2060,7 +2060,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # agents don't have permission to change the language
         self.login(self.agent)
         response = self.client.post(change_url, {"language": "spa"}, content_type="application/json")
-        self.assertLoginRedirect(response)
+        self.assertPermissionDenied(response)
 
         self.login(self.admin)
 

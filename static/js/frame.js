@@ -245,6 +245,16 @@ function spaRequest(url, options) {
   return fetchAjax(url, ajaxOptions, fullPage).then(hideLoading);
 }
 
+function showToasts(response) {
+  const toasts = response.headers.get('X-Temba-Toasts');
+  if (toasts) {
+    const toastEle = document.querySelector('temba-toast');
+    if (toastEle) {
+      toastEle.addMessages(JSON.parse(toasts));
+    }
+  }
+}
+
 function fetchAjax(url, options, fullPage = false) {
   // create our default options
   options = options || {};
@@ -289,18 +299,18 @@ function fetchAjax(url, options, fullPage = false) {
 
   return fetch(toFetch, options)
     .then(function (response) {
+      // permission denied responses come with a toast explaining that, anything else is unexpected
+      if (response.status === 403 && response.headers.get('X-Temba-Toasts')) {
+        showToasts(response);
+        return;
+      }
+
       if (response.status >= 400) {
         showErrorDialog();
         return;
       }
 
-      const toasts = response.headers.get('X-Temba-Toasts');
-      if (toasts) {
-        const toastEle = document.querySelector('temba-toast');
-        if (toastEle) {
-          toastEle.addMessages(JSON.parse(toasts));
-        }
-      }
+      showToasts(response);
 
       // remove our controller
       pendingRequests = pendingRequests.filter(function (controller) {

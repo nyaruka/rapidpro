@@ -66,7 +66,7 @@ class TriggerCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertLoginRedirect(self.client.get(create_url))
 
         self.login(self.agent)
-        self.assertLoginRedirect(self.client.get(create_url))
+        self.assertPermissionDenied(self.client.get(create_url))
 
         self.login(self.admin)
         response = self.client.get(create_url)

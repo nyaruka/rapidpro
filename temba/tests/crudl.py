@@ -365,11 +365,15 @@ class NoFormErrors(BaseCheck):
 
 
 class LoginRedirect(BaseCheck):
-    def __init__(self, *values):
-        self.values = values
+    """
+    Anonymous users should be redirected to login, authenticated users without permission should get a 403.
+    """
 
     def check(self, test_cls, response, msg_prefix):
-        test_cls.assertLoginRedirect(response, msg=f"{msg_prefix}: expected login redirect")
+        if response.wsgi_request.user.is_authenticated:
+            test_cls.assertPermissionDenied(response, msg=f"{msg_prefix}: expected permission denied")
+        else:
+            test_cls.assertLoginRedirect(response, msg=f"{msg_prefix}: expected login redirect")
 
 
 class StatusCode(BaseCheck):
@@ -396,8 +400,18 @@ class StaffRedirect(BaseCheck):
 
 
 class LoginRedirectOr404(BaseCheck):
+    """
+    Anonymous users should be redirected to login, authenticated users without permission should get a 403, and either
+    can get a 404 if the object doesn't exist in their org.
+    """
+
     def check(self, test_cls, response, msg_prefix):
-        if response.status_code == 302:
+        if response.wsgi_request.user.is_authenticated:
+            if response.status_code == 403:
+                test_cls.assertPermissionDenied(response, msg=f"{msg_prefix}: expected permission denied")
+            else:
+                test_cls.assertEqual(404, response.status_code, msg=f"{msg_prefix}: expected 403 or 404")
+        elif response.status_code == 302:
             test_cls.assertLoginRedirect(response, msg=f"{msg_prefix}: expected login redirect")
         else:
             test_cls.assertEqual(404, response.status_code, msg=f"{msg_prefix}: expected login redirect or 404")
