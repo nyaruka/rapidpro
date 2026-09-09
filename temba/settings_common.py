@@ -395,7 +395,7 @@ PERMISSIONS = {
     "request_logs.httplog": ("webhooks",),
     "knowledge.article": ("colors", "publish", "sort", "upload"),
     "knowledge.knowledge": ("menu", "upload"),
-    "tickets.ticket": ("assign", "menu", "note", "export", "analytics"),
+    "tickets.ticket": ("assign", "menu", "note", "export", "analytics", "analytics_export"),
     "triggers.trigger": ("archived", "type", "menu"),
 }
 
