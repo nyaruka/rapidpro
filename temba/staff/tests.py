@@ -98,7 +98,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         # every limit type shows its default as the placeholder
         form = response.context["form"]
         self.assertEqual("10", form.fields["channels_limit"].widget.attrs["placeholder"])
-        self.assertEqual("50000000", form.fields["contacts_limit"].widget.attrs["placeholder"])
+        self.assertEqual("10000000", form.fields["contacts_limit"].widget.attrs["placeholder"])
         self.assertEqual("10000", form.fields["flows_limit"].widget.attrs["placeholder"])
 
         # make some changes to our org
@@ -183,7 +183,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.org.refresh_from_db()
         self.assertEqual({"channels": 20, "fields": 300, "groups": 400}, self.org.limits)
-        self.assertEqual(self.org.get_limit(Org.LIMIT_CONTACTS), 50_000_000)
+        self.assertEqual(self.org.get_limit(Org.LIMIT_CONTACTS), 10_000_000)
 
         # flag org
         self.client.post(update_url, {"action": "flag"})
