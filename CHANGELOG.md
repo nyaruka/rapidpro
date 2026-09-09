@@ -1,3 +1,9 @@
+v26.3.82 (2026-09-09)
+-------------------------
+ * Add handling for mailroom contact limit errors and fail loudly on unhandled error domains
+ * Make staff user list filters an overridable table like the org list
+ * Add ADMIN_GROUPS setting for the groups staff can attach to workspaces
+
 v26.3.81 (2026-09-08)
 -------------------------
  * Remove the Granters permission group
