@@ -3,6 +3,7 @@ from unittest.mock import call, patch
 
 from django.urls import reverse
 
+from temba import mailroom
 from temba.contacts.models import URN, Contact
 from temba.msgs.models import Msg
 from temba.notifications.incidents.builtin import ChannelDisconnectedIncidentType
@@ -252,9 +253,11 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
             self.assertEqual(1, channel.triggers.filter(is_active=False).count())
             self.assertFalse(channel.is_active)
 
-    def test_release_android(self):
+    @mock_mailroom
+    def test_release_android(self, mr_mocks):
         android = self.claim_new_android()
         self.assertEqual("FCM111", android.config.get(Channel.CONFIG_FCM_ID))
+        mr_mocks.calls.clear()
 
         # release it
         android.release(self.admin)
@@ -263,6 +266,27 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(android.is_active)
         # and FCM ID now kept
         self.assertEqual("FCM111", android.config.get(Channel.CONFIG_FCM_ID))
+        self.assertEqual([call(android)], mr_mocks.calls["android_sync"])
+
+        # a sync failure shouldn't prevent the channel being released
+        android2 = self.claim_new_android(fcm_id="FCM222", number="0788123124")
+        mr_mocks.exception(mailroom.RequestException("android/sync", {}, MockResponse(500, '{"error": "sync failed"}')))
+        android2.release(self.admin, interrupt=False)
+        android2.refresh_from_db()
+
+        self.assertFalse(android2.is_active)
+
+        # a channel without a FCM ID (e.g. registered before FCM) can't be synced so we don't try
+        android3 = self.claim_new_android(fcm_id="FCM333", number="0788123125")
+        android3.config = {}
+        android3.save(update_fields=("config",))
+        mr_mocks.calls.clear()
+
+        android3.release(self.admin)
+        android3.refresh_from_db()
+
+        self.assertFalse(android3.is_active)
+        self.assertEqual([], mr_mocks.calls["android_sync"])
 
     def test_chart(self):
         chart_url = reverse("channels.channel_chart", args=[self.tel_channel.uuid])
