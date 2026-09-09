@@ -124,6 +124,19 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
             form_errors={"phone": "Invalid phone number."},
         )
 
+        # simulate creation failing because workspace has reached its contact limit
+        with patch("temba.contacts.models.Contact.create") as mock_create:
+            mock_create.side_effect = mailroom.ContactLimitReached(
+                "workspace has reached its limit of 100 contacts", 100
+            )
+
+            self.assertCreateSubmit(
+                create_url,
+                self.admin,
+                {"name": "Joe", "phone": "+250782222222"},
+                form_errors={"__all__": "This workspace has reached its limit of 100 contacts."},
+            )
+
         # try valid number
         self.assertCreateSubmit(
             create_url,

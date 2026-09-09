@@ -4,6 +4,7 @@ from urllib.parse import quote_plus
 from django.urls import reverse
 from django.utils import timezone
 
+from temba import mailroom
 from temba.api.v2.serializers import format_datetime
 from temba.contacts.models import Contact, ContactField, ContactGroup
 
@@ -456,6 +457,17 @@ class ContactsEndpointTest(APITest):
             self.editor,
             {"name": "Robert", "urns": ["tel:+250-78-5555555"]},
             errors={("urns", "0"): "URN is in use by another contact."},
+        )
+
+        # try to create a contact when the workspace has reached its contact limit
+        self.mr_mocks.exception(mailroom.ContactLimitReached("workspace has reached its limit of 100 contacts", 100))
+
+        self.assertPost(
+            endpoint_url,
+            self.editor,
+            {"name": "Robert", "urns": ["tel:+250-78-6666666"]},
+            errors={None: "This workspace has reached its limit of 100 contacts."},
+            status=409,
         )
 
         # try to update a contact with non-existent UUID

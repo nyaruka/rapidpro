@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-08 16:34+0000\n"
+"POT-Creation-Date: 2026-09-09 15:15+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -2918,6 +2918,10 @@ msgid "Can't query on URNs in an anonymous workspace."
 msgstr ""
 
 msgid "This query is too complex. Please simplify it and try again."
+msgstr ""
+
+#, python-format
+msgid "This workspace has reached its limit of %(limit)s contacts."
 msgstr ""
 
 msgid "Using a message template may incur additional fees from your channel provider."

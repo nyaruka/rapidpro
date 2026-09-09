@@ -11,6 +11,7 @@ from temba.utils import json
 from ..modifiers import Modifier
 from .exceptions import (
     AIServiceException,
+    ContactLimitReached,
     FlowValidationException,
     QueryValidationException,
     RequestException,
@@ -450,6 +451,8 @@ class MailroomClient:
                 raise QueryValidationException(error, code, extra)
             elif domain == "urn":
                 raise URNValidationException(error, code, extra["index"])
+            elif domain == "limit" and code == "contacts":
+                raise ContactLimitReached(error, extra["limit"])
             elif domain == "ai":
                 raise AIServiceException(error, code, extra["instructions"], extra["input"])
 
