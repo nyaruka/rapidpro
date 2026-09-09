@@ -1,3 +1,7 @@
+v26.3.83 (2026-09-09)
+-------------------------
+ * Don't fail releasing an Android channel if it can't be synced
+
 v26.3.82 (2026-09-09)
 -------------------------
  * Add handling for mailroom contact limit errors and fail loudly on unhandled error domains
