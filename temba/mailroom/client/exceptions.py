@@ -81,7 +81,7 @@ class URNValidationException(Exception):
         return self.error
 
 
-class ContactLimitReached(Exception):
+class ContactLimitReachedException(Exception):
     """
     Request that fails because the workspace has reached its limit on the number of contacts.
     """

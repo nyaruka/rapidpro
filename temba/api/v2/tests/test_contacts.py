@@ -460,7 +460,9 @@ class ContactsEndpointTest(APITest):
         )
 
         # try to create a contact when the workspace has reached its contact limit
-        self.mr_mocks.exception(mailroom.ContactLimitReached("workspace has reached its limit of 100 contacts", 100))
+        self.mr_mocks.exception(
+            mailroom.ContactLimitReachedException("workspace has reached its limit of 100 contacts", 100)
+        )
 
         self.assertPost(
             endpoint_url,

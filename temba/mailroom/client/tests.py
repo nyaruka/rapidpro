@@ -16,7 +16,7 @@ from .. import modifiers
 from .client import MailroomClient
 from .exceptions import (
     AIServiceException,
-    ContactLimitReached,
+    ContactLimitReachedException,
     FlowValidationException,
     QueryValidationException,
     RequestException,
@@ -1173,7 +1173,7 @@ class MailroomClientTest(TembaTest):
             },
         )
 
-        with self.assertRaises(ContactLimitReached) as e:
+        with self.assertRaises(ContactLimitReachedException) as e:
             self.client.contact_create(
                 self.org,
                 self.admin,
@@ -1184,6 +1184,19 @@ class MailroomClientTest(TembaTest):
         self.assertEqual("workspace has reached its limit of 50000000 contacts", e.exception.error)
         self.assertEqual(50000000, e.exception.limit)
         self.assertEqual("This workspace has reached its limit of 50,000,000 contacts.", str(e.exception))
+
+        # a 422 with an error domain we don't know about is still an error
+        mock_post.return_value = MockJsonResponse(422, {"error": "workspace limit reached", "code": "limit:groups"})
+
+        with self.assertRaises(RequestException) as e:
+            self.client.contact_create(
+                self.org,
+                self.admin,
+                ContactSpec(name="Bob", language="eng", status="active", urns=["tel:+123456789"], fields={}, groups=[]),
+                "ui",
+            )
+
+        self.assertEqual("workspace limit reached", e.exception.error)
 
         mock_post.return_value = MockJsonResponse(500, {"error": "error loading fields"})
 

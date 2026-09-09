@@ -656,7 +656,7 @@ class ContactCRUDL(SmartCRUDL):
                 error = _("In use by another contact.") if e.code == "taken" else _("Not a valid phone number.")
                 self.form.add_error("phone", error)
                 return self.form_invalid(form)
-            except mailroom.ContactLimitReached as e:
+            except mailroom.ContactLimitReachedException as e:
                 self.form.add_error(None, str(e))
                 return self.form_invalid(form)
 

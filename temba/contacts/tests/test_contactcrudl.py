@@ -126,7 +126,7 @@ class ContactCRUDLTest(CRUDLTestMixin, TembaTest):
 
         # simulate creation failing because workspace has reached its contact limit
         with patch("temba.contacts.models.Contact.create") as mock_create:
-            mock_create.side_effect = mailroom.ContactLimitReached(
+            mock_create.side_effect = mailroom.ContactLimitReachedException(
                 "workspace has reached its limit of 100 contacts", 100
             )
 
