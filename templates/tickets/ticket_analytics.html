@@ -79,16 +79,18 @@
                requireWindow
                legend>
   </temba-chart>
-  <temba-chart class="shadow mt-6"
-               header="{% trans "Response Time" %}"
-               url="{% url 'tickets.ticket_chart' 'resptime' %}"
-               dataname="Average Response"
-               colorIndex="2"
-               xtype="time"
-               ytype="duration"
-               single
-               requireWindow>
-  </temba-chart>
+  {% if not team %}
+    <temba-chart class="shadow mt-6"
+                 header="{% trans "Response Time" %}"
+                 url="{% url 'tickets.ticket_chart' 'resptime' %}"
+                 dataname="Average Response"
+                 colorIndex="2"
+                 xtype="time"
+                 ytype="duration"
+                 single
+                 requireWindow>
+    </temba-chart>
+  {% endif %}
   {% if has_teams %}
     <temba-chart class="shadow mt-6"
                  header="{% trans "Response Count" %}"
@@ -156,8 +158,12 @@
             return;
           }
           tbody.innerHTML = data.results.map(function(user) {
-            return '<tr><td><a href="/ticket/all/?assignee=' + user.uuid + '">' +
-              escapeHtml(user.name) + '</a></td><td>' + user.replies.toLocaleString() + '</td></tr>';
+            {% if team %}
+              var name = escapeHtml(user.name);
+            {% else %}
+              var name = '<a href="/ticket/all/?assignee=' + user.uuid + '">' + escapeHtml(user.name) + '</a>';
+            {% endif %}
+            return '<tr><td>' + name + '</td><td>' + user.replies.toLocaleString() + '</td></tr>';
           }).join("");
         })
         .catch(function() {
