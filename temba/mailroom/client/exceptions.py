@@ -81,6 +81,19 @@ class URNValidationException(Exception):
         return self.error
 
 
+class ContactLimitReachedException(Exception):
+    """
+    Request that fails because the workspace has reached its limit on the number of contacts.
+    """
+
+    def __init__(self, error: str, limit: int):
+        self.error = error
+        self.limit = limit
+
+    def __str__(self):
+        return _("This workspace has reached its limit of %(limit)s contacts.") % {"limit": f"{self.limit:,}"}
+
+
 class AIServiceException(Exception):
     """
     Request that fails because an LLM service error

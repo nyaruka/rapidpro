@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-08 16:34+0000\n"
+"POT-Creation-Date: 2026-09-09 15:15+0000\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -2945,6 +2945,10 @@ msgstr "No se pueden consultar URN en un workspace anónimo."
 
 msgid "This query is too complex. Please simplify it and try again."
 msgstr "Esta consulta es demasiado compleja. Simplifíquela y vuelva a intentarlo."
+
+#, python-format
+msgid "This workspace has reached its limit of %(limit)s contacts."
+msgstr "Este workspace ha alcanzado su límite de %(limit)s contactos."
 
 msgid "Using a message template may incur additional fees from your channel provider."
 msgstr "El uso de una plantilla de mensaje puede generar cargos adicionales de su proveedor de canal."

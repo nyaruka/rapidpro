@@ -232,6 +232,8 @@ class WriteAPIMixin:
                     output = serializer.save()
                 except mailroom.URNValidationException as e:
                     return Response(serializer.urn_exception(e), status=status.HTTP_400_BAD_REQUEST)
+                except mailroom.ContactLimitReachedException as e:
+                    return Response({"detail": str(e)}, status=status.HTTP_409_CONFLICT)
 
                 self.post_save(output)
                 return self.render_write_response(output, context)
