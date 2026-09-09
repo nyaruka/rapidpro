@@ -183,13 +183,17 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
     def test_analytics(self):
         analytics_url = reverse("tickets.ticket_analytics")
 
-        self.assertRequestDisallowed(analytics_url, [None, self.agent])
+        self.assertRequestDisallowed(analytics_url, [None])
 
         # should be able to fetch analytics
         response = self.assertReadFetch(analytics_url, [self.editor, self.admin])
         self.assertEqual(200, response.status_code)
         self.assertContains(response, "Analytics")
         self.assertContains(response, "Tickets Opened")
+        self.assertContains(response, "Response Time")
+        self.assertContains(response, "/ticket/all/?assignee=")
+        self.assertIsNone(response.context["team"])
+        self.assertContentMenu(analytics_url, self.admin, ["Export Raw"])
 
         # the search button is part of the tickets section menu so search has to be mounted here too
         self.assertContains(response, "<temba-ticket-search")
@@ -198,12 +202,27 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertFalse(response.context["has_teams"])
         self.assertNotContains(response, 'dataname="Teams"')
 
+        # agents see analytics scoped to their team, so no response time chart (not tracked per team), no raw export
+        # and no links from the leaderboard to other agents' tickets
+        response = self.assertReadFetch(analytics_url, [self.agent])
+        self.assertEqual(self.org.default_team, response.context["team"])
+        self.assertContains(response, "Tickets Opened")
+        self.assertNotContains(response, "Response Time")
+        self.assertNotContains(response, "/ticket/all/?assignee=")
+        self.assertContentMenu(analytics_url, self.agent, [])
+
         self.org.features = [Org.FEATURE_TEAMS]
         self.org.save(update_fields=("features",))
 
         response = self.assertReadFetch(analytics_url, [self.admin])
         self.assertTrue(response.context["has_teams"])
         self.assertContains(response, 'dataname="Teams"')
+
+        # agents only see their own team so response count chart is never split by team
+        response = self.assertReadFetch(analytics_url, [self.agent2])
+        self.assertEqual(self.sales_only, response.context["team"])
+        self.assertFalse(response.context["has_teams"])
+        self.assertNotContains(response, 'dataname="Teams"')
 
         # should not be able to post to it
         response = self.client.post(analytics_url)
@@ -263,16 +282,21 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
                 "Unassigned (1)",
                 "All (4)",
                 ("Topics", ["General (2)", "Sales (2)", "Support (0)"]),
+                "Analytics",
                 "Search",
             ],
         )
         self.assertPageMenu(
-            menu_url, self.agent2, ["My Tickets (0)", "Unassigned (0)", "All (2)", ("Topics", ["Sales (2)"])]
+            menu_url,
+            self.agent2,
+            ["My Tickets (0)", "Unassigned (0)", "All (2)", ("Topics", ["Sales (2)"]), "Analytics"],
         )
 
         # agent3's assigned ticket isn't counted because it's not in a topic they can access
         self.assertPageMenu(
-            menu_url, self.agent3, ["My Tickets (0)", "Unassigned (0)", "All (0)", ("Topics", ["Support (0)"])]
+            menu_url,
+            self.agent3,
+            ["My Tickets (0)", "Unassigned (0)", "All (0)", ("Topics", ["Support (0)"]), "Analytics"],
         )
 
     def test_folder(self):
@@ -873,8 +897,37 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
+        # agent on a team with all topics sees the same as admins
+        self.login(self.agent)
+
+        response = self.client.get(opened_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(
+            [
+                {"label": "<Unknown>", "data": [1, 0]},
+                {"label": "Cats", "data": [3, 5]},
+                {"label": "Dogs", "data": [2, 4]},
+            ],
+            response.json()["data"]["datasets"],
+        )
+
+        # agent on a topic-limited team only sees openings in their team's topics
+        self.sales_only.topics.add(cats)
+        self.login(self.agent2)
+
+        response = self.client.get(opened_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(
+            {
+                "period": ["2024-03-01", "2024-05-01"],
+                "data": {"labels": ["2024-04-25", "2024-04-26"], "datasets": [{"label": "Cats", "data": [3, 5]}]},
+            },
+            response.json(),
+        )
+
     def test_resptime_chart(self):
         opened_url = reverse("tickets.ticket_chart", args=["resptime"])
+
+        # response times aren't tracked per team so agents can't fetch them
+        self.assertRequestDisallowed(opened_url, [None, self.agent])
 
         self.login(self.admin)
 
@@ -955,10 +1008,34 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
+        # agents only see replies from their own team
+        self.login(self.agent2)
+
+        response = self.client.get(replies_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(
+            {
+                "period": ["2024-03-01", "2024-05-01"],
+                "data": {"labels": ["2024-04-25", "2024-04-26"], "datasets": [{"label": "Sales", "data": [3, 7]}]},
+            },
+            response.json(),
+        )
+
+        # including no replies at all
+        self.login(self.agent)
+
+        response = self.client.get(replies_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(
+            {
+                "period": ["2024-03-01", "2024-05-01"],
+                "data": {"labels": [], "datasets": [{"label": "All Topics", "data": []}]},
+            },
+            response.json(),
+        )
+
     def test_leaderboard(self):
         leaderboard_url = reverse("tickets.ticket_leaderboard")
 
-        self.assertRequestDisallowed(leaderboard_url, [None, self.agent])
+        self.assertRequestDisallowed(leaderboard_url, [None])
 
         self.login(self.admin)
 
@@ -994,8 +1071,25 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(str(self.editor.uuid), data["results"][2]["uuid"])
         self.assertEqual(2, data["results"][2]["replies"])
 
+        # agents only see responders from their own team
+        self.login(self.agent2)
+
+        response = self.client.get(leaderboard_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual(
+            {"results": [{"name": "agent2@textit.com", "uuid": str(self.agent2.uuid), "replies": 10}]},
+            response.json(),
+        )
+
+        self.login(self.agent)
+
+        response = self.client.get(leaderboard_url + "?since=2024-03-01&until=2024-05-01")
+        self.assertEqual({"results": []}, response.json())
+
     def test_analytics_export(self):
         export_url = reverse("tickets.ticket_analytics_export")
+
+        # raw stats are workspace-wide so agents can't export them
+        self.assertRequestDisallowed(export_url, [None, self.agent])
 
         self.login(self.admin)
 

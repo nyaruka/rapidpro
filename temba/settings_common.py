@@ -609,6 +609,7 @@ GROUP_PERMISSIONS = {
         "orgs.org_languages",
         "orgs.org_menu",
         "orgs.org_switch",
+        "tickets.ticket_analytics",
         "tickets.ticket_assign",
         "tickets.ticket_list",
         "tickets.ticket_menu",

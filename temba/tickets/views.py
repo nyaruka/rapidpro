@@ -211,6 +211,17 @@ class TeamCRUDL(SmartCRUDL):
             return context
 
 
+class TeamScopedMixin:
+    """
+    Mixin for analytics views which agent users see scoped to their team. Other users see the whole workspace.
+    """
+
+    @cached_property
+    def team(self):
+        membership = self.request.org.get_membership(self.request.user)
+        return membership.team if membership else None  # only agent memberships have a team
+
+
 class TicketCRUDL(SmartCRUDL):
     model = Ticket
     actions = (
@@ -312,21 +323,23 @@ class TicketCRUDL(SmartCRUDL):
 
             return menu
 
-    class Analytics(SpaMixin, SearchMixin, ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
+    class Analytics(TeamScopedMixin, SpaMixin, SearchMixin, ContextMenuMixin, OrgPermsMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
         title = _("Analytics")
         menu_path = "/ticket/analytics"
 
         def build_context_menu(self, menu):
-            menu.add_link(_("Export Raw"), reverse("tickets.ticket_analytics_export"))
+            if self.has_org_perm("tickets.ticket_export"):
+                menu.add_link(_("Export Raw"), reverse("tickets.ticket_analytics_export"))
 
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
-            context["has_teams"] = Org.FEATURE_TEAMS in self.request.org.features
+            context["team"] = self.team
+            context["has_teams"] = Org.FEATURE_TEAMS in self.request.org.features and not self.team
             return context
 
     class AnalyticsExport(OrgPermsMixin, SmartTemplateView):
-        permission = "tickets.ticket_analytics"
+        permission = "tickets.ticket_export"  # raw stats are org-wide so agents can't export them
 
         def render_to_response(self, context, **response_kwargs):
             num_days = self.request.GET.get("days", 90)
@@ -739,7 +752,7 @@ class TicketCRUDL(SmartCRUDL):
             self.get_object().add_note(self.request.user, note=form.cleaned_data["note"])
             return self.render_modal_response(form)
 
-    class Chart(OrgPermsMixin, ChartViewMixin, SmartTemplateView):
+    class Chart(TeamScopedMixin, OrgPermsMixin, ChartViewMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
         default_chart_period = (-timedelta(days=90), timedelta(days=1))
 
@@ -750,7 +763,13 @@ class TicketCRUDL(SmartCRUDL):
         def get_opened_chart(self, org, since, until) -> tuple:
             topics_by_id = {t.id: t.name for t in org.topics.filter(is_active=True)}
 
-            counts = org.daily_counts.period(since, until).prefix("tickets:opened:").day_totals(scoped=True)
+            counts = org.daily_counts.period(since, until).prefix("tickets:opened:")
+
+            # agents on a topic-limited team only see openings in their team's topics
+            if self.team and not self.team.all_topics:
+                counts = counts.filter(scope__in=[f"tickets:opened:{t.id}" for t in self.team.topics.all()])
+
+            counts = counts.day_totals(scoped=True)
 
             # collect all dates and values by topic
             dates_set = set()
@@ -773,6 +792,9 @@ class TicketCRUDL(SmartCRUDL):
             return [d.strftime("%Y-%m-%d") for d in labels], datasets
 
         def get_resptime_chart(self, org, since, until) -> tuple:
+            if self.team:  # response times are only tracked workspace-wide
+                raise Http404()
+
             counts = org.daily_counts.period(since, until).prefix("ticketresptime:").day_totals(scoped=True)
             totals_by_date, counts_by_date = {}, {}
             for (day, scope), count in counts.items():
@@ -796,6 +818,18 @@ class TicketCRUDL(SmartCRUDL):
             return [d.strftime("%Y-%m-%d") for d in labels], [{"label": _("Response Time"), "data": data}]
 
         def get_replies_chart(self, org, since, until) -> tuple:
+            # agents only see replies from their own team
+            if self.team:
+                counts = (
+                    org.daily_counts.period(since, until)
+                    .prefix(f"msgs:ticketreplies:{self.team.id}:")
+                    .day_totals(scoped=False)
+                )
+                labels = sorted(counts.keys())
+                return [d.strftime("%Y-%m-%d") for d in labels], [
+                    {"label": self.team.name, "data": [counts[d] for d in labels]}
+                ]
+
             teams_by_id = {t.id: t.name for t in org.teams.filter(is_active=True)}
             # Add default team (id=0) for users not assigned to specific teams
             teams_by_id[0] = _("No Team")
@@ -841,14 +875,16 @@ class TicketCRUDL(SmartCRUDL):
             elif chart == "replies":
                 return self.get_replies_chart(self.request.org, since, until)
 
-    class Leaderboard(OrgPermsMixin, ChartViewMixin, SmartTemplateView):
+    class Leaderboard(TeamScopedMixin, OrgPermsMixin, ChartViewMixin, SmartTemplateView):
         permission = "tickets.ticket_analytics"
 
         def render_to_response(self, context, **response_kwargs):
             org = self.request.org
             since, until = self.get_chart_period()
 
-            daily_counts = org.daily_counts.period(since, until).prefix("msgs:ticketreplies:")
+            # agents only see responders from their own team
+            prefix = f"msgs:ticketreplies:{self.team.id}:" if self.team else "msgs:ticketreplies:"
+            daily_counts = org.daily_counts.period(since, until).prefix(prefix)
 
             counts = (
                 daily_counts.annotate(
