@@ -1,3 +1,7 @@
+v26.3.84 (2026-09-09)
+-------------------------
+ * Lower the default workspace contact limit to 10 million
+
 v26.3.83 (2026-09-09)
 -------------------------
  * Don't fail releasing an Android channel if it can't be synced
