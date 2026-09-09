@@ -634,9 +634,13 @@ class Channel(LegacyIDMixin, TembaModel, DependencyMixin):
             # delay mailroom call for 5 seconds, so mailroom assets cache expires
             interrupt_channel_task.apply_async((self.id,), countdown=5)
 
-        # trigger the orphaned channel
-        if trigger_sync and self.is_android:
-            mailroom.get_client().android_sync(self)
+        # trigger a sync so the orphaned device learns it has been released - this needs the device's FCM registration
+        # id which older channels may not have, and is a best effort call which shouldn't block releasing the channel
+        if trigger_sync and self.is_android and self.config.get(Channel.CONFIG_FCM_ID):
+            try:
+                mailroom.get_client().android_sync(self)
+            except Exception as e:
+                logger.error(f"Unable to sync a released android channel: {str(e)}", exc_info=True)
 
         # any triggers associated with our channel get archived and released
         for trigger in self.triggers.filter(is_active=True):
