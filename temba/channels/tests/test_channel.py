@@ -270,11 +270,13 @@ class ChannelTest(TembaTest, CRUDLTestMixin):
 
         # a sync failure shouldn't prevent the channel being released
         android2 = self.claim_new_android(fcm_id="FCM222", number="0788123124")
+        mr_mocks.calls.clear()
         mr_mocks.exception(mailroom.RequestException("android/sync", {}, MockResponse(500, '{"error": "sync failed"}')))
         android2.release(self.admin, interrupt=False)
         android2.refresh_from_db()
 
         self.assertFalse(android2.is_active)
+        self.assertEqual([call(android2)], mr_mocks.calls["android_sync"])
 
         # a channel without a FCM ID (e.g. registered before FCM) can't be synced so we don't try
         android3 = self.claim_new_android(fcm_id="FCM333", number="0788123125")
