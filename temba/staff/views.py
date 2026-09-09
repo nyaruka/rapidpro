@@ -156,7 +156,7 @@ class OrgCRUDL(SmartCRUDL):
                 required=False,
             )
             admin_groups = forms.ModelMultipleChoiceField(
-                queryset=Group.objects.exclude(name__in=[r.group_name for r in OrgRole]).order_by("name"),
+                queryset=Group.objects.none(),
                 widget=SelectMultipleWidget(
                     attrs={"placeholder": _("Optional: Select groups whose members administer this workspace.")}
                 ),
@@ -165,6 +165,10 @@ class OrgCRUDL(SmartCRUDL):
 
             def __init__(self, org, *args, **kwargs):
                 super().__init__(*args, **kwargs)
+
+                self.fields["admin_groups"].queryset = Group.objects.filter(name__in=settings.ADMIN_GROUPS).order_by(
+                    "name"
+                )
 
                 self.limits_rows = []
                 self.add_limits_fields(org)
@@ -383,7 +387,16 @@ class UserCRUDL(SmartCRUDL):
         fields = ("email", "name", "date_joined", "2fa", "verified")
         ordering = ("-date_joined",)
         search_fields = ("email__icontains", "first_name__icontains", "last_name__icontains")
-        filters = (("all", _("All")), ("staff", _("Staff")))
+        filters = (
+            ("all", _("All"), dict()),
+            ("staff", _("Staff"), dict(is_staff=True)),
+        )
+
+        def get_filter(self):
+            obj_filter = self.request.GET.get("filter", "all")
+            for filter in self.filters:
+                if filter[0] == obj_filter:
+                    return filter
 
         def derive_menu_path(self):
             return f"/staff/users/{self.request.GET.get('filter', 'all')}"
@@ -397,9 +410,10 @@ class UserCRUDL(SmartCRUDL):
 
             qs = super().derive_queryset(**kwargs).filter(is_active=True)
 
-            obj_filter = self.request.GET.get("filter")
-            if obj_filter == "staff":
-                qs = qs.filter(is_staff=True)
+            filter = self.get_filter()
+            if filter:
+                _, _, filter_kwargs = filter
+                qs = qs.filter(**filter_kwargs)
 
             return qs.prefetch_related(
                 Prefetch("emailaddress_set", queryset=verified_email_qs, to_attr="email_verified"),
