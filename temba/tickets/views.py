@@ -329,7 +329,7 @@ class TicketCRUDL(SmartCRUDL):
         menu_path = "/ticket/analytics"
 
         def build_context_menu(self, menu):
-            if self.has_org_perm("tickets.ticket_export"):
+            if self.has_org_perm("tickets.ticket_analytics_export"):
                 menu.add_link(_("Export Raw"), reverse("tickets.ticket_analytics_export"))
 
         def get_context_data(self, **kwargs):
@@ -339,7 +339,7 @@ class TicketCRUDL(SmartCRUDL):
             return context
 
     class AnalyticsExport(OrgPermsMixin, SmartTemplateView):
-        permission = "tickets.ticket_export"  # raw stats are org-wide so agents can't export them
+        permission = "tickets.ticket_analytics_export"
 
         def render_to_response(self, context, **response_kwargs):
             num_days = self.request.GET.get("days", 90)

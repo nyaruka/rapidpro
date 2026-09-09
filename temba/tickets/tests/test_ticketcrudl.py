@@ -1091,6 +1091,11 @@ class TicketCRUDLTest(TembaTest, CRUDLTestMixin):
         # raw stats are workspace-wide so agents can't export them
         self.assertRequestDisallowed(export_url, [None, self.agent])
 
+        self.login(self.editor)
+
+        response = self.client.get(export_url)
+        self.assertEqual(200, response.status_code)
+
         self.login(self.admin)
 
         response = self.client.get(export_url)
