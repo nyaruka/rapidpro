@@ -1,6 +1,7 @@
 from allauth.mfa.models import Authenticator
 
 from django.contrib.auth.models import Group
+from django.test import override_settings
 from django.urls import reverse
 
 from temba.contacts.models import Contact
@@ -133,6 +134,30 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
 
         # limits left blank aren't recorded on the org
         self.assertEqual({"channels": 20, "contacts": 100_000, "fields": 300, "groups": 400}, self.org.limits)
+
+        # admin groups are limited to those configured for the deployment
+        global_admins = self.create_admin_group("Global Admins")
+        other_admins = self.create_admin_group("Other Admins")
+
+        with override_settings(ADMIN_GROUPS=("Global Admins",)):
+            response = self.client.get(update_url)
+            self.assertEqual([global_admins], list(response.context["form"].fields["admin_groups"].queryset))
+
+            response = self.client.post(
+                update_url, {"name": "Temba II", "is_anon": False, "admin_groups": [other_admins.id]}
+            )
+            self.assertFormError(
+                response.context["form"],
+                "admin_groups",
+                f"Select a valid choice. {other_admins.id} is not one of the available choices.",
+            )
+
+            response = self.client.post(
+                update_url, {"name": "Temba II", "is_anon": False, "admin_groups": [global_admins.id]}
+            )
+            self.assertEqual(302, response.status_code)
+
+        self.assertEqual([global_admins], list(self.org.admin_groups.all()))
 
         # and clearing a limit removes it, so it falls back to the default
         response = self.client.post(
@@ -282,6 +307,31 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.requestView(list_url + "?filter=staff", self.customer_support)
         self.assertEqual({self.customer_support}, set(response.context["object_list"]))
+
+        # deployments can configure admin groups, each of which gets a filter by membership
+        self.create_admin_group("Global Admins", users=[self.editor])
+        self.create_admin_group("Regional Admins", users=[self.agent])
+
+        with override_settings(ADMIN_GROUPS=("Global Admins", "Regional Admins")):
+            response = self.requestView(list_url + "?filter=global_admins", self.customer_support)
+            self.assertEqual({self.editor}, set(response.context["object_list"]))
+            self.assertEqual("/staff/users/global_admins", response.headers[TEMBA_MENU_SELECTION])
+            self.assertEqual(
+                [
+                    ("all", "All"),
+                    ("staff", "Staff"),
+                    ("global_admins", "Global Admins"),
+                    ("regional_admins", "Regional Admins"),
+                ],
+                [(f[0], str(f[1])) for f in response.context["filters"]],
+            )
+
+            response = self.requestView(list_url + "?filter=regional_admins", self.customer_support)
+            self.assertEqual({self.agent}, set(response.context["object_list"]))
+
+        # filters for groups which aren't configured as admin groups are ignored
+        response = self.requestView(list_url + "?filter=global_admins", self.customer_support)
+        self.assertEqual(8, len(response.context["object_list"]))
 
         response = self.requestView(list_url + "?search=admin@textit.com", self.customer_support)
         self.assertEqual({self.admin}, set(response.context["object_list"]))

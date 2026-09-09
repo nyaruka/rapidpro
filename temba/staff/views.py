@@ -11,6 +11,7 @@ from django.contrib.auth.models import Group
 from django.db.models import Prefetch
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
@@ -156,7 +157,7 @@ class OrgCRUDL(SmartCRUDL):
                 required=False,
             )
             admin_groups = forms.ModelMultipleChoiceField(
-                queryset=Group.objects.exclude(name__in=[r.group_name for r in OrgRole]).order_by("name"),
+                queryset=Group.objects.none(),
                 widget=SelectMultipleWidget(
                     attrs={"placeholder": _("Optional: Select groups whose members administer this workspace.")}
                 ),
@@ -165,6 +166,10 @@ class OrgCRUDL(SmartCRUDL):
 
             def __init__(self, org, *args, **kwargs):
                 super().__init__(*args, **kwargs)
+
+                self.fields["admin_groups"].queryset = Group.objects.filter(name__in=settings.ADMIN_GROUPS).order_by(
+                    "name"
+                )
 
                 self.limits_rows = []
                 self.add_limits_fields(org)
@@ -385,6 +390,13 @@ class UserCRUDL(SmartCRUDL):
         search_fields = ("email__icontains", "first_name__icontains", "last_name__icontains")
         filters = (("all", _("All")), ("staff", _("Staff")))
 
+        @staticmethod
+        def get_admin_group_filters() -> dict[str, str]:
+            """
+            The filters for the configured admin groups, as filter slug -> group name
+            """
+            return {slugify(name).replace("-", "_"): name for name in settings.ADMIN_GROUPS}
+
         def derive_menu_path(self):
             return f"/staff/users/{self.request.GET.get('filter', 'all')}"
 
@@ -398,8 +410,11 @@ class UserCRUDL(SmartCRUDL):
             qs = super().derive_queryset(**kwargs).filter(is_active=True)
 
             obj_filter = self.request.GET.get("filter")
+            admin_group_filters = self.get_admin_group_filters()
             if obj_filter == "staff":
                 qs = qs.filter(is_staff=True)
+            elif obj_filter in admin_group_filters:
+                qs = qs.filter(groups__name=admin_group_filters[obj_filter])
 
             return qs.prefetch_related(
                 Prefetch("emailaddress_set", queryset=verified_email_qs, to_attr="email_verified"),
@@ -409,7 +424,7 @@ class UserCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["filter"] = self.request.GET.get("filter", "all")
-            context["filters"] = self.filters
+            context["filters"] = self.filters + tuple(self.get_admin_group_filters().items())
             return context
 
         def get_2fa(self, obj):

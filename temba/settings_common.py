@@ -400,6 +400,10 @@ PERMISSIONS = {
 }
 
 
+# names of the auth groups which staff can attach to workspaces as admin groups, making their members administrators of
+# those workspaces. Each also gets a filter in the staff user list.
+ADMIN_GROUPS = ()
+
 # assigns the permissions that each group should have
 GROUP_PERMISSIONS = {
     "Administrators": (
