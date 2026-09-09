@@ -308,29 +308,10 @@ class UserCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.requestView(list_url + "?filter=staff", self.customer_support)
         self.assertEqual({self.customer_support}, set(response.context["object_list"]))
 
-        # deployments can configure admin groups, each of which gets a filter by membership
-        self.create_admin_group("Global Admins", users=[self.editor])
-        self.create_admin_group("Regional Admins", users=[self.agent])
+        self.assertEqual("/staff/users/staff", response.headers[TEMBA_MENU_SELECTION])
 
-        with override_settings(ADMIN_GROUPS=("Global Admins", "Regional Admins")):
-            response = self.requestView(list_url + "?filter=global_admins", self.customer_support)
-            self.assertEqual({self.editor}, set(response.context["object_list"]))
-            self.assertEqual("/staff/users/global_admins", response.headers[TEMBA_MENU_SELECTION])
-            self.assertEqual(
-                [
-                    ("all", "All"),
-                    ("staff", "Staff"),
-                    ("global_admins", "Global Admins"),
-                    ("regional_admins", "Regional Admins"),
-                ],
-                [(f[0], str(f[1])) for f in response.context["filters"]],
-            )
-
-            response = self.requestView(list_url + "?filter=regional_admins", self.customer_support)
-            self.assertEqual({self.agent}, set(response.context["object_list"]))
-
-        # filters for groups which aren't configured as admin groups are ignored
-        response = self.requestView(list_url + "?filter=global_admins", self.customer_support)
+        # unknown filters are ignored
+        response = self.requestView(list_url + "?filter=xxxx", self.customer_support)
         self.assertEqual(8, len(response.context["object_list"]))
 
         response = self.requestView(list_url + "?search=admin@textit.com", self.customer_support)

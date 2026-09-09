@@ -11,7 +11,6 @@ from django.contrib.auth.models import Group
 from django.db.models import Prefetch
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
-from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
@@ -388,14 +387,16 @@ class UserCRUDL(SmartCRUDL):
         fields = ("email", "name", "date_joined", "2fa", "verified")
         ordering = ("-date_joined",)
         search_fields = ("email__icontains", "first_name__icontains", "last_name__icontains")
-        filters = (("all", _("All")), ("staff", _("Staff")))
+        filters = (
+            ("all", _("All"), dict()),
+            ("staff", _("Staff"), dict(is_staff=True)),
+        )
 
-        @staticmethod
-        def get_admin_group_filters() -> dict[str, str]:
-            """
-            The filters for the configured admin groups, as filter slug -> group name
-            """
-            return {slugify(name).replace("-", "_"): name for name in settings.ADMIN_GROUPS}
+        def get_filter(self):
+            obj_filter = self.request.GET.get("filter", "all")
+            for filter in self.filters:
+                if filter[0] == obj_filter:
+                    return filter
 
         def derive_menu_path(self):
             return f"/staff/users/{self.request.GET.get('filter', 'all')}"
@@ -409,12 +410,10 @@ class UserCRUDL(SmartCRUDL):
 
             qs = super().derive_queryset(**kwargs).filter(is_active=True)
 
-            obj_filter = self.request.GET.get("filter")
-            admin_group_filters = self.get_admin_group_filters()
-            if obj_filter == "staff":
-                qs = qs.filter(is_staff=True)
-            elif obj_filter in admin_group_filters:
-                qs = qs.filter(groups__name=admin_group_filters[obj_filter])
+            filter = self.get_filter()
+            if filter:
+                _, _, filter_kwargs = filter
+                qs = qs.filter(**filter_kwargs)
 
             return qs.prefetch_related(
                 Prefetch("emailaddress_set", queryset=verified_email_qs, to_attr="email_verified"),
@@ -424,7 +423,7 @@ class UserCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             context["filter"] = self.request.GET.get("filter", "all")
-            context["filters"] = self.filters + tuple(self.get_admin_group_filters().items())
+            context["filters"] = self.filters
             return context
 
         def get_2fa(self, obj):
