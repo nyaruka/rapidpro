@@ -333,13 +333,11 @@ describe(TAG, () => {
     expect(pills.length).to.equal(1);
   });
 
-  it('dims a card whose section and articles are all drafts', async () => {
-    // Flows and everything in it unpublished; Getting Started keeps a
-    // published article under its (now draft) root, so it stays lit
+  it('dims a card whose section is a draft', async () => {
+    // Flows is unpublished while Nodes under it still is - the section
+    // decides; Getting Started holds a draft article but is published
     const drafts = ARTICLES.map((row) =>
-      ['flows', 'nodes', 'getting-started'].includes(row.uuid)
-        ? { ...row, status: 'draft' }
-        : row
+      row.uuid === 'flows' ? { ...row, status: 'draft' } : row
     );
     clearMockGets();
     mockGET(/\/api\/internal\/articles\.json/, { results: drafts });

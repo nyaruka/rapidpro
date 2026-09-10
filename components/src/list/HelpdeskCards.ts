@@ -178,11 +178,10 @@ export class HelpdeskCards extends RapidElement {
         display: block;
       }
 
-      /* a section nothing of which is published - the root and every
-         article in it a draft - contributes nothing to what agents can
-         find, so the whole card recedes rather than each row pleading
-         its own case. The controls stay live: this is a state, not a
-         lock. */
+      /* an unpublished section takes its whole card with it, whatever
+         its articles say for themselves: the section is the unit the
+         user publishes, so it's the unit that reads as off. The controls
+         stay live: this is a state, not a lock. */
       temba-card[unpublished] {
         opacity: 0.55;
       }
@@ -644,14 +643,11 @@ export class HelpdeskCards extends RapidElement {
     `;
   }
 
-  /** Whether nothing in the section is published: the root and every
-   * article under it are drafts. A draft root with published articles
-   * isn't this - those articles are still indexed on their own. */
+  /** Whether the section itself is unpublished. Its articles don't
+   * weigh in: the section is what the user switched off, so the card
+   * goes with it even while articles under it are still published. */
   private isUnpublished(group: Section): boolean {
-    return (
-      group.section.status === 'draft' &&
-      group.articles.every((article) => article.status === 'draft')
-    );
+    return group.section.status === 'draft';
   }
 
   private renderCard(group: Section, index: number): TemplateResult {
