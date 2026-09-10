@@ -14,6 +14,11 @@
 {% block fields %}
   {% if not blocker %}
     {% render_field 'title' %}
-    {% if form.language %}{% render_field 'language' %}{% endif %}
+    {% if form.description %}
+      {% render_field 'description' %}
+    {% endif %}
+    {% if form.language %}
+      {% render_field 'language' %}
+    {% endif %}
   {% endif %}
 {% endblock fields %}

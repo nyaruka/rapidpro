@@ -1,4 +1,4 @@
-import { assert, expect } from '@open-wc/testing';
+import { assert, expect, oneEvent } from '@open-wc/testing';
 import { SinonStub } from 'sinon';
 import { Article } from '../src/interfaces';
 import {
@@ -24,6 +24,7 @@ const TAG = 'temba-helpdesk-cards';
 const ENDPOINT = '/api/internal/articles.json';
 const SORT_URL = '/article/sort/';
 const PUBLISH_URL = '/article/publish/';
+const CREATE_URL = '/article/create/';
 
 // getting-started
 //   installing (draft)
@@ -34,6 +35,7 @@ const ARTICLES = [
   {
     uuid: 'getting-started',
     title: 'Getting Started',
+    description: 'Setting up and finding your way around.',
     status: 'published',
     parent: null,
     depth: 0,
@@ -370,6 +372,35 @@ describe(TAG, () => {
     expect(stack.ghostContainer).to.equal(cards.shadowRoot);
     const rows = cards.shadowRoot.querySelector('.rows') as any;
     expect(rows.ghostContainer).to.equal(cards.shadowRoot);
+  });
+
+  it('shows a section description ahead of its articles', async () => {
+    const cards = await getCards();
+    const [gettingStarted, flows] = getCardElements(cards);
+    expect(
+      gettingStarted.querySelector('.description').textContent.trim()
+    ).to.equal('Setting up and finding your way around.');
+    expect(flows.querySelector('.description')).to.not.exist;
+  });
+
+  it('offers to add an article only with somewhere to create one', async () => {
+    const cards = await getCards();
+    expect(cards.shadowRoot.querySelector('.section-add')).to.not.exist;
+
+    const creating = await getCards({ 'create-endpoint': CREATE_URL });
+    const adds = Array.from(
+      creating.shadowRoot.querySelectorAll('.section-add')
+    );
+    expect(adds.length).to.equal(2);
+
+    // the host makes the article, we say which section it goes in
+    const requested = oneEvent(creating, 'temba-article-add-requested', false);
+    (adds[1] as HTMLElement).click();
+    const event = await requested;
+    expect(event.detail.section.uuid).to.equal('flows');
+
+    // and asking doesn't collapse the card
+    expect((getCardElements(creating)[1] as any).collapsed).to.be.true;
   });
 
   it('opens an article from its row', async () => {

@@ -336,6 +336,8 @@ export interface Shortcut {
 export interface Article {
   uuid: string;
   title: string;
+  /** a section's - plain text saying what it holds; empty for an article */
+  description?: string;
   status: string;
   parent: string | null;
   depth: number;
@@ -541,6 +543,9 @@ export enum CustomEventType {
   RevisionReverted = 'temba-revision-reverted',
   RevisionsClosed = 'temba-revisions-closed',
   RowClick = 'temba-row-click',
+  /** A helpdesk card's add button was clicked - detail carries the
+   * section the new article should be filed under. */
+  ArticleAddRequested = 'temba-article-add-requested',
   ShortcutEdit = 'temba-shortcut-edit',
   ShortcutDelete = 'temba-shortcut-delete',
   SelectionChange = 'temba-selection-change',

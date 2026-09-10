@@ -139,3 +139,26 @@ class ArticleCreateForm(ArticleForm):
 
     class Meta(ArticleForm.Meta):
         fields = ("title", "language")
+
+
+class SectionForm(forms.ModelForm):
+    """
+    A section - a root of the helpdesk tree - is a heading over the articles filed under it, so it's titled and
+    described in plain text rather than written. Nothing of it is indexed, so it isn't asked its language either.
+    """
+
+    description = forms.CharField(
+        label=_("Description"),
+        required=False,
+        max_length=Article.MAX_DESCRIPTION_LEN,
+        widget=InputWidget(attrs={"widget_only": False, "textarea": True}),
+    )
+
+    def __init__(self, org, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    class Meta:
+        model = Article
+        fields = ("title", "description")
+        widgets = {"title": InputWidget(attrs={"widget_only": False})}
+        labels = {"title": _("Title")}

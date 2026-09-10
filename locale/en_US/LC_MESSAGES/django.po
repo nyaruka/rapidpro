@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 15:15+0000\n"
+"POT-Creation-Date: 2026-09-10 10:50-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
@@ -2790,6 +2790,9 @@ msgstr ""
 msgid "Body"
 msgstr ""
 
+msgid "Description"
+msgstr ""
+
 msgid "Shortcuts"
 msgstr ""
 
@@ -2844,6 +2847,9 @@ msgstr ""
 
 #, python-format
 msgid "Limit for file uploads is %s MB"
+msgstr ""
+
+msgid "New Section"
 msgstr ""
 
 msgid "New Article"
@@ -5463,7 +5469,15 @@ msgid "You have reached the limit of %(limit)s articles. You must delete existin
 msgstr ""
 
 #, python-format
-msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. Any articles beneath it will move up to take its place. There is no way to undo this. Are you sure?"
+msgid "The section <b>%(object)s</b> still holds articles. Move or delete them before deleting the section."
+msgstr ""
+
+#, python-format
+msgid "You are about to delete the section <b>%(object)s</b>. There is no way to undo this. Are you sure?"
+msgstr ""
+
+#, python-format
+msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. There is no way to undo this. Are you sure?"
 msgstr ""
 
 msgid "Delete Article"

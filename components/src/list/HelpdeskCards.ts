@@ -279,16 +279,28 @@ export class HelpdeskCards extends RapidElement {
         margin-right: 0.5em;
       }
 
-      .section-edit {
+      .section-edit,
+      .section-add {
         display: inline-flex;
         border-radius: var(--r-sm);
         padding: 2px;
         --icon-color: var(--text-3);
       }
 
-      .section-edit:hover {
+      .section-edit:hover,
+      .section-add:hover {
         background: var(--sunken);
         --icon-color: var(--text-1);
+      }
+
+      /* what the section holds, in the section's own words, leading
+         its articles */
+      .description {
+        color: var(--text-3);
+        font-size: 12.5px;
+        line-height: 1.4;
+        padding: 2px 2px 8px;
+        white-space: pre-line;
       }
 
       /* an empty card still needs a place for a drop to land */
@@ -335,6 +347,13 @@ export class HelpdeskCards extends RapidElement {
    * without the permission simply doesn't get one. */
   @property({ type: String, attribute: 'publish-endpoint' })
   publishEndpoint = '';
+
+  /** Endpoint new articles are created at. We don't post to it - the
+   * host opens its dialog when a card asks for an article - but like the
+   * others, its presence is what says the viewer may, so each card's add
+   * button is only offered when it's set. */
+  @property({ type: String, attribute: 'create-endpoint' })
+  createEndpoint = '';
 
   @property({ type: String, attribute: 'empty-message' })
   emptyMessage = 'No articles';
@@ -540,6 +559,12 @@ export class HelpdeskCards extends RapidElement {
     this.fireCustomEvent(CustomEventType.RowClick, { item: article });
   }
 
+  /** A card asked for an article. Making one is the host's dialog to
+   * open, so this only says which section it goes in. */
+  private handleAddArticle(section: Article): void {
+    this.fireCustomEvent(CustomEventType.ArticleAddRequested, { section });
+  }
+
   /**
    * Puts an article in or out of the agents' reach. Shown straight away
    * and then reconciled against the server's tree either way - it's the
@@ -706,8 +731,32 @@ export class HelpdeskCards extends RapidElement {
             }}
             ><temba-icon name=${Icon.edit} size="1"></temba-icon
           ></span>
+          ${this.createEndpoint
+            ? html`<span
+                class="section-add"
+                role="button"
+                tabindex="0"
+                aria-label="Add article"
+                @click=${(event: MouseEvent) => {
+                  // asking for an article isn't collapsing the card
+                  event.stopPropagation();
+                  this.handleAddArticle(group.section);
+                }}
+                @keydown=${(event: KeyboardEvent) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.handleAddArticle(group.section);
+                  }
+                }}
+                ><temba-icon name=${Icon.add} size="1"></temba-icon
+              ></span>`
+            : null}
           ${this.renderStatus(group.section)}
         </div>
+        ${group.section.description
+          ? html`<div class="description">${group.section.description}</div>`
+          : null}
         ${this.renderRows(group, index)}
       </temba-card>
     `;

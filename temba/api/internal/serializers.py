@@ -37,7 +37,7 @@ class ArticleReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Article
-        fields = ("uuid", "title", "status", "parent", "depth", "modified_on")
+        fields = ("uuid", "title", "description", "status", "parent", "depth", "modified_on")
 
 
 class LLMReadSerializer(serializers.ModelSerializer):

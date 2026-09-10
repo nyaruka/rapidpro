@@ -51,7 +51,15 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         # deleting rides the editor dialog's gutter, pointed at whichever article is opened
         self.assertContains(response, 'slot="gutter"')
 
-        self.assertContentMenu(list_url, self.admin, ["New"])
+        # the menu makes sections; articles are added from their section's card, which the page points at the create
+        # view for
+        self.assertContentMenu(list_url, self.admin, ["New Section"])
+        self.assertEqual(reverse("knowledge.article_create"), response.context["create_url"])
+        self.assertContains(response, "temba-article-add-requested")
+
+        response = self.requestView(list_url, self.agent)  # can view but not create
+        self.assertEqual(200, response.status_code)
+        self.assertNotIn("create_url", response.context)
 
         # nothing is opened for editing unless we've been sent here by the create modal
         self.assertNotIn("edit_article", response.context)
@@ -92,47 +100,100 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertRequestDisallowed(create_url, [None, self.agent])
 
-        # a multi-language workspace is asked which language an article is in
+        # without a section named, we're making one: titled and described in plain text, and never asked its
+        # language, since nothing of it is indexed
         self.org.set_flow_languages(self.admin, ["eng", "spa"])
-        response = self.assertCreateFetch(create_url, [self.editor, self.admin], form_fields=("title", "language"))
-        self.assertContains(response, 'name="Spanish"')
-
-        # one with a single language isn't
-        self.org.set_flow_languages(self.admin, ["eng"])
-        self.assertCreateFetch(create_url, [self.admin], form_fields=("title",))
-
-        self.org.set_flow_languages(self.admin, ["eng", "spa"])
+        response = self.assertCreateFetch(create_url, [self.editor, self.admin], form_fields=("title", "description"))
+        self.assertEqual("New Section", response.context["title"])
+        self.assertNotContains(response, 'name="Spanish"')
 
         self.assertCreateSubmit(
             create_url,
             self.admin,
-            {"title": "Getting Started", "language": "spa"},
+            {"title": "Getting Started", "description": "Setting up and finding your way around."},
             new_obj_query=Article.objects.filter(title="Getting Started", knowledge=self.helpdesk),
         )
 
-        article = Article.objects.get(title="Getting Started")
-        self.assertEqual("getting-started", article.slug)
+        section = Article.objects.get(title="Getting Started")
+        self.assertEqual("getting-started", section.slug)
+        self.assertEqual("Setting up and finding your way around.", section.description)
+        self.assertIsNone(section.parent)
+        self.assertEqual("eng", section.language)
+        self.assertEqual(Article.STATUS_DRAFT, section.status)  # new sections are drafts
+
+        # a section is complete as described, so we're just sent back to the helpdesk
+        response = self.requestView(create_url, self.admin, post_data={"title": "Flows", "description": ""})
+        self.assertEqual(302, response.status_code)
+        self.assertEqual(reverse("knowledge.article_list"), response.url)
+
+        # but not one described at length
+        response = self.requestView(
+            create_url, self.admin, post_data={"title": "Nope", "description": "x" * (Article.MAX_DESCRIPTION_LEN + 1)}
+        )
+        self.assertFormError(
+            response.context["form"],
+            "description",
+            f"Ensure this value has at most {Article.MAX_DESCRIPTION_LEN} characters (it has "
+            f"{Article.MAX_DESCRIPTION_LEN + 1}).",
+        )
+
+        # named a section, we're making an article in it - titled here and written in the editor, and a
+        # multi-language workspace is asked which language it's in
+        article_url = f"{create_url}?section={section.uuid}"
+        response = self.assertCreateFetch(article_url, [self.editor, self.admin], form_fields=("title", "language"))
+        self.assertEqual("New Article", response.context["title"])
+        self.assertContains(response, 'name="Spanish"')
+
+        # one with a single language isn't
+        self.org.set_flow_languages(self.admin, ["eng"])
+        self.assertCreateFetch(article_url, [self.admin], form_fields=("title",))
+
+        self.org.set_flow_languages(self.admin, ["eng", "spa"])
+
+        self.assertCreateSubmit(
+            article_url,
+            self.admin,
+            {"title": "Installing", "language": "spa"},
+            new_obj_query=Article.objects.filter(title="Installing", knowledge=self.helpdesk),
+        )
+
+        article = Article.objects.get(title="Installing")
+        self.assertEqual("installing", article.slug)
+        self.assertEqual(section, article.parent)
         self.assertEqual("spa", article.language)
         self.assertEqual(Article.STATUS_DRAFT, article.status)  # new articles are drafts
 
         # and we're sent back to the helpdesk, which opens the editor on what we just made
-        response = self.requestView(create_url, self.admin, post_data={"title": "Flows", "language": "eng"})
+        response = self.requestView(article_url, self.admin, post_data={"title": "Configuring", "language": "eng"})
         self.assertEqual(302, response.status_code)
         self.assertEqual(
-            f"{reverse('knowledge.article_list')}?edit={Article.objects.get(title='Flows').uuid}", response.url
+            f"{reverse('knowledge.article_list')}?edit={Article.objects.get(title='Configuring').uuid}", response.url
         )
 
+        # a section that isn't one of ours, isn't a section, or isn't a uuid at all is nowhere to file an article
+        other_org = Article.create(
+            self.org2.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK), self.admin2, "Other"
+        )
+        for bad in (other_org.uuid, article.uuid, "not-a-uuid"):
+            response = self.requestView(f"{create_url}?section={bad}", self.admin)
+            self.assertEqual(404, response.status_code)
+
         # can't create beyond the limit
-        with patch("temba.knowledge.models.Article.MAX_ARTICLES", 2):
+        with patch("temba.knowledge.models.Article.MAX_ARTICLES", 4):
             response = self.requestView(create_url, self.admin)
             self.assertContains(response, "You have reached the limit")
 
-            response = self.requestView(create_url, self.admin, post_data={"title": "Nope", "language": "eng"})
+            response = self.requestView(create_url, self.admin, post_data={"title": "Nope", "description": ""})
+            self.assertEqual(200, response.status_code)
+            self.assertFalse(Article.objects.filter(title="Nope").exists())
+
+            response = self.requestView(article_url, self.admin, post_data={"title": "Nope", "language": "eng"})
             self.assertEqual(200, response.status_code)
             self.assertFalse(Article.objects.filter(title="Nope").exists())
 
     def test_update(self):
-        article = Article.create(self.helpdesk, self.admin, "Flows")
+        section = Article.create(self.helpdesk, self.admin, "Flows", description="All about flows.")
+        article = Article.create(self.helpdesk, self.admin, "Nodes", parent=section)
 
         update_url = reverse("knowledge.article_update", args=[article.uuid])
 
@@ -203,6 +264,22 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
 
         response = self.assertUpdateFetch(update_url, [self.admin], form_fields=("title", "language", "body"))
         self.assertEqual([("eng", "English"), ("spa", "Spanish")], response.context["form"].fields["language"].choices)
+
+        # a section is described rather than written: no editor, no language, and the dialog isn't held open to
+        # the window's height for an editor it doesn't have
+        section_url = reverse("knowledge.article_update", args=[section.uuid])
+        response = self.assertUpdateFetch(section_url, [self.editor, self.admin], form_fields=("title", "description"))
+        self.assertContains(response, "All about flows.")
+        self.assertContains(response, "status-pill")
+        self.assertNotContains(response, reverse("knowledge.article_upload", args=[section.uuid]))
+        self.assertNotContains(response, "88vh")
+
+        self.assertUpdateSubmit(section_url, self.admin, {"title": "Flow Basics", "description": "The basics."})
+
+        section.refresh_from_db()
+        self.assertEqual("Flow Basics", section.title)
+        self.assertEqual("The basics.", section.description)
+        self.assertEqual("flow-basics", section.slug)
 
     def test_publish(self):
         article = Article.create(self.helpdesk, self.admin, "Flows")
@@ -466,10 +543,10 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
 
     @cleanup(s3=True)
     def test_delete(self):
-        parent = Article.create(self.helpdesk, self.admin, "Flows")
-        child = Article.create(self.helpdesk, self.admin, "Nodes", parent=parent)
+        section = Article.create(self.helpdesk, self.admin, "Flows")
+        article = Article.create(self.helpdesk, self.admin, "Nodes", parent=section)
 
-        delete_url = reverse("knowledge.article_delete", args=[parent.uuid])
+        delete_url = reverse("knowledge.article_delete", args=[article.uuid])
 
         # nobody can access if agents feature not enabled
         response = self.requestView(delete_url, self.admin)
@@ -480,12 +557,26 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRequestDisallowed(delete_url, [None, self.agent, self.admin2])
 
         response = self.assertDeleteFetch(delete_url, [self.editor, self.admin])
-        self.assertContains(response, "You are about to delete")
+        self.assertContains(response, "You are about to delete the article")
 
-        response = self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=parent, success_status=302)
+        # a section holding articles can't go - they'd be left as sections themselves
+        section_url = reverse("knowledge.article_delete", args=[section.uuid])
+        response = self.assertDeleteFetch(section_url, [self.admin])
+        self.assertContains(response, "still holds articles")
+        self.assertNotContains(response, 'type="submit"')
+
+        response = self.requestView(section_url, self.admin, post_data={})
+        self.assertEqual(200, response.status_code)
+        self.assertContains(response, "still holds articles")
+        section.refresh_from_db()
+        self.assertTrue(section.is_active)
+
+        response = self.assertDeleteSubmit(delete_url, self.admin, object_deactivated=article, success_status=302)
         self.assertEqual(reverse("knowledge.article_list"), response.url)
 
-        # the child is reparented rather than orphaned
-        child.refresh_from_db()
-        self.assertIsNone(child.parent)
-        self.assertTrue(child.is_active)
+        # emptied, the section can
+        response = self.assertDeleteFetch(section_url, [self.admin])
+        self.assertContains(response, "You are about to delete the section")
+        self.assertContains(response, 'type="submit"')
+
+        self.assertDeleteSubmit(section_url, self.admin, object_deactivated=section, success_status=302)

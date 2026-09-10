@@ -893,7 +893,7 @@ class EndpointsTest(APITestMixin, TembaTest):
         self.assertDeleteNotAllowed(endpoint_url)
 
         helpdesk = self.org.knowledge.get(knowledge_type=Knowledge.TYPE_HELPDESK)
-        flows = Article.create(helpdesk, self.admin, "Flows")
+        flows = Article.create(helpdesk, self.admin, "Flows", description="All about flows.")
         nodes = Article.create(helpdesk, self.admin, "Nodes", parent=flows)
         contacts = Article.create(helpdesk, self.admin, "Contacts")
         released = Article.create(helpdesk, self.admin, "Old", parent=flows)
@@ -916,6 +916,7 @@ class EndpointsTest(APITestMixin, TembaTest):
                 {
                     "uuid": str(flows.uuid),
                     "title": "Flows",
+                    "description": "All about flows.",
                     "status": "published",
                     "parent": None,
                     "depth": 0,
@@ -924,6 +925,7 @@ class EndpointsTest(APITestMixin, TembaTest):
                 {
                     "uuid": str(nodes.uuid),
                     "title": "Nodes",
+                    "description": "",
                     "status": "draft",
                     "parent": str(flows.uuid),
                     "depth": 1,
@@ -932,6 +934,7 @@ class EndpointsTest(APITestMixin, TembaTest):
                 {
                     "uuid": str(contacts.uuid),
                     "title": "Contacts",
+                    "description": "",
                     "status": "draft",
                     "parent": None,
                     "depth": 0,

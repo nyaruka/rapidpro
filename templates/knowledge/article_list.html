@@ -29,6 +29,7 @@
                         content-menu-endpoint="{{ request.path }}"
                         {% if sort_url %}sort-endpoint="{{ sort_url }}"{% endif %}
                         {% if publish_url %}publish-endpoint="{{ publish_url }}"{% endif %}
+                        {% if create_url %}create-endpoint="{{ create_url }}"{% endif %}
                         -temba-selection="handleContentMenuSelected(event)"
                         empty-message="{% trans "No articles" %}">
     <div slot="subtitle">
@@ -62,6 +63,16 @@
 
     onSpload(function() {
       var list = document.querySelector('#article-list');
+
+      {% if create_url %}
+      // each card offers to add an article to its section - the same create dialog the menu opens for a section,
+      // told which section the article goes in
+      list.addEventListener('temba-article-add-requested', function(event) {
+        showModax('{{ _("New Article") |escapejs }}', '{{ create_url }}?section=' + event.detail.section.uuid, {
+          id: 'new-article'
+        });
+      });
+      {% endif %}
 
       {% if org_perms.knowledge.article_update %}
       list.addEventListener('temba-row-click', function(event) {
