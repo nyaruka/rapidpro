@@ -1308,6 +1308,10 @@ class ContactImportCRUDL(SmartCRUDL):
 
                 add_to_group = self.cleaned_data["add_to_group"]
                 if add_to_group:
+                    # a rejected mode means new group was requested but isn't a choice at the group limit
+                    if "group_mode" not in self.cleaned_data:
+                        raise forms.ValidationError(_("This workspace has reached its limit of groups."))
+
                     group_mode = self.cleaned_data["group_mode"]
                     if group_mode == self.GROUP_MODE_NEW:
                         new_group_name = self.cleaned_data.get("new_group_name")
