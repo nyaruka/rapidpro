@@ -221,6 +221,16 @@ export class HelpdeskCards extends RapidElement {
         background: var(--sunken);
       }
 
+      /* a draft article recedes the way an unpublished section does -
+         but not on top of it, or rows in a dimmed card would fade twice */
+      .row.draft {
+        opacity: 0.55;
+      }
+
+      temba-card[unpublished] .row.draft {
+        opacity: 1;
+      }
+
       .row .title {
         flex: 1 1 auto;
         min-width: 0;
@@ -578,9 +588,13 @@ export class HelpdeskCards extends RapidElement {
   }
 
   private renderRow(article: Article): TemplateResult {
+    const classes = ['row'];
+    if (this.sortEndpoint) classes.push('sortable');
+    if (article.status === 'draft') classes.push('draft');
+
     return html`
       <div
-        class="row ${this.sortEndpoint ? 'sortable' : ''}"
+        class=${classes.join(' ')}
         id=${article.uuid}
         @click=${() => this.handleArticleClick(article)}
       >

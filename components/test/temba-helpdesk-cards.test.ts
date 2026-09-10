@@ -355,6 +355,14 @@ describe(TAG, () => {
     expect(flows.hasAttribute('unpublished')).to.be.false;
   });
 
+  it('dims a draft article row', async () => {
+    const cards = await getCards({ 'publish-endpoint': PUBLISH_URL });
+    await expandAll(cards);
+    const [installing, configuring] = getRows(cards, 0);
+    expect(installing.classList.contains('draft')).to.be.true;
+    expect(configuring.classList.contains('draft')).to.be.false;
+  });
+
   it('opens an article from its row', async () => {
     const cards = await getCards();
     await expandAll(cards);
