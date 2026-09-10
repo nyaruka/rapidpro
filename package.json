@@ -1,6 +1,6 @@
 {
   "name": "rapidpro",
-  "repository": "git@github.com:rapidpro/rapidpro.git",
+  "repository": "git@github.com:nyaruka/temba.git",
   "license": "AGPL-3.0",
   "lint-staged": {
     "*.{js,jsx,css,md}": [

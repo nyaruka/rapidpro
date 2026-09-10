@@ -53,7 +53,7 @@ dependencies = [
 ]
 
 [project.urls]
-repository = "http://github.com/rapidpro/rapidpro"
+repository = "https://github.com/nyaruka/temba"
 
 
 [dependency-groups]

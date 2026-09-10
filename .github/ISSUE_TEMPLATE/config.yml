@@ -2,8 +2,8 @@ blank_issues_enabled: true
 
 contact_links:
   - name: Feature Requests
-    url: https://github.com/nyaruka/rapidpro/discussions/categories/ideas
+    url: https://github.com/nyaruka/temba/discussions/categories/ideas
     about: Suggest a new feature to discuss before beginning development
   - name: Questions
-    url: https://github.com/nyaruka/rapidpro/discussions/categories/q-a
+    url: https://github.com/nyaruka/temba/discussions/categories/q-a
     about: Ask general questions about RapidPro
