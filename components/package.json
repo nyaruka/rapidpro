@@ -6,9 +6,9 @@
   "author": "Nyaruka <code@nyaruka.com>",
   "main": "dist/index.js",
   "module": "dist/index.js",
-  "homepage": "https://github.com/rapidpro/rapidpro/",
+  "homepage": "https://github.com/nyaruka/temba/",
   "license": "AGPL-3.0-only",
-  "repository": "https://github.com/rapidpro/rapidpro/",
+  "repository": "https://github.com/nyaruka/temba/",
   "scripts": {
     "build": "rimraf dist && bun run svg && tsc && rollup -c rollup.components.mjs ",
     "build-wc": "rollup -c rollup.webchat.mjs",
