@@ -1,3 +1,8 @@
+v26.3.85 (2026-09-10)
+-------------------------
+ * Let agent users see ticket analytics scoped to their team
+ * Add dedicated permission for raw ticket analytics export
+
 v26.3.84 (2026-09-09)
 -------------------------
  * Lower the default workspace contact limit to 10 million
