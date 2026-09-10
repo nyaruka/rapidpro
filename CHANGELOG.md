@@ -1,3 +1,9 @@
+v26.3.86 (2026-09-10)
+-------------------------
+ * Read message status tags written either as a single overwritten tag or as a tag per status value
+ * Let an errored status tag win over wired or sent when it's the most recent
+ * Update repository URLs after rename to nyaruka/temba
+
 v26.3.85 (2026-09-10)
 -------------------------
  * Let agent users see ticket analytics scoped to their team
