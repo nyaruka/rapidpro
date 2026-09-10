@@ -40,10 +40,9 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(200, response.status_code)
         self.assertEqual(self.helpdesk, response.context["object"])
         self.assertEqual(f"{reverse('api.internal.articles')}.json", response.context["articles_endpoint"])
-        self.assertEqual(Article.MAX_DEPTH, response.context["max_depth"])
         self.assertEqual(reverse("knowledge.article_sort"), response.context["sort_url"])
         self.assertEqual(reverse("knowledge.article_publish"), response.context["publish_url"])
-        self.assertContains(response, "temba-article-list")
+        self.assertContains(response, "temba-helpdesk-cards")
 
         # rows open the editor dialog rather than a page of their own, so the list offers no row actions of its own
         self.assertContains(response, 'id="update-article"')

@@ -338,7 +338,6 @@ class ArticleCRUDL(SmartCRUDL):
             context = super().get_context_data(**kwargs)
             context["object"] = self.helpdesk
             context["articles_endpoint"] = f"{reverse('api.internal.articles')}.json"
-            context["max_depth"] = Article.MAX_DEPTH
 
             # without the permission the component is given nowhere to post to, so it offers no drag at all - and
             # likewise no publish switch, leaving the status as something a row states rather than something it does

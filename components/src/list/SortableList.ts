@@ -77,6 +77,20 @@ export class SortableList extends RapidElement {
   @property({ type: Boolean })
   externalDrag: boolean = false;
 
+  /** How far (px) outside the container a drag still counts as internal.
+   * The generous default suits a list dragged out into open space; hosts
+   * whose drop zones sit close together (e.g. cards in a stack) tighten
+   * it so a neighboring zone is reachable. */
+  @property({ type: Number, attribute: 'external-drag-padding' })
+  externalDragPadding: number = EXTERNAL_DRAG_PADDING;
+
+  /** Keep the ghost following the pointer while the drag is outside the
+   * container. By default it hides - dragging out means dropping into
+   * some other representation - but a host moving items between sibling
+   * lists wants the picked-up item visibly carried the whole way. */
+  @property({ type: Boolean, attribute: 'ghost-external' })
+  ghostExternal: boolean = false;
+
   /**
    * Optional callback to allow parent components to customize the ghost node.
    * Called after the ghost node is cloned but before it is appended to the DOM.
@@ -136,10 +150,10 @@ export class SortableList extends RapidElement {
     const rect = container.getBoundingClientRect();
     // add some padding to make it easier to stay within the container
     return (
-      mouseX >= rect.left - EXTERNAL_DRAG_PADDING &&
-      mouseX <= rect.right + EXTERNAL_DRAG_PADDING &&
-      mouseY >= rect.top - EXTERNAL_DRAG_PADDING &&
-      mouseY <= rect.bottom + EXTERNAL_DRAG_PADDING
+      mouseX >= rect.left - this.externalDragPadding &&
+      mouseX <= rect.right + this.externalDragPadding &&
+      mouseY >= rect.top - this.externalDragPadding &&
+      mouseY <= rect.bottom + this.externalDragPadding
     );
   }
 
@@ -464,18 +478,43 @@ export class SortableList extends RapidElement {
         insertAfter: true
       };
     } else {
-      // For vertical layout, find the insertion point based on mouse Y position
-      for (let i = 0; i < elements.length; i++) {
-        const ele = elements[i];
-        const rect = ele.getBoundingClientRect();
-        const centerY = rect.top + rect.height / 2;
+      // For vertical layout the drop is judged by the dragged item's own
+      // box rather than the pointer: grabbed by its header, a tall item
+      // extends far beyond the cursor, and where the ITEM sits over the
+      // others is what the user is aiming. It lands against whichever
+      // element it most overlaps, on the side its center has crossed;
+      // clear of everything, its center scans the midpoints instead. The
+      // pointer stands in when there's no ghost to measure.
+      const ghost = this.ghostElement?.getBoundingClientRect();
+      const top = ghost ? ghost.top : mouseY;
+      const bottom = ghost ? ghost.bottom : mouseY;
+      const center = ghost ? (ghost.top + ghost.bottom) / 2 : mouseY;
 
-        if (mouseY < centerY) {
-          // Insert before this element
+      let best: HTMLDivElement = null;
+      let bestRect: DOMRect = null;
+      let bestOverlap = 0;
+      for (const ele of elements) {
+        const rect = ele.getBoundingClientRect();
+        const overlap = Math.min(bottom, rect.bottom) - Math.max(top, rect.top);
+        if (overlap > bestOverlap) {
+          bestOverlap = overlap;
+          best = ele as HTMLDivElement;
+          bestRect = rect;
+        }
+      }
+      if (best) {
+        return {
+          element: best,
+          insertAfter: center > bestRect.top + bestRect.height / 2
+        };
+      }
+
+      for (const ele of elements) {
+        const rect = ele.getBoundingClientRect();
+        if (center < rect.top + rect.height / 2) {
           return { element: ele as HTMLDivElement, insertAfter: false };
         }
       }
-      // If we're past all elements, insert after the last one
       return {
         element: elements[elements.length - 1] as HTMLDivElement,
         insertAfter: true
@@ -736,8 +775,9 @@ export class SortableList extends RapidElement {
 
         // hide the ghost element when dragging externally, remembering its
         // display (inlined from the original's computed style) so re-entry
-        // can restore it - forcing 'block' would break flex-laid-out ghosts
-        if (this.ghostElement) {
+        // can restore it - forcing 'block' would break flex-laid-out ghosts.
+        // A host carrying items between sibling lists keeps it instead.
+        if (this.ghostElement && !this.ghostExternal) {
           this.ghostOriginalDisplay = this.ghostElement.style.display;
           this.ghostElement.style.display = 'none';
         }
@@ -751,8 +791,9 @@ export class SortableList extends RapidElement {
         // transitioning back to internal drag
         this.isExternalDrag = false;
 
-        // show the ghost element again when dragging internally
-        if (this.ghostElement) {
+        // show the ghost element again when dragging internally - unless
+        // it was never hidden, whose inlined display must be left alone
+        if (this.ghostElement && !this.ghostExternal) {
           this.ghostElement.style.display =
             this.ghostOriginalDisplay || 'block';
         }
@@ -764,10 +805,18 @@ export class SortableList extends RapidElement {
 
       // only show drop placeholder and calculate drop position if internal drag
       if (!this.isExternalDrag) {
-        // Detach the placeholder before measuring so its presence cannot
-        // shift element positions (e.g. flex-wrap reflow) and feed back
-        // into the calculation, which would cause oscillation.
-        if (this.dropPlaceholder) {
+        // In horizontal (flex-wrap) layouts the placeholder is detached
+        // before measuring so its presence can't reflow the rows and feed
+        // back into the calculation, which would cause oscillation. In
+        // vertical layouts it stays put: elements are measured where the
+        // user actually sees them - with the dragged item's slot held
+        // open - so a swap needs the ghost to genuinely cross the target
+        // as shown. Measuring the compacted layout instead would put the
+        // next element's midpoint under the ghost from the start, making
+        // the first downward swap fire almost immediately. The slot
+        // moving on each swap also shifts the next midpoint away, which
+        // is the hysteresis that keeps repeated swaps from flapping.
+        if (this.horizontal && this.dropPlaceholder) {
           this.dropPlaceholder.remove();
         }
 
