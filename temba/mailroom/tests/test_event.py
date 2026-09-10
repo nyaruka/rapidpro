@@ -135,11 +135,29 @@ class EventTest(TembaTest):
             },
             {
                 "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
-                "SK": "evt#019a9336-9228-73e8-b4f5-3a2b42593008#sts",  # status tag for event 8
+                "SK": "evt#019a9336-9228-73e8-b4f5-3a2b42593008#sts",  # status tag for event 8 (older single tag)
                 "OrgID": self.org.id,
                 "Data": {
                     "created_on": "2025-11-17T19:07:58.472259Z",
                     "status": "wired",
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-73e8-b4f5-3a2b42593008#sts#E",  # per-status tag for event 8
+                "OrgID": self.org.id,
+                "Data": {
+                    "created_on": "2025-11-17T19:08:58.472259Z",
+                    "status": "errored",
+                },
+            },
+            {
+                "PK": "con#7e8ff9aa-4b60-49e2-81a6-e79c92635c1e",
+                "SK": "evt#019a9336-9228-73e8-b4f5-3a2b42593008#sts#S",  # per-status tag for event 8
+                "OrgID": self.org.id,
+                "Data": {
+                    "created_on": "2025-11-17T19:09:58.472259Z",
+                    "status": "sent",
                 },
             },
         ]
@@ -224,7 +242,7 @@ class EventTest(TembaTest):
                         "text": "Trying again",
                         "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                     },
-                    "_status": {"created_on": "2025-11-17T19:07:58.472259Z", "status": "wired"},
+                    "_status": {"created_on": "2025-11-17T19:09:58.472259Z", "status": "sent"},  # most advanced
                 },
             ],
         )
@@ -251,7 +269,7 @@ class EventTest(TembaTest):
                         "text": "Trying again",
                         "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                     },
-                    "_status": {"created_on": "2025-11-17T19:07:58.472259Z", "status": "wired"},
+                    "_status": {"created_on": "2025-11-17T19:09:58.472259Z", "status": "sent"},  # most advanced
                 },
             ],
         )

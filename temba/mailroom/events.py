@@ -49,6 +49,14 @@ class Event:
     # lifecycle events (opened/closed/reopened) which are shown everywhere
     ticket_detail_types = {TYPE_TICKET_ASSIGNED, TYPE_TICKET_NOTE_ADDED, TYPE_TICKET_TOPIC_CHANGED}
 
+    # message statuses in the order a message moves through them - failed and read are terminal, and errored ranks
+    # lowest because it's always followed by a retry which either moves the message on or fails it permanently
+    status_ranks = {"errored": 0, "wired": 1, "sent": 2, "delivered": 3, "read": 4, "failed": 5}
+
+    @classmethod
+    def _status_rank(cls, status_data: dict) -> int:
+        return cls.status_ranks.get(status_data.get("status"), -1)
+
     @classmethod
     def _from_item(cls, contact, item: dict) -> dict:
         assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event"
@@ -64,7 +72,9 @@ class Event:
     def _tag_from_item(cls, contact, item: dict) -> EventTag:
         assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event tag"
 
-        return EventTag(event_uuid=item["SK"][4:40], tag=item["SK"][41:], data=item.get("Data", {}))
+        # tag SKs are evt#<event-uuid>#<tag> optionally followed by #<qualifier>, e.g. evt#<uuid>#sts#D for a tag that
+        # is written per status value rather than overwritten
+        return EventTag(event_uuid=item["SK"][4:40], tag=item["SK"][41:].split("#")[0], data=item.get("Data", {}))
 
     @classmethod
     def get_by_contact(cls, contact, user, *, before: UUID, after: UUID, ticket: UUID, limit: int) -> list[dict]:
@@ -155,7 +165,12 @@ class Event:
                 if tag.tag == "del":
                     event["_deleted"] = tag.data
                 elif tag.tag == "sts":
-                    event["_status"] = tag.data
+                    # a message can have several status tags (one per status value) as well as a single overwritten
+                    # tag from older writers, and since a message's status only ever moves forward, the most advanced
+                    # status recorded is its current one
+                    current = event.get("_status")
+                    if not current or cls._status_rank(tag.data) > cls._status_rank(current):
+                        event["_status"] = tag.data
 
         user_uuids = {event["_user"]["uuid"] for event in events if event.get("_user")}
         users_by_uuid = {str(u.uuid): u for u in org.get_users().filter(uuid__in=user_uuids)}
