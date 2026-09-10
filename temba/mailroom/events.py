@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+import iso8601
+
 from temba.users.models import User
 from temba.utils import dynamo
 
@@ -49,13 +51,26 @@ class Event:
     # lifecycle events (opened/closed/reopened) which are shown everywhere
     ticket_detail_types = {TYPE_TICKET_ASSIGNED, TYPE_TICKET_NOTE_ADDED, TYPE_TICKET_TOPIC_CHANGED}
 
-    # message statuses in the order a message moves through them - failed and read are terminal, and errored ranks
-    # lowest because it's always followed by a retry which either moves the message on or fails it permanently
-    status_ranks = {"errored": 0, "wired": 1, "sent": 2, "delivered": 3, "read": 4, "failed": 5}
+    # message statuses in the order a message moves through them - failed and read are terminal. Errored isn't part of
+    # that progression: it can be recorded against a message that's already wired or sent, and is followed by a retry
+    # which either moves the message on or fails it permanently, so it only counts when it's the most recent status.
+    status_ranks = {"wired": 1, "sent": 2, "delivered": 3, "read": 4, "failed": 5}
+    status_errored = "errored"
 
     @classmethod
-    def _status_rank(cls, status_data: dict) -> int:
-        return cls.status_ranks.get(status_data.get("status"), -1)
+    def _is_later_status(cls, new: dict, current: dict) -> bool:
+        """
+        Whether the given new status tag represents a later state of the message than the current one.
+        """
+        if cls.status_errored in (new["status"], current["status"]):
+            new_rank, current_rank = cls.status_ranks.get(new["status"], 0), cls.status_ranks.get(current["status"], 0)
+
+            # errored can't follow delivery, so only competes with wired and sent, and then by which happened last
+            if max(new_rank, current_rank) >= cls.status_ranks["delivered"]:
+                return new_rank > current_rank
+            return iso8601.parse_date(new["created_on"]) > iso8601.parse_date(current["created_on"])
+
+        return cls.status_ranks.get(new["status"], 0) > cls.status_ranks.get(current["status"], 0)
 
     @classmethod
     def _from_item(cls, contact, item: dict) -> dict:
@@ -166,10 +181,9 @@ class Event:
                     event["_deleted"] = tag.data
                 elif tag.tag == "sts":
                     # a message can have several status tags (one per status value) as well as a single overwritten
-                    # tag from older writers, and since a message's status only ever moves forward, the most advanced
-                    # status recorded is its current one
+                    # tag from older writers, so we take the one representing the latest state of the message
                     current = event.get("_status")
-                    if not current or cls._status_rank(tag.data) > cls._status_rank(current):
+                    if not current or cls._is_later_status(tag.data, current):
                         event["_status"] = tag.data
 
         user_uuids = {event["_user"]["uuid"] for event in events if event.get("_user")}

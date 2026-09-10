@@ -147,7 +147,7 @@ class EventTest(TembaTest):
                 "SK": "evt#019a9336-9228-73e8-b4f5-3a2b42593008#sts#E",  # per-status tag for event 8
                 "OrgID": self.org.id,
                 "Data": {
-                    "created_on": "2025-11-17T19:08:58.472259Z",
+                    "created_on": "2025-11-17T19:10:58.472259Z",  # errored after being sent, awaiting retry
                     "status": "errored",
                 },
             },
@@ -242,7 +242,7 @@ class EventTest(TembaTest):
                         "text": "Trying again",
                         "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                     },
-                    "_status": {"created_on": "2025-11-17T19:09:58.472259Z", "status": "sent"},  # most advanced
+                    "_status": {"created_on": "2025-11-17T19:10:58.472259Z", "status": "errored"},  # most recent
                 },
             ],
         )
@@ -269,7 +269,7 @@ class EventTest(TembaTest):
                         "text": "Trying again",
                         "channel": {"uuid": str(self.channel.uuid), "name": "Test Channel"},
                     },
-                    "_status": {"created_on": "2025-11-17T19:09:58.472259Z", "status": "sent"},  # most advanced
+                    "_status": {"created_on": "2025-11-17T19:10:58.472259Z", "status": "errored"},  # most recent
                 },
             ],
         )
@@ -438,6 +438,46 @@ class EventTest(TembaTest):
                 "019a9336-9228-73e8-b4f5-3a2b42593bb0",
                 "019a9336-9228-71f0-becb-a56435927677",
             ],
+        )
+
+    def test_is_later_status(self):
+        def sts(status: str, created_on: str) -> dict:
+            return {"status": status, "created_on": created_on}
+
+        # progression statuses compare by how far along the message is
+        self.assertTrue(
+            Event._is_later_status(sts("sent", "2025-11-17T19:00:00Z"), sts("wired", "2025-11-17T19:01:00Z"))
+        )
+        self.assertFalse(
+            Event._is_later_status(sts("wired", "2025-11-17T19:01:00Z"), sts("sent", "2025-11-17T19:00:00Z"))
+        )
+        self.assertFalse(
+            Event._is_later_status(sts("read", "2025-11-17T19:00:00Z"), sts("read", "2025-11-17T19:01:00Z"))
+        )
+        self.assertTrue(
+            Event._is_later_status(sts("failed", "2025-11-17T19:00:00Z"), sts("delivered", "2025-11-17T19:01:00Z"))
+        )
+
+        # errored competes with wired and sent by which happened last
+        self.assertTrue(
+            Event._is_later_status(sts("errored", "2025-11-17T19:01:00Z"), sts("wired", "2025-11-17T19:00:00Z"))
+        )
+        self.assertFalse(
+            Event._is_later_status(sts("errored", "2025-11-17T19:00:00Z"), sts("sent", "2025-11-17T19:01:00Z"))
+        )
+        self.assertTrue(
+            Event._is_later_status(sts("wired", "2025-11-17T19:05:00Z"), sts("errored", "2025-11-17T19:00:00Z"))
+        )
+        self.assertFalse(
+            Event._is_later_status(sts("errored", "2025-11-17T19:00:00Z"), sts("errored", "2025-11-17T19:00:00Z"))
+        )
+
+        # but never beats delivered, read or failed
+        self.assertFalse(
+            Event._is_later_status(sts("errored", "2025-11-17T19:05:00Z"), sts("delivered", "2025-11-17T19:00:00Z"))
+        )
+        self.assertTrue(
+            Event._is_later_status(sts("read", "2025-11-17T19:00:00Z"), sts("errored", "2025-11-17T19:05:00Z"))
         )
 
     def test_from_item(self):
