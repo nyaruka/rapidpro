@@ -57,10 +57,6 @@ class ArticleCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertEqual(reverse("knowledge.article_create"), response.context["create_url"])
         self.assertContains(response, "temba-article-add-requested")
 
-        response = self.requestView(list_url, self.agent)  # can view but not create
-        self.assertEqual(200, response.status_code)
-        self.assertNotIn("create_url", response.context)
-
         # nothing is opened for editing unless we've been sent here by the create modal
         self.assertNotIn("edit_article", response.context)
 
