@@ -91,6 +91,13 @@ export class SortableList extends RapidElement {
   @property({ type: Boolean, attribute: 'ghost-external' })
   ghostExternal: boolean = false;
 
+  /** Where the ghost is appended for the drag. It goes to document.body
+   * by default, which puts it above everything but outside any shadow
+   * root - so a host whose items are styled by its own stylesheet hands
+   * over its render root, and the ghost keeps looking like the item. */
+  @property({ attribute: false })
+  ghostContainer: Node = null;
+
   /**
    * Optional callback to allow parent components to customize the ghost node.
    * Called after the ghost node is cloned but before it is appended to the DOM.
@@ -211,13 +218,16 @@ export class SortableList extends RapidElement {
             ) {
               try {
                 // Copy common temba component properties
+                // state the clone can't pick up from markup. Not
+                // textContent: cloneNode already carried the text, and
+                // assigning it would flatten an element's children -
+                // a nested list's rows - into a string
                 const tembaProps = [
                   'value',
                   'values',
                   'selectedValue',
                   'checked',
-                  'selected',
-                  'textContent'
+                  'selected'
                 ];
                 tembaProps.forEach((prop) => {
                   if (
@@ -741,8 +751,9 @@ export class SortableList extends RapidElement {
         this.prepareGhost(this.ghostElement);
       }
 
-      // Add the clone to document.body for dragging
-      document.body.appendChild(this.ghostElement);
+      // Add the clone to the host's chosen container (document.body by
+      // default) for dragging
+      (this.ghostContainer || document.body).appendChild(this.ghostElement);
 
       // Show initial placeholder in the original position to maintain layout
       this.showInitialPlaceholder();

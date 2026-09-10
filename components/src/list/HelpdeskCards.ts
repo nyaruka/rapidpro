@@ -408,6 +408,9 @@ export class HelpdeskCards extends RapidElement {
 
   /** The ghost is a deep clone appended to document.body, sized to the
    * original card - so an open card drags as an open card. */
+  // Ghosts are appended to our own render root rather than the body so
+  // the rows inside a dragged card (and a dragged row itself) keep the
+  // styling this stylesheet gives them.
   private prepareGhost = (ghost: HTMLElement) => {
     ghost.removeAttribute('id');
     ghost.style.overflow = 'hidden';
@@ -444,8 +447,10 @@ export class HelpdeskCards extends RapidElement {
   /** The card under the pointer, and the slot within it the drop would
    * take - held open by the placeholder the render draws from this. */
   private findDropTarget(mouseX: number, mouseY: number): DropTarget {
+    // the card being dragged rides along as a ghost in this same root -
+    // it isn't a place to drop
     const cards = Array.from(
-      this.shadowRoot.querySelectorAll('temba-card')
+      this.shadowRoot.querySelectorAll('temba-card:not(.ghost)')
     ) as any[];
 
     const section = cards.findIndex((card) => {
@@ -636,6 +641,7 @@ export class HelpdeskCards extends RapidElement {
       <temba-sortable-list
         class="rows ${group.articles.length ? '' : 'empty'}"
         dragHandle="drag-handle"
+        .ghostContainer=${this.renderRoot}
         .externalDrag=${true}
         .ghostExternal=${true}
         .externalDragPadding=${8}
@@ -728,6 +734,7 @@ export class HelpdeskCards extends RapidElement {
                 class="stack"
                 gap="12px"
                 dragHandle="card-header"
+                .ghostContainer=${this.renderRoot}
                 .prepareGhost=${this.prepareGhost}
                 @temba-order-changed=${this.handleCardSwap}
               >

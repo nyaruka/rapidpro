@@ -363,6 +363,15 @@ describe(TAG, () => {
     expect(configuring.classList.contains('draft')).to.be.false;
   });
 
+  it('keeps a dragged card and row in its own root', async () => {
+    // ghosts appended to the body would fall outside this stylesheet
+    const cards = await getCards();
+    const stack = cards.shadowRoot.querySelector('.stack') as any;
+    expect(stack.ghostContainer).to.equal(cards.shadowRoot);
+    const rows = cards.shadowRoot.querySelector('.rows') as any;
+    expect(rows.ghostContainer).to.equal(cards.shadowRoot);
+  });
+
   it('opens an article from its row', async () => {
     const cards = await getCards();
     await expandAll(cards);

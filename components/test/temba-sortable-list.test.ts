@@ -93,6 +93,25 @@ describe('temba-sortable-list', () => {
     });
   });
 
+  it('appends the ghost to the given container', async () => {
+    const list: SortableList = await createSorter(BORING_LIST);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    list.ghostContainer = container;
+
+    const bounds = list.getBoundingClientRect();
+    await moveMouse(bounds.left + 20, bounds.bottom - 10);
+    await mouseDown();
+    await moveMouse(bounds.left + 30, bounds.bottom - 10);
+
+    expect(list.ghostElement).to.not.be.null;
+    expect(list.ghostElement.parentNode).to.equal(container);
+
+    await mouseUp();
+    clock.runAll();
+    container.remove();
+  });
+
   it('handles prepareGhost callback', async () => {
     const list: SortableList = await createSorter(BORING_LIST);
     let ghostPrepared = false;
