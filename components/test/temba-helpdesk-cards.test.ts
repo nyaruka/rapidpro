@@ -349,12 +349,19 @@ describe(TAG, () => {
     expect(gettingStarted.hasAttribute('unpublished')).to.be.false;
     expect(flows.hasAttribute('unpublished')).to.be.true;
 
-    // publishing the section itself brings the card back
+    // publishing the section itself brings the card back straight away,
+    // and it stays back once the tree is reconciled against the server -
+    // which now agrees
+    clearMockGets();
+    mockGET(/\/api\/internal\/articles\.json/, { results: ARTICLES });
     const toggle = flows.querySelector('.section-actions temba-toggle') as any;
     toggle.click();
     await waitForCondition(() => getPublishPosts().length > 0);
     await cards.updateComplete;
     expect(flows.hasAttribute('unpublished')).to.be.false;
+    await waitForCondition(
+      () => !getCardElements(cards)[1].hasAttribute('unpublished')
+    );
   });
 
   it('dims a draft article row', async () => {

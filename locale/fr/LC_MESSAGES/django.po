@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-10 10:50-0700\n"
+"POT-Creation-Date: 2026-09-10 12:08-0700\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -5536,9 +5536,11 @@ msgstr "Vous avez atteint la limite de %(limit)s articles. Vous devez supprimer 
 msgid "The section <b>%(object)s</b> still holds articles. Move or delete them before deleting the section."
 msgstr "La section <b>%(object)s</b> contient encore des articles. Déplacez-les ou supprimez-les avant de supprimer la section."
 
+#, python-format
 msgid "You are about to delete the section <b>%(object)s</b>. There is no way to undo this. Are you sure?"
 msgstr "Vous êtes sur le point de supprimer la section <b>%(object)s</b>. Cette action est irréversible. Voulez-vous continuer ?"
 
+#, python-format
 msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. There is no way to undo this. Are you sure?"
 msgstr "Vous êtes sur le point de supprimer l'article <b>%(object)s</b> et ses captures d'écran. Cette action est irréversible. Voulez-vous continuer ?"
 
