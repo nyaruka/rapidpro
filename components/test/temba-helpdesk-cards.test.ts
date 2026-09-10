@@ -333,6 +333,30 @@ describe(TAG, () => {
     expect(pills.length).to.equal(1);
   });
 
+  it('dims a card whose section and articles are all drafts', async () => {
+    // Flows and everything in it unpublished; Getting Started keeps a
+    // published article under its (now draft) root, so it stays lit
+    const drafts = ARTICLES.map((row) =>
+      ['flows', 'nodes', 'getting-started'].includes(row.uuid)
+        ? { ...row, status: 'draft' }
+        : row
+    );
+    clearMockGets();
+    mockGET(/\/api\/internal\/articles\.json/, { results: drafts });
+
+    const cards = await getCards({ 'publish-endpoint': PUBLISH_URL });
+    const [gettingStarted, flows] = getCardElements(cards);
+    expect(gettingStarted.hasAttribute('unpublished')).to.be.false;
+    expect(flows.hasAttribute('unpublished')).to.be.true;
+
+    // publishing the section itself brings the card back
+    const toggle = flows.querySelector('.section-actions temba-toggle') as any;
+    toggle.click();
+    await waitForCondition(() => getPublishPosts().length > 0);
+    await cards.updateComplete;
+    expect(flows.hasAttribute('unpublished')).to.be.false;
+  });
+
   it('opens an article from its row', async () => {
     const cards = await getCards();
     await expandAll(cards);

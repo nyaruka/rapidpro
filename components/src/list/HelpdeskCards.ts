@@ -178,6 +178,15 @@ export class HelpdeskCards extends RapidElement {
         display: block;
       }
 
+      /* a section nothing of which is published - the root and every
+         article in it a draft - contributes nothing to what agents can
+         find, so the whole card recedes rather than each row pleading
+         its own case. The controls stay live: this is a state, not a
+         lock. */
+      temba-card[unpublished] {
+        opacity: 0.55;
+      }
+
       /* a drop landing on a shut card files into it, so the whole card
          reads as the landing place */
       temba-card[drop-into] {
@@ -635,6 +644,16 @@ export class HelpdeskCards extends RapidElement {
     `;
   }
 
+  /** Whether nothing in the section is published: the root and every
+   * article under it are drafts. A draft root with published articles
+   * isn't this - those articles are still indexed on their own. */
+  private isUnpublished(group: Section): boolean {
+    return (
+      group.section.status === 'draft' &&
+      group.articles.every((article) => article.status === 'draft')
+    );
+  }
+
   private renderCard(group: Section, index: number): TemplateResult {
     const target = this.dropTarget;
 
@@ -649,6 +668,7 @@ export class HelpdeskCards extends RapidElement {
         label=${group.section.title}
         count=${group.articles.length}
         ?drop-into=${target && target.section === index && target.into}
+        ?unpublished=${this.isUnpublished(group)}
       >
         <div slot="header-actions" class="section-actions">
           <span
