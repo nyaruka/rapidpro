@@ -1,3 +1,7 @@
+v26.3.87 (2026-09-10)
+-------------------------
+ * Fail contact import preview cleanly when a new group is requested at the group limit
+
 v26.3.86 (2026-09-10)
 -------------------------
  * Read message status tags written either as a single overwritten tag or as a tag per status value
