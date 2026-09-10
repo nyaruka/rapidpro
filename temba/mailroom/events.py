@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+import iso8601
+
 from temba.users.models import User
 from temba.utils import dynamo
 
@@ -49,6 +51,27 @@ class Event:
     # lifecycle events (opened/closed/reopened) which are shown everywhere
     ticket_detail_types = {TYPE_TICKET_ASSIGNED, TYPE_TICKET_NOTE_ADDED, TYPE_TICKET_TOPIC_CHANGED}
 
+    # message statuses in the order a message moves through them - failed and read are terminal. Errored isn't part of
+    # that progression: it can be recorded against a message that's already wired or sent, and is followed by a retry
+    # which either moves the message on or fails it permanently, so it only counts when it's the most recent status.
+    status_ranks = {"wired": 1, "sent": 2, "delivered": 3, "read": 4, "failed": 5}
+    status_errored = "errored"
+
+    @classmethod
+    def _is_later_status(cls, new: dict, current: dict) -> bool:
+        """
+        Whether the given new status tag represents a later state of the message than the current one.
+        """
+        if cls.status_errored in (new["status"], current["status"]):
+            new_rank, current_rank = cls.status_ranks.get(new["status"], 0), cls.status_ranks.get(current["status"], 0)
+
+            # errored can't follow delivery, so only competes with wired and sent, and then by which happened last
+            if max(new_rank, current_rank) >= cls.status_ranks["delivered"]:
+                return new_rank > current_rank
+            return iso8601.parse_date(new["created_on"]) > iso8601.parse_date(current["created_on"])
+
+        return cls.status_ranks.get(new["status"], 0) > cls.status_ranks.get(current["status"], 0)
+
     @classmethod
     def _from_item(cls, contact, item: dict) -> dict:
         assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event"
@@ -64,7 +87,9 @@ class Event:
     def _tag_from_item(cls, contact, item: dict) -> EventTag:
         assert item["OrgID"] == contact.org_id, "org ID mismatch for contact event tag"
 
-        return EventTag(event_uuid=item["SK"][4:40], tag=item["SK"][41:], data=item.get("Data", {}))
+        # tag SKs are evt#<event-uuid>#<tag> optionally followed by #<qualifier>, e.g. evt#<uuid>#sts#D for a tag that
+        # is written per status value rather than overwritten
+        return EventTag(event_uuid=item["SK"][4:40], tag=item["SK"][41:].split("#")[0], data=item.get("Data", {}))
 
     @classmethod
     def get_by_contact(cls, contact, user, *, before: UUID, after: UUID, ticket: UUID, limit: int) -> list[dict]:
@@ -155,7 +180,11 @@ class Event:
                 if tag.tag == "del":
                     event["_deleted"] = tag.data
                 elif tag.tag == "sts":
-                    event["_status"] = tag.data
+                    # a message can have several status tags (one per status value) as well as a single overwritten
+                    # tag from older writers, so we take the one representing the latest state of the message
+                    current = event.get("_status")
+                    if not current or cls._is_later_status(tag.data, current):
+                        event["_status"] = tag.data
 
         user_uuids = {event["_user"]["uuid"] for event in events if event.get("_user")}
         users_by_uuid = {str(u.uuid): u for u in org.get_users().filter(uuid__in=user_uuids)}
