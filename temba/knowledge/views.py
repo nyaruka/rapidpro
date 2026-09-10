@@ -22,7 +22,7 @@ from temba.orgs.views.mixins import OrgObjPermsMixin, OrgPermsMixin, RequireFeat
 from temba.utils import json
 from temba.utils.views.mixins import ContextMenuMixin, PostOnlyMixin, SpaMixin
 
-from .forms import ArticleCreateForm, ArticleForm, KnowledgeForm, KnowledgeUpdateForm
+from .forms import ArticleCreateForm, ArticleForm, KnowledgeForm, KnowledgeUpdateForm, SectionForm
 from .models import Article, ArticleImage, Knowledge, KnowledgeItem
 
 
@@ -311,12 +311,13 @@ class ArticleCRUDL(SmartCRUDL):
         menu_path = "/knowledge/helpdesk"
 
         def build_context_menu(self, menu):
+            # the menu makes sections; articles are added from the card of the section they go in
             if self.has_org_perm("knowledge.article_create"):
                 menu.add_modax(
-                    _("New"),
-                    "new-article",
+                    _("New Section"),
+                    "new-section",
                     reverse("knowledge.article_create"),
-                    title=_("New Article"),
+                    title=_("New Section"),
                     as_button=True,
                 )
 
@@ -338,7 +339,6 @@ class ArticleCRUDL(SmartCRUDL):
             context = super().get_context_data(**kwargs)
             context["object"] = self.helpdesk
             context["articles_endpoint"] = f"{reverse('api.internal.articles')}.json"
-            context["max_depth"] = Article.MAX_DEPTH
 
             # without the permission the component is given nowhere to post to, so it offers no drag at all - and
             # likewise no publish switch, leaving the status as something a row states rather than something it does
@@ -346,6 +346,8 @@ class ArticleCRUDL(SmartCRUDL):
                 context["sort_url"] = reverse("knowledge.article_sort")
             if self.has_org_perm("knowledge.article_publish"):
                 context["publish_url"] = reverse("knowledge.article_publish")
+            if self.has_org_perm("knowledge.article_create"):
+                context["create_url"] = reverse("knowledge.article_create")
 
             article = self.derive_article_to_edit()
             if article:
@@ -354,8 +356,30 @@ class ArticleCRUDL(SmartCRUDL):
             return context
 
     class Create(HelpdeskMixin, BaseCreateModal):
-        form_class = ArticleCreateForm
-        title = _("New Article")
+        """
+        Makes a section, or - named a section by ?section= - an article filed under it. A section is described here
+        and done; an article is only titled, and its author is dropped into the editor to write it.
+        """
+
+        @cached_property
+        def section(self):
+            uuid = self.request.GET.get("section")
+            if not uuid:
+                return None
+
+            try:
+                section = self.helpdesk.articles.filter(uuid=uuid, parent=None, is_active=True).first()
+            except ValidationError:  # not a uuid at all
+                section = None
+            if not section:
+                raise Http404("no such section")
+            return section
+
+        def get_form_class(self):
+            return ArticleCreateForm if self.section else SectionForm
+
+        def derive_title(self):
+            return _("New Article") if self.section else _("New Section")
 
         def get_blocker(self) -> str:
             if self.helpdesk.articles.filter(is_active=True).count() >= Article.MAX_ARTICLES:
@@ -379,12 +403,20 @@ class ArticleCRUDL(SmartCRUDL):
         def save(self, obj):
             # must set self.object as smartmin ignores the return value
             self.object = Article.create(
-                self.helpdesk, self.request.user, obj.title, language=self.form.cleaned_data.get("language")
+                self.helpdesk,
+                self.request.user,
+                obj.title,
+                description=self.form.cleaned_data.get("description", ""),
+                parent=self.section,
+                language=self.form.cleaned_data.get("language"),
             )
 
         def get_success_url(self):
-            # back to the helpdesk, which opens the editor on what we just made
-            return f"{reverse('knowledge.article_list')}?edit={self.object.uuid}"
+            # back to the helpdesk - which, for an article, opens the editor on what we just made. A section is
+            # complete as described, so there's nothing to open.
+            if self.section:
+                return f"{reverse('knowledge.article_list')}?edit={self.object.uuid}"
+            return reverse("knowledge.article_list")
 
     class Update(BaseObject, BaseUpdateModal):
         """
@@ -393,12 +425,17 @@ class ArticleCRUDL(SmartCRUDL):
         status is a pill riding the title, stating rather than doing.
         """
 
-        form_class = ArticleForm
         success_url = "hide"  # the helpdesk refreshes its tree rather than navigating anywhere
         success_message = ""
 
+        def get_form_class(self):
+            # a section is described rather than written, so it gets the plain form instead of the editor
+            return SectionForm if self.get_object().is_section else ArticleForm
+
         def get_form(self):
             form = super().get_form()
+            if "body" not in form.fields:
+                return form
 
             # the dialog carries no title bar of its own, so the article's title stands as one (the template renders
             # it by hand, with the status pill riding inside it) and the article below it needs no label either
@@ -482,12 +519,33 @@ class ArticleCRUDL(SmartCRUDL):
             return JsonResponse({"status": "ok"})
 
     class Delete(BaseObject, BaseDeleteModal):
+        """
+        A section can't go while it holds articles - they'd be left as sections themselves - so the dialog says to
+        move or delete them first, and a post that tries anyway is refused.
+        """
+
         cancel_url = "@knowledge.article_list"
         redirect_url = "@knowledge.article_list"
         submit_button_name = _("Delete")
 
         def get_queryset(self, **kwargs):
             return super().get_queryset(**kwargs).filter(knowledge=self.helpdesk)
+
+        def get_blocker(self) -> str:
+            obj = self.get_object()
+            if obj.is_section and obj.children.filter(is_active=True).exists():
+                return "has_articles"
+            return ""
+
+        def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            context["blocker"] = self.get_blocker()
+            return context
+
+        def post(self, request, *args, **kwargs):
+            if self.get_blocker():
+                return self.get(request, *args, **kwargs)
+            return super().post(request, *args, **kwargs)
 
     class Sort(HelpdeskMixin, PostOnlyMixin, OrgPermsMixin, SmartTemplateView):
         """

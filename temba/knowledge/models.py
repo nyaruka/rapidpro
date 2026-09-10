@@ -572,6 +572,7 @@ class Article(models.Model):
     MAX_TITLE_LEN = 255
     MAX_SLUG_LEN = 255
     MAX_BODY_LEN = 100_000  # bodies are chunked and embedded, so this bounds what one article can cost to index
+    MAX_DESCRIPTION_LEN = 500  # a section says what it holds in a line or two, not an article
     MAX_DEPTH = 2  # total levels - a root and its children, no grandchildren; enforced by the reorder view
     MAX_ARTICLES = 1000  # per helpdesk
 
@@ -585,7 +586,10 @@ class Article(models.Model):
 
     title = models.CharField(max_length=MAX_TITLE_LEN)
     slug = models.SlugField(max_length=MAX_SLUG_LEN)
+    # a root of the tree is a section: a heading over the articles filed under it, described in plain text rather
+    # than written as an article. So a section has a description and no body, and an article the reverse.
     body = models.TextField(default="")  # markdown source
+    description = models.TextField(default="")
 
     # ISO-639-3, so a helpdesk can hold articles in several languages. Translations aren't linked to each other yet -
     # retrieval doesn't need them, as multilingual-e5 embeds cross-lingually, and linking is a question for the
@@ -604,7 +608,9 @@ class Article(models.Model):
     modified_on = models.DateTimeField(auto_now=True)
 
     @classmethod
-    def create(cls, knowledge, user, title: str, *, body: str = "", parent=None, language: str = None):
+    def create(
+        cls, knowledge, user, title: str, *, body: str = "", description: str = "", parent=None, language: str = None
+    ):
         assert knowledge.knowledge_type == Knowledge.TYPE_HELPDESK, "articles can only belong to a helpdesk"
         assert parent is None or parent.knowledge_id == knowledge.id, "parent must be in the same helpdesk"
 
@@ -618,6 +624,7 @@ class Article(models.Model):
             title=title,
             slug=cls.get_unique_slug(knowledge, title),
             body=body,
+            description=description,
             language=language or knowledge.org.flow_languages[0],
             created_by=user,
             modified_by=user,
@@ -719,6 +726,10 @@ class Article(models.Model):
     @property
     def org(self):
         return self.knowledge.org
+
+    @property
+    def is_section(self) -> bool:
+        return self.parent_id is None
 
     def as_html(self) -> str:
         return render_markdown(self.body, self.knowledge.colors)

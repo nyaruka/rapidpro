@@ -350,19 +350,25 @@ class ArticleTest(TembaTest):
         self.assertEqual(0, article1.sort_order)
         self.assertEqual("getting-started", article1.slug)
         self.assertEqual("", article1.body)
+        self.assertEqual("", article1.description)
+        self.assertTrue(article1.is_section)  # a root of the tree is a section
         self.assertEqual(Article.STATUS_DRAFT, article1.status)  # new articles are always drafts
         self.assertIsNone(article1.published_on)
         self.assertEqual("eng", article1.language)  # defaults to the workspace's primary flow language
 
         # new articles go to the end of their level so creating one never reshuffles the tree
-        article2 = Article.create(self.helpdesk, self.admin, "Flows", body="# Flows", language="spa")
+        article2 = Article.create(
+            self.helpdesk, self.admin, "Flows", body="# Flows", description="All about flows.", language="spa"
+        )
         self.assertEqual(1, article2.sort_order)
         self.assertEqual("# Flows", article2.body)
+        self.assertEqual("All about flows.", article2.description)
         self.assertEqual("spa", article2.language)
 
         child = Article.create(self.helpdesk, self.admin, "Nodes", parent=article2)
         self.assertEqual(article2, child.parent)
         self.assertEqual(0, child.sort_order)
+        self.assertFalse(child.is_section)
 
     def test_get_tree(self):
         flows = self.create_article(self.helpdesk, "Flows")

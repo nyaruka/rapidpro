@@ -2,8 +2,23 @@
 {% load i18n %}
 
 {% block fields %}
-  {% blocktrans trimmed %}
-    You are about to delete the article <b>{{ object }}</b> and its screenshots. Any articles beneath it will move up
-    to take its place. There is no way to undo this. Are you sure?
-  {% endblocktrans %}
+  {% if blocker == "has_articles" %}
+    <temba-alert level="warning">
+      {% blocktrans trimmed %}
+        The section <b>{{ object }}</b> still holds articles. Move or delete them before deleting the section.
+      {% endblocktrans %}
+    </temba-alert>
+  {% elif object.is_section %}
+    {% blocktrans trimmed %}
+      You are about to delete the section <b>{{ object }}</b>. There is no way to undo this. Are you sure?
+    {% endblocktrans %}
+  {% else %}
+    {% blocktrans trimmed %}
+      You are about to delete the article <b>{{ object }}</b> and its screenshots. There is no way to undo this. Are
+      you sure?
+    {% endblocktrans %}
+  {% endif %}
 {% endblock fields %}
+{% block form-buttons %}
+  {% if not blocker %}{{ block.super }}{% endif %}
+{% endblock form-buttons %}

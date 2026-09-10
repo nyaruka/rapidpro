@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 15:15+0000\n"
+"POT-Creation-Date: 2026-09-10 12:08-0700\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
@@ -2808,6 +2808,9 @@ msgstr "Título"
 msgid "Body"
 msgstr "Cuerpo"
 
+msgid "Description"
+msgstr "Descripción"
+
 msgid "Shortcuts"
 msgstr "Atajos"
 
@@ -2871,6 +2874,9 @@ msgstr "Tipo de archivo no admitido"
 #, python-format
 msgid "Limit for file uploads is %s MB"
 msgstr "El límite para la subida de archivos es de %s MB"
+
+msgid "New Section"
+msgstr "Nueva sección"
 
 msgid "New Article"
 msgstr "Nuevo artículo"
@@ -5523,8 +5529,16 @@ msgid "You have reached the limit of %(limit)s articles. You must delete existin
 msgstr "Ha alcanzado el límite de %(limit)s artículos. Debe eliminar los existentes antes de poder crear nuevos."
 
 #, python-format
-msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. Any articles beneath it will move up to take its place. There is no way to undo this. Are you sure?"
-msgstr "Está a punto de eliminar el artículo <b>%(object)s</b> y sus capturas de pantalla. Los artículos que están debajo subirán para ocupar su lugar. No hay forma de deshacer esto. ¿Está seguro?"
+msgid "The section <b>%(object)s</b> still holds articles. Move or delete them before deleting the section."
+msgstr "La sección <b>%(object)s</b> todavía contiene artículos. Muévalos o elimínelos antes de eliminar la sección."
+
+#, python-format
+msgid "You are about to delete the section <b>%(object)s</b>. There is no way to undo this. Are you sure?"
+msgstr "Está a punto de eliminar la sección <b>%(object)s</b>. No hay forma de deshacer esto. ¿Está seguro?"
+
+#, python-format
+msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. There is no way to undo this. Are you sure?"
+msgstr "Está a punto de eliminar el artículo <b>%(object)s</b> y sus capturas de pantalla. No hay forma de deshacer esto. ¿Está seguro?"
 
 msgid "Delete Article"
 msgstr "Eliminar artículo"

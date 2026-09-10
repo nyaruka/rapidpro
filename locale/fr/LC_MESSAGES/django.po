@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-09 15:15+0000\n"
+"POT-Creation-Date: 2026-09-10 12:08-0700\n"
 "PO-Revision-Date: 2019-05-13 20:14+0000\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
@@ -2808,6 +2808,9 @@ msgstr "Titre"
 msgid "Body"
 msgstr "Corps"
 
+msgid "Description"
+msgstr "Description"
+
 msgid "Shortcuts"
 msgstr "Raccourcis"
 
@@ -2871,6 +2874,9 @@ msgstr "Type de fichier non pris en charge"
 #, python-format
 msgid "Limit for file uploads is %s MB"
 msgstr "La limite pour les envois de fichiers est de %s Mo"
+
+msgid "New Section"
+msgstr "Nouvelle section"
 
 msgid "New Article"
 msgstr "Nouvel article"
@@ -5527,8 +5533,16 @@ msgid "You have reached the limit of %(limit)s articles. You must delete existin
 msgstr "Vous avez atteint la limite de %(limit)s articles. Vous devez supprimer des articles existants avant de pouvoir en créer de nouveaux."
 
 #, python-format
-msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. Any articles beneath it will move up to take its place. There is no way to undo this. Are you sure?"
-msgstr "Vous êtes sur le point de supprimer l'article <b>%(object)s</b> et ses captures d'écran. Les articles situés en dessous remonteront pour prendre sa place. Cette action est irréversible. Voulez-vous continuer ?"
+msgid "The section <b>%(object)s</b> still holds articles. Move or delete them before deleting the section."
+msgstr "La section <b>%(object)s</b> contient encore des articles. Déplacez-les ou supprimez-les avant de supprimer la section."
+
+#, python-format
+msgid "You are about to delete the section <b>%(object)s</b>. There is no way to undo this. Are you sure?"
+msgstr "Vous êtes sur le point de supprimer la section <b>%(object)s</b>. Cette action est irréversible. Voulez-vous continuer ?"
+
+#, python-format
+msgid "You are about to delete the article <b>%(object)s</b> and its screenshots. There is no way to undo this. Are you sure?"
+msgstr "Vous êtes sur le point de supprimer l'article <b>%(object)s</b> et ses captures d'écran. Cette action est irréversible. Voulez-vous continuer ?"
 
 msgid "Delete Article"
 msgstr "Supprimer l'article"

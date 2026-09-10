@@ -22,22 +22,22 @@
   {# after the editor, so its confirmation sits on top of it rather than behind #}
   <temba-modax header="{{ _("Delete Article") |escapejs }}" id="delete-article">
   </temba-modax>
-  <temba-article-list id="article-list"
-                      fill-window
-                      list-title="{% trans "Helpdesk" %}"
-                      endpoint="{{ articles_endpoint }}"
-                      content-menu-endpoint="{{ request.path }}"
-                      max-depth="{{ max_depth }}"
-                      {% if sort_url %}sort-endpoint="{{ sort_url }}"{% endif %}
-                      {% if publish_url %}publish-endpoint="{{ publish_url }}"{% endif %}
-                      -temba-selection="handleContentMenuSelected(event)"
-                      empty-message="{% trans "No articles" %}">
+  <temba-helpdesk-cards id="article-list"
+                        fill-window
+                        list-title="{% trans "Helpdesk" %}"
+                        endpoint="{{ articles_endpoint }}"
+                        content-menu-endpoint="{{ request.path }}"
+                        {% if sort_url %}sort-endpoint="{{ sort_url }}"{% endif %}
+                        {% if publish_url %}publish-endpoint="{{ publish_url }}"{% endif %}
+                        {% if create_url %}create-endpoint="{{ create_url }}"{% endif %}
+                        -temba-selection="handleContentMenuSelected(event)"
+                        empty-message="{% trans "No articles" %}">
     <div slot="subtitle">
       {% blocktrans trimmed %}
         Help articles written by your workspace. Published articles are searchable by AI agents.
       {% endblocktrans %}
     </div>
-  </temba-article-list>
+  </temba-helpdesk-cards>
 {% endblock content %}
 {% block extra-script %}
   {{ block.super }}
@@ -64,11 +64,15 @@
     onSpload(function() {
       var list = document.querySelector('#article-list');
 
-      // the list asks to navigate to the row that was clicked, but articles are read and written in the dialog here,
-      // so the request stops at the list rather than reaching the SPA's handler on the document
-      list.addEventListener('temba-redirected', function(event) {
-        event.stopPropagation();
+      {% if create_url %}
+      // each card offers to add an article to its section - the same create dialog the menu opens for a section,
+      // told which section the article goes in
+      list.addEventListener('temba-article-add-requested', function(event) {
+        showModax('{{ _("New Article") |escapejs }}', '{{ create_url }}?section=' + event.detail.section.uuid, {
+          id: 'new-article'
+        });
       });
+      {% endif %}
 
       {% if org_perms.knowledge.article_update %}
       list.addEventListener('temba-row-click', function(event) {
@@ -86,9 +90,9 @@
 {% block extra-style %}
   {{ block.super }}
   <style type="text/css">
-    /* The list component fills its container edge to edge and brings
-       its own surface, so drop the SPA content padding (and the grey
-       page background it would otherwise reveal around the list). */
+    /* The cards component carries its own insets, so drop the SPA
+       content padding - the cards float on the page background the way
+       the contact page's do. */
     .spa-content {
       padding: 0 !important;
     }
