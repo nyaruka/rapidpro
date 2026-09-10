@@ -1,12 +1,11 @@
 # Temba
 
-[![tag](https://img.shields.io/github/tag/nyaruka/temba.svg)](https://github.com/nyaruka/temba/releases)
 [![Build Status](https://github.com/nyaruka/temba/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nyaruka/temba/actions?query=workflow%3ACI)
 
 Temba is the frontend component of the RapidPro platform developed by [TextIt](https://textit.com). It's a cloud based SaaS for 
 visually building interactive messaging applications. To see what it can do, signup for a free trial account at [textit.com](https://textit.com).
 
-## Technology Stack
+## Stack
 
 - [PostgreSQL](https://www.postgresql.org)
 - [Valkey](https://valkey.io)
