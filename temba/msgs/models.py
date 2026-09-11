@@ -838,17 +838,20 @@ class Msg(models.Model):
             # used by API messages endpoint hence the ordering, and general fetching by org or contact
             models.Index(name="msgs_by_org", fields=["org", "-created_on", "-id"]),
             models.Index(name="msgs_by_contact", fields=["contact", "-created_on", "-id"]),
-            # used for finding errored messages to retry
+            # used for finding errored messages to retry. Neither this nor the Android index below reference status in
+            # their predicates so that changing status alone doesn't touch any index - next_attempt is only ever set
+            # whilst a message is awaiting a retry (i.e. initializing or errored) and outbox membership is exactly the
+            # statuses still waiting to be sent (the folder derivation lives in mailroom and courier).
             models.Index(
-                name="msgs_outgoing_to_retry",
+                name="msgs_outgoing_awaiting_retry",
                 fields=["next_attempt", "created_on", "id"],
-                condition=Q(direction="O", status__in=("I", "E"), next_attempt__isnull=False),
+                condition=Q(direction="O", next_attempt__isnull=False),
             ),
             # used for finding old Android messages to fail
             models.Index(
-                name="msgs_outgoing_android_to_fail",
+                name="msgs_android_outbox",
                 fields=["created_on"],
-                condition=Q(direction="O", is_android=True, status__in=("I", "Q", "E")),
+                condition=Q(direction="O", is_android=True, folder="O"),
             ),
             # used by the folder views and API folders, which filter by folder and page by uuid (time ordered as
             # message uuids are v7) - see MsgFolder.get_queryset. Partial on the user facing folders so it doesn't
