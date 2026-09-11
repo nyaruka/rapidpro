@@ -1,6 +1,6 @@
 [project]
 name = "temba"
-version = "26.3.85"
+version = "26.3.87"
 description = "Hosted service for visually building interactive messaging applications"
 authors = [
     {"name" = "Nyaruka", "email" = "code@nyaruka.com"}
@@ -53,7 +53,7 @@ dependencies = [
 ]
 
 [project.urls]
-repository = "http://github.com/rapidpro/rapidpro"
+repository = "https://github.com/nyaruka/temba"
 
 
 [dependency-groups]
