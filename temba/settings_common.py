@@ -77,8 +77,9 @@ STORAGES = {
             "querystring_auth": False,
         },
     },
-    # standard Django static files storage
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    # static files are served by the app itself (WhiteNoise) rather than a web server in front of it, so
+    # collectstatic also writes .gz/.br siblings for WhiteNoise to serve - it never compresses at request time
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
 
 # settings used by django-storages (defaults to localstack)
@@ -143,6 +144,13 @@ STATIC_URL = "/sitestatic/"
 COMPRESS_ROOT = os.path.join(PROJECT_DIR, "../sitestatic")
 MEDIA_ROOT = os.path.join(PROJECT_DIR, "../media")
 MEDIA_URL = "/media/"
+
+# WhiteNoise serves everything under STATIC_URL from STATIC_ROOT, so no web server needs to be configured to do it.
+# Two things to know about it: it only ever serves the .gz/.br siblings generated at collectstatic time, never
+# compressing a response on the fly, and it only marks a file immutable if the staticfiles storage is a manifest one
+# that can map the hashed name back - which ours isn't. So everything, hashed compressor bundle or not, gets this
+# max-age, chosen to match the far-future expiry a web server would have been configured to send for these.
+WHITENOISE_MAX_AGE = 315360000  # 10 years
 
 # -----------------------------------------------------------------------------------
 # Email
@@ -213,6 +221,7 @@ FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 MIDDLEWARE = (
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
